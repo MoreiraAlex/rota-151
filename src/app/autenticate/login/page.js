@@ -48,25 +48,19 @@ export default function ResgatarOfertaPage() {
     })
   }
 
-
   return (
     <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2 bg-background">
-
       {/* LOGIN */}
       <div className="flex items-center justify-center px-6">
         <div className="w-full max-w-md">
           <div className="mb-10">
             <div className="flex items-center gap-3 mb-6">
               <div className="h-12 w-12 rounded-full bg-primary flex items-center justify-center shadow-lg">
-                <span className="text-2xl">
-                  ⚡
-                </span>
+                <span className="text-2xl">⚡</span>
               </div>
 
               <div>
-                <h1 className="text-3xl font-bold tracking-tight">
-                  ROTA 151
-                </h1>
+                <h1 className="text-3xl font-bold tracking-tight">ROTA 151</h1>
 
                 <p className="text-sm text-muted-foreground">
                   Mundo Pokémon Online
@@ -81,9 +75,7 @@ export default function ResgatarOfertaPage() {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="username">
-                Treinador
-              </Label>
+              <Label htmlFor="username">Treinador</Label>
 
               <Input
                 id="username"
@@ -95,9 +87,7 @@ export default function ResgatarOfertaPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">
-                Senha
-              </Label>
+              <Label htmlFor="password">Senha</Label>
 
               <Input
                 id="password"
@@ -123,8 +113,14 @@ export default function ResgatarOfertaPage() {
           </p>
 
           <div className="mt-6 text-center">
-            <p className="text-sm text-muted-foreground">Ainda não possui uma conta?</p>
-            <button type="button" onClick={() => router.push('/autenticate/signup')} className="mt-2 font-semibold text-primary hover:underline transition">
+            <p className="text-sm text-muted-foreground">
+              Ainda não possui uma conta?
+            </p>
+            <button
+              type="button"
+              onClick={() => router.push('/autenticate/signup')}
+              className="mt-2 font-semibold text-primary hover:underline transition"
+            >
               Criar treinador
             </button>
           </div>
@@ -145,9 +141,8 @@ export default function ResgatarOfertaPage() {
           </h2>
 
           <p className="mt-6 text-lg text-primary-foreground/80">
-            Uma nova região espera por você.
-            Encontre criaturas raras, enfrente treinadores
-            e construa sua própria história.
+            Uma nova região espera por você. Encontre criaturas raras, enfrente
+            treinadores e construa sua própria história.
           </p>
 
           <div className="mt-10 flex gap-4">

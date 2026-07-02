@@ -21,7 +21,6 @@ export const metadata = {
     'whatsapp',
     'OS',
   ],
-  // metadataBase: new URL('https://osupflow.com'),
   metadataBase: new URL('https://osupflow.moreiracode.com/'),
 }
 

@@ -18,7 +18,7 @@ export default function NotFound() {
           </p>
 
           <Button asChild className="w-full">
-            <Link href="/">Voltar ao sistema</Link>
+            <Link href="/">Voltar</Link>
           </Button>
         </CardContent>
       </Card>
