@@ -1,10 +1,22 @@
-import Logout from '@/components/button/logout'
+'use client'
 
-export default function Home() {
+import Logout from '@/shared/components/button/logout'
+import { Canvas } from '@react-three/fiber'
+import { WorldProvider } from '@/core/world/WorldProvider'
+import { GameLoop } from '@/core/app'
+import { GameScene } from '@/view/scene/GameScene'
+
+export default function GamePage() {
   return (
-    <div className="p-4 sm:p-6 space-y-6">
-      <h1 className="text-xl sm:text-2xl font-semibold">OI</h1>
-      <Logout />
-    </div>
+    <WorldProvider>
+      <div className="h-screen w-screen">
+        {/* <Logout /> */}
+
+        <Canvas>
+          <GameLoop />
+          <GameScene />
+        </Canvas>
+      </div>
+    </WorldProvider>
   )
 }

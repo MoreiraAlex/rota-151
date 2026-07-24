@@ -1,11 +1,9 @@
 'use client'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { useState } from 'react'
-import { authClient } from '@/lib/auth-client'
+import { authClient } from '@/shared/lib/auth-client'
+import Image from 'next/image'
 
 export default function SignupPage() {
   const router = useRouter()
@@ -58,7 +56,13 @@ export default function SignupPage() {
           <div className="mb-10">
             <div className="flex items-center gap-3 mb-6">
               <div className="h-12 w-12 rounded-full bg-primary flex items-center justify-center shadow-lg">
-                <span className="text-2xl">⚡</span>
+                <Image
+                  src="/logo.png"
+                  alt="OS Upflow"
+                  width={100}
+                  height={100}
+                  className="object-contain"
+                />
               </div>
 
               <div>
@@ -73,45 +77,48 @@ export default function SignupPage() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="username">Nome do treinador</Label>
-              <Input
+            <div className="flex flex-col gap-2">
+              <label htmlFor="username">Nome do treinador</label>
+              <input
                 id="username"
                 name="username"
                 placeholder="Escolha seu nome"
                 required
+                className="p-2 rounded"
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
+            <div className="flex flex-col gap-2">
+              <label htmlFor="email">Email</label>
+              <input
                 id="email"
                 name="email"
                 type="email"
                 placeholder="email@exemplo.com"
                 required
+                className="p-2 rounded"
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
-              <Input
+            <div className="flex flex-col gap-2">
+              <label htmlFor="password">Senha</label>
+              <input
                 id="password"
                 name="password"
                 type="password"
                 placeholder="Crie uma senha"
                 required
+                className="p-2 rounded"
               />
             </div>
 
-            <Button
+            <button
               disabled={loading}
-              className="w-full h-12 text-base"
+              className="w-full h-12 text-base rounded bg-primary"
               type="submit"
             >
               {loading ? 'Preparando aventura...' : 'Criar treinador'}
-            </Button>
+            </button>
           </form>
 
           <p className="mt-8 text-center text-xs text-muted-foreground">

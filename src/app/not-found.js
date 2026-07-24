@@ -1,13 +1,13 @@
 'use client'
 
 import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
+// import { Button } from '@/shared/components/ui/button'
+// import { Card, CardContent } from '@/shared/components/ui/card'
 
 export default function NotFound() {
   return (
     <div className="min-h-[70vh] flex items-center justify-center p-6">
-      <Card className="w-full max-w-md text-center">
+      {/* <Card className="w-full max-w-md text-center">
         <CardContent className="p-8 space-y-4">
           <div className="text-5xl font-bold">404</div>
 
@@ -21,7 +21,7 @@ export default function NotFound() {
             <Link href="/">Voltar</Link>
           </Button>
         </CardContent>
-      </Card>
+      </Card> */}
     </div>
   )
 }

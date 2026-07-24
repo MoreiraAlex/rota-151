@@ -1,14 +1,12 @@
 'use client'
 
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { useState } from 'react'
-import { authClient } from '@/lib/auth-client'
+import { authClient } from '@/shared/lib/auth-client'
+import Image from 'next/image'
 
-export default function ResgatarOfertaPage() {
+export default function Login() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
 
@@ -56,7 +54,13 @@ export default function ResgatarOfertaPage() {
           <div className="mb-10">
             <div className="flex items-center gap-3 mb-6">
               <div className="h-12 w-12 rounded-full bg-primary flex items-center justify-center shadow-lg">
-                <span className="text-2xl">⚡</span>
+                <Image
+                  src="/logo.png"
+                  alt="OS Upflow"
+                  width={100}
+                  height={100}
+                  className="object-contain"
+                />
               </div>
 
               <div>
@@ -74,38 +78,38 @@ export default function ResgatarOfertaPage() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="space-y-2">
-              <Label htmlFor="username">Treinador</Label>
+            <div className="flex flex-col gap-2">
+              <label htmlFor="username">Treinador</label>
 
-              <Input
+              <input
                 id="username"
                 name="username"
                 placeholder="Seu nome de treinador"
-                className="h-12"
+                className="p-2 rounded"
                 required
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
+            <div className="flex flex-col gap-2">
+              <label htmlFor="password">Senha</label>
 
-              <Input
+              <input
                 id="password"
                 name="password"
                 type="password"
                 placeholder="Sua senha"
-                className="h-12"
+                className="p-2 rounded"
                 required
               />
             </div>
 
-            <Button
+            <button
               disabled={loading}
-              className="w-full h-12 text-base"
+              className="w-full h-12 text-base rounded bg-primary"
               type="submit"
             >
               {loading ? 'Entrando na região...' : 'Iniciar Jornada'}
-            </Button>
+            </button>
           </form>
 
           <p className="mt-8 text-xs text-center text-muted-foreground">

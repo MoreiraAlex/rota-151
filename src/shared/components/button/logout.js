@@ -1,6 +1,5 @@
 'use client'
-import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
+import { cn } from '@/shared/lib/utils'
 import { LogOut } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
@@ -41,13 +40,13 @@ export default function Logout({ className, variant = 'ghost' }) {
   }
 
   return (
-    <Button
+    <button
       variant={variant}
       onClick={handleLogout}
       className={cn('p-0 h-6', className)}
     >
       <LogOut className="w-4 mr-2" />
       Sair
-    </Button>
+    </button>
   )
 }
