@@ -1,6 +1,18 @@
 import { createWorld } from 'koota'
-import { Position, Rotation } from '../traits/components/Transform'
+import {
+  Position,
+  Rotation,
+  Velocity,
+  InputState,
+  InputControlled,
+} from '../traits'
 
 export const world = createWorld()
 
-export const cubeEntity = world.spawn(Position, Rotation)
+export const playerEntity = world.spawn(
+  Position({ x: 0, y: 0.5, z: 0 }),
+  Rotation,
+  Velocity,
+  InputState,
+  InputControlled,
+)

@@ -267,12 +267,12 @@ Ative a regra correspondente quando começar a implementar a feature. Antes diss
 
 ## 8. Pendências de código
 
-Ajustes que a definição destas regras revelou no código atual, a decidir e aplicar à parte:
+Ajustes que a definição destas regras revelou no código atual. **Todas resolvidas na versão 0.0.2** (ver `docs/features/0.0.2.md`):
 
-1. Mover `SyncTransformSystem` para fora do `core/` (elimina o import `core → view`).
-2. Mover o `useFrame` / `GameLoop.jsx` para a camada view.
-3. Padronizar a assinatura de system para `context = { world, delta }`.
-4. Adicionar clamp no acumulador do game loop.
-5. Trait `Rotation` usa valores que parecem graus — converter para radianos.
-6. Criar `src/core/gameConfig.js`.
-7. Renomear `Transform.js` → `transform.js` e `SyncTransformSystem.js` → `syncTransformSystem.js`.
+1. ~~Mover `SyncTransformSystem` para fora do `core/`~~ → `src/view/systems/syncTransformSystem.js`.
+2. ~~Mover o `useFrame` / `GameLoop.jsx` para a camada view~~ → `src/view/loop/GameLoop.jsx`.
+3. ~~Padronizar a assinatura de system para `context = { world, delta }`~~ → feito; nenhum system importa `world` de módulo.
+4. ~~Adicionar clamp no acumulador do game loop~~ → `MAX_FRAME_TIME` + `MAX_STEPS_PER_FRAME` em `GAME_CONFIG.LOOP`.
+5. ~~Trait `Rotation` usa valores que parecem graus~~ → convertido para radianos.
+6. ~~Criar `src/core/gameConfig.js`~~ → criado.
+7. ~~Renomear `Transform.js` / `SyncTransformSystem.js`~~ → `transform.js` / `syncTransformSystem.js`.
