@@ -14,6 +14,7 @@ const KEY_MAP = {
   ArrowLeft: 'left',
   KeyD: 'right',
   ArrowRight: 'right',
+  Space: 'jump',
 }
 
 export function createKeyboardInput() {
@@ -21,7 +22,10 @@ export function createKeyboardInput() {
 
   const onKeyDown = (event) => {
     const action = KEY_MAP[event.code]
-    if (action) pressed.add(action)
+    if (!action) return
+    // Evita que Espaço/setas rolem a página.
+    event.preventDefault()
+    pressed.add(action)
   }
 
   const onKeyUp = (event) => {
@@ -50,6 +54,7 @@ export function createKeyboardInput() {
         back: pressed.has('back'),
         left: pressed.has('left'),
         right: pressed.has('right'),
+        jump: pressed.has('jump'),
       }
     },
   }

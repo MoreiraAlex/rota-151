@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef } from 'react'
 import { runFixedPipeline, runRenderPipeline } from '@/core/systems'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import { world } from '@/core/world/world'
+import { initPhysics, disposePhysics } from '@/core/physics/physicsWorld'
 import { createKeyboardInput } from '@/platform/input/keyboardInput'
 import { createPointerInput } from '@/platform/input/pointerInput'
 import { registerGameSystems } from './registerSystems'
@@ -27,9 +28,13 @@ export function GameLoop() {
     registerGameSystems()
     keyboard.start()
     pointer.start(gl.domElement)
+    // Carrega o WASM do Rapier em background; os systems de física fazem
+    // early-return até estar pronto.
+    initPhysics()
     return () => {
       keyboard.stop()
       pointer.stop()
+      disposePhysics()
     }
   }, [keyboard, pointer, gl])
 

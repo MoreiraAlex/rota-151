@@ -8,17 +8,21 @@ import {
   InputControlled,
   OrbitCamera,
   CameraTarget,
+  PhysicsBody,
+  CharacterController,
 } from '../traits'
 
 export const world = createWorld()
 
 export const playerEntity = world.spawn(
-  Position({ x: 0, y: 0.5, z: 0 }),
+  Position({ x: 0, y: 2, z: 0 }),
   Rotation,
   Velocity,
   InputState,
   InputControlled,
   CameraTarget,
+  PhysicsBody,
+  CharacterController,
 )
 
 export const cameraEntity = world.spawn(

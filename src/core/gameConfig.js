@@ -23,6 +23,29 @@ export const GAME_CONFIG = {
     // Fator de suavização do giro em direção ao movimento (rad/s aprox.).
     TURN_SPEED: 10,
   },
+  PHYSICS: {
+    // Aceleração da gravidade (m/s²). Mais forte que 9.81 dá um "peso" de jogo.
+    GRAVITY: -45,
+    CHARACTER: {
+      // Cápsula: altura total = 2 * (CAPSULE_RADIUS + CAPSULE_HALF_HEIGHT).
+      CAPSULE_RADIUS: 0.4,
+      CAPSULE_HALF_HEIGHT: 0.5,
+      // "Casca" do character controller (folga de colisão).
+      CONTROLLER_OFFSET: 0.08,
+      // Inclinação máxima que sobe / mínima em que escorrega (radianos).
+      MAX_SLOPE_CLIMB: 0.9,
+      MIN_SLOPE_SLIDE: 0.6,
+      // Auto-degrau: altura e largura mínima do degrau transposto sozinho.
+      AUTOSTEP_HEIGHT: 0.4,
+      AUTOSTEP_MIN_WIDTH: 0.15,
+      // Distância de "colar no chão" ao descer.
+      SNAP_TO_GROUND: 0.4,
+      // Velocidade vertical inicial do pulo (m/s).
+      JUMP_SPEED: 9,
+      // Velocidade vertical mantida enquanto no chão (mantém o snap ativo).
+      GROUNDED_STICK: -2,
+    },
+  },
   CAMERA: {
     // Órbita inicial em torno do alvo.
     INITIAL_YAW: 0,

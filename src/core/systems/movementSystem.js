@@ -1,8 +1,7 @@
 import { GAME_CONFIG } from '../gameConfig'
 import {
-  Position,
-  Rotation,
   Velocity,
+  Rotation,
   InputState,
   InputControlled,
   OrbitCamera,
@@ -21,13 +20,15 @@ function lerpAngle(current, target, t) {
 }
 
 /**
- * Produz Velocity a partir de InputState e integra em Position. Gira a entidade
- * suavemente na direção do movimento.
+ * Produz a velocidade horizontal desejada a partir do InputState e gira a
+ * entidade na direção do movimento. NÃO integra Position — quem resolve o
+ * movimento contra o mundo é o characterPhysicsSystem (Rapier KCC).
  *
  * A intenção do InputState está no espaço da câmera (x = direita, z = frente);
  * aqui ela é rotacionada pelo yaw de OrbitCamera para o espaço do mundo.
  *
- * Headless. Fase: simulation (passo fixo), depois do cameraControlSystem.
+ * Headless. Fase: simulation, depois do cameraControlSystem e antes do
+ * characterPhysicsSystem.
  */
 export function movementSystem(context) {
   const { world, delta } = context
@@ -39,8 +40,8 @@ export function movementSystem(context) {
   const cosYaw = Math.cos(yaw)
 
   world
-    .query(InputControlled, InputState, Position, Velocity, Rotation)
-    .updateEach(([input, pos, vel, rot]) => {
+    .query(InputControlled, InputState, Velocity, Rotation)
+    .updateEach(([input, vel, rot]) => {
       // Rotaciona a intenção (espaço da câmera) para o espaço do mundo.
       // x = direita da câmera, z = frente da câmera (InputState: frente = -z).
       const worldX = input.x * cosYaw + input.z * sinYaw
@@ -49,11 +50,8 @@ export function movementSystem(context) {
       vel.x = worldX * MOVE_SPEED
       vel.z = worldZ * MOVE_SPEED
 
-      pos.x += vel.x * delta
-      pos.z += vel.z * delta
-
-      if (vel.x !== 0 || vel.z !== 0) {
-        const facing = Math.atan2(vel.x, vel.z)
+      if (worldX !== 0 || worldZ !== 0) {
+        const facing = Math.atan2(worldX, worldZ)
         rot.y = lerpAngle(rot.y, facing, TURN_SPEED * delta)
       }
     })

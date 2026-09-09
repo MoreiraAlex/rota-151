@@ -115,7 +115,11 @@ Padrões concretos para o stack atual.
 - Timers são um trait `Timer` tickado por um `timerSystem` no passo fixo. Nunca `setTimeout` em lógica de jogo: timer de frame respeita pausa, é determinístico e não dispara em entidade destruída.
 - Todas as constantes ajustáveis ficam em `src/core/gameConfig.js`, num objeto agrupado por domínio (`WORLD`, `CHARACTER`, `BATTLE`, `CAMERA`, ...). Zero número mágico em systems e componentes.
 - Efeitos visuais que nascem várias vezes por segundo (números de dano, faíscas, partículas, projéteis) usam pool de tamanho fixo como trait, não store de React. UI infrequente não precisa de pool.
-- **Física** (quando uma lib for escolhida): usada de forma headless, o `core/` não importa a lib diretamente, colliders têm escopo de chunk (criados no load, destruídos no unload). Handlers de colisão só registram o evento; systems processam no tick seguinte.
+- **Física** (Rapier, ativado em 0.0.4 — `@dimforge/rapier3d-compat`, WASM headless):
+  - A lib é importada **só dentro de `src/core/physics/`**. Nenhum outro módulo — e principalmente a view — importa Rapier. O resto fala com a física por uma API fina desse pacote. Rapier-compat não toca o DOM, então `core/physics/` continua headless (roda em Node/worker/servidor).
+  - O corpo do personagem é cinemático (`KinematicCharacterController`); movimento é computado por systems e resolvido pelo controller. O `world.step()` do Rapier roda uma vez por passo fixo, depois de todos os `computeColliderMovement`.
+  - Colliders estáticos: hoje criados uma vez no bootstrap a partir de um dado único (`core/data/`) que também gera os meshes. Quando houver chunks, passam a ter escopo de chunk (criados no load, destruídos no unload).
+  - Handlers de colisão (quando existirem) só registram o evento; systems processam no tick seguinte.
 
 ---
 
