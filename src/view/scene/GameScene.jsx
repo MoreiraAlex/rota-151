@@ -4,7 +4,8 @@ import { PlayerView } from './PlayerView'
 export function GameScene() {
   return (
     <>
-      <PerspectiveCamera makeDefault position={[0, 6, 10]} fov={60} />
+      {/* Posição inicial aproximada da órbita padrão; a suavização ajusta o resto. */}
+      <PerspectiveCamera makeDefault position={[0, 5.6, 11.3]} fov={60} />
 
       <Sky
         distance={450000}

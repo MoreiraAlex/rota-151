@@ -6,6 +6,7 @@ import { runFixedPipeline, runRenderPipeline } from '@/core/systems'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import { world } from '@/core/world/world'
 import { createKeyboardInput } from '@/platform/input/keyboardInput'
+import { createPointerInput } from '@/platform/input/pointerInput'
 import { registerGameSystems } from './registerSystems'
 
 const { FIXED_TIMESTEP, MAX_FRAME_TIME, MAX_STEPS_PER_FRAME } = GAME_CONFIG.LOOP
@@ -19,13 +20,18 @@ const { FIXED_TIMESTEP, MAX_FRAME_TIME, MAX_STEPS_PER_FRAME } = GAME_CONFIG.LOOP
 export function GameLoop() {
   const accumulator = useRef(0)
   const keyboard = useMemo(() => createKeyboardInput(), [])
-  const { camera } = useThree()
+  const pointer = useMemo(() => createPointerInput(), [])
+  const { camera, gl } = useThree()
 
   useEffect(() => {
     registerGameSystems()
     keyboard.start()
-    return () => keyboard.stop()
-  }, [keyboard])
+    pointer.start(gl.domElement)
+    return () => {
+      keyboard.stop()
+      pointer.stop()
+    }
+  }, [keyboard, pointer, gl])
 
   useFrame((_, delta) => {
     accumulator.current += Math.min(delta, MAX_FRAME_TIME)
@@ -35,10 +41,12 @@ export function GameLoop() {
       accumulator.current >= FIXED_TIMESTEP &&
       steps < MAX_STEPS_PER_FRAME
     ) {
+      // pointer.snapshot() drena os deltas acumulados — chamado a cada passo
+      // fixo, o primeiro consome o movimento e os seguintes recebem zero.
       runFixedPipeline({
         world,
         delta: FIXED_TIMESTEP,
-        input: keyboard.snapshot(),
+        input: { ...keyboard.snapshot(), ...pointer.snapshot() },
       })
       accumulator.current -= FIXED_TIMESTEP
       steps += 1

@@ -24,9 +24,25 @@ export const GAME_CONFIG = {
     TURN_SPEED: 10,
   },
   CAMERA: {
-    // Deslocamento da câmera em relação ao alvo, em unidades de mundo.
-    OFFSET: { x: 0, y: 6, z: 10 },
+    // Órbita inicial em torno do alvo.
+    INITIAL_YAW: 0,
+    INITIAL_PITCH: 0.35,
+    INITIAL_DISTANCE: 12,
+    // Limite do ângulo vertical (pitch), em radianos. O horizontal (yaw) é
+    // livre. ~0.15 rad ≈ 9° (quase rente ao chão); ~1.35 rad ≈ 77° (quase de
+    // cima). Ajuste à vontade.
+    MIN_PITCH: 0.05,
+    MAX_PITCH: 0.75,
+    // Limites do zoom, em unidades.
+    MIN_DISTANCE: 5,
+    MAX_DISTANCE: 25,
+    // Radianos por pixel de movimento do mouse (pointer lock).
+    MOUSE_SENSITIVITY: 0.0025,
+    // Unidades de distância por "notch" de scroll.
+    ZOOM_SPEED: 1.5,
     // Fator de suavização do acompanhamento (maior = mais rígido).
-    SMOOTHING: 5,
+    SMOOTHING: 12,
+    // Altura do ponto de mira acima da origem do alvo.
+    TARGET_HEIGHT: 1.0,
   },
 }
