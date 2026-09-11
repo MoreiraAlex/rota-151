@@ -97,8 +97,9 @@ Estas valem **agora** e formam o núcleo da arquitetura.
 
 ### 3.6 Gates
 
-- `npm run build` e `npm run lint` devem passar antes de considerar um trabalho concluído.
-- Teste vira gate quando houver runner configurado (candidato: Vitest).
+- `npm run build`, `npm run lint` e `npm test` devem passar antes de considerar um trabalho concluído.
+- Testes rodam em **Vitest** (ativado em 0.0.5), ambiente `node`, co-localizados (`arquivo.test.js`).
+- Systems são testados construindo um `world` koota isolado (helper `src/test/makeWorld.js`), não o singleton `core/world/world.js`. Física usa `initPhysics()` / `disposePhysics()` em `beforeEach` / `afterEach`.
 - Se um gate não pode rodar, a entrega diz por quê.
 
 ---
@@ -271,7 +272,7 @@ Ative a regra correspondente quando começar a implementar a feature. Antes diss
 
 ## 8. Pendências de código
 
-Ajustes que a definição destas regras revelou no código atual. **Todas resolvidas na versão 0.0.2** (ver `docs/features/0.0.2.md`):
+Ajustes que a definição destas regras revelou no código atual. **Todas resolvidas na versão 0.0.2** (ver `docs/features/002-arquitetura-e-loop-jogavel.md`):
 
 1. ~~Mover `SyncTransformSystem` para fora do `core/`~~ → `src/view/systems/syncTransformSystem.js`.
 2. ~~Mover o `useFrame` / `GameLoop.jsx` para a camada view~~ → `src/view/loop/GameLoop.jsx`.

@@ -8,7 +8,7 @@ dentro do passo fixo da simulação. O `movementSystem` deixa de mover o `Positi
 diretamente — ele só produz a velocidade desejada; quem resolve o movimento contra
 o mundo é o character controller do Rapier.
 
-> Versionamento: mantém o esquema `0.0.x` (ver nota em `0.0.2.md`).
+> Versionamento e nome do arquivo: ver `docs/development-workflow.md`.
 
 ---
 

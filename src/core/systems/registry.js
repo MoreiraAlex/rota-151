@@ -14,3 +14,13 @@ export function registerSystem(phase, system) {
 export function getSystems(phase) {
   return systems[phase] ?? []
 }
+
+/**
+ * Esvazia o registro de systems de todas as fases. Uso: testes, para não
+ * vazarem systems registrados entre um caso e outro.
+ */
+export function clearSystems() {
+  for (const phase of Object.keys(systems)) {
+    systems[phase] = []
+  }
+}

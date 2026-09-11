@@ -8,7 +8,7 @@ move o personagem para longe da câmera, não mais para um eixo fixo do mundo.
 Continua sem mecânica de jogo. Sem colisão de câmera (ela atravessa objetos por
 enquanto). Assets 3D seguem adiados.
 
-> Versionamento: mantém o esquema `0.0.x` (ver nota em `0.0.2.md`).
+> Versionamento e nome do arquivo: ver `docs/development-workflow.md`.
 
 ---
 

@@ -6,27 +6,41 @@ import { GAME_CONFIG } from '../gameConfig'
  * Rapier-compat é WASM puro (sem DOM), então este módulo continua headless:
  * roda em Node, worker ou servidor. O resto do projeto fala com a física
  * apenas por esta API.
+ *
+ * O WASM é carregado uma única vez no processo (`loadRapier`). O `World` em si é
+ * criado por `initPhysics()` e liberado por `disposePhysics()`, então um
+ * hot-reload ou um teste pode reinicializar sem recarregar o WASM.
  */
 let rapier = null
 let rapierWorld = null
 let characterController = null
 let ready = false
-let initPromise = null
 let levelBuilt = false
+let wasmPromise = null
+let initPromise = null
+
+function loadRapier() {
+  if (!wasmPromise) {
+    wasmPromise = (async () => {
+      const RAPIER = await import('@dimforge/rapier3d-compat')
+      await RAPIER.init()
+      rapier = RAPIER
+    })()
+  }
+  return wasmPromise
+}
 
 export async function initPhysics() {
   if (ready) return
   if (initPromise) return initPromise
 
   initPromise = (async () => {
-    const RAPIER = await import('@dimforge/rapier3d-compat')
-    await RAPIER.init()
+    await loadRapier()
 
     const cfg = GAME_CONFIG.PHYSICS
     const char = cfg.CHARACTER
 
-    rapier = RAPIER
-    rapierWorld = new RAPIER.World({ x: 0, y: cfg.GRAVITY, z: 0 })
+    rapierWorld = new rapier.World({ x: 0, y: cfg.GRAVITY, z: 0 })
 
     characterController = rapierWorld.createCharacterController(
       char.CONTROLLER_OFFSET,
@@ -41,6 +55,7 @@ export async function initPhysics() {
     characterController.setMinSlopeSlideAngle(char.MIN_SLOPE_SLIDE)
 
     ready = true
+    initPromise = null
   })()
 
   return initPromise
@@ -80,10 +95,10 @@ export function markLevelBuilt() {
 
 export function disposePhysics() {
   if (rapierWorld) rapierWorld.free()
-  rapier = null
   rapierWorld = null
   characterController = null
   ready = false
-  initPromise = null
   levelBuilt = false
+  initPromise = null
+  // `rapier` e o WASM permanecem carregados — só o World é recriado.
 }

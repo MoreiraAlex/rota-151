@@ -1,4 +1,5 @@
 import { GAME_CONFIG } from '../gameConfig'
+import { lerpAngle } from '../math'
 import {
   Velocity,
   Rotation,
@@ -6,18 +7,6 @@ import {
   InputControlled,
   OrbitCamera,
 } from '../traits'
-
-const TWO_PI = Math.PI * 2
-
-/**
- * Interpola um ângulo (radianos) pelo caminho mais curto.
- */
-function lerpAngle(current, target, t) {
-  let delta = (target - current) % TWO_PI
-  if (delta > Math.PI) delta -= TWO_PI
-  if (delta < -Math.PI) delta += TWO_PI
-  return current + delta * Math.min(1, t)
-}
 
 /**
  * Produz a velocidade horizontal desejada a partir do InputState e gira a

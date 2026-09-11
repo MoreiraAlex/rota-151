@@ -7,9 +7,7 @@ O objetivo desta versão é pagar a dívida técnica identificada na revisão de
 O "personagem" ainda é o cubo placeholder. Nenhuma mecânica de jogo (batalha,
 captura, mundo) entra aqui. Assets 3D continuam adiados.
 
-> Nota de versionamento: o `development-workflow.md` define MINOR como `0.1.0` e
-> PATCH como `0.2.1`, mas o projeto começou em `0.0.1`. Mantemos `0.0.2` por ora e
-> alinhamos o esquema depois.
+> Versionamento e nome do arquivo: ver `docs/development-workflow.md`.
 
 ---
 

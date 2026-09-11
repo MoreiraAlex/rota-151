@@ -1,11 +1,6 @@
 import { GAME_CONFIG } from '../gameConfig'
+import { clamp, wrapAngle } from '../math'
 import { OrbitCamera } from '../traits'
-
-const TWO_PI = Math.PI * 2
-
-function clamp(value, min, max) {
-  return Math.min(max, Math.max(min, value))
-}
 
 /**
  * Atualiza a órbita da câmera (trait OrbitCamera) a partir do movimento do
@@ -30,7 +25,7 @@ export function cameraControlSystem(context) {
   const zoomDelta = (input.zoom ?? 0) * c.ZOOM_SPEED
 
   world.query(OrbitCamera).updateEach(([orbit]) => {
-    orbit.yaw = (orbit.yaw + yawDelta) % TWO_PI
+    orbit.yaw = wrapAngle(orbit.yaw + yawDelta)
     orbit.pitch = clamp(orbit.pitch + pitchDelta, c.MIN_PITCH, c.MAX_PITCH)
     orbit.distance = clamp(
       orbit.distance + zoomDelta,
