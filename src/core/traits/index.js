@@ -7,3 +7,4 @@ export {
   CharacterController,
   Grounded,
 } from './components/physics'
+export { AnimationState } from './components/animation'

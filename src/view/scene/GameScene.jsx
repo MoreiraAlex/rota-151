@@ -43,7 +43,13 @@ function TestLevelView() {
   )
 }
 
-export function GameScene() {
+/**
+ * `children` é um slot pra conteúdo opcional composto por quem monta a cena
+ * (a página, em app/) — é assim que ferramentas de debug (tools/) entram na
+ * mesma árvore sem a view/ precisar importar de tools/ (a direção de
+ * dependência do projeto é tools → view, nunca o inverso).
+ */
+export function GameScene({ children }) {
   return (
     <>
       {/* Posição inicial aproximada da órbita padrão; a suavização ajusta o resto. */}
@@ -62,6 +68,8 @@ export function GameScene() {
       <TestLevelView />
 
       <PlayerView />
+
+      {children}
     </>
   )
 }

@@ -6,8 +6,10 @@ import { movementSystem } from '@/core/systems/movementSystem'
 import { characterPhysicsSystem } from '@/core/systems/characterPhysicsSystem'
 import { physicsStepSystem } from '@/core/systems/physicsStepSystem'
 import { syncPhysicsSystem } from '@/core/systems/syncPhysicsSystem'
+import { animationStateSystem } from '@/core/systems/animationStateSystem'
 import { syncTransformSystem } from '@/view/systems/syncTransformSystem'
 import { cameraFollowSystem } from '@/view/systems/cameraFollowSystem'
+import { animationSystem } from '@/view/systems/animationSystem'
 
 let registered = false
 
@@ -17,8 +19,10 @@ let registered = false
  *
  * A ordem dentro da fase `simulation` é parte do comportamento:
  *   bootstrap → controle de câmera → movimento (Velocity) → character
- *   controller (KCC) → step do Rapier → sync de volta para Position.
- * Em `presentation`: sincroniza transforms antes de a câmera ler o alvo.
+ *   controller (KCC) → step do Rapier → sync de volta para Position →
+ *   resolve o estado de animação (já com Velocity/Grounded atualizados).
+ * Em `presentation`: sincroniza transforms, depois câmera, depois animação
+ * (a ordem entre as duas últimas não importa — nenhuma lê a outra).
  */
 export function registerGameSystems() {
   if (registered) return
@@ -32,7 +36,9 @@ export function registerGameSystems() {
   registerSystem(GAME_PHASES.SIMULATION, characterPhysicsSystem)
   registerSystem(GAME_PHASES.SIMULATION, physicsStepSystem)
   registerSystem(GAME_PHASES.SIMULATION, syncPhysicsSystem)
+  registerSystem(GAME_PHASES.SIMULATION, animationStateSystem)
 
   registerSystem(GAME_PHASES.PRESENTATION, syncTransformSystem)
   registerSystem(GAME_PHASES.PRESENTATION, cameraFollowSystem)
+  registerSystem(GAME_PHASES.PRESENTATION, animationSystem)
 }

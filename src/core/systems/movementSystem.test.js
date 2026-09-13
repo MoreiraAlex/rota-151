@@ -10,7 +10,7 @@ import {
 } from '@/core/traits'
 import { movementSystem } from './movementSystem'
 
-const SPEED = GAME_CONFIG.PLAYER.MOVE_SPEED
+const { WALK_SPEED, RUN_SPEED } = GAME_CONFIG.PLAYER
 
 function setup(yaw = 0) {
   const { world, player, camera } = makeWorld()
@@ -27,7 +27,7 @@ describe('movementSystem', () => {
     const { player, tick } = setup(0)
     tick({ x: 0, z: -1 })
     const vel = player.get(Velocity)
-    expect(vel.z).toBeCloseTo(-SPEED)
+    expect(vel.z).toBeCloseTo(-WALK_SPEED)
     expect(vel.x).toBeCloseTo(0)
   })
 
@@ -35,7 +35,7 @@ describe('movementSystem', () => {
     const { player, tick } = setup(0)
     tick({ x: 1, z: 0 })
     const vel = player.get(Velocity)
-    expect(vel.x).toBeCloseTo(SPEED)
+    expect(vel.x).toBeCloseTo(WALK_SPEED)
     expect(vel.z).toBeCloseTo(0)
   })
 
@@ -43,8 +43,14 @@ describe('movementSystem', () => {
     const { player, tick } = setup(Math.PI / 2)
     tick({ x: 0, z: -1 })
     const vel = player.get(Velocity)
-    expect(vel.x).toBeCloseTo(-SPEED)
+    expect(vel.x).toBeCloseTo(-WALK_SPEED)
     expect(vel.z).toBeCloseTo(0)
+  })
+
+  it('com run = true, usa RUN_SPEED em vez de WALK_SPEED', () => {
+    const { player, tick } = setup(0)
+    tick({ x: 0, z: -1, run: true })
+    expect(player.get(Velocity).z).toBeCloseTo(-RUN_SPEED)
   })
 
   it('gira Rotation.y em direção ao movimento', () => {

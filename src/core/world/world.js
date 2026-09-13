@@ -10,6 +10,7 @@ import {
   CameraTarget,
   PhysicsBody,
   CharacterController,
+  AnimationState,
 } from '../traits'
 
 export const world = createWorld()
@@ -23,6 +24,7 @@ export const playerEntity = world.spawn(
   CameraTarget,
   PhysicsBody,
   CharacterController,
+  AnimationState,
 )
 
 export const cameraEntity = world.spawn(

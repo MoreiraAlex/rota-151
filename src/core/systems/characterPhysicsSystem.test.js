@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { makeWorld } from '@/test/makeWorld'
 import { Position, Grounded } from '@/core/traits'
 import { initPhysics, disposePhysics } from '@/core/physics/physicsWorld'
+import { GAME_CONFIG } from '@/core/gameConfig'
 import { inputSystem } from './inputSystem'
 import { physicsBootstrapSystem } from './physicsBootstrapSystem'
 import { cameraControlSystem } from './cameraControlSystem'
@@ -40,8 +41,14 @@ describe('characterPhysicsSystem + integração Rapier', () => {
     })
     run(world, 180)
     const pos = player.get(Position)
-    expect(pos.y).toBeGreaterThan(0.7)
-    expect(pos.y).toBeLessThan(1.2)
+    // Repouso ≈ raio + meia-altura da cápsula acima do chão — deriva do
+    // config em vez de literal fixo, pra não quebrar sempre que a cápsula
+    // for redimensionada (ex.: pra caber no modelo do jogador).
+    const { CAPSULE_RADIUS, CAPSULE_HALF_HEIGHT } =
+      GAME_CONFIG.PHYSICS.CHARACTER
+    const restingHeight = CAPSULE_RADIUS + CAPSULE_HALF_HEIGHT
+    expect(pos.y).toBeGreaterThan(restingHeight - 0.05)
+    expect(pos.y).toBeLessThan(restingHeight + 0.3)
     expect(player.has(Grounded)).toBe(true)
   })
 

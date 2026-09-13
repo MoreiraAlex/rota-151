@@ -15,6 +15,8 @@ const KEY_MAP = {
   KeyD: 'right',
   ArrowRight: 'right',
   Space: 'jump',
+  ShiftLeft: 'run',
+  ShiftRight: 'run',
 }
 
 export function createKeyboardInput() {
@@ -55,6 +57,7 @@ export function createKeyboardInput() {
         left: pressed.has('left'),
         right: pressed.has('right'),
         jump: pressed.has('jump'),
+        run: pressed.has('run'),
       }
     },
   }

@@ -21,7 +21,7 @@ import {
  */
 export function movementSystem(context) {
   const { world, delta } = context
-  const { MOVE_SPEED, TURN_SPEED } = GAME_CONFIG.PLAYER
+  const { WALK_SPEED, RUN_SPEED, TURN_SPEED } = GAME_CONFIG.PLAYER
 
   const rig = world.queryFirst(OrbitCamera)
   const yaw = rig ? rig.get(OrbitCamera).yaw : 0
@@ -35,9 +35,10 @@ export function movementSystem(context) {
       // x = direita da câmera, z = frente da câmera (InputState: frente = -z).
       const worldX = input.x * cosYaw + input.z * sinYaw
       const worldZ = -input.x * sinYaw + input.z * cosYaw
+      const speed = input.run ? RUN_SPEED : WALK_SPEED
 
-      vel.x = worldX * MOVE_SPEED
-      vel.z = worldZ * MOVE_SPEED
+      vel.x = worldX * speed
+      vel.z = worldZ * speed
 
       if (worldX !== 0 || worldZ !== 0) {
         const facing = Math.atan2(worldX, worldZ)

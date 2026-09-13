@@ -22,8 +22,11 @@ export function inputSystem(context) {
     z /= magnitude
   }
 
+  const run = !!input.run
+
   world.query(InputControlled, InputState).updateEach(([state]) => {
     state.x = x
     state.z = z
+    state.run = run
   })
 }

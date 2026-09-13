@@ -3,6 +3,7 @@ import { trait } from 'koota'
 /**
  * Intenção de movimento derivada do input, como vetor no plano do mundo.
  * Cada eixo fica em [-1, 1]; o conjunto é normalizado quando excede 1.
+ * `run` é o modificador de corrida (segurar Shift).
  *
  * Dono de escrita: inputSystem.
  * Leem: movementSystem.
@@ -10,6 +11,7 @@ import { trait } from 'koota'
 export const InputState = trait({
   x: 0,
   z: 0,
+  run: false,
 })
 
 /**

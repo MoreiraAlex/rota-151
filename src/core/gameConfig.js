@@ -19,19 +19,27 @@ export const GAME_CONFIG = {
   },
   PLAYER: {
     // Unidades por segundo (1 unidade = 1 metro).
-    MOVE_SPEED: 5,
+    WALK_SPEED: 3,
+    RUN_SPEED: 7,
     // Fator de suavização do giro em direção ao movimento (rad/s aprox.).
     TURN_SPEED: 10,
+  },
+  ANIMATION: {
+    // Abaixo disso, considera parado (idle).
+    WALK_MIN_SPEED: 0.3,
+    // Acima disso, considera correndo (run) em vez de andando (walk). Fica
+    // entre WALK_SPEED e RUN_SPEED de PLAYER.
+    RUN_MIN_SPEED: 5,
   },
   PHYSICS: {
     // Aceleração da gravidade (m/s²). Mais forte que 9.81 dá um "peso" de jogo.
     GRAVITY: -45,
     CHARACTER: {
       // Cápsula: altura total = 2 * (CAPSULE_RADIUS + CAPSULE_HALF_HEIGHT).
-      CAPSULE_RADIUS: 0.4,
-      CAPSULE_HALF_HEIGHT: 0.5,
+      CAPSULE_RADIUS: 0.5,
+      CAPSULE_HALF_HEIGHT: 0.01,
       // "Casca" do character controller (folga de colisão).
-      CONTROLLER_OFFSET: 0.08,
+      CONTROLLER_OFFSET: 0.03,
       // Inclinação máxima que sobe / mínima em que escorrega (radianos).
       MAX_SLOPE_CLIMB: 0.9,
       MIN_SLOPE_SLIDE: 0.6,

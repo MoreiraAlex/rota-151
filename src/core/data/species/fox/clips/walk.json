@@ -1,0 +1,202 @@
+{
+  "name": "fox-walk",
+  "bones": {
+    "b_RightLeg01_019": {
+      "rotation": {
+        "z": {
+          "type": "sine",
+          "amplitude": -0.48869239999999997,
+          "frequencyScale": 1,
+          "phaseTurns": 0.0
+        }
+      }
+    },
+    "b_RightLeg02_020": {
+      "rotation": {
+        "z": {
+          "type": "clampedSine",
+          "amplitude": 0.7330386,
+          "min": 0,
+          "max": 0.7330386,
+          "frequencyScale": 1,
+          "phaseTurns": 0.25
+        }
+      }
+    },
+    "b_RightFoot01_021": {
+      "rotation": {
+        "z": {
+          "type": "sine",
+          "amplitude": -0.1954764,
+          "frequencyScale": 1,
+          "phaseTurns": 0.25
+        }
+      }
+    },
+    "b_RightFoot02_022": {
+      "rotation": {
+        "z": {
+          "type": "clampedSine",
+          "amplitude": -0.12217309999999999,
+          "min": -0.12217309999999999,
+          "max": 0,
+          "frequencyScale": 1,
+          "phaseTurns": 0.3
+        }
+      }
+    },
+    "b_LeftLeg01_015": {
+      "rotation": {
+        "z": {
+          "type": "sine",
+          "amplitude": -0.48869239999999997,
+          "frequencyScale": 1,
+          "phaseTurns": 0.5
+        }
+      }
+    },
+    "b_LeftLeg02_016": {
+      "rotation": {
+        "z": {
+          "type": "clampedSine",
+          "amplitude": 0.7330386,
+          "min": 0,
+          "max": 0.7330386,
+          "frequencyScale": 1,
+          "phaseTurns": 0.75
+        }
+      }
+    },
+    "b_LeftFoot01_017": {
+      "rotation": {
+        "z": {
+          "type": "sine",
+          "amplitude": -0.1954764,
+          "frequencyScale": 1,
+          "phaseTurns": 0.75
+        }
+      }
+    },
+    "b_LeftFoot02_018": {
+      "rotation": {
+        "z": {
+          "type": "clampedSine",
+          "amplitude": -0.12217309999999999,
+          "min": -0.12217309999999999,
+          "max": 0,
+          "frequencyScale": 1,
+          "phaseTurns": 0.8
+        }
+      }
+    },
+    "b_RightUpperArm_06": {
+      "rotation": {
+        "z": {
+          "type": "sine",
+          "amplitude": 0.48869239999999997,
+          "frequencyScale": 1,
+          "phaseTurns": 0.5
+        }
+      }
+    },
+    "b_RightForeArm_07": {
+      "rotation": {
+        "z": {
+          "type": "clampedSine",
+          "amplitude": -0.7330386,
+          "min": -0.7330386,
+          "max": 0,
+          "frequencyScale": 1,
+          "phaseTurns": 0.75
+        }
+      }
+    },
+    "b_RightHand_08": {
+      "rotation": {
+        "z": {
+          "type": "sine",
+          "amplitude": 0.1954764,
+          "frequencyScale": 1,
+          "phaseTurns": 0.75
+        }
+      }
+    },
+    "b_LeftUpperArm_09": {
+      "rotation": {
+        "z": {
+          "type": "sine",
+          "amplitude": 0.48869239999999997,
+          "frequencyScale": 1,
+          "phaseTurns": 0.0
+        }
+      }
+    },
+    "b_LeftForeArm_010": {
+      "rotation": {
+        "z": {
+          "type": "clampedSine",
+          "amplitude": -0.7330386,
+          "min": -0.7330386,
+          "max": 0,
+          "frequencyScale": 1,
+          "phaseTurns": 0.25
+        }
+      }
+    },
+    "b_LeftHand_011": {
+      "rotation": {
+        "z": {
+          "type": "sine",
+          "amplitude": 0.1954764,
+          "frequencyScale": 1,
+          "phaseTurns": 0.25
+        }
+      }
+    },
+
+    "b_Hip_01": {
+      "rotation": {
+        "x": { "type": "absSine", "amplitude": 0.05, "frequencyScale": 2 }
+      },
+      "position": {
+        "y": { "type": "absSine", "amplitude": 0.03, "frequencyScale": 2 }
+      }
+    },
+    "b_Neck_04": {
+      "rotation": {
+        "x": { "type": "sine", "amplitude": -0.06, "frequencyScale": 2 }
+      }
+    },
+    "b_Spine01_02": {
+      "rotation": {
+        "y": { "type": "sine", "amplitude": 0.08, "frequencyScale": 2 }
+      }
+    },
+
+    "b_Tail01_012": {
+      "rotation": {
+        "y": { "type": "sine", "amplitude": 0.3, "frequencyScale": 0.5 }
+      }
+    },
+    "b_Tail02_013": {
+      "rotation": {
+        "y": {
+          "type": "sine",
+          "amplitude": 0.3,
+          "frequencyScale": 0.5,
+          "timeOffset": 0.08
+        }
+      }
+    },
+    "b_Tail03_014": {
+      "rotation": {
+        "y": {
+          "type": "sine",
+          "amplitude": 0.3,
+          "frequencyScale": 0.5,
+          "timeOffset": 0.16
+        }
+      }
+    }
+  }
+}

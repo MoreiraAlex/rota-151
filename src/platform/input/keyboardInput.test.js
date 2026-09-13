@@ -32,6 +32,7 @@ describe('keyboardInput', () => {
       left: false,
       right: false,
       jump: false,
+      run: false,
     })
   })
 
@@ -86,7 +87,20 @@ describe('keyboardInput', () => {
       left: false,
       right: false,
       jump: false,
+      run: false,
     })
+  })
+
+  it('ShiftLeft e ShiftRight mapeiam para a ação de correr', () => {
+    const keyboard = createKeyboardInput()
+    keyboard.start()
+
+    press('ShiftLeft')
+    expect(keyboard.snapshot().run).toBe(true)
+
+    release('ShiftLeft')
+    press('ShiftRight')
+    expect(keyboard.snapshot().run).toBe(true)
   })
 
   it('stop remove os listeners e zera o estado', () => {

@@ -1,29 +1,74 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
+import { useGLTF } from '@react-three/drei'
+import { clone as cloneSkeleton } from 'three/examples/jsm/utils/SkeletonUtils.js'
 
 import { playerEntity } from '@/core/world/world'
-import { GAME_CONFIG } from '@/core/gameConfig'
+import { getSpecies } from '@/core/data/species'
+import { resolveBones } from '@/core/animation/resolveBones'
 import { registerView, unregisterView } from '../registry/viewRegistry'
+import {
+  registerAnimatedBones,
+  unregisterAnimatedBones,
+} from '../registry/animationRegistry'
 
-const { CAPSULE_RADIUS, CAPSULE_HALF_HEIGHT } = GAME_CONFIG.PHYSICS.CHARACTER
+// Modelo temporário do jogador (ver core/data/species/fox). Troca aqui quando
+// o modelo definitivo do treinador estiver pronto — nada mais neste arquivo
+// muda, contanto que a nova espécie tenha os mesmos ids de clipe.
+// const PLAYER_SPECIES_ID = 'fox'
+// const PLAYER_SPECIES_ID = 'arcanine'
+const PLAYER_SPECIES_ID = 'bulbasaur'
+const PLAYER_SPECIES = getSpecies(PLAYER_SPECIES_ID)
 
 /**
- * Wrapper fino: renderiza a cápsula do jogador (mesmas dimensões do collider) e
- * registra a ref de cena para o syncTransformSystem. Sem lógica, sem useFrame.
+ * Wrapper fino: renderiza o modelo do jogador e registra a ref de cena
+ * (syncTransformSystem) e os ossos resolvidos + clipes (animationSystem).
+ * Sem lógica de jogo, sem useFrame — quem decide o estado é o
+ * animationStateSystem (headless); aqui só se aplica o clipe escolhido.
  */
 export function PlayerView() {
-  const meshRef = useRef()
+  const groupRef = useRef()
+  const { scene } = useGLTF(PLAYER_SPECIES.model.path)
+  const cloned = useMemo(() => cloneSkeleton(scene), [scene])
 
   useEffect(() => {
-    registerView(playerEntity, meshRef.current)
-    return () => unregisterView(playerEntity)
-  }, [])
+    cloned.traverse((child) => {
+      if (child.isMesh) {
+        child.castShadow = true
+        child.receiveShadow = true
+      }
+    })
+  }, [cloned])
+
+  useEffect(() => {
+    registerView(playerEntity, groupRef.current)
+
+    let skeleton = null
+    cloned.traverse((child) => {
+      if (child.isSkinnedMesh) skeleton = child.skeleton
+    })
+    if (skeleton) {
+      registerAnimatedBones(playerEntity, {
+        bones: resolveBones(skeleton),
+        clips: PLAYER_SPECIES.clips,
+      })
+    }
+
+    return () => {
+      unregisterView(playerEntity)
+      unregisterAnimatedBones(playerEntity)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cloned])
 
   return (
-    <mesh ref={meshRef} castShadow>
-      <capsuleGeometry
-        args={[CAPSULE_RADIUS, CAPSULE_HALF_HEIGHT * 2, 8, 16]}
+    <group ref={groupRef}>
+      <primitive
+        object={cloned}
+        scale={PLAYER_SPECIES.model.scale}
+        position={PLAYER_SPECIES.model.position}
       />
-      <meshStandardMaterial color="red" />
-    </mesh>
+    </group>
   )
 }
+
+useGLTF.preload(PLAYER_SPECIES.model.path)

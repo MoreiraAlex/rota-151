@@ -34,4 +34,9 @@ describe('inputSystem', () => {
     expect(state.x).toBeCloseTo(Math.SQRT1_2)
     expect(state.z).toBeCloseTo(-Math.SQRT1_2)
   })
+
+  it('repassa o modificador de corrida (Shift)', () => {
+    expect(run({ forward: true, run: true }).run).toBe(true)
+    expect(run({ forward: true }).run).toBe(false)
+  })
 })
