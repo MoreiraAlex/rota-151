@@ -9,6 +9,13 @@ import { getAnimatedBonesEntry } from '@/view/registry/animationRegistry'
 
 const { BLEND_DURATION } = GAME_CONFIG.ANIMATION
 
+// Estado sem clipe ainda autorado (ex.: uma ação nova, antes do JSON existir
+// em core/data/species/<id>/clips/) não deveria congelar no que sobrou do
+// clipe anterior — vira "sem override nenhum", que sampleAnimationClip
+// resolve como a pose de descanso pura. Mesmo raciocínio do reset-to-rest de
+// applyAnimationClip.js, só que pro clipe inteiro faltar, não só um osso.
+const EMPTY_CLIP = { bones: {} }
+
 /**
  * Avança o relógio de animação de cada entidade registrada e aplica o clipe
  * procedural correspondente ao AnimationState atual (decidido no core, por
@@ -32,8 +39,7 @@ export function animationSystem(context) {
     if (!entry) return
 
     const anim = entity.get(AnimationState)
-    const clip = entry.clips[anim.id]
-    if (!clip) return
+    const clip = entry.clips[anim.id] ?? EMPTY_CLIP
 
     entry.elapsed += delta
 

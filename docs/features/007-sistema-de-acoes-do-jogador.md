@@ -142,10 +142,49 @@ do grupo: **dash/rolamento**.
 - [X] `docs/backlog.md`: marca "Sistema de ações do jogador" e "Dash/
       rolamento" como entregues; deixa arremesso/uso/invocar/recolher/morrer
       como estavam (ainda bloqueados)
-- [X] `npm test` (105/105) e `npm run lint` verdes pra tudo que esta versão
+- [X] `npm test` (108/108) e `npm run lint` verdes pra tudo que esta versão
       tocou — `npm run build` continua bloqueado por um erro de formatação
       pré-existente em `src/tools/proceduralAnimation/roster.js` (arquivo de
       conteúdo do usuário, fora do escopo desta versão, não tocado aqui)
+
+---
+
+## Correções feitas durante a versão
+
+- **Gatilho de `jump` virou borda, não estado contínuo**: implementar o
+  gatilho de borda pro dash deixou visível uma inconsistência que já existia
+  em `jump` — `Space` ficava no `KEY_MAP` de estado contínuo, então segurar a
+  tecla fazia o personagem pular de novo assim que aterrissava, sem soltar e
+  apertar de novo. Corrigido movendo `Space` pro mesmo `EDGE_KEY_MAP`/padrão
+  de dreno do dash — `characterPhysicsSystem` não mudou (já lia
+  `context.input.jump` como um booleano simples; só o significado desse
+  booleano ficou correto). De quebra, `clear()` (chamado no blur) passou a
+  descartar também pulsos pendentes de `jump`/`dash` — sem isso, perder o
+  foco da janela com a tecla recém-apertada faria o pulso sobreviver
+  escondido e disparar no primeiro snapshot depois de recuperar o foco, sem
+  tecla nenhuma pressionada naquele momento. Testes de regressão em
+  `keyboardInput.test.js` cobrem os dois casos.
+- **Dash sem clipe autorado travava no último frame da animação anterior**:
+  `view/systems/animationSystem.js` fazia `if (!clip) return` quando o
+  `AnimationState.id` atual não tinha clipe correspondente em
+  `entry.clips` — caso do `dash`, que ainda não tem `species/fox/clips/
+  dash.json`. O `return` saía antes até de atualizar `entry.stateId`, então
+  os ossos ficavam exatamente como o clipe anterior (`walk`/`run`) tinha
+  deixado, parados no meio do ciclo, pela duração inteira do dash. `jump` não
+  sofre disso porque nunca teve um id próprio na tabela de animação — no ar,
+  resolve pra `idle`, que tem clipe de verdade. Corrigido tratando "sem
+  clipe" como um clipe vazio (`{ bones: {} }`) em vez de pular o frame
+  inteiro: `sampleAnimationClip` já resolve isso como a pose de descanso pura
+  (mesmo raciocínio do reset-to-rest da v0.0.6, agora aplicado ao clipe
+  inteiro faltar, não só a um osso) — e por passar pelo caminho normal, o
+  crossfade também passa a valer entrando e saindo do dash, mesmo sem clipe.
+  Não há teste automatizado pra este arquivo especificamente (fora do escopo
+  de teste de `view/`, ver `005-suite-de-testes.md`); raciocínio conferido
+  pelo código e pelos testes de `applyAnimationClip.test.js` (que já cobrem
+  `sampleAnimationClip` resolvendo bones sem override pra pose de descanso),
+  mas a confirmação visual (dash sem clipe relaxando em vez de congelar) fica
+  por sua conta no `npm run dev` — não tenho como ver o resultado renderizado
+  neste ambiente.
 
 ---
 
@@ -178,7 +217,9 @@ do grupo: **dash/rolamento**.
 - Dash aéreo — a pré-condição de `Grounded` fica fixa nesta versão; permitir
   no ar é uma decisão de design pra revisar depois, não uma limitação técnica.
 - Migrar `jump` pro mesmo mecanismo de `ActionState` — ele continua como
-  está (lido direto de `context.input`, fora do trait); fica pra quando a
-  animação de pulo/queda (já no backlog) for feita.
+  está (lido direto de `context.input`, fora do trait; `characterPhysicsSystem`
+  não muda). O gatilho em si foi corrigido (ver Correções abaixo), mas virar
+  uma ação de verdade com estado próprio fica pra quando a animação de
+  pulo/queda (já no backlog) for feita.
 - Clipe de animação do dash em si — conteúdo de espécie, por conta do autor
   (`core/data/species/fox/clips/dash.json`), fora do meu escopo.

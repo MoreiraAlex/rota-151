@@ -14,7 +14,6 @@ const KEY_MAP = {
   ArrowLeft: 'left',
   KeyD: 'right',
   ArrowRight: 'right',
-  Space: 'jump',
   ShiftLeft: 'run',
   ShiftRight: 'run',
 }
@@ -23,7 +22,10 @@ const KEY_MAP = {
 // contrário de KEY_MAP, viram um pulso que o snapshot() drena, igual ao
 // pointerInput.js faz com os deltas de mouse. Segurar a tecla não repete: o
 // SO dispara `keydown` de novo em auto-repeat, mas `event.repeat` filtra isso.
+// `jump` estava em KEY_MAP (estado contínuo) até virar pulso aqui: segurar
+// Espaço fazia pular de novo assim que aterrissava, sem soltar a tecla.
 const EDGE_KEY_MAP = {
+  Space: 'jump',
   ControlLeft: 'dash',
   ControlRight: 'dash',
 }
@@ -47,7 +49,10 @@ export function createKeyboardInput() {
     if (action) pressed.delete(action)
   }
 
-  const clear = () => pressed.clear()
+  const clear = () => {
+    pressed.clear()
+    justPressed.clear()
+  }
 
   return {
     start() {
@@ -69,8 +74,8 @@ export function createKeyboardInput() {
         back: pressed.has('back'),
         left: pressed.has('left'),
         right: pressed.has('right'),
-        jump: pressed.has('jump'),
         run: pressed.has('run'),
+        jump: justPressed.has('jump'),
         dash: justPressed.has('dash'),
       }
       justPressed.clear()

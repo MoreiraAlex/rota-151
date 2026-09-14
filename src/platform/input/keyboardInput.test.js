@@ -54,6 +54,35 @@ describe('keyboardInput', () => {
     })
   })
 
+  it('segurar Espaço (auto-repeat do SO) não gera novo pulso de jump', () => {
+    const keyboard = createKeyboardInput()
+    keyboard.start()
+
+    press('Space')
+    expect(keyboard.snapshot().jump).toBe(true)
+    // drenado — sem soltar a tecla, a segunda leitura já vem falsa
+    expect(keyboard.snapshot().jump).toBe(false)
+
+    win.dispatch('keydown', {
+      code: 'Space',
+      preventDefault: () => {},
+      repeat: true,
+    })
+    expect(keyboard.snapshot().jump).toBe(false)
+  })
+
+  it('soltar Espaço e apertar de novo gera um novo pulso de jump', () => {
+    const keyboard = createKeyboardInput()
+    keyboard.start()
+
+    press('Space')
+    expect(keyboard.snapshot().jump).toBe(true)
+
+    release('Space')
+    press('Space')
+    expect(keyboard.snapshot().jump).toBe(true)
+  })
+
   it('keyup libera a ação', () => {
     const keyboard = createKeyboardInput()
     keyboard.start()
@@ -74,6 +103,19 @@ describe('keyboardInput', () => {
     win.dispatch('blur')
 
     expect(keyboard.snapshot()).toMatchObject({ forward: false, left: false })
+  })
+
+  it('perder o foco descarta pulsos pendentes de jump/dash', () => {
+    const keyboard = createKeyboardInput()
+    keyboard.start()
+
+    press('Space')
+    press('ControlLeft')
+    win.dispatch('blur')
+
+    // sem isso, o pulso sobreviveria escondido e disparia no primeiro
+    // snapshot() depois de recuperar o foco, sem tecla nenhuma pressionada
+    expect(keyboard.snapshot()).toMatchObject({ jump: false, dash: false })
   })
 
   it('tecla não mapeada é ignorada', () => {
