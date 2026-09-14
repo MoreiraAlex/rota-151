@@ -16,6 +16,7 @@ import {
   ActionState,
   Vitals,
   HeldItem,
+  Party,
 } from '../traits'
 
 export const world = createWorld()
@@ -54,6 +55,7 @@ export const playerEntity = world.spawn(
   ActionState,
   vitals,
   HeldItem,
+  Party,
 )
 
 export const cameraEntity = world.spawn(

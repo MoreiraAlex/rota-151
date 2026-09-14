@@ -73,6 +73,14 @@ de puxar ela pra frente.
       ataque direto no design), trait `HeldItem` no jogador e seletor no
       `DebugPanel` pra equipar item de teste. Puro mecanismo — `primary`
       continua sem comportamento de verdade, só o log de debug da v0.0.11.
+- [X] **Criaturas de time (placeholder)** — entregue em
+      `docs/features/013-criaturas-de-time.md` (v0.0.13): 3 espécies
+      `kind: 'pokemon'` (`fox-red`/`fox-green`/`fox-blue`, clones de `fox`,
+      sem tint de cor ainda), trait `Party` (`slot1/2/3`, id de espécie por
+      slot) no jogador e 3 seletores no `DebugPanel` pra montar o time.
+      Puro mecanismo — `secondaryN` continua sem comportamento de verdade,
+      só o log de debug da v0.0.11. Não é "Criaturas selvagens no mundo"
+      (IA/spawn automático), que continua adiado como item separado abaixo.
 - [ ] **Arremessar objeto** — atua no botão `primary` (predefinido em
       "Slots de ação" acima) lendo `HeldItem`/`getItem` (mecanismo pronto
       acima) quando a categoria é `throwable`; ação com um "instante de
@@ -83,9 +91,11 @@ de puxar ela pra frente.
       quando a categoria é `consumable` (cura). Depende do sistema de
       ações da v0.0.7.
 - [ ] **Invocar criatura** — atua num dos botões `secondaryN` (predefinidos
-      em "Slots de ação" acima); ação que spawna a entidade da criatura no
-      mundo; bloqueado até criaturas existirem (ver seção "Criaturas"
-      abaixo).
+      em "Slots de ação" acima) lendo `Party`/`getSpecies` (criaturas de
+      time já codificadas, `docs/features/013-criaturas-de-time.md`); ação
+      que spawna a entidade da criatura no mundo, que passa a seguir o
+      jogador (decidido na v0.0.13, construído aqui). Depende do sistema de
+      ações da v0.0.7.
 - [ ] **Recolher criatura** — inverso da invocação; mesma dependência.
 - [ ] **Morrer** — estado terminal, não uma ação com fim automático; trava
       input e provavelmente dispara um fluxo de respawn/checkpoint que ainda

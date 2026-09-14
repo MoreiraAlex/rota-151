@@ -13,10 +13,16 @@
  * 3) importa aqui embaixo e adiciona uma linha no SPECIES_REGISTRY
  */
 import { FOX } from './fox'
+import { FOX_RED } from './fox-red'
+import { FOX_GREEN } from './fox-green'
+import { FOX_BLUE } from './fox-blue'
 import { BOT } from './bot'
 
 export const SPECIES_REGISTRY = {
   [FOX.id]: FOX,
+  [FOX_RED.id]: FOX_RED,
+  [FOX_GREEN.id]: FOX_GREEN,
+  [FOX_BLUE.id]: FOX_BLUE,
   [BOT.id]: BOT,
 }
 

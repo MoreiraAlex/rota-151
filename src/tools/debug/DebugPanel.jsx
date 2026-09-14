@@ -4,6 +4,7 @@ import { useTrait, useTag } from 'koota/react'
 import { playerEntity, cameraEntity } from '@/core/world/world'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import { getItem, listItems } from '@/core/data/items'
+import { listSpecies, resolveSpeciesKind } from '@/core/data/species'
 import {
   Position,
   Velocity,
@@ -14,8 +15,13 @@ import {
   MovementStats,
   Vitals,
   HeldItem,
+  Party,
   applyDamage,
 } from '@/core/traits'
+
+const CREATURE_SPECIES = listSpecies().filter(
+  (species) => resolveSpeciesKind(species) === 'pokemon',
+)
 
 const DEBUG_DAMAGE_AMOUNT = 20
 
@@ -35,6 +41,7 @@ export function DebugPanel() {
   const movement = useTrait(playerEntity, MovementStats)
   const vitals = useTrait(playerEntity, Vitals)
   const heldItem = useTrait(playerEntity, HeldItem)
+  const party = useTrait(playerEntity, Party)
 
   if (
     !position ||
@@ -44,7 +51,8 @@ export function DebugPanel() {
     !body ||
     !movement ||
     !vitals ||
-    !heldItem
+    !heldItem ||
+    !party
   ) {
     return null
   }
@@ -134,7 +142,35 @@ export function DebugPanel() {
           </option>
         ))}
       </select>
+      <hr className="border-white/20" />
+      <p>
+        time: {party.slot1 ?? '—'} · {party.slot2 ?? '—'} · {party.slot3 ?? '—'}
+      </p>
+      <PartySlotSelect slot="slot1" value={party.slot1} />
+      <PartySlotSelect slot="slot2" value={party.slot2} />
+      <PartySlotSelect slot="slot3" value={party.slot3} />
     </div>
+  )
+}
+
+/** Seletor de uma criatura (id de espécie `kind: 'pokemon'`) pra um slot do
+ * time — escreve em `Party`, mesmo padrão do seletor de item acima. */
+function PartySlotSelect({ slot, value }) {
+  return (
+    <select
+      className="pointer-events-auto rounded bg-black/60 px-1 py-0.5 text-[10px] text-white"
+      value={value ?? ''}
+      onChange={(event) => {
+        playerEntity.set(Party, { [slot]: event.target.value || null })
+      }}
+    >
+      <option value="">{slot}: nenhuma</option>
+      {CREATURE_SPECIES.map((species) => (
+        <option key={species.id} value={species.id}>
+          {slot}: {species.id}
+        </option>
+      ))}
+    </select>
   )
 }
 

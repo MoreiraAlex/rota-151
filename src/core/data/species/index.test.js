@@ -41,4 +41,10 @@ describe('species registry — mecanismo', () => {
     expect(resolveSpeciesKind({})).toBe('trainer')
     expect(resolveSpeciesKind(null)).toBe('trainer')
   })
+
+  it('fox-red/fox-green/fox-blue são placeholders de criatura de time (kind pokemon)', () => {
+    for (const id of ['fox-red', 'fox-green', 'fox-blue']) {
+      expect(resolveSpeciesKind(getSpecies(id))).toBe('pokemon')
+    }
+  })
 })

@@ -16,6 +16,7 @@ import {
   ActionState,
   Vitals,
   HeldItem,
+  Party,
 } from '@/core/traits'
 
 // Fixado em 'fox' de propósito, não em PLAYER_SPECIES_ID — os testes usam
@@ -59,6 +60,7 @@ export function makeWorld({ playerPosition = { x: 0, y: 2, z: 0 } } = {}) {
     ActionState,
     vitals,
     HeldItem,
+    Party,
   )
 
   const camera = world.spawn(
