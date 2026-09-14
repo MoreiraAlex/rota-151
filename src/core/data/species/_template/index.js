@@ -15,6 +15,10 @@
 export const SPECIES_TEMPLATE = {
   id: 'nome-em-minusculo',
   dexNumber: 0,
+  // 'trainer' | 'pokemon' — que tipo de entidade jogável esta espécie
+  // representa (ver docs/features/011-slots-de-acao.md). Opcional — sem
+  // isso, resolveSpeciesKind() assume 'trainer'.
+  kind: 'pokemon',
   model: {
     path: '/assets/models/nome.glb',
     scale: 1,

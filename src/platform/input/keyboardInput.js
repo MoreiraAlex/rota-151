@@ -28,6 +28,11 @@ const EDGE_KEY_MAP = {
   Space: 'jump',
   ControlLeft: 'dash',
   ControlRight: 'dash',
+  // Botões de ação secundários (ver docs/features/011-slots-de-acao.md) — o
+  // primário é o clique esquerdo do mouse, tratado em pointerInput.js.
+  Digit1: 'secondary1',
+  Digit2: 'secondary2',
+  Digit3: 'secondary3',
 }
 
 export function createKeyboardInput() {
@@ -77,6 +82,9 @@ export function createKeyboardInput() {
         run: pressed.has('run'),
         jump: justPressed.has('jump'),
         dash: justPressed.has('dash'),
+        secondary1: justPressed.has('secondary1'),
+        secondary2: justPressed.has('secondary2'),
+        secondary3: justPressed.has('secondary3'),
       }
       justPressed.clear()
       return snapshot

@@ -66,6 +66,37 @@ describe('pointerInput', () => {
     expect(element.requestPointerLock).toHaveBeenCalled()
   })
 
+  it('o clique que pede o pointer lock não dispara a ação primária', () => {
+    const pointer = createPointerInput()
+    pointer.start(element)
+
+    element.dispatch('mousedown', { button: 0 })
+
+    expect(pointer.snapshot().primary).toBe(false)
+  })
+
+  it('clique esquerdo dispara a ação primária só com o ponteiro travado, uma vez por clique', () => {
+    const pointer = createPointerInput()
+    pointer.start(element)
+    lock()
+
+    element.dispatch('mousedown', { button: 0 })
+
+    expect(pointer.snapshot().primary).toBe(true)
+    // segundo snapshot vem drenado — não repete sem novo clique
+    expect(pointer.snapshot().primary).toBe(false)
+  })
+
+  it('clique direito não dispara a ação primária', () => {
+    const pointer = createPointerInput()
+    pointer.start(element)
+    lock()
+
+    element.dispatch('mousedown', { button: 2 })
+
+    expect(pointer.snapshot().primary).toBe(false)
+  })
+
   it('stop remove os listeners', () => {
     const pointer = createPointerInput()
     pointer.start(element)

@@ -56,14 +56,28 @@ de puxar ela pra frente.
       curta. Sem cooldown, sem dash aéreo, sem i-frames — fica pra depois se
       fizer falta. Clipe de animação (`species/fox/clips/dash.json`) por
       conta do usuário.
-- [ ] **Arremessar objeto** — ação com um "instante de liberação" no meio da
-      duração (ex.: spawna o projétil em t=0.4 de uma ação de 0.6s) — o
-      instante fica na config da ação, não em keyframe de clipe. Depende do
-      sistema de ações acima.
-- [ ] **Usar objeto** — mesma forma que arremesso; efeito varia por item
-      (fora de escopo detalhar agora). Depende do sistema de ações acima.
-- [ ] **Invocar criatura** — ação que spawna a entidade da criatura no mundo;
-      bloqueado até criaturas existirem (ver seção "Criaturas" abaixo).
+- [X] **Slots de ação** — entregue em
+      `docs/features/011-slots-de-acao.md` (v0.0.11): 4 botões predefinidos
+      (`primary` = clique esquerdo, só com o ponteiro travado;
+      `secondary1/2/3` = `1`/`2`/`3`), `kind` na espécie (`'trainer'` |
+      `'pokemon'`, fallback `'trainer'`) e `resolveActionSlots(kind)`
+      documentando o que cada botão vai significar — pro treinador,
+      `primary` = usar item em mãos, `secondaryN` = soltar/recolher o
+      Pokémon do time. Nenhum system atua nesses botões ainda; os itens
+      abaixo fazem isso quando forem a vez.
+- [ ] **Arremessar objeto** — atua no botão `primary` (predefinido em
+      "Slots de ação" acima) quando o item em mãos é `throwable`; ação com
+      um "instante de liberação" no meio da duração (ex.: spawna o
+      projétil em t=0.4 de uma ação de 0.6s) — o instante fica na config
+      da ação, não em keyframe de clipe. Depende do sistema de ações da
+      v0.0.7.
+- [ ] **Usar objeto** — mesma forma que arremesso, também no `primary`;
+      efeito varia por item/categoria (`consumable` cura, `weapon` fora de
+      escopo por ora). Depende do sistema de ações da v0.0.7.
+- [ ] **Invocar criatura** — atua num dos botões `secondaryN` (predefinidos
+      em "Slots de ação" acima); ação que spawna a entidade da criatura no
+      mundo; bloqueado até criaturas existirem (ver seção "Criaturas"
+      abaixo).
 - [ ] **Recolher criatura** — inverso da invocação; mesma dependência.
 - [ ] **Morrer** — estado terminal, não uma ação com fim automático; trava
       input e provavelmente dispara um fluxo de respawn/checkpoint que ainda

@@ -3,17 +3,21 @@ import WALK_CLIP from './clips/walk.json'
 import RUN_CLIP from './clips/run.json'
 
 /**
- * Fox (Khronos Sample Assets) — modelo temporário do jogador, não é uma
- * criatura do jogo. Fica no registro de espécies porque o jogador é tratado
- * como mais uma entrada dele (mesmo esquema de model/clips/stats que uma
- * criatura real terá). Sem prefixo numérico de dex — não é um Pokémon.
- *
- * Troque `id`/pasta quando o modelo definitivo do treinador estiver pronto;
- * quem referencia isso é só `PlayerView.jsx`.
+ * Fox (Khronos Sample Assets) — modelo livre usado como placeholder de
+ * Pokémon/criatura selvagem (`kind: 'pokemon'`), não é o jogador — o avatar
+ * de verdade do treinador é `bot/` (`PLAYER_SPECIES_ID`). Fica no registro
+ * de espécies com o mesmo esquema de model/clips/stats que uma criatura real
+ * terá, pra continuar servindo de cobaia de motor (animação procedural,
+ * cápsula deitada de quadrúpede) até haver conteúdo de criatura de verdade.
+ * Sem prefixo numérico de dex — não é um Pokémon de verdade.
  */
 export const FOX = {
   id: 'fox',
   dexNumber: null,
+  // Placeholder de criatura selvagem, não o treinador — ver comentário
+  // acima. Sem espécie kind: 'pokemon' de verdade ainda, resolveActionSlots
+  // não tem o que resolver pra ela (ver core/data/actionSlots.js).
+  kind: 'pokemon',
   model: {
     path: '/assets/models/fox-debug.glb',
     scale: 0.015,

@@ -34,6 +34,9 @@ describe('keyboardInput', () => {
       jump: false,
       run: false,
       dash: false,
+      secondary1: false,
+      secondary2: false,
+      secondary3: false,
     })
   })
 
@@ -132,6 +135,9 @@ describe('keyboardInput', () => {
       jump: false,
       run: false,
       dash: false,
+      secondary1: false,
+      secondary2: false,
+      secondary3: false,
     })
   })
 
@@ -184,6 +190,55 @@ describe('keyboardInput', () => {
     release('ControlLeft')
     press('ControlLeft')
     expect(keyboard.snapshot().dash).toBe(true)
+  })
+
+  it('Digit1/2/3 mapeiam para os pulsos de secondary1/2/3, drenados no snapshot', () => {
+    const keyboard = createKeyboardInput()
+    keyboard.start()
+
+    press('Digit1')
+    press('Digit2')
+    press('Digit3')
+    expect(keyboard.snapshot()).toMatchObject({
+      secondary1: true,
+      secondary2: true,
+      secondary3: true,
+    })
+    // drenado — segunda leitura sem novo keydown vem falsa
+    expect(keyboard.snapshot()).toMatchObject({
+      secondary1: false,
+      secondary2: false,
+      secondary3: false,
+    })
+  })
+
+  it('segurar Digit1 (auto-repeat do SO) não gera novo pulso de secondary1', () => {
+    const keyboard = createKeyboardInput()
+    keyboard.start()
+
+    win.dispatch('keydown', {
+      code: 'Digit1',
+      preventDefault: () => {},
+      repeat: true,
+    })
+
+    expect(keyboard.snapshot().secondary1).toBe(false)
+  })
+
+  it('perder o foco descarta pulsos pendentes de secondary1/2/3', () => {
+    const keyboard = createKeyboardInput()
+    keyboard.start()
+
+    press('Digit1')
+    press('Digit2')
+    press('Digit3')
+    win.dispatch('blur')
+
+    expect(keyboard.snapshot()).toMatchObject({
+      secondary1: false,
+      secondary2: false,
+      secondary3: false,
+    })
   })
 
   it('stop remove os listeners e zera o estado', () => {

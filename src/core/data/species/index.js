@@ -1,9 +1,11 @@
 /**
  * Registro de espécies. Cada pasta `<dexNumber>-<id>/` (ou, no caso do
- * jogador, sem número — ver `fox/`) É SUA — eu construo o mecanismo (este
+ * treinador, sem número — ver `bot/`) É SUA — eu construo o mecanismo (este
  * arquivo, `getSpecies`/`listSpecies`), nunca escrevo uma entrada de espécie
- * de Pokémon. A entrada `fox/` é minha (é o placeholder do jogador, modelo
- * livre) — as próximas (Pokémon de verdade) você adiciona.
+ * de Pokémon. A entrada `fox/` é minha (modelo livre, Khronos Sample Assets)
+ * — hoje serve de placeholder pra Pokémon/criatura selvagem (`kind:
+ * 'pokemon'`), não pro jogador. `bot/` é o avatar de verdade do treinador
+ * (`PLAYER_SPECIES_ID`), conteúdo seu.
  *
  * Pra adicionar uma criatura:
  * 1) copia `_template/` pra `<dexNumber>-<id>/` (ex.: `001-bulbasaur/`)
@@ -32,4 +34,14 @@ export function getSpecies(id, registry = SPECIES_REGISTRY) {
 
 export function listSpecies(registry = SPECIES_REGISTRY) {
   return Object.values(registry)
+}
+
+/**
+ * Tipo de entidade jogável que a espécie representa (`'trainer'` |
+ * `'pokemon'`) — ver docs/features/011-slots-de-acao.md. Espécie sem `kind`
+ * (ex.: `bot`, ainda não atualizado) cai em `'trainer'`: única leitura
+ * possível hoje, já que não existe Pokémon jogável ainda.
+ */
+export function resolveSpeciesKind(species) {
+  return species?.kind ?? 'trainer'
 }

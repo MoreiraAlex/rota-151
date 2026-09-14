@@ -6,6 +6,7 @@ import RUN_CLIP from './clips/run.json'
 export const BOT = {
   id: 'bot',
   dexNumber: null,
+  kind: 'trainer',
   model: {
     path: '/assets/models/bot.glb',
     scale: 0.015,

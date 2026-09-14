@@ -1,5 +1,6 @@
 import { registerSystem, GAME_PHASES } from '@/core/systems'
 import { inputSystem } from '@/core/systems/inputSystem'
+import { actionSlotsDebugSystem } from '@/core/systems/actionSlotsDebugSystem'
 import { physicsBootstrapSystem } from '@/core/systems/physicsBootstrapSystem'
 import { cameraControlSystem } from '@/core/systems/cameraControlSystem'
 import { vitalsRegenSystem } from '@/core/systems/vitalsRegenSystem'
@@ -37,6 +38,9 @@ export function registerGameSystems() {
   registered = true
 
   registerSystem(GAME_PHASES.INPUT, inputSystem)
+  // Debug temporário — ver docs/features/011-slots-de-acao.md. Remove
+  // quando a primeira ação de verdade passar a consumir esses botões.
+  registerSystem(GAME_PHASES.INPUT, actionSlotsDebugSystem)
 
   registerSystem(GAME_PHASES.SIMULATION, physicsBootstrapSystem)
   registerSystem(GAME_PHASES.SIMULATION, cameraControlSystem)

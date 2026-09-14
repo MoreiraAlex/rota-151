@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import { getSpecies, listSpecies, SPECIES_REGISTRY } from './index'
+import {
+  getSpecies,
+  listSpecies,
+  resolveSpeciesKind,
+  SPECIES_REGISTRY,
+} from './index'
 
 const FAKE_REGISTRY = {
   bulbasaur: { id: 'bulbasaur', dexNumber: 1 },
@@ -25,5 +30,15 @@ describe('species registry — mecanismo', () => {
 
   it('sem argumento, usa o SPECIES_REGISTRY real (começa vazio — é conteúdo do usuário)', () => {
     expect(listSpecies()).toEqual(Object.values(SPECIES_REGISTRY))
+  })
+
+  it('resolveSpeciesKind lê o kind da espécie', () => {
+    expect(resolveSpeciesKind({ kind: 'pokemon' })).toBe('pokemon')
+    expect(resolveSpeciesKind({ kind: 'trainer' })).toBe('trainer')
+  })
+
+  it('resolveSpeciesKind assume trainer quando a espécie não tem kind', () => {
+    expect(resolveSpeciesKind({})).toBe('trainer')
+    expect(resolveSpeciesKind(null)).toBe('trainer')
   })
 })

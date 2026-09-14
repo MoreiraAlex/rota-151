@@ -1,9 +1,13 @@
 /**
- * Adapter de input de mouse para a câmera, via Pointer Lock.
+ * Adapter de input de mouse para a câmera e a ação primária, via Pointer Lock.
  *
  * Ao clicar no jogo o ponteiro é travado: o mouse passa a controlar a câmera
  * sem cursor visível. `Esc` (tratado pelo browser) solta; clicar de novo volta
  * a travar. Enquanto solto, nenhum movimento de câmera é capturado.
+ *
+ * O clique esquerdo também é a ação `primary` (ver
+ * docs/features/011-slots-de-acao.md) — só conta depois que o ponteiro já
+ * está travado, pra não disparar a ação no mesmo clique que só pede o lock.
  *
  * Acumula os deltas entre chamadas de `snapshot()`, que os drena — o game loop
  * consome cada movimento exatamente uma vez, mesmo com vários passos fixos por
@@ -15,11 +19,13 @@ export function createPointerInput() {
   let yawDelta = 0
   let pitchDelta = 0
   let zoomDelta = 0
+  let primaryPressed = false
 
   const resetDeltas = () => {
     yawDelta = 0
     pitchDelta = 0
     zoomDelta = 0
+    primaryPressed = false
   }
 
   const requestLock = () => {
@@ -44,11 +50,16 @@ export function createPointerInput() {
     zoomDelta += Math.sign(event.deltaY)
   }
 
+  const onMouseDown = (event) => {
+    if (locked && event.button === 0) primaryPressed = true
+  }
+
   return {
     start(domElement) {
       element = domElement ?? null
       if (!element) return
       element.addEventListener('click', requestLock)
+      element.addEventListener('mousedown', onMouseDown)
       element.addEventListener('wheel', onWheel, { passive: true })
       document.addEventListener('pointerlockchange', onPointerLockChange)
       document.addEventListener('mousemove', onPointerMove)
@@ -57,6 +68,7 @@ export function createPointerInput() {
     stop() {
       if (element) {
         element.removeEventListener('click', requestLock)
+        element.removeEventListener('mousedown', onMouseDown)
         element.removeEventListener('wheel', onWheel)
       }
       document.removeEventListener('pointerlockchange', onPointerLockChange)
@@ -72,6 +84,7 @@ export function createPointerInput() {
         cameraYaw: yawDelta,
         cameraPitch: pitchDelta,
         zoom: zoomDelta,
+        primary: primaryPressed,
       }
       resetDeltas()
       return snapshot
