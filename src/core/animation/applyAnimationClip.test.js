@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest'
-import { applyAnimationClip } from './applyAnimationClip'
+import {
+  applyAnimationClip,
+  capturePose,
+  applyBlendedAnimationClip,
+} from './applyAnimationClip'
 import FOX_WALK_CLIP from '@/core/data/species/fox/clips/walk.json'
 
 function makeEntry(rest) {
@@ -79,6 +83,63 @@ describe('applyAnimationClip — mecânica básica', () => {
     expect(bones.leg.bone.rotation.z).not.toBeCloseTo(0)
 
     applyAnimationClip(idle, bones, 0, 1)
+    expect(bones.leg.bone.rotation.z).toBeCloseTo(0)
+  })
+})
+
+describe('capturePose / applyBlendedAnimationClip — crossfade', () => {
+  it('capturePose fotografa o valor atual do osso, não a pose de descanso', () => {
+    const bones = { leg: makeEntry({ rotation: { z: 0 } }) }
+    bones.leg.bone.rotation.z = 0.9 // valor "ao vivo", diferente do descanso
+
+    const pose = capturePose(bones)
+    expect(pose.leg.rotation.z).toBeCloseTo(0.9)
+  })
+
+  it('alpha 0 mantém a pose congelada; alpha 1 é o clipe novo puro', () => {
+    const bones = { leg: makeEntry({ rotation: { z: 0 } }) }
+    const fromPose = capturePose(bones) // congelado em z=0
+    const clip = {
+      bones: { leg: { rotation: { z: { type: 'constant', value: 2 } } } },
+    }
+
+    applyBlendedAnimationClip(fromPose, clip, bones, 0, 0, 1)
+    expect(bones.leg.bone.rotation.z).toBeCloseTo(0)
+
+    applyBlendedAnimationClip(fromPose, clip, bones, 0, 1, 1)
+    expect(bones.leg.bone.rotation.z).toBeCloseTo(2)
+  })
+
+  it('alpha intermediário fica entre a pose congelada e o clipe novo', () => {
+    const bones = { leg: makeEntry({ rotation: { z: 0 } }) }
+    const fromPose = capturePose(bones) // congelado em z=0
+    const clip = {
+      bones: { leg: { rotation: { z: { type: 'constant', value: 2 } } } },
+    }
+
+    applyBlendedAnimationClip(fromPose, clip, bones, 0, 0.5, 1)
+    expect(bones.leg.bone.rotation.z).toBeCloseTo(1)
+  })
+
+  it('troca no meio de um crossfade não perde o congelamento original', () => {
+    // Fotografa parado, começa a misturar pra "correr", mas troca de alvo
+    // antes de terminar — a fotografia original continua sendo o ponto de
+    // partida (é o animationSystem que decide não re-fotografar).
+    const bones = { leg: makeEntry({ rotation: { z: 0 } }) }
+    const fromPose = capturePose(bones)
+    const runClip = {
+      bones: { leg: { rotation: { z: { type: 'constant', value: 3 } } } },
+    }
+    const idleClip = { bones: {} }
+
+    applyBlendedAnimationClip(fromPose, runClip, bones, 0, 0.3, 1)
+    const midRun = bones.leg.bone.rotation.z
+
+    applyBlendedAnimationClip(fromPose, idleClip, bones, 0, 0.3, 1)
+    // idleClip não sobrescreve "leg" — a mistura cai de volta pra
+    // interpolar entre a mesma fotografia e a pose de descanso (que é 0),
+    // então o resultado não é igual ao instante anterior (alvo mudou).
+    expect(bones.leg.bone.rotation.z).not.toBeCloseTo(midRun)
     expect(bones.leg.bone.rotation.z).toBeCloseTo(0)
   })
 })

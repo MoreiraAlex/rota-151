@@ -11,13 +11,9 @@
  * 3) importa aqui embaixo e adiciona uma linha no SPECIES_REGISTRY
  */
 import { FOX } from './fox'
-import { ARCANINE } from './arcanine'
-import { BULBASAUR } from './bulbasaur'
 
 export const SPECIES_REGISTRY = {
   [FOX.id]: FOX,
-  [ARCANINE.id]: ARCANINE,
-  [BULBASAUR.id]: BULBASAUR,
 }
 
 export function getSpecies(id, registry = SPECIES_REGISTRY) {

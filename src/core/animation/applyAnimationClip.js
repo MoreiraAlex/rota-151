@@ -2,6 +2,7 @@ import { evaluateCurve } from './curves'
 
 const TWO_PI = Math.PI * 2
 const ANIMATABLE_PROPERTIES = ['rotation', 'position', 'scale']
+const AXES = ['x', 'y', 'z']
 
 /**
  * Aplica um clipe de animação (dado declarativo — ver curves.js pros tipos de
@@ -30,7 +31,8 @@ const ANIMATABLE_PROPERTIES = ['rotation', 'position', 'scale']
  * ou eixo do clipe sem correspondente no mapa resolvido é ignorado, não
  * lança erro.
  *
- * Antes de aplicar, **todo** osso do mapa volta pra pose de descanso. Sem
+ * Toda pose calculada (aqui e em `applyBlendedAnimationClip`) parte da pose de
+ * descanso pra **todo** osso do mapa, não só os mencionados no clipe. Sem
  * isso, um osso animado pelo clipe anterior (ex.: a perna no "walk") e
  * ausente do clipe atual (ex.: o "idle", que não mexe em perna) ficaria
  * travado no último valor que o clipe anterior escreveu, em vez de voltar a
@@ -38,38 +40,111 @@ const ANIMATABLE_PROPERTIES = ['rotation', 'position', 'scale']
  * clipe individualmente.
  */
 export function applyAnimationClip(clip, bones, t, speed = 1) {
-  const freq = speed * TWO_PI
+  writePose(sampleAnimationClip(clip, bones, t, speed), bones)
+}
 
-  resetToRest(bones)
+/**
+ * Fotografa a pose atual (o que está de fato nos ossos agora, não a pose de
+ * descanso) — o ponto de partida de um crossfade: quando o estado de
+ * animação muda, a pose exibida no frame da troca vira esse retrato estático,
+ * e o clipe novo entra por cima dele (ver `applyBlendedAnimationClip`).
+ */
+export function capturePose(bones) {
+  const pose = {}
+  for (const [boneName, entry] of Object.entries(bones)) {
+    pose[boneName] = copyBoneValues(entry.bone)
+  }
+  return pose
+}
+
+/**
+ * Interpola entre uma pose congelada (`fromPose`, ver `capturePose`) e o
+ * clipe novo avaliado em `t`, por `alpha` (0 = ainda na pose congelada, 1 =
+ * clipe novo puro). Não há dois clipes tocando ao mesmo tempo — só uma
+ * fotografia estática e o clipe vivo, misturados.
+ */
+export function applyBlendedAnimationClip(
+  fromPose,
+  clip,
+  bones,
+  t,
+  alpha,
+  speed = 1,
+) {
+  const toPose = sampleAnimationClip(clip, bones, t, speed)
+  const blended = {}
+  for (const boneName of Object.keys(bones)) {
+    const from = fromPose[boneName]
+    const to = toPose[boneName]
+    if (!from || !to) continue
+    blended[boneName] = lerpBoneValues(from, to, alpha)
+  }
+  writePose(blended, bones)
+}
+
+function sampleAnimationClip(clip, bones, t, speed) {
+  const freq = speed * TWO_PI
+  const pose = {}
+
+  for (const [boneName, entry] of Object.entries(bones)) {
+    pose[boneName] = copyBoneValues(entry.rest)
+  }
 
   for (const [boneName, properties] of Object.entries(clip.bones)) {
     const entry = bones[boneName]
     if (!entry) continue
 
     for (const [property, axes] of Object.entries(properties)) {
-      const target = entry.bone[property]
       const rest = entry.rest[property]
-      if (!target || !rest) continue
+      if (!rest) continue
 
       for (const [axis, curve] of Object.entries(axes)) {
-        target[axis] = rest[axis] + evaluateCurve(curve, t, freq)
+        pose[boneName][property][axis] =
+          rest[axis] + evaluateCurve(curve, t, freq)
       }
     }
   }
+
+  return pose
 }
 
-function resetToRest(bones) {
-  for (const entry of Object.values(bones)) {
+function copyBoneValues(source) {
+  const values = {}
+  for (const property of ANIMATABLE_PROPERTIES) {
+    const { x, y, z } = source[property]
+    values[property] = { x, y, z }
+  }
+  return values
+}
+
+function lerpBoneValues(from, to, alpha) {
+  const values = {}
+  for (const property of ANIMATABLE_PROPERTIES) {
+    values[property] = {}
+    for (const axis of AXES) {
+      values[property][axis] =
+        from[property][axis] +
+        (to[property][axis] - from[property][axis]) * alpha
+    }
+  }
+  return values
+}
+
+function writePose(pose, bones) {
+  for (const [boneName, entry] of Object.entries(bones)) {
     if (!entry) continue
+
+    const values = pose[boneName]
+    if (!values) continue
 
     for (const property of ANIMATABLE_PROPERTIES) {
       const target = entry.bone[property]
-      const rest = entry.rest[property]
-      if (!target || !rest) continue
+      const value = values[property]
+      if (!target || !value) continue
 
-      target.x = rest.x
-      target.y = rest.y
-      target.z = rest.z
+      target.x = value.x
+      target.y = value.y
+      target.z = value.z
     }
   }
 }

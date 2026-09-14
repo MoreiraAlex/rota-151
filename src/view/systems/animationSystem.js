@@ -1,11 +1,25 @@
 import { AnimationState } from '@/core/traits'
-import { applyAnimationClip } from '@/core/animation/applyAnimationClip'
+import { GAME_CONFIG } from '@/core/gameConfig'
+import {
+  applyAnimationClip,
+  applyBlendedAnimationClip,
+  capturePose,
+} from '@/core/animation/applyAnimationClip'
 import { getAnimatedBonesEntry } from '@/view/registry/animationRegistry'
+
+const { BLEND_DURATION } = GAME_CONFIG.ANIMATION
 
 /**
  * Avança o relógio de animação de cada entidade registrada e aplica o clipe
  * procedural correspondente ao AnimationState atual (decidido no core, por
- * animationStateSystem). Troca de estado é instantânea — sem crossfade.
+ * animationStateSystem).
+ *
+ * Troca de estado dispara um crossfade em vez de corte seco: a pose exibida
+ * no frame da troca vira uma fotografia estática (`capturePose`), e o clipe
+ * novo entra por cima dela ao longo de `BLEND_DURATION` segundos
+ * (`applyBlendedAnimationClip`). Uma troca no meio de outra troca só atualiza
+ * o alvo — a fotografia de partida continua sendo a mesma da troca anterior,
+ * então nunca há um salto visível, só uma curva de mistura mais curta.
  *
  * Vive na view porque mexe direto nos ossos do objeto Three carregado.
  * Fase: presentation (passo variável).
@@ -22,6 +36,34 @@ export function animationSystem(context) {
     if (!clip) return
 
     entry.elapsed += delta
-    applyAnimationClip(clip, entry.bones, entry.elapsed, clip.speed || 1)
+
+    if (entry.stateId === null) {
+      entry.stateId = anim.id
+    } else if (anim.id !== entry.stateId) {
+      entry.blend = { fromPose: capturePose(entry.bones), elapsed: 0 }
+      entry.stateId = anim.id
+    }
+
+    if (!entry.blend) {
+      applyAnimationClip(clip, entry.bones, entry.elapsed, clip.speed || 1)
+      return
+    }
+
+    entry.blend.elapsed += delta
+    if (entry.blend.elapsed >= BLEND_DURATION) {
+      entry.blend = null
+      applyAnimationClip(clip, entry.bones, entry.elapsed, clip.speed || 1)
+      return
+    }
+
+    const alpha = entry.blend.elapsed / BLEND_DURATION
+    applyBlendedAnimationClip(
+      entry.blend.fromPose,
+      clip,
+      entry.bones,
+      entry.elapsed,
+      alpha,
+      clip.speed || 1,
+    )
   })
 }

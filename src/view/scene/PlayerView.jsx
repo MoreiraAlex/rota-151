@@ -14,9 +14,7 @@ import {
 // Modelo temporário do jogador (ver core/data/species/fox). Troca aqui quando
 // o modelo definitivo do treinador estiver pronto — nada mais neste arquivo
 // muda, contanto que a nova espécie tenha os mesmos ids de clipe.
-// const PLAYER_SPECIES_ID = 'fox'
-// const PLAYER_SPECIES_ID = 'arcanine'
-const PLAYER_SPECIES_ID = 'bulbasaur'
+const PLAYER_SPECIES_ID = 'fox'
 const PLAYER_SPECIES = getSpecies(PLAYER_SPECIES_ID)
 
 /**

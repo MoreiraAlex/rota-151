@@ -1,10 +1,11 @@
 # 🚀 Versão 0.0.6 — Animação Procedural de Ossos
 
-O objetivo desta versão é substituir a ideia de clipe gravado (`AnimationMixer`
-+ `.glb` com animações embutidas) por um motor de animação **procedural**:
+O objetivo desta versão é substituir a ideia de clipe gravado (`AnimationMixer.glb` com animações embutidas) por um motor de animação **procedural**:
 código headless que manipula rotação/posição/escala de ossos por curva
 matemática, a cada frame — sem depender de nenhuma animação pré-gravada no
-modelo. Isso vale para qualquer criatura do jogo, incluindo o jogador.
+modelo. Isso vale para qualquer criatura do jogo, incluindo o jogador. Inclui
+também o crossfade entre estados de animação (idle/walk/run), pra trocar de
+uma pra outra sem corte seco.
 
 > Versionamento e nome do arquivo: ver `docs/development-workflow.md`.
 
@@ -59,6 +60,12 @@ modelo. Isso vale para qualquer criatura do jogo, incluindo o jogador.
 - **Elapsed independente por entidade**: cada entidade animada tem seu próprio
   relógio (`elapsed += delta`) no registro de animação, não o tempo global do
   jogo — trocar de clipe não reinicia o ciclo de quem não trocou.
+- **Crossfade por fotografia da pose atual, não por dois clipes tocando ao
+  mesmo tempo**: ao trocar de `AnimationState`, `capturePose` congela a pose
+  exibida naquele frame e `applyBlendedAnimationClip` mistura essa fotografia
+  com o clipe novo ao longo de `ANIMATION.BLEND_DURATION` segundos. Uma troca
+  no meio de outra troca só atualiza o alvo — a fotografia original continua
+  sendo o ponto de partida, então nunca há salto, só uma curva mais curta.
 
 ---
 
@@ -73,6 +80,8 @@ modelo. Isso vale para qualquer criatura do jogo, incluindo o jogador.
   (Rapier `debugRender()`) e painel com estado ao vivo (posição, velocidade,
   grounded, animação, câmera) + config relevante (dimensão da cápsula,
   velocidades), atrás de um toggle — nunca requisito de gameplay.
+- Crossfade entre estados de animação (idle/walk/run) — sem corte seco ao
+  trocar de estado.
 
 ---
 
@@ -122,7 +131,25 @@ modelo. Isso vale para qualquer criatura do jogo, incluindo o jogador.
       `tools/` entrarem na cena sem `view/` importar de `tools/`
 - [X] `app/(auth)/page.js` — checkbox "Debug físico" liga/desliga os dois
 
-### 5. Gate e documentação
+### 5. Crossfade entre estados
+
+- [X] `gameConfig.js` — `ANIMATION.BLEND_DURATION` (0.2s)
+- [X] `core/animation/applyAnimationClip.js` — reescrito em torno de uma
+      amostragem de pose pura (`sampleAnimationClip`, interna); ganhou
+      `capturePose(bones)` (fotografa a pose ao vivo dos ossos) e
+      `applyBlendedAnimationClip(fromPose, clip, bones, t, alpha, speed)`
+      (mistura a fotografia com o clipe novo); `applyAnimationClip` mantém a
+      mesma assinatura e comportamento de antes
+- [X] `view/registry/animationRegistry.js` — cada entidade ganha `stateId`
+      (último estado visto) e `blend` (`{ fromPose, elapsed }` ou `null`)
+- [X] `view/systems/animationSystem.js` — detecta troca de `AnimationState`,
+      fotografa a pose e aplica a mistura enquanto `blend.elapsed <
+      BLEND_DURATION`; volta a aplicar o clipe puro quando o crossfade termina
+- [X] `applyAnimationClip.test.js` — testes de `capturePose`, mistura em
+      alpha 0/1/intermediário, e troca de alvo no meio de um crossfade em
+      andamento (a fotografia original não é perdida)
+
+### 6. Gate e documentação
 
 - [X] `package.json`: bump de versão `0.0.5` → `0.0.6`
 - [X] `npm run build && npm run lint && npm test` verdes
@@ -151,6 +178,9 @@ modelo. Isso vale para qualquer criatura do jogo, incluindo o jogador.
   React/R3F/DOM) e testados.
 - Toggle de debug na tela do jogo mostra os colliders reais (Rapier) e um
   painel com estado ao vivo, sem interferir no gameplay quando desligado.
+- Trocar de `AnimationState` (idle/walk/run) faz um crossfade suave, sem
+  corte seco nem salto, mesmo se um novo estado chegar no meio de outra
+  transição.
 - `npm run build`, `npm run lint` e `npm test` continuam verdes.
 
 ---
@@ -166,4 +196,3 @@ modelo. Isso vale para qualquer criatura do jogo, incluindo o jogador.
   serve exatamente pra visualizar essa diferença, mas o ajuste em si fica pra
   quando o modelo definitivo do jogador existir.
 - Animações além de idle/walk/run (ataques, capturas, emotes).
-- Blend/transição suave entre clipes (troca é instantânea).

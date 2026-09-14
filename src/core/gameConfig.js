@@ -30,6 +30,9 @@ export const GAME_CONFIG = {
     // Acima disso, considera correndo (run) em vez de andando (walk). Fica
     // entre WALK_SPEED e RUN_SPEED de PLAYER.
     RUN_MIN_SPEED: 5,
+    // Duração do crossfade (segundos) ao trocar de AnimationState — evita o
+    // corte seco entre idle/walk/run (ou qualquer outro clipe futuro).
+    BLEND_DURATION: 0.2,
   },
   PHYSICS: {
     // Aceleração da gravidade (m/s²). Mais forte que 9.81 dá um "peso" de jogo.

@@ -7,11 +7,16 @@
  * clipe JSON daquela espécie (core/data/species). `elapsed` é o relógio de
  * animação da entidade, avançado pelo animationSystem a cada frame — cada
  * entidade tem o seu, independente das outras.
+ *
+ * `stateId` guarda o último AnimationState.id visto, pra o animationSystem
+ * detectar troca de estado. `blend`, quando não nulo, é o crossfade em
+ * andamento (`{ fromPose, elapsed }` — ver applyBlendedAnimationClip em
+ * core/animation).
  */
 const entries = new Map()
 
 export function registerAnimatedBones(entity, { bones, clips }) {
-  entries.set(entity, { bones, clips, elapsed: 0 })
+  entries.set(entity, { bones, clips, elapsed: 0, stateId: null, blend: null })
 }
 
 export function unregisterAnimatedBones(entity) {
