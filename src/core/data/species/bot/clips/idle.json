@@ -1,0 +1,46 @@
+{
+  "name": "fox-idle",
+  "loop": true,
+  "bones": {
+    "b_Spine01_02": {
+      "rotation": {
+        "x": { "type": "sine", "amplitude": 0.02, "frequencyScale": 0.25 }
+      }
+    },
+    "b_Head_05": {
+      "rotation": {
+        "x": {
+          "type": "sine",
+          "amplitude": 0.015,
+          "frequencyScale": 0.2,
+          "phaseTurns": 0.25
+        }
+      }
+    },
+    "b_Tail01_012": {
+      "rotation": {
+        "y": { "type": "sine", "amplitude": 0.1, "frequencyScale": 0.3 }
+      }
+    },
+    "b_Tail02_013": {
+      "rotation": {
+        "y": {
+          "type": "sine",
+          "amplitude": 0.1,
+          "frequencyScale": 0.3,
+          "timeOffset": 0.15
+        }
+      }
+    },
+    "b_Tail03_014": {
+      "rotation": {
+        "y": {
+          "type": "sine",
+          "amplitude": 0.1,
+          "frequencyScale": 0.3,
+          "timeOffset": 0.3
+        }
+      }
+    }
+  }
+}

@@ -3,7 +3,7 @@ import { useGLTF } from '@react-three/drei'
 import { clone as cloneSkeleton } from 'three/examples/jsm/utils/SkeletonUtils.js'
 
 import { playerEntity } from '@/core/world/world'
-import { getSpecies } from '@/core/data/species'
+import { getSpecies, PLAYER_SPECIES_ID } from '@/core/data/species'
 import { resolveBones } from '@/core/animation/resolveBones'
 import { registerView, unregisterView } from '../registry/viewRegistry'
 import {
@@ -11,10 +11,10 @@ import {
   unregisterAnimatedBones,
 } from '../registry/animationRegistry'
 
-// Modelo temporário do jogador (ver core/data/species/fox). Troca aqui quando
-// o modelo definitivo do treinador estiver pronto — nada mais neste arquivo
-// muda, contanto que a nova espécie tenha os mesmos ids de clipe.
-const PLAYER_SPECIES_ID = 'fox'
+// PLAYER_SPECIES_ID mora em core/data/species/index.js — único lugar que
+// define isso, também usado por core/world/world.js (corpo físico +
+// movimento). Trocar só aqui deixaria o modelo visual e a física apontando
+// pra espécies diferentes, como já aconteceu.
 const PLAYER_SPECIES = getSpecies(PLAYER_SPECIES_ID)
 
 /**
@@ -63,7 +63,7 @@ export function PlayerView() {
       <primitive
         object={cloned}
         scale={PLAYER_SPECIES.model.scale}
-        position={PLAYER_SPECIES.model.position}
+        position={PLAYER_SPECIES.body.modelOffset}
       />
     </group>
   )

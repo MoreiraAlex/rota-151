@@ -8,8 +8,9 @@ import {
   AnimationState,
   Grounded,
   OrbitCamera,
+  CharacterController,
+  MovementStats,
 } from '@/core/traits'
-import { GAME_CONFIG } from '@/core/gameConfig'
 
 /**
  * Painel de texto com estado ao vivo do jogador/câmera + config relevante
@@ -23,12 +24,15 @@ export function DebugPanel() {
   const anim = useTrait(playerEntity, AnimationState)
   const grounded = useTag(playerEntity, Grounded)
   const orbit = useTrait(cameraEntity, OrbitCamera)
+  const body = useTrait(playerEntity, CharacterController)
+  const movement = useTrait(playerEntity, MovementStats)
 
-  if (!position || !velocity || !anim || !orbit) return null
+  if (!position || !velocity || !anim || !orbit || !body || !movement) {
+    return null
+  }
 
   const speed = Math.hypot(velocity.x, velocity.z)
-  const { CAPSULE_RADIUS, CAPSULE_HALF_HEIGHT } = GAME_CONFIG.PHYSICS.CHARACTER
-  const { WALK_SPEED, RUN_SPEED } = GAME_CONFIG.PLAYER
+  const capsuleHeight = 2 * (body.capsuleRadius + body.capsuleHalfHeight)
 
   return (
     <div className="pointer-events-none absolute bottom-4 left-4 space-y-1 rounded bg-black/70 p-3 font-mono text-xs text-white">
@@ -46,11 +50,11 @@ export function DebugPanel() {
       </p>
       <hr className="border-white/20" />
       <p>
-        cápsula: r={CAPSULE_RADIUS} h={CAPSULE_HALF_HEIGHT} (altura total{' '}
-        {(2 * (CAPSULE_RADIUS + CAPSULE_HALF_HEIGHT)).toFixed(2)})
+        cápsula: r={body.capsuleRadius} h={body.capsuleHalfHeight} (altura total{' '}
+        {capsuleHeight.toFixed(2)})
       </p>
       <p>
-        walk/run: {WALK_SPEED}/{RUN_SPEED} u/s
+        walk/run: {movement.walkSpeed}/{movement.runSpeed} u/s
       </p>
     </div>
   )

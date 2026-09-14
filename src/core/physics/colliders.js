@@ -1,4 +1,3 @@
-import { GAME_CONFIG } from '../gameConfig'
 import { TEST_LEVEL } from '../data/testLevel'
 import { getRapier, getRapierWorld } from './physicsWorld'
 
@@ -54,14 +53,29 @@ export function createStaticLevel() {
   }
 }
 
+// Rapier gera a cápsula em pé (comprida no eixo Y local). Deitar ela é girar
+// esse eixo local 90° em torno de um dos outros dois — 'y' não precisa de
+// rotação nenhuma (já é o padrão do primitivo).
+const CAPSULE_TILT = {
+  x: () => axisQuaternion('z', Math.PI / 2),
+  z: () => axisQuaternion('x', Math.PI / 2),
+}
+
 /**
  * Cria o corpo cinemático + collider cápsula do personagem na posição dada.
- * Retorna os handles para guardar no trait PhysicsBody.
+ * `radius`/`halfHeight`/`axis` vêm do trait CharacterController da entidade
+ * (por sua vez copiado de `core/data/species/<id>/index.js` no spawn) — cada
+ * entidade pode ter um corpo de tamanho e orientação diferentes. `axis`
+ * deita a cápsula (`'x'`/`'z'`) pra corpos alongados na horizontal
+ * (quadrúpedes) em vez de em pé (`'y'`, padrão). Retorna os handles para
+ * guardar no trait PhysicsBody.
  */
-export function createCharacterBody(position) {
+export function createCharacterBody(
+  position,
+  { radius, halfHeight, axis = 'y' },
+) {
   const RAPIER = getRapier()
   const world = getRapierWorld()
-  const char = GAME_CONFIG.PHYSICS.CHARACTER
 
   const body = world.createRigidBody(
     RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(
@@ -70,10 +84,12 @@ export function createCharacterBody(position) {
       position.z,
     ),
   )
-  const collider = world.createCollider(
-    RAPIER.ColliderDesc.capsule(char.CAPSULE_HALF_HEIGHT, char.CAPSULE_RADIUS),
-    body,
-  )
+
+  let colliderDesc = RAPIER.ColliderDesc.capsule(halfHeight, radius)
+  const tilt = CAPSULE_TILT[axis]
+  if (tilt) colliderDesc = colliderDesc.setRotation(tilt())
+
+  const collider = world.createCollider(colliderDesc, body)
 
   return { bodyHandle: body.handle, colliderHandle: collider.handle }
 }

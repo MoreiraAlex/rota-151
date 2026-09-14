@@ -22,12 +22,18 @@ export function physicsBootstrapSystem(context) {
 
   createStaticLevel()
 
-  world.query(CharacterController, PhysicsBody).updateEach(([body], entity) => {
-    const position = entity.get(Position)
-    const handles = createCharacterBody(position)
-    body.bodyHandle = handles.bodyHandle
-    body.colliderHandle = handles.colliderHandle
-  })
+  world
+    .query(CharacterController, PhysicsBody)
+    .updateEach(([controller, body], entity) => {
+      const position = entity.get(Position)
+      const handles = createCharacterBody(position, {
+        radius: controller.capsuleRadius,
+        halfHeight: controller.capsuleHalfHeight,
+        axis: controller.capsuleAxis,
+      })
+      body.bodyHandle = handles.bodyHandle
+      body.colliderHandle = handles.colliderHandle
+    })
 
   markLevelBuilt()
 }

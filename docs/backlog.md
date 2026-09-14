@@ -69,6 +69,18 @@ de puxar ela pra frente.
       input e provavelmente dispara um fluxo de respawn/checkpoint que ainda
       não existe — desenhar quando for a vez.
 
+## Dados por espécie
+
+- [X] **Colisão e movimento por espécie** — entregue em
+      `docs/features/008-colisao-e-movimento-por-especie.md` (v0.0.8):
+      `gameConfig.PLAYER` e `CAPSULE_RADIUS`/`CAPSULE_HALF_HEIGHT`/
+      `JUMP_SPEED` de `PHYSICS.CHARACTER` migraram pra `body`/`movement` de
+      cada `core/data/species/<id>/index.js`, copiados nos traits
+      `CharacterController`/`MovementStats` no spawn — `movementSystem` e a
+      criação do collider leem dado por entidade, não config global.
+      Parâmetros do character controller (rampa/degrau) e `GROUNDED_STICK`
+      continuam globais — não são atributo de criatura.
+
 ## Criaturas
 
 - [ ] **Criaturas selvagens no mundo** — entidades não-jogáveis usando o

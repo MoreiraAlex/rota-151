@@ -17,18 +17,11 @@ export const GAME_CONFIG = {
   WORLD: {
     SEED: 151,
   },
-  PLAYER: {
-    // Unidades por segundo (1 unidade = 1 metro).
-    WALK_SPEED: 3,
-    RUN_SPEED: 7,
-    // Fator de suavização do giro em direção ao movimento (rad/s aprox.).
-    TURN_SPEED: 10,
-  },
   PLAYER_ACTIONS: {
     dash: {
       // Duração do impulso (segundos).
       DURATION: 0.25,
-      // Unidades por segundo — maior que PLAYER.RUN_SPEED.
+      // Unidades por segundo — maior que o runSpeed de qualquer espécie hoje.
       SPEED: 14,
     },
   },
@@ -36,7 +29,7 @@ export const GAME_CONFIG = {
     // Abaixo disso, considera parado (idle).
     WALK_MIN_SPEED: 0.3,
     // Acima disso, considera correndo (run) em vez de andando (walk). Fica
-    // entre WALK_SPEED e RUN_SPEED de PLAYER.
+    // entre walkSpeed e runSpeed de MovementStats (core/data/species).
     RUN_MIN_SPEED: 5,
     // Duração do crossfade (segundos) ao trocar de AnimationState — evita o
     // corte seco entre idle/walk/run (ou qualquer outro clipe futuro).
@@ -45,10 +38,13 @@ export const GAME_CONFIG = {
   PHYSICS: {
     // Aceleração da gravidade (m/s²). Mais forte que 9.81 dá um "peso" de jogo.
     GRAVITY: -45,
+    // Parâmetros do algoritmo do character controller — compartilhados por
+    // todo mundo (existe um único KinematicCharacterController do Rapier no
+    // world inteiro, ver physicsWorld.js). Tamanho de cápsula e velocidades
+    // (andar/correr/girar/pular) NÃO ficam aqui — são por espécie, ver
+    // `core/data/species/<id>/index.js` (`body`/`movement`), copiados nos
+    // traits CharacterController/MovementStats no spawn.
     CHARACTER: {
-      // Cápsula: altura total = 2 * (CAPSULE_RADIUS + CAPSULE_HALF_HEIGHT).
-      CAPSULE_RADIUS: 0.5,
-      CAPSULE_HALF_HEIGHT: 0.01,
       // "Casca" do character controller (folga de colisão).
       CONTROLLER_OFFSET: 0.03,
       // Inclinação máxima que sobe / mínima em que escorrega (radianos).
@@ -59,9 +55,8 @@ export const GAME_CONFIG = {
       AUTOSTEP_MIN_WIDTH: 0.15,
       // Distância de "colar no chão" ao descer.
       SNAP_TO_GROUND: 0.4,
-      // Velocidade vertical inicial do pulo (m/s).
-      JUMP_SPEED: 9,
-      // Velocidade vertical mantida enquanto no chão (mantém o snap ativo).
+      // Velocidade vertical mantida enquanto no chão (mantém o snap ativo) —
+      // epsilon técnico do algoritmo, não atributo de criatura.
       GROUNDED_STICK: -2,
     },
   },

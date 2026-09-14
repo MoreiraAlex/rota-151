@@ -1,0 +1,157 @@
+{
+  "name": "bot-walk",
+  "loop": true,
+  "bones": {
+    "mixamorig_RightUpLeg": {
+      "rotation": {
+        "x": {
+          "type": "sine",
+          "amplitude": 0.5,
+          "phaseTurns": 0
+        }
+      }
+    },
+    "mixamorig_RightLeg": {
+      "rotation": {
+        "x": {
+          "type": "clampedSine",
+          "amplitude": -0.9,
+          "min": -0.9,
+          "max": 0,
+          "phaseTurns": 0.25
+        }
+      }
+    },
+    "mixamorig_RightFoot": {
+      "rotation": {
+        "x": {
+          "type": "sine",
+          "amplitude": 0.25,
+          "phaseTurns": 0.25
+        }
+      }
+    },
+    "mixamorig_LeftUpLeg": {
+      "rotation": {
+        "x": {
+          "type": "sine",
+          "amplitude": 0.5,
+          "phaseTurns": 0.5
+        }
+      }
+    },
+    "mixamorig_LeftLeg": {
+      "rotation": {
+        "x": {
+          "type": "clampedSine",
+          "amplitude": -0.9,
+          "min": -0.9,
+          "max": 0,
+          "phaseTurns": 0.75
+        }
+      }
+    },
+    "mixamorig_LeftFoot": {
+      "rotation": {
+        "x": {
+          "type": "sine",
+          "amplitude": 0.25,
+          "phaseTurns": 0.75
+        }
+      }
+    },
+    "mixamorig_RightArm": {
+      "rotation": {
+        "x": {
+          "type": "constant",
+          "value": 1.2740903539558606
+        },
+        "z": {
+          "type": "sine",
+          "amplitude": 0.13,
+          "phaseTurns": 0.5
+        }
+      }
+    },
+    "mixamorig_RightForeArm": {
+      "rotation": {
+        "z": {
+          "type": "clampedSine",
+          "amplitude": -0.23,
+          "min": -0.23,
+          "max": 0,
+          "phaseTurns": 0.75
+        }
+      }
+    },
+    "mixamorig_LeftArm": {
+      "rotation": {
+        "x": {
+          "type": "constant",
+          "value": 1.2740903539558606
+        },
+        "z": {
+          "type": "sine",
+          "amplitude": 0.13,
+          "phaseTurns": 0
+        }
+      }
+    },
+    "mixamorig_LeftForeArm": {
+      "rotation": {
+        "z": {
+          "type": "clampedSine",
+          "amplitude": 0.23,
+          "min": 0,
+          "max": 0.23,
+          "phaseTurns": 0.25
+        }
+      }
+    },
+    "mixamorig_Spine": {
+      "rotation": {
+        "x": {
+          "type": "constant",
+          "value": -0.03490658503988659
+        },
+        "y": {
+          "type": "sine",
+          "amplitude": 0.13,
+          "phaseTurns": 0
+        }
+      }
+    },
+    "mixamorig_Spine2": {
+      "rotation": {
+        "y": {
+          "type": "sine",
+          "amplitude": 0.075,
+          "phaseTurns": 0.5
+        }
+      }
+    },
+    "mixamorig_Head": {
+      "rotation": {
+        "y": {
+          "type": "sine",
+          "amplitude": 0.055,
+          "phaseTurns": 0
+        }
+      }
+    },
+    "mixamorig_Hips": {
+      "position": {
+        "x": {
+          "type": "sine",
+          "amplitude": 1,
+          "phaseTurns": 0.75
+        },
+        "y": {
+          "type": "absSine",
+          "amplitude": 0.6,
+          "frequencyScale": 2
+        }
+      }
+    }
+  }
+}

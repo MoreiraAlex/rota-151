@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { makeWorld } from '@/test/makeWorld'
-import { GAME_CONFIG } from '@/core/gameConfig'
+import { getSpecies } from '@/core/data/species'
 import {
   Position,
   Rotation,
@@ -10,7 +10,8 @@ import {
 } from '@/core/traits'
 import { movementSystem } from './movementSystem'
 
-const { WALK_SPEED, RUN_SPEED } = GAME_CONFIG.PLAYER
+const { walkSpeed: WALK_SPEED, runSpeed: RUN_SPEED } =
+  getSpecies('fox').movement
 
 function setup(yaw = 0) {
   const { world, player, camera } = makeWorld()

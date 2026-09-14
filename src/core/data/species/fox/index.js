@@ -17,12 +17,35 @@ export const FOX = {
   model: {
     path: '/assets/models/fox-debug.glb',
     scale: 0.015,
-    position: [0, -0.5, 0],
   },
   clips: {
     idle: IDLE_CLIP,
     walk: WALK_CLIP,
     run: RUN_CLIP,
+  },
+  body: {
+    // Cápsula de colisão: altura total = 2 * (capsuleRadius + capsuleHalfHeight).
+    capsuleRadius: 0.4,
+    capsuleHalfHeight: 0.45,
+    // 'y' = em pé; 'x'/'z' deitam a cápsula pra corpo alongado na horizontal
+    // (quadrúpede). Com esses valores (quase uma esfera) não faz diferença
+    // visível ainda, mas espécies com corpo mais alongado vão precisar de
+    // 'x' ou 'z' — ver core/traits/components/physics.js.
+    capsuleAxis: 'z',
+    // Onde o model é renderizado em relação ao centro da cápsula (offset
+    // local, em unidades de mundo — não escala com `model.scale`). Ajusta
+    // aqui toda vez que capsuleRadius/capsuleHalfHeight/capsuleAxis mudam,
+    // pra manter o modelo visualmente alinhado com o collider.
+    modelOffset: [0, -0.5, 0],
+  },
+  movement: {
+    // Unidades por segundo (1 unidade = 1 metro).
+    walkSpeed: 4,
+    runSpeed: 10,
+    // Fator de suavização do giro em direção ao movimento (rad/s aprox.).
+    turnSpeed: 10,
+    // Velocidade vertical inicial do pulo (m/s).
+    jumpSpeed: 9,
   },
   stats: {},
   moves: [],

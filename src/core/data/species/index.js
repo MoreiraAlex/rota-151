@@ -11,10 +11,20 @@
  * 3) importa aqui embaixo e adiciona uma linha no SPECIES_REGISTRY
  */
 import { FOX } from './fox'
+import { BOT } from './bot'
 
 export const SPECIES_REGISTRY = {
   [FOX.id]: FOX,
+  [BOT.id]: BOT,
 }
+
+/**
+ * Id da espécie usada como jogador. Único lugar que define isso — troque
+ * aqui pra testar outro modelo como jogador; `world.js` (corpo físico +
+ * movimento) e `PlayerView.jsx` (modelo + animação) leem daqui, então nunca
+ * ficam apontando pra espécies diferentes um do outro.
+ */
+export const PLAYER_SPECIES_ID = 'bot'
 
 export function getSpecies(id, registry = SPECIES_REGISTRY) {
   return registry[id] ?? null

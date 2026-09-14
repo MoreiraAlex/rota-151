@@ -23,6 +23,28 @@ export const SPECIES_TEMPLATE = {
     // idle: IDLE_CLIP,
     // walk: WALK_CLIP,
   },
+  body: {
+    // Cápsula de colisão: altura total = 2 * (capsuleRadius + capsuleHalfHeight).
+    capsuleRadius: 0.5,
+    capsuleHalfHeight: 0.01,
+    // 'y' = em pé (humanoide); 'x'/'z' deitam a cápsula pra corpo alongado
+    // na horizontal (quadrúpede) — o corpo físico gira com Rotation.y, então
+    // a cápsula deitada acompanha a frente da criatura ao virar.
+    capsuleAxis: 'y',
+    // Onde o model é renderizado em relação ao centro da cápsula (offset
+    // local, em unidades de mundo — não escala com `model.scale`). Ajusta
+    // junto toda vez que capsuleRadius/capsuleHalfHeight/capsuleAxis mudam.
+    modelOffset: [0, 0, 0],
+  },
+  movement: {
+    // Unidades por segundo (1 unidade = 1 metro).
+    walkSpeed: 3,
+    runSpeed: 7,
+    // Fator de suavização do giro em direção ao movimento (rad/s aprox.).
+    turnSpeed: 10,
+    // Velocidade vertical inicial do pulo (m/s).
+    jumpSpeed: 9,
+  },
   stats: {},
   moves: [],
 }

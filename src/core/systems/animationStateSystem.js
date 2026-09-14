@@ -22,7 +22,7 @@ export function animationStateSystem(context) {
 
   world
     .query(CharacterController, Velocity, ActionState, AnimationState)
-    .updateEach(([vel, action, anim], entity) => {
+    .updateEach(([, vel, action, anim], entity) => {
       const speed = Math.hypot(vel.x, vel.z)
       const grounded = entity.has(Grounded)
       anim.id = resolveAnimationState({
