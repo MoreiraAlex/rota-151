@@ -39,6 +39,7 @@ de puxar ela pra frente.
 - [ ] **Persistência do jogador** — salvar/restaurar posição (e depois outros
       dados) via Prisma, reaproveitando o Better Auth já no projeto (redirect
       ainda comentado em `(auth)/layout.js`).
+- [ ] **Inventario** — Inventario.
 
 ## Ações do jogador (mecanismo compartilhado)
 
@@ -65,15 +66,22 @@ de puxar ela pra frente.
       `primary` = usar item em mãos, `secondaryN` = soltar/recolher o
       Pokémon do time. Nenhum system atua nesses botões ainda; os itens
       abaixo fazem isso quando forem a vez.
+- [X] **Mecanismo de item** — entregue em
+      `docs/features/012-mecanismo-de-item.md` (v0.0.12): registro de itens
+      (`core/data/items/`, mesma forma pasta-por-entrada de `species/`),
+      categorias `'throwable'`/`'consumable'` (sem `'weapon'` — não existe
+      ataque direto no design), trait `HeldItem` no jogador e seletor no
+      `DebugPanel` pra equipar item de teste. Puro mecanismo — `primary`
+      continua sem comportamento de verdade, só o log de debug da v0.0.11.
 - [ ] **Arremessar objeto** — atua no botão `primary` (predefinido em
-      "Slots de ação" acima) quando o item em mãos é `throwable`; ação com
-      um "instante de liberação" no meio da duração (ex.: spawna o
-      projétil em t=0.4 de uma ação de 0.6s) — o instante fica na config
-      da ação, não em keyframe de clipe. Depende do sistema de ações da
-      v0.0.7.
-- [ ] **Usar objeto** — mesma forma que arremesso, também no `primary`;
-      efeito varia por item/categoria (`consumable` cura, `weapon` fora de
-      escopo por ora). Depende do sistema de ações da v0.0.7.
+      "Slots de ação" acima) lendo `HeldItem`/`getItem` (mecanismo pronto
+      acima) quando a categoria é `throwable`; ação com um "instante de
+      liberação" no meio da duração (ex.: spawna o projétil em t=0.4 de
+      uma ação de 0.6s) — o instante fica na config da ação, não em
+      keyframe de clipe. Depende do sistema de ações da v0.0.7.
+- [ ] **Usar objeto** — mesma forma que arremesso, também no `primary`,
+      quando a categoria é `consumable` (cura). Depende do sistema de
+      ações da v0.0.7.
 - [ ] **Invocar criatura** — atua num dos botões `secondaryN` (predefinidos
       em "Slots de ação" acima); ação que spawna a entidade da criatura no
       mundo; bloqueado até criaturas existirem (ver seção "Criaturas"

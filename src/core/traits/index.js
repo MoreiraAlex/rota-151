@@ -11,3 +11,4 @@ export {
 export { AnimationState } from './components/animation'
 export { ActionState } from './components/action'
 export { Vitals, applyDamage } from './components/vitals'
+export { HeldItem } from './components/heldItem'

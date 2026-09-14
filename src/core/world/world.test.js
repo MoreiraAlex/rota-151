@@ -14,6 +14,7 @@ import {
   AnimationState,
   ActionState,
   Vitals,
+  HeldItem,
   OrbitCamera,
 } from '@/core/traits'
 
@@ -36,6 +37,7 @@ describe('world (singleton)', () => {
       AnimationState,
       ActionState,
       Vitals,
+      HeldItem,
     ]) {
       expect(playerEntity.has(t)).toBe(true)
     }
@@ -73,6 +75,10 @@ describe('world (singleton)', () => {
       expect(vitals.hp).toBe(vitals.maxHp)
       expect(vitals.stamina).toBe(vitals.maxStamina)
     }
+  })
+
+  it('o player começa sem item em mãos', () => {
+    expect(playerEntity.get(HeldItem).itemId).toBeNull()
   })
 
   it('a câmera tem OrbitCamera e não é o player', () => {

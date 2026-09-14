@@ -3,6 +3,7 @@
 import { useTrait, useTag } from 'koota/react'
 import { playerEntity, cameraEntity } from '@/core/world/world'
 import { GAME_CONFIG } from '@/core/gameConfig'
+import { getItem, listItems } from '@/core/data/items'
 import {
   Position,
   Velocity,
@@ -12,6 +13,7 @@ import {
   CharacterController,
   MovementStats,
   Vitals,
+  HeldItem,
   applyDamage,
 } from '@/core/traits'
 
@@ -32,6 +34,7 @@ export function DebugPanel() {
   const body = useTrait(playerEntity, CharacterController)
   const movement = useTrait(playerEntity, MovementStats)
   const vitals = useTrait(playerEntity, Vitals)
+  const heldItem = useTrait(playerEntity, HeldItem)
 
   if (
     !position ||
@@ -40,10 +43,13 @@ export function DebugPanel() {
     !orbit ||
     !body ||
     !movement ||
-    !vitals
+    !vitals ||
+    !heldItem
   ) {
     return null
   }
+
+  const item = heldItem.itemId ? getItem(heldItem.itemId) : null
 
   const speed = Math.hypot(velocity.x, velocity.z)
   const capsuleHeight = 2 * (body.capsuleRadius + body.capsuleHalfHeight)
@@ -112,6 +118,22 @@ export function DebugPanel() {
       >
         tomar {DEBUG_DAMAGE_AMOUNT} de dano (debug)
       </button>
+      <hr className="border-white/20" />
+      <p>item em mãos: {item ? `${item.id} (${item.category})` : 'nenhum'}</p>
+      <select
+        className="pointer-events-auto rounded bg-black/60 px-1 py-0.5 text-[10px] text-white"
+        value={heldItem.itemId ?? ''}
+        onChange={(event) => {
+          playerEntity.set(HeldItem, { itemId: event.target.value || null })
+        }}
+      >
+        <option value="">nenhum</option>
+        {listItems().map((candidate) => (
+          <option key={candidate.id} value={candidate.id}>
+            {candidate.id} ({candidate.category})
+          </option>
+        ))}
+      </select>
     </div>
   )
 }
