@@ -8,6 +8,7 @@ import {
   InputState,
   InputControlled,
   MovementStats,
+  Vitals,
   OrbitCamera,
   CameraTarget,
   PhysicsBody,
@@ -20,6 +21,7 @@ import {
   getRapierWorld,
 } from '@/core/physics/physicsWorld'
 import { quaternionFromAxisAngle } from '@/core/math'
+import { GAME_CONFIG } from '@/core/gameConfig'
 import { getSpecies } from '@/core/data/species'
 import { inputSystem } from './inputSystem'
 import { physicsBootstrapSystem } from './physicsBootstrapSystem'
@@ -49,6 +51,7 @@ function makeWorldWithBody(body, playerPosition = { x: 0, y: 3, z: 0 }) {
     InputState,
     InputControlled,
     MovementStats(FOX.movement),
+    Vitals,
     CameraTarget,
     PhysicsBody,
     CharacterController(body),
@@ -170,5 +173,34 @@ describe('characterPhysicsSystem + integração Rapier', () => {
     // uma cápsula bem alongada e deitada tem mais folga de contato ao
     // assentar do que uma quase esférica em pé.
     expect(Math.abs(player.get(Position).y - yGround)).toBeLessThan(0.15)
+  })
+
+  it('pular desconta o custo de stamina uma vez; sem stamina suficiente, não pula', () => {
+    const { JUMP_STAMINA_COST } = GAME_CONFIG.VITALS
+    const { world, player } = makeWorld({
+      playerPosition: { x: 0, y: 1, z: 0 },
+    })
+    run(world, 30)
+    const yGround = player.get(Position).y
+
+    tick(world, { jump: true })
+    expect(player.get(Vitals).stamina).toBeCloseTo(100 - JUMP_STAMINA_COST)
+    expect(player.get(Vitals).staminaRegenDelay).toBeCloseTo(
+      GAME_CONFIG.VITALS.STAMINA_REGEN_DELAY_AFTER_USE,
+    )
+
+    // pousa de novo antes de tentar o segundo pulo
+    for (let i = 0; i < 100; i++) tick(world)
+
+    player.set(Vitals, { stamina: JUMP_STAMINA_COST - 1 })
+    tick(world, { jump: true })
+    let peak = player.get(Position).y
+    for (let i = 0; i < 20; i++) {
+      tick(world)
+      peak = Math.max(peak, player.get(Position).y)
+    }
+    // não subiu — o pulo não disparou (tolerância larga: ver nota de
+    // precisão de assentamento no teste "pula a partir do chão" acima)
+    expect(Math.abs(peak - yGround)).toBeLessThan(0.15)
   })
 })

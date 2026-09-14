@@ -13,7 +13,7 @@ export default function GamePage() {
 
   return (
     <WorldProvider>
-      <div className="relative h-screen w-screen">
+      <div className="relative h-screen w-screen overflow-hidden">
         <Canvas shadows>
           <GameLoop />
           <GameScene>{showDebug && <PhysicsDebugView />}</GameScene>

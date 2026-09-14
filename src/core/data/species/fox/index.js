@@ -47,6 +47,13 @@ export const FOX = {
     // Velocidade vertical inicial do pulo (m/s).
     jumpSpeed: 9,
   },
+  vitals: {
+    maxHp: 100,
+    // % do máximo regenerado por segundo (enquanto não está no delay pós-dano).
+    hpRegenPercent: 2,
+    maxStamina: 100,
+    staminaRegenPercent: 10,
+  },
   stats: {},
   moves: [],
 }

@@ -3,11 +3,13 @@ import {
   ActionState,
   Rotation,
   Velocity,
+  Vitals,
   Grounded,
   InputControlled,
 } from '../traits'
 
-const { DURATION, SPEED } = GAME_CONFIG.PLAYER_ACTIONS.dash
+const { DURATION, SPEED, STAMINA_COST } = GAME_CONFIG.PLAYER_ACTIONS.dash
+const { STAMINA_REGEN_DELAY_AFTER_USE } = GAME_CONFIG.VITALS
 
 /**
  * Inicia, avança e encerra ações disparadas por input (hoje só dash) — o
@@ -19,6 +21,10 @@ const { DURATION, SPEED } = GAME_CONFIG.PLAYER_ACTIONS.dash
  * é dona da Velocity horizontal, sobrescrevendo o que o movementSystem já
  * calculou pra este frame.
  *
+ * Dash custa stamina (`STAMINA_COST`), descontada uma vez no disparo — sem
+ * stamina suficiente, o dash simplesmente não dispara, mesma forma que a
+ * precondição de `Grounded` já bloqueia hoje.
+ *
  * Headless. Fase: simulation, depois do movementSystem (cuja Rotation.y já
  * reflete a direção do input deste frame — é essa direção que o dash trava)
  * e antes do characterPhysicsSystem (que resolve a Velocity contra o mundo).
@@ -28,15 +34,23 @@ export function playerActionSystem(context) {
   const input = context.input ?? {}
 
   world
-    .query(InputControlled, ActionState, Velocity, Rotation)
-    .updateEach(([action, vel, rot], entity) => {
+    .query(InputControlled, ActionState, Vitals, Velocity, Rotation)
+    .updateEach(([action, vitals, vel, rot], entity) => {
       if (action.current === null) {
-        if (!input.dash || !entity.has(Grounded)) return
+        if (
+          !input.dash ||
+          !entity.has(Grounded) ||
+          vitals.stamina < STAMINA_COST
+        ) {
+          return
+        }
 
         action.current = 'dash'
         action.elapsed = 0
         action.dirX = Math.sin(rot.y)
         action.dirZ = Math.cos(rot.y)
+        vitals.stamina -= STAMINA_COST
+        vitals.staminaRegenDelay = STAMINA_REGEN_DELAY_AFTER_USE
       }
 
       action.elapsed += delta

@@ -2,6 +2,7 @@
 
 import { useTrait, useTag } from 'koota/react'
 import { playerEntity, cameraEntity } from '@/core/world/world'
+import { GAME_CONFIG } from '@/core/gameConfig'
 import {
   Position,
   Velocity,
@@ -10,7 +11,11 @@ import {
   OrbitCamera,
   CharacterController,
   MovementStats,
+  Vitals,
+  applyDamage,
 } from '@/core/traits'
+
+const DEBUG_DAMAGE_AMOUNT = 20
 
 /**
  * Painel de texto com estado ao vivo do jogador/câmera + config relevante
@@ -26,8 +31,17 @@ export function DebugPanel() {
   const orbit = useTrait(cameraEntity, OrbitCamera)
   const body = useTrait(playerEntity, CharacterController)
   const movement = useTrait(playerEntity, MovementStats)
+  const vitals = useTrait(playerEntity, Vitals)
 
-  if (!position || !velocity || !anim || !orbit || !body || !movement) {
+  if (
+    !position ||
+    !velocity ||
+    !anim ||
+    !orbit ||
+    !body ||
+    !movement ||
+    !vitals
+  ) {
     return null
   }
 
@@ -56,6 +70,62 @@ export function DebugPanel() {
       <p>
         walk/run: {movement.walkSpeed}/{movement.runSpeed} u/s
       </p>
+      <hr className="border-white/20" />
+      <VitalsBar
+        label="hp"
+        value={vitals.hp}
+        max={vitals.maxHp}
+        color="bg-red-500"
+      />
+      <p className="text-[10px] text-white/60">
+        {vitals.hp.toFixed(0)}/{vitals.maxHp} · regen{' '}
+        {vitals.hpRegenDelay > 0
+          ? `pausado (${vitals.hpRegenDelay.toFixed(1)}s)`
+          : `${vitals.hpRegenPercent}%/s`}
+      </p>
+      <VitalsBar
+        label="stamina"
+        value={vitals.stamina}
+        max={vitals.maxStamina}
+        color="bg-yellow-400"
+      />
+      <p className="text-[10px] text-white/60">
+        {vitals.stamina.toFixed(0)}/{vitals.maxStamina} · regen{' '}
+        {vitals.staminaRegenDelay > 0
+          ? `pausado (${vitals.staminaRegenDelay.toFixed(1)}s)`
+          : `${vitals.staminaRegenPercent}%/s`}
+      </p>
+      <button
+        type="button"
+        className="pointer-events-auto mt-1 rounded bg-red-900 px-2 py-1 text-[10px] hover:bg-red-800"
+        onClick={() => {
+          const current = playerEntity.get(Vitals)
+          playerEntity.set(
+            Vitals,
+            applyDamage(
+              current,
+              DEBUG_DAMAGE_AMOUNT,
+              GAME_CONFIG.VITALS.HP_REGEN_DELAY_AFTER_DAMAGE,
+            ),
+          )
+        }}
+      >
+        tomar {DEBUG_DAMAGE_AMOUNT} de dano (debug)
+      </button>
+    </div>
+  )
+}
+
+/** Barra fininha de progresso, sem dependência nenhuma — só pra visualizar
+ * HP/stamina no `DebugPanel` de relance. */
+function VitalsBar({ label, value, max, color }) {
+  const percent = max > 0 ? Math.max(0, Math.min(100, (value / max) * 100)) : 0
+  return (
+    <div className="flex items-center gap-2">
+      <span className="w-14 shrink-0">{label}</span>
+      <div className="h-2 flex-1 overflow-hidden rounded bg-white/15">
+        <div className={`h-full ${color}`} style={{ width: `${percent}%` }} />
+      </div>
     </div>
   )
 }

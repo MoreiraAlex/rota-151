@@ -1,10 +1,16 @@
 import { describe, it, expect } from 'vitest'
 import { makeWorld } from '@/test/makeWorld'
-import { ActionState, Velocity, Rotation, Grounded } from '@/core/traits'
+import {
+  ActionState,
+  Velocity,
+  Rotation,
+  Vitals,
+  Grounded,
+} from '@/core/traits'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import { playerActionSystem } from './playerActionSystem'
 
-const { DURATION, SPEED } = GAME_CONFIG.PLAYER_ACTIONS.dash
+const { DURATION, SPEED, STAMINA_COST } = GAME_CONFIG.PLAYER_ACTIONS.dash
 
 function tick(world, input = {}, delta = 1 / 60) {
   playerActionSystem({ world, delta, input })
@@ -41,6 +47,42 @@ describe('playerActionSystem — dash', () => {
 
     const vel = player.get(Velocity)
     expect(Math.hypot(vel.x, vel.z)).toBeCloseTo(SPEED)
+  })
+
+  it('desconta o custo de stamina uma única vez, no disparo', () => {
+    const { world, player } = makeWorld()
+    player.add(Grounded)
+    player.set(Rotation, { y: 0 })
+
+    tick(world, { dash: true })
+    expect(player.get(Vitals).stamina).toBeCloseTo(100 - STAMINA_COST)
+
+    // continuar no meio do dash não desconta de novo
+    tick(world, {})
+    expect(player.get(Vitals).stamina).toBeCloseTo(100 - STAMINA_COST)
+  })
+
+  it('reseta o delay de regeneração de stamina ao disparar', () => {
+    const { world, player } = makeWorld()
+    player.add(Grounded)
+    player.set(Rotation, { y: 0 })
+
+    tick(world, { dash: true })
+
+    expect(player.get(Vitals).staminaRegenDelay).toBeCloseTo(
+      GAME_CONFIG.VITALS.STAMINA_REGEN_DELAY_AFTER_USE,
+    )
+  })
+
+  it('não dispara sem stamina suficiente', () => {
+    const { world, player } = makeWorld()
+    player.add(Grounded)
+    player.set(Vitals, { stamina: STAMINA_COST - 1 })
+
+    tick(world, { dash: true })
+
+    expect(player.get(ActionState).current).toBe(null)
+    expect(player.get(Vitals).stamina).toBe(STAMINA_COST - 1) // não descontou
   })
 
   it('ignora um novo gatilho enquanto já está em ação', () => {

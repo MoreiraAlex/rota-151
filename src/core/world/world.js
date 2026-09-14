@@ -14,6 +14,7 @@ import {
   CharacterController,
   AnimationState,
   ActionState,
+  Vitals,
 } from '../traits'
 
 export const world = createWorld()
@@ -24,6 +25,19 @@ export const world = createWorld()
 // usado por view/scene/PlayerView.jsx, pra nunca ficarem apontando pra
 // espécies diferentes um do outro.
 const PLAYER_SPECIES = getSpecies(PLAYER_SPECIES_ID)
+
+// `vitals` é opcional na espécie — sem ele, usa os defaults do próprio
+// trait (ver core/traits/components/vitals.js) em vez de quebrar o spawn.
+const vitals = PLAYER_SPECIES.vitals
+  ? Vitals({
+      hp: PLAYER_SPECIES.vitals.maxHp,
+      maxHp: PLAYER_SPECIES.vitals.maxHp,
+      hpRegenPercent: PLAYER_SPECIES.vitals.hpRegenPercent,
+      stamina: PLAYER_SPECIES.vitals.maxStamina,
+      maxStamina: PLAYER_SPECIES.vitals.maxStamina,
+      staminaRegenPercent: PLAYER_SPECIES.vitals.staminaRegenPercent,
+    })
+  : Vitals
 
 export const playerEntity = world.spawn(
   Position({ x: 0, y: 2, z: 0 }),
@@ -37,6 +51,7 @@ export const playerEntity = world.spawn(
   CharacterController(PLAYER_SPECIES.body),
   AnimationState,
   ActionState,
+  vitals,
 )
 
 export const cameraEntity = world.spawn(

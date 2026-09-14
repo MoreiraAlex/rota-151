@@ -2,6 +2,7 @@ import { registerSystem, GAME_PHASES } from '@/core/systems'
 import { inputSystem } from '@/core/systems/inputSystem'
 import { physicsBootstrapSystem } from '@/core/systems/physicsBootstrapSystem'
 import { cameraControlSystem } from '@/core/systems/cameraControlSystem'
+import { vitalsRegenSystem } from '@/core/systems/vitalsRegenSystem'
 import { movementSystem } from '@/core/systems/movementSystem'
 import { playerActionSystem } from '@/core/systems/playerActionSystem'
 import { characterPhysicsSystem } from '@/core/systems/characterPhysicsSystem'
@@ -19,10 +20,15 @@ let registered = false
  * e view), por isso vive na camada view — não no core headless.
  *
  * A ordem dentro da fase `simulation` é parte do comportamento:
- *   bootstrap → controle de câmera → movimento (Velocity) → ações do
- *   jogador (dash, que sobrescreve a Velocity enquanto ativo) → character
- *   controller (KCC) → step do Rapier → sync de volta para Position →
- *   resolve o estado de animação (já com Velocity/Grounded atualizados).
+ *   bootstrap → controle de câmera → regeneração de HP/stamina → movimento
+ *   (Velocity, que drena stamina se estiver correndo) → ações do jogador
+ *   (dash, que sobrescreve a Velocity enquanto ativo e também drena
+ *   stamina) → character controller (KCC, que drena stamina no pulo) →
+ *   step do Rapier → sync de volta para Position → resolve o estado de
+ *   animação (já com Velocity/Grounded atualizados). Regenerar antes de
+ *   drenar significa que o dreno deste tick desconta por cima do que já
+ *   regenerou neste mesmo tick — não faz diferença perceptível no jogo
+ *   real, só mantém a ordem simples de raciocinar.
  * Em `presentation`: sincroniza transforms, depois câmera, depois animação
  * (a ordem entre as duas últimas não importa — nenhuma lê a outra).
  */
@@ -34,6 +40,7 @@ export function registerGameSystems() {
 
   registerSystem(GAME_PHASES.SIMULATION, physicsBootstrapSystem)
   registerSystem(GAME_PHASES.SIMULATION, cameraControlSystem)
+  registerSystem(GAME_PHASES.SIMULATION, vitalsRegenSystem)
   registerSystem(GAME_PHASES.SIMULATION, movementSystem)
   registerSystem(GAME_PHASES.SIMULATION, playerActionSystem)
   registerSystem(GAME_PHASES.SIMULATION, characterPhysicsSystem)

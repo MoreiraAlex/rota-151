@@ -14,6 +14,7 @@ import {
   CharacterController,
   AnimationState,
   ActionState,
+  Vitals,
 } from '@/core/traits'
 
 // Fixado em 'fox' de propósito, não em PLAYER_SPECIES_ID — os testes usam
@@ -21,6 +22,17 @@ import {
 // configurada como jogador na build real (isso é o que quem estiver
 // testando um modelo novo vai estar mexendo o tempo todo).
 const PLAYER_SPECIES = getSpecies('fox')
+
+const vitals = PLAYER_SPECIES.vitals
+  ? Vitals({
+      hp: PLAYER_SPECIES.vitals.maxHp,
+      maxHp: PLAYER_SPECIES.vitals.maxHp,
+      hpRegenPercent: PLAYER_SPECIES.vitals.hpRegenPercent,
+      stamina: PLAYER_SPECIES.vitals.maxStamina,
+      maxStamina: PLAYER_SPECIES.vitals.maxStamina,
+      staminaRegenPercent: PLAYER_SPECIES.vitals.staminaRegenPercent,
+    })
+  : Vitals
 
 /**
  * Cria um world koota isolado para testes, com um player e uma câmera compostos
@@ -44,6 +56,7 @@ export function makeWorld({ playerPosition = { x: 0, y: 2, z: 0 } } = {}) {
     CharacterController(PLAYER_SPECIES.body),
     AnimationState,
     ActionState,
+    vitals,
   )
 
   const camera = world.spawn(

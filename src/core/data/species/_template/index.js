@@ -45,6 +45,15 @@ export const SPECIES_TEMPLATE = {
     // Velocidade vertical inicial do pulo (m/s).
     jumpSpeed: 9,
   },
+  // Opcional — sem isso, o spawn usa os defaults do trait Vitals (100/100,
+  // regen 2%/10%). Só declare se esta criatura precisar de números próprios.
+  vitals: {
+    maxHp: 100,
+    // % do máximo regenerado por segundo (enquanto não está no delay pós-dano).
+    hpRegenPercent: 2,
+    maxStamina: 100,
+    staminaRegenPercent: 10,
+  },
   stats: {},
   moves: [],
 }

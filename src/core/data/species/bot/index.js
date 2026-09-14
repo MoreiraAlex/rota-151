@@ -27,6 +27,12 @@ export const BOT = {
     turnSpeed: 10,
     jumpSpeed: 9,
   },
+  vitals: {
+    maxHp: 100,
+    hpRegenPercent: 0.15,
+    maxStamina: 100,
+    staminaRegenPercent: 5,
+  },
   stats: {},
   moves: [],
 }

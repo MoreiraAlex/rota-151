@@ -13,6 +13,7 @@ import {
   CharacterController,
   AnimationState,
   ActionState,
+  Vitals,
   OrbitCamera,
 } from '@/core/traits'
 
@@ -34,6 +35,7 @@ describe('world (singleton)', () => {
       CharacterController,
       AnimationState,
       ActionState,
+      Vitals,
     ]) {
       expect(playerEntity.has(t)).toBe(true)
     }
@@ -58,6 +60,19 @@ describe('world (singleton)', () => {
     expect(playerEntity.get(MovementStats)).toMatchObject(
       PLAYER_SPECIES.movement,
     )
+  })
+
+  it('vitals do player vêm da espécie configurada, ou do default do trait se a espécie não tiver', () => {
+    const vitals = playerEntity.get(Vitals)
+    if (PLAYER_SPECIES.vitals) {
+      expect(vitals.maxHp).toBe(PLAYER_SPECIES.vitals.maxHp)
+      expect(vitals.hp).toBe(PLAYER_SPECIES.vitals.maxHp) // começa cheio
+      expect(vitals.maxStamina).toBe(PLAYER_SPECIES.vitals.maxStamina)
+      expect(vitals.stamina).toBe(PLAYER_SPECIES.vitals.maxStamina)
+    } else {
+      expect(vitals.hp).toBe(vitals.maxHp)
+      expect(vitals.stamina).toBe(vitals.maxStamina)
+    }
   })
 
   it('a câmera tem OrbitCamera e não é o player', () => {

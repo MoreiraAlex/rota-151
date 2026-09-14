@@ -1,3 +1,4 @@
+import { GAME_CONFIG } from '../gameConfig'
 import { lerpAngle } from '../math'
 import {
   Velocity,
@@ -5,8 +6,12 @@ import {
   InputState,
   InputControlled,
   MovementStats,
+  Vitals,
   OrbitCamera,
 } from '../traits'
+
+const { RUN_STAMINA_DRAIN_PER_SECOND, STAMINA_REGEN_DELAY_AFTER_USE } =
+  GAME_CONFIG.VITALS
 
 /**
  * Produz a velocidade horizontal desejada a partir do InputState e gira a
@@ -17,6 +22,11 @@ import {
  * aqui ela é rotacionada pelo yaw de OrbitCamera para o espaço do mundo.
  * Velocidades vêm de MovementStats — dado por entidade (de
  * core/data/species/<id>/index.js, copiado no spawn), não config global.
+ *
+ * Correr só vale com stamina disponível — sem isso, cai pra andar sozinho
+ * (sem travar o jogador em nenhum estado quebrado) e drena
+ * `RUN_STAMINA_DRAIN_PER_SECOND` enquanto realmente em movimento (segurar
+ * o modificador de corrida parado não gasta nada).
  *
  * Headless. Fase: simulation, depois do cameraControlSystem e antes do
  * characterPhysicsSystem.
@@ -30,18 +40,34 @@ export function movementSystem(context) {
   const cosYaw = Math.cos(yaw)
 
   world
-    .query(InputControlled, InputState, MovementStats, Velocity, Rotation)
-    .updateEach(([input, stats, vel, rot]) => {
+    .query(
+      InputControlled,
+      InputState,
+      MovementStats,
+      Vitals,
+      Velocity,
+      Rotation,
+    )
+    .updateEach(([input, stats, vitals, vel, rot]) => {
       // Rotaciona a intenção (espaço da câmera) para o espaço do mundo.
       // x = direita da câmera, z = frente da câmera (InputState: frente = -z).
       const worldX = input.x * cosYaw + input.z * sinYaw
       const worldZ = -input.x * sinYaw + input.z * cosYaw
-      const speed = input.run ? stats.runSpeed : stats.walkSpeed
+
+      const hasMoveIntent = worldX !== 0 || worldZ !== 0
+      const runCost = RUN_STAMINA_DRAIN_PER_SECOND * delta
+      const isRunning = input.run && hasMoveIntent && vitals.stamina >= runCost
+      const speed = isRunning ? stats.runSpeed : stats.walkSpeed
+
+      if (isRunning) {
+        vitals.stamina = Math.max(0, vitals.stamina - runCost)
+        vitals.staminaRegenDelay = STAMINA_REGEN_DELAY_AFTER_USE
+      }
 
       vel.x = worldX * speed
       vel.z = worldZ * speed
 
-      if (worldX !== 0 || worldZ !== 0) {
+      if (hasMoveIntent) {
         const facing = Math.atan2(worldX, worldZ)
         rot.y = lerpAngle(rot.y, facing, stats.turnSpeed * delta)
       }

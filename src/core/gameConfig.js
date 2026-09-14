@@ -23,7 +23,23 @@ export const GAME_CONFIG = {
       DURATION: 0.25,
       // Unidades por segundo — maior que o runSpeed de qualquer espécie hoje.
       SPEED: 14,
+      // Custo de stamina, descontado uma vez no disparo (não por segundo).
+      STAMINA_COST: 15,
     },
+  },
+  VITALS: {
+    // Segundos sem regenerar HP depois de tomar dano — não é atributo de
+    // criatura, é comportamento do motor (custo de ação também é aqui, ver
+    // decisão em 010-hp-e-stamina.md). Regeneração em si (%/segundo) é que
+    // vem da espécie (core/data/species/<id>/index.js).
+    HP_REGEN_DELAY_AFTER_DAMAGE: 5,
+    // Segundos sem regenerar stamina depois do último uso (correr, dash ou
+    // pulo) — reseta a cada dreno, igual ao delay de HP reseta a cada dano.
+    STAMINA_REGEN_DELAY_AFTER_USE: 3,
+    // Stamina gasta por segundo enquanto realmente correndo.
+    RUN_STAMINA_DRAIN_PER_SECOND: 2,
+    // Custo de stamina do pulo, descontado uma vez no disparo.
+    JUMP_STAMINA_COST: 10,
   },
   ANIMATION: {
     // Abaixo disso, considera parado (idle).

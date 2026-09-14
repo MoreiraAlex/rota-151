@@ -5,6 +5,7 @@ import {
   PhysicsBody,
   CharacterController,
   MovementStats,
+  Vitals,
   Grounded,
 } from '../traits'
 import {
@@ -28,7 +29,9 @@ import { quaternionFromAxisAngle } from '../math'
  *
  * `GROUNDED_STICK`/gravidade vêm do config global (epsilon técnico do
  * algoritmo de snap-to-ground, igual pra toda entidade); a força do pulo
- * (`jumpSpeed`) vem de MovementStats — dado por entidade.
+ * (`jumpSpeed`) vem de MovementStats — dado por entidade. Pular custa
+ * stamina (`JUMP_STAMINA_COST`, descontada uma vez no disparo) — sem
+ * stamina suficiente, não pula, mesma forma que `wasGrounded` já bloqueia.
  *
  * Headless (Rapier-compat roda em Node). Fase: simulation, depois do
  * movementSystem e antes do physicsStepSystem.
@@ -39,12 +42,21 @@ export function characterPhysicsSystem(context) {
   const { world, delta } = context
   const input = context.input ?? {}
   const cfg = GAME_CONFIG.PHYSICS
+  const { JUMP_STAMINA_COST, STAMINA_REGEN_DELAY_AFTER_USE } =
+    GAME_CONFIG.VITALS
   const rapierWorld = getRapierWorld()
   const controller = getCharacterController()
 
   world
-    .query(CharacterController, MovementStats, PhysicsBody, Velocity, Rotation)
-    .updateEach(([, stats, body, vel, rot], entity) => {
+    .query(
+      CharacterController,
+      MovementStats,
+      Vitals,
+      PhysicsBody,
+      Velocity,
+      Rotation,
+    )
+    .updateEach(([, stats, vitals, body, vel, rot], entity) => {
       if (body.bodyHandle < 0) return
 
       const rigidBody = rapierWorld.getRigidBody(body.bodyHandle)
@@ -59,8 +71,10 @@ export function characterPhysicsSystem(context) {
         vel.y += cfg.GRAVITY * delta
       }
 
-      if (input.jump && wasGrounded) {
+      if (input.jump && wasGrounded && vitals.stamina >= JUMP_STAMINA_COST) {
         vel.y = stats.jumpSpeed
+        vitals.stamina -= JUMP_STAMINA_COST
+        vitals.staminaRegenDelay = STAMINA_REGEN_DELAY_AFTER_USE
       }
 
       controller.computeColliderMovement(collider, {
