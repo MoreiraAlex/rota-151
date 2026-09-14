@@ -1,19 +1,6 @@
 import { TEST_LEVEL } from '../data/testLevel'
+import { quaternionFromAxisAngle } from '../math'
 import { getRapier, getRapierWorld } from './physicsWorld'
-
-/**
- * Quaternion de um giro em torno de um único eixo.
- */
-export function axisQuaternion(axis, angle) {
-  const half = angle / 2
-  const s = Math.sin(half)
-  return {
-    x: axis === 'x' ? s : 0,
-    y: axis === 'y' ? s : 0,
-    z: axis === 'z' ? s : 0,
-    w: Math.cos(half),
-  }
-}
 
 /**
  * Cria os colliders estáticos do nível (chão + obstáculos) a partir de
@@ -45,7 +32,10 @@ export function createStaticLevel() {
     )
     if (obstacle.rotation) {
       desc = desc.setRotation(
-        axisQuaternion(obstacle.rotation.axis, obstacle.rotation.angle),
+        quaternionFromAxisAngle(
+          obstacle.rotation.axis,
+          obstacle.rotation.angle,
+        ),
       )
     }
     const body = world.createRigidBody(desc)
@@ -57,8 +47,8 @@ export function createStaticLevel() {
 // esse eixo local 90° em torno de um dos outros dois — 'y' não precisa de
 // rotação nenhuma (já é o padrão do primitivo).
 const CAPSULE_TILT = {
-  x: () => axisQuaternion('z', Math.PI / 2),
-  z: () => axisQuaternion('x', Math.PI / 2),
+  x: () => quaternionFromAxisAngle('z', Math.PI / 2),
+  z: () => quaternionFromAxisAngle('x', Math.PI / 2),
 }
 
 /**

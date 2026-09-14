@@ -19,7 +19,7 @@ import {
   disposePhysics,
   getRapierWorld,
 } from '@/core/physics/physicsWorld'
-import { axisQuaternion } from '@/core/physics/colliders'
+import { quaternionFromAxisAngle } from '@/core/math'
 import { getSpecies } from '@/core/data/species'
 import { inputSystem } from './inputSystem'
 import { physicsBootstrapSystem } from './physicsBootstrapSystem'
@@ -123,7 +123,7 @@ describe('characterPhysicsSystem + integração Rapier', () => {
 
     const { bodyHandle } = player.get(PhysicsBody)
     const actualRotation = getRapierWorld().getRigidBody(bodyHandle).rotation()
-    const expectedRotation = axisQuaternion('y', rot.y)
+    const expectedRotation = quaternionFromAxisAngle('y', rot.y)
     expect(actualRotation.y).toBeCloseTo(expectedRotation.y)
     expect(actualRotation.w).toBeCloseTo(expectedRotation.w)
   })

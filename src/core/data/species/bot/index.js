@@ -22,8 +22,8 @@ export const BOT = {
     modelOffset: [0, -1.4, 0],
   },
   movement: {
-    walkSpeed: 4,
-    runSpeed: 10,
+    walkSpeed: 2.5,
+    runSpeed: 6,
     turnSpeed: 10,
     jumpSpeed: 9,
   },

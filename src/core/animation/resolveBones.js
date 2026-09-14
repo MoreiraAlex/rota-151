@@ -5,16 +5,25 @@ const ANIMATABLE_PROPERTIES = ['rotation', 'position', 'scale']
  * osso no rig — sem camada de mapeamento semântico. O clipe JSON referencia o
  * osso pelo nome real do modelo (ver clips/fox-walk.json).
  *
- * Devolve nomeDoOsso → `{ bone, rest }`, onde `rest` guarda uma cópia de
- * `rotation`, `position` e `scale` do osso no momento da resolução — antes de
- * qualquer código de animação tocar nele. É essencial guardar isso aqui: a
- * animação sempre soma um deslocamento a essa pose de descanso, nunca a
- * substitui — cada osso tem sua própria orientação/posição natural.
+ * Devolve nomeDoOsso → `{ bone, rest, restQuaternion }`. `rest` guarda uma
+ * cópia de `rotation`/`position`/`scale` do osso no momento da resolução
+ * (rotation aqui é só pra referência/diagnóstico — quem decide a rotação de
+ * verdade é `restQuaternion`, ver `applyAnimationClip.js`); `position`/
+ * `scale` continuam somando direto em cima de `rest`. `restQuaternion` é a
+ * cópia do `bone.quaternion` no mesmo instante — a composição de rotação
+ * parte dele, não da tripla de Euler, porque somar escalar em Euler só bate
+ * com "girar no eixo local do osso" quando o resto do osso já está na
+ * identidade (verdade pro Fox, falso pra um rig como o do Mixamo, cuja coxa
+ * descansa a 180° em Z).
  */
 export function resolveBones(skeleton) {
   const bones = {}
   for (const bone of skeleton.bones) {
-    bones[bone.name] = { bone, rest: captureRest(bone) }
+    bones[bone.name] = {
+      bone,
+      rest: captureRest(bone),
+      restQuaternion: captureRestQuaternion(bone),
+    }
   }
   return bones
 }
@@ -26,4 +35,9 @@ function captureRest(bone) {
     rest[property] = { x, y, z }
   }
   return rest
+}
+
+function captureRestQuaternion(bone) {
+  const { x, y, z, w } = bone.quaternion
+  return { x, y, z, w }
 }

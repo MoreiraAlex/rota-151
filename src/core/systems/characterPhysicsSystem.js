@@ -12,7 +12,7 @@ import {
   getRapierWorld,
   getCharacterController,
 } from '../physics/physicsWorld'
-import { axisQuaternion } from '../physics/colliders'
+import { quaternionFromAxisAngle } from '../math'
 
 /**
  * Aplica gravidade e pulo à Velocity vertical, resolve o movimento do
@@ -75,7 +75,7 @@ export function characterPhysicsSystem(context) {
         y: translation.y + movement.y,
         z: translation.z + movement.z,
       })
-      rigidBody.setNextKinematicRotation(axisQuaternion('y', rot.y))
+      rigidBody.setNextKinematicRotation(quaternionFromAxisAngle('y', rot.y))
 
       const isGrounded = controller.computedGrounded()
       if (isGrounded && !wasGrounded) entity.add(Grounded)
