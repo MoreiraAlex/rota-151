@@ -11,6 +11,7 @@ import {
   PhysicsBody,
   CharacterController,
   AnimationState,
+  ActionState,
 } from '@/core/traits'
 
 /**
@@ -33,6 +34,7 @@ export function makeWorld({ playerPosition = { x: 0, y: 2, z: 0 } } = {}) {
     PhysicsBody,
     CharacterController,
     AnimationState,
+    ActionState,
   )
 
   const camera = world.spawn(

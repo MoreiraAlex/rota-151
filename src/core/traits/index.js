@@ -8,3 +8,4 @@ export {
   Grounded,
 } from './components/physics'
 export { AnimationState } from './components/animation'
+export { ActionState } from './components/action'

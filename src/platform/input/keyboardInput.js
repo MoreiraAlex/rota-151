@@ -19,15 +19,27 @@ const KEY_MAP = {
   ShiftRight: 'run',
 }
 
+// Ações de disparo único ("apertou agora", não "está segurando") — ao
+// contrário de KEY_MAP, viram um pulso que o snapshot() drena, igual ao
+// pointerInput.js faz com os deltas de mouse. Segurar a tecla não repete: o
+// SO dispara `keydown` de novo em auto-repeat, mas `event.repeat` filtra isso.
+const EDGE_KEY_MAP = {
+  ControlLeft: 'dash',
+  ControlRight: 'dash',
+}
+
 export function createKeyboardInput() {
   const pressed = new Set()
+  const justPressed = new Set()
 
   const onKeyDown = (event) => {
     const action = KEY_MAP[event.code]
-    if (!action) return
+    const edgeAction = EDGE_KEY_MAP[event.code]
+    if (!action && !edgeAction) return
     // Evita que Espaço/setas rolem a página.
     event.preventDefault()
-    pressed.add(action)
+    if (action) pressed.add(action)
+    if (edgeAction && !event.repeat) justPressed.add(edgeAction)
   }
 
   const onKeyUp = (event) => {
@@ -49,16 +61,20 @@ export function createKeyboardInput() {
       window.removeEventListener('keyup', onKeyUp)
       window.removeEventListener('blur', clear)
       pressed.clear()
+      justPressed.clear()
     },
     snapshot() {
-      return {
+      const snapshot = {
         forward: pressed.has('forward'),
         back: pressed.has('back'),
         left: pressed.has('left'),
         right: pressed.has('right'),
         jump: pressed.has('jump'),
         run: pressed.has('run'),
+        dash: justPressed.has('dash'),
       }
+      justPressed.clear()
+      return snapshot
     },
   }
 }

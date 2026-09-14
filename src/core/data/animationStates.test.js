@@ -32,4 +32,20 @@ describe('resolveAnimationState', () => {
       resolveAnimationState({ speed: RUN_MIN_SPEED + 10, grounded: false }),
     ).toBe('idle')
   })
+
+  it('action "dash" vence a locomoção, mesmo parado e no ar', () => {
+    expect(
+      resolveAnimationState({ speed: 0, grounded: false, action: 'dash' }),
+    ).toBe('dash')
+  })
+
+  it('action "dash" vence mesmo com velocidade de corrida e no chão', () => {
+    expect(
+      resolveAnimationState({
+        speed: RUN_MIN_SPEED + 1,
+        grounded: true,
+        action: 'dash',
+      }),
+    ).toBe('dash')
+  })
 })

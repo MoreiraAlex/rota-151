@@ -3,6 +3,7 @@ import { inputSystem } from '@/core/systems/inputSystem'
 import { physicsBootstrapSystem } from '@/core/systems/physicsBootstrapSystem'
 import { cameraControlSystem } from '@/core/systems/cameraControlSystem'
 import { movementSystem } from '@/core/systems/movementSystem'
+import { playerActionSystem } from '@/core/systems/playerActionSystem'
 import { characterPhysicsSystem } from '@/core/systems/characterPhysicsSystem'
 import { physicsStepSystem } from '@/core/systems/physicsStepSystem'
 import { syncPhysicsSystem } from '@/core/systems/syncPhysicsSystem'
@@ -18,7 +19,8 @@ let registered = false
  * e view), por isso vive na camada view — não no core headless.
  *
  * A ordem dentro da fase `simulation` é parte do comportamento:
- *   bootstrap → controle de câmera → movimento (Velocity) → character
+ *   bootstrap → controle de câmera → movimento (Velocity) → ações do
+ *   jogador (dash, que sobrescreve a Velocity enquanto ativo) → character
  *   controller (KCC) → step do Rapier → sync de volta para Position →
  *   resolve o estado de animação (já com Velocity/Grounded atualizados).
  * Em `presentation`: sincroniza transforms, depois câmera, depois animação
@@ -33,6 +35,7 @@ export function registerGameSystems() {
   registerSystem(GAME_PHASES.SIMULATION, physicsBootstrapSystem)
   registerSystem(GAME_PHASES.SIMULATION, cameraControlSystem)
   registerSystem(GAME_PHASES.SIMULATION, movementSystem)
+  registerSystem(GAME_PHASES.SIMULATION, playerActionSystem)
   registerSystem(GAME_PHASES.SIMULATION, characterPhysicsSystem)
   registerSystem(GAME_PHASES.SIMULATION, physicsStepSystem)
   registerSystem(GAME_PHASES.SIMULATION, syncPhysicsSystem)

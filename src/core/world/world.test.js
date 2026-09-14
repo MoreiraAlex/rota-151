@@ -10,6 +10,7 @@ import {
   PhysicsBody,
   CharacterController,
   AnimationState,
+  ActionState,
   OrbitCamera,
 } from '@/core/traits'
 
@@ -25,6 +26,7 @@ describe('world (singleton)', () => {
       PhysicsBody,
       CharacterController,
       AnimationState,
+      ActionState,
     ]) {
       expect(playerEntity.has(t)).toBe(true)
     }

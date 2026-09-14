@@ -33,6 +33,7 @@ describe('keyboardInput', () => {
       right: false,
       jump: false,
       run: false,
+      dash: false,
     })
   })
 
@@ -88,6 +89,7 @@ describe('keyboardInput', () => {
       right: false,
       jump: false,
       run: false,
+      dash: false,
     })
   })
 
@@ -101,6 +103,45 @@ describe('keyboardInput', () => {
     release('ShiftLeft')
     press('ShiftRight')
     expect(keyboard.snapshot().run).toBe(true)
+  })
+
+  it('ControlLeft/ControlRight mapeiam para o pulso de dash, drenado no snapshot', () => {
+    const keyboard = createKeyboardInput()
+    keyboard.start()
+
+    press('ControlLeft')
+    expect(keyboard.snapshot().dash).toBe(true)
+    // drenado — a segunda leitura sem novo keydown vem falsa, mesmo com a
+    // tecla ainda fisicamente pressionada
+    expect(keyboard.snapshot().dash).toBe(false)
+
+    press('ControlRight')
+    expect(keyboard.snapshot().dash).toBe(true)
+  })
+
+  it('segurar a tecla de dash (auto-repeat do SO) não gera novo pulso', () => {
+    const keyboard = createKeyboardInput()
+    keyboard.start()
+
+    win.dispatch('keydown', {
+      code: 'ControlLeft',
+      preventDefault: () => {},
+      repeat: true,
+    })
+
+    expect(keyboard.snapshot().dash).toBe(false)
+  })
+
+  it('soltar e apertar de novo gera um novo pulso de dash', () => {
+    const keyboard = createKeyboardInput()
+    keyboard.start()
+
+    press('ControlLeft')
+    expect(keyboard.snapshot().dash).toBe(true)
+
+    release('ControlLeft')
+    press('ControlLeft')
+    expect(keyboard.snapshot().dash).toBe(true)
   })
 
   it('stop remove os listeners e zera o estado', () => {

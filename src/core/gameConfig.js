@@ -24,6 +24,14 @@ export const GAME_CONFIG = {
     // Fator de suavização do giro em direção ao movimento (rad/s aprox.).
     TURN_SPEED: 10,
   },
+  PLAYER_ACTIONS: {
+    dash: {
+      // Duração do impulso (segundos).
+      DURATION: 0.25,
+      // Unidades por segundo — maior que PLAYER.RUN_SPEED.
+      SPEED: 14,
+    },
+  },
   ANIMATION: {
     // Abaixo disso, considera parado (idle).
     WALK_MIN_SPEED: 0.3,
