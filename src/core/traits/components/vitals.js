@@ -43,3 +43,15 @@ export function applyDamage(vitals, amount, delayAfterDamage) {
     hpRegenDelay: delayAfterDamage,
   }
 }
+
+/**
+ * Soma HP (nunca acima do máximo) — usado por consumíveis (ver
+ * docs/features/014-arremessar-usar-e-invocar.md). Simétrico a
+ * `applyDamage`, mas **não** mexe em `hpRegenDelay`: curar não é o inverso
+ * de tomar dano pausar a regeneração.
+ */
+export function applyHeal(vitals, amount) {
+  return {
+    hp: Math.min(vitals.maxHp, vitals.hp + amount),
+  }
+}

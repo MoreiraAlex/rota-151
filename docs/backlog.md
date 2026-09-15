@@ -81,22 +81,32 @@ de puxar ela pra frente.
       Puro mecanismo — `secondaryN` continua sem comportamento de verdade,
       só o log de debug da v0.0.11. Não é "Criaturas selvagens no mundo"
       (IA/spawn automático), que continua adiado como item separado abaixo.
-- [ ] **Arremessar objeto** — atua no botão `primary` (predefinido em
-      "Slots de ação" acima) lendo `HeldItem`/`getItem` (mecanismo pronto
-      acima) quando a categoria é `throwable`; ação com um "instante de
-      liberação" no meio da duração (ex.: spawna o projétil em t=0.4 de
-      uma ação de 0.6s) — o instante fica na config da ação, não em
-      keyframe de clipe. Depende do sistema de ações da v0.0.7.
-- [ ] **Usar objeto** — mesma forma que arremesso, também no `primary`,
-      quando a categoria é `consumable` (cura). Depende do sistema de
-      ações da v0.0.7.
-- [ ] **Invocar criatura** — atua num dos botões `secondaryN` (predefinidos
-      em "Slots de ação" acima) lendo `Party`/`getSpecies` (criaturas de
-      time já codificadas, `docs/features/013-criaturas-de-time.md`); ação
-      que spawna a entidade da criatura no mundo, que passa a seguir o
-      jogador (decidido na v0.0.13, construído aqui). Depende do sistema de
-      ações da v0.0.7.
-- [ ] **Recolher criatura** — inverso da invocação; mesma dependência.
+- [X] **Arremessar objeto** — entregue em
+      `docs/features/014-arremessar-usar-e-invocar.md` (v0.0.14): `primary`
+      com item `throwable` equipado dispara a ação `'throw'`
+      (`playerActionSystem`), trava direção na `Rotation.y` do disparo,
+      spawna um `Projectile` no instante de liberação
+      (`PLAYER_ACTIONS.throw.EFFECT_AT`) e limpa `HeldItem`.
+      `projectileSystem` integra posição/gravidade e destrói ao `lifetime`
+      zerar — sem colisão ainda. Validado no `DebugPanel` (contagem/posição
+      dos projéteis ativos), sem renderização 3D.
+- [X] **Usar objeto** — entregue junto da acima (v0.0.14): `primary` com
+      item `consumable` equipado dispara `'consume'`, aplica `applyHeal`
+      (novo, simétrico a `applyDamage`) com `item.consumable.healAmount` no
+      instante de efeito, limpa `HeldItem`. Cura visível na barra de HP já
+      existente.
+- [X] **Invocar criatura** — entregue junto das acima (v0.0.14):
+      `partySummonSystem` (novo, fora do `playerActionSystem` — não é uma
+      ação com duração do próprio corpo do treinador) lê `Party[slotN]` no
+      `secondaryN` e spawna uma `SummonedCreature` perto do treinador;
+      `creatureFollowSystem` (novo) faz ela seguir o treinador (decidido na
+      v0.0.13), parando a `PARTY.FOLLOW_MIN_DISTANCE`. Validado no
+      `DebugPanel`, sem renderização 3D — isso é feature futura (precisa de
+      infraestrutura de montagem/desmontagem dinâmica de modelo que ainda
+      não existe).
+- [X] **Recolher criatura** — inverso da invocação, mesmo system acima:
+      apertar de novo o `secondaryN` de um slot já invocado destrói a
+      `SummonedCreature` daquele slot.
 - [ ] **Morrer** — estado terminal, não uma ação com fim automático; trava
       input e provavelmente dispara um fluxo de respawn/checkpoint que ainda
       não existe — desenhar quando for a vez.

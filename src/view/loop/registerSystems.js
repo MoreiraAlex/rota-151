@@ -1,11 +1,13 @@
 import { registerSystem, GAME_PHASES } from '@/core/systems'
 import { inputSystem } from '@/core/systems/inputSystem'
-import { actionSlotsDebugSystem } from '@/core/systems/actionSlotsDebugSystem'
 import { physicsBootstrapSystem } from '@/core/systems/physicsBootstrapSystem'
 import { cameraControlSystem } from '@/core/systems/cameraControlSystem'
 import { vitalsRegenSystem } from '@/core/systems/vitalsRegenSystem'
 import { movementSystem } from '@/core/systems/movementSystem'
 import { playerActionSystem } from '@/core/systems/playerActionSystem'
+import { partySummonSystem } from '@/core/systems/partySummonSystem'
+import { creatureFollowSystem } from '@/core/systems/creatureFollowSystem'
+import { projectileSystem } from '@/core/systems/projectileSystem'
 import { characterPhysicsSystem } from '@/core/systems/characterPhysicsSystem'
 import { physicsStepSystem } from '@/core/systems/physicsStepSystem'
 import { syncPhysicsSystem } from '@/core/systems/syncPhysicsSystem'
@@ -32,21 +34,27 @@ let registered = false
  *   real, só mantém a ordem simples de raciocinar.
  * Em `presentation`: sincroniza transforms, depois câmera, depois animação
  * (a ordem entre as duas últimas não importa — nenhuma lê a outra).
+ *
+ * `partySummonSystem`/`creatureFollowSystem`/`projectileSystem` (v0.0.14)
+ * são independentes do resto (não leem nem escrevem `Velocity`/`Grounded`
+ * do treinador) — a posição exata deles na fase simulation não importa,
+ * ficam perto de `playerActionSystem` (quem spawna o projétil) por
+ * proximidade de leitura, não por dependência real de ordem.
  */
 export function registerGameSystems() {
   if (registered) return
   registered = true
 
   registerSystem(GAME_PHASES.INPUT, inputSystem)
-  // Debug temporário — ver docs/features/011-slots-de-acao.md. Remove
-  // quando a primeira ação de verdade passar a consumir esses botões.
-  registerSystem(GAME_PHASES.INPUT, actionSlotsDebugSystem)
 
   registerSystem(GAME_PHASES.SIMULATION, physicsBootstrapSystem)
   registerSystem(GAME_PHASES.SIMULATION, cameraControlSystem)
   registerSystem(GAME_PHASES.SIMULATION, vitalsRegenSystem)
   registerSystem(GAME_PHASES.SIMULATION, movementSystem)
   registerSystem(GAME_PHASES.SIMULATION, playerActionSystem)
+  registerSystem(GAME_PHASES.SIMULATION, projectileSystem)
+  registerSystem(GAME_PHASES.SIMULATION, partySummonSystem)
+  registerSystem(GAME_PHASES.SIMULATION, creatureFollowSystem)
   registerSystem(GAME_PHASES.SIMULATION, characterPhysicsSystem)
   registerSystem(GAME_PHASES.SIMULATION, physicsStepSystem)
   registerSystem(GAME_PHASES.SIMULATION, syncPhysicsSystem)

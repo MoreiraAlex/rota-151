@@ -1,6 +1,6 @@
 'use client'
 
-import { useTrait, useTag } from 'koota/react'
+import { useTrait, useTag, useQuery } from 'koota/react'
 import { playerEntity, cameraEntity } from '@/core/world/world'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import { getItem, listItems } from '@/core/data/items'
@@ -16,6 +16,8 @@ import {
   Vitals,
   HeldItem,
   Party,
+  Projectile,
+  SummonedCreature,
   applyDamage,
 } from '@/core/traits'
 
@@ -42,6 +44,8 @@ export function DebugPanel() {
   const vitals = useTrait(playerEntity, Vitals)
   const heldItem = useTrait(playerEntity, HeldItem)
   const party = useTrait(playerEntity, Party)
+  const projectiles = useQuery(Projectile, Position)
+  const summoned = useQuery(SummonedCreature, Position)
 
   if (
     !position ||
@@ -149,6 +153,24 @@ export function DebugPanel() {
       <PartySlotSelect slot="slot1" value={party.slot1} />
       <PartySlotSelect slot="slot2" value={party.slot2} />
       <PartySlotSelect slot="slot3" value={party.slot3} />
+      <hr className="border-white/20" />
+      <p>projéteis ativos: {projectiles.length}</p>
+      {projectiles.map((entity) => {
+        const p = entity.get(Position)
+        return (
+          <p key={entity} className="text-[10px] text-white/60">
+            {p.x.toFixed(1)}, {p.y.toFixed(1)}, {p.z.toFixed(1)}
+          </p>
+        )
+      })}
+      <p>
+        criaturas de fora:{' '}
+        {summoned.length === 0
+          ? 'nenhuma'
+          : summoned
+              .map((entity) => entity.get(SummonedCreature).slot)
+              .join(', ')}
+      </p>
     </div>
   )
 }

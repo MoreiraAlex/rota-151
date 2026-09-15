@@ -26,6 +26,38 @@ export const GAME_CONFIG = {
       // Custo de stamina, descontado uma vez no disparo (não por segundo).
       STAMINA_COST: 15,
     },
+    throw: {
+      // Duração total da ação (segundos).
+      DURATION: 0.6,
+      // Instante (dentro da duração) em que o projétil é de fato spawnado —
+      // não é keyframe de clipe, é config da própria ação (ver
+      // docs/features/014-arremessar-usar-e-invocar.md).
+      EFFECT_AT: 0.4,
+      // Velocidade do projétil (m/s). Global, não por item — só existe um
+      // throwable de teste hoje; migra pra config por item quando um
+      // segundo precisar de velocidade diferente.
+      SPEED: 14,
+      // Segundos até o projétil desaparecer sozinho (sem colisão ainda).
+      LIFETIME: 3,
+    },
+    consume: {
+      // Duração total da ação (segundos).
+      DURATION: 0.4,
+      // Instante em que o efeito do item (cura, ver `item.consumable`) é
+      // de fato aplicado.
+      EFFECT_AT: 0.2,
+    },
+  },
+  PARTY: {
+    // Distância inicial (m) da criatura ao ser invocada, à frente do
+    // treinador na direção que ele olha.
+    SUMMON_OFFSET: 2,
+    // Velocidade (m/s) com que a criatura invocada se aproxima do
+    // treinador — ver creatureFollowSystem.
+    FOLLOW_SPEED: 6,
+    // Distância mínima (m) que a criatura mantém do treinador — não chega
+    // mais perto que isso, pra não empilhar em cima dele.
+    FOLLOW_MIN_DISTANCE: 2,
   },
   VITALS: {
     // Segundos sem regenerar HP depois de tomar dano — não é atributo de

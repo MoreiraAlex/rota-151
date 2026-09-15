@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { WorldProvider } from '@/core/world/WorldProvider'
 import { GameLoop } from '@/view/loop/GameLoop'
@@ -11,6 +11,16 @@ import { DebugPanel } from '@/tools/debug/DebugPanel'
 export default function GamePage() {
   const [showDebug, setShowDebug] = useState(false)
 
+  useEffect(() => {
+    const onKeyDown = (event) => {
+      if (event.code !== 'F2') return
+      event.preventDefault()
+      setShowDebug((current) => !current)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
+
   return (
     <WorldProvider>
       <div className="relative h-screen w-screen overflow-hidden">
@@ -18,15 +28,6 @@ export default function GamePage() {
           <GameLoop />
           <GameScene>{showDebug && <PhysicsDebugView />}</GameScene>
         </Canvas>
-
-        <label className="absolute right-4 top-4 flex items-center gap-2 rounded bg-black/60 px-3 py-2 text-sm text-white">
-          <input
-            type="checkbox"
-            checked={showDebug}
-            onChange={(event) => setShowDebug(event.target.checked)}
-          />
-          Debug físico
-        </label>
 
         {showDebug && <DebugPanel />}
       </div>
