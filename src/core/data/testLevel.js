@@ -36,5 +36,25 @@ export const TEST_LEVEL = {
       position: [10.5, 0.9, 0],
       size: [4, 1.8, 3],
     },
+    // Pilar isolado perto do spawn — fácil de esbarrar a câmera nele só
+    // virando o olhar por perto, pra testar a colisão da órbita
+    // (docs/backlog.md → "Câmera orbital com colisão").
+    { id: 'pillar', type: 'box', position: [3, 1.5, -1], size: [1, 3, 1] },
+    // Corredor estreito (4m de vão) — a distância padrão da câmera não
+    // cabe atrás do jogador aqui dentro sem atravessar uma das paredes,
+    // então força a colisão da órbita a puxar a distância pra dentro o
+    // tempo todo enquanto o jogador atravessa.
+    {
+      id: 'corridor-wall-left',
+      type: 'box',
+      position: [-2, 1.25, -14],
+      size: [0.5, 2.5, 8],
+    },
+    {
+      id: 'corridor-wall-right',
+      type: 'box',
+      position: [2, 1.25, -14],
+      size: [0.5, 5, 8],
+    },
   ],
 }

@@ -9,6 +9,7 @@ import { PhysicsDebugView } from '@/tools/debug/PhysicsDebugView'
 import { DebugPanel } from '@/tools/debug/DebugPanel'
 import { PauseMenu } from '@/tools/menu/PauseMenu'
 import { PartyHud } from '@/tools/hud/PartyHud'
+import { Crosshair } from '@/tools/hud/Crosshair'
 
 export default function GamePage() {
   const [showDebug, setShowDebug] = useState(false)
@@ -50,10 +51,10 @@ export default function GamePage() {
   useEffect(() => {
     // Travar de novo (clique esquerdo no canvas) sempre fecha o menu, se
     // estiver aberto — rede de segurança pra além do botão "Continuar"/Esc.
-    // NÃO abre o menu sozinho quando o lock se perde: o botão direito
-    // também solta o mouse (ver pointerInput.js) e não deve abrir o menu,
-    // só liberar o cursor pra clicar no HUD/DebugPanel. Só o Esc abre (ver
-    // o outro useEffect abaixo).
+    // NÃO abre o menu sozinho quando o lock se perde — só o Esc abre (ver
+    // o outro useEffect abaixo). O botão direito não solta mais o Pointer
+    // Lock (virou mirar, ver docs/features/016-mira-e-arremesso.md/
+    // pointerInput.js), então nem chega a disparar isso.
     const onLockChange = () => {
       if (document.pointerLockElement) setMenuOpen(false)
     }
@@ -62,11 +63,10 @@ export default function GamePage() {
   }, [])
 
   useEffect(() => {
-    // Esc abre/fecha o menu diretamente pelo estado — não infere pela perda
-    // do Pointer Lock (isso é o que faz o botão direito NÃO abrir o menu:
-    // ele solta o mouse pelo mesmo pointerlockchange, mas não passa por
-    // aqui). Abrir também solta o mouse como efeito colateral do próprio
-    // browser (o Esc sempre sai do Pointer Lock quando há um ativo).
+    // Esc abre/fecha o menu diretamente pelo estado, não inferindo da perda
+    // do Pointer Lock — abrir também solta o mouse como efeito colateral do
+    // próprio browser (o Esc sempre sai do Pointer Lock quando há um
+    // ativo).
     const onKeyDown = (event) => {
       if (event.code !== 'Escape') return
       event.preventDefault()
@@ -117,6 +117,7 @@ export default function GamePage() {
           <GameScene>{showDebug && <PhysicsDebugView />}</GameScene>
         </Canvas>
 
+        <Crosshair />
         <PartyHud />
 
         {showDebug && <DebugPanel />}

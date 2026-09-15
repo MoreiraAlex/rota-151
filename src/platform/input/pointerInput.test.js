@@ -97,23 +97,78 @@ describe('pointerInput', () => {
     expect(pointer.snapshot().primary).toBe(false)
   })
 
-  it('clique direito solta o pointer lock, mesmo efeito do Esc', () => {
+  it('botão direito não solta mais o pointer lock (virou mirar, não liberar o cursor)', () => {
     const pointer = createPointerInput()
     pointer.start(element)
     lock()
 
     element.dispatch('mousedown', { button: 2 })
 
-    expect(doc.exitPointerLock).toHaveBeenCalled()
+    expect(doc.exitPointerLock).not.toHaveBeenCalled()
   })
 
-  it('clique direito sem estar travado não tenta soltar o lock', () => {
+  it('segurar o botão direito ativa aiming (mirar), refletido no snapshot', () => {
+    const pointer = createPointerInput()
+    pointer.start(element)
+    lock()
+
+    element.dispatch('mousedown', { button: 2 })
+
+    expect(pointer.snapshot().aiming).toBe(true)
+  })
+
+  it('soltar o botão direito desativa aiming', () => {
+    const pointer = createPointerInput()
+    pointer.start(element)
+    lock()
+
+    element.dispatch('mousedown', { button: 2 })
+    win.dispatch('mouseup', { button: 2 })
+
+    expect(pointer.snapshot().aiming).toBe(false)
+  })
+
+  it('soltar o botão esquerdo não afeta aiming', () => {
+    const pointer = createPointerInput()
+    pointer.start(element)
+    lock()
+
+    element.dispatch('mousedown', { button: 2 })
+    win.dispatch('mouseup', { button: 0 })
+
+    expect(pointer.snapshot().aiming).toBe(true)
+  })
+
+  it('botão direito sem estar travado não ativa aiming', () => {
     const pointer = createPointerInput()
     pointer.start(element)
 
     element.dispatch('mousedown', { button: 2 })
 
-    expect(doc.exitPointerLock).not.toHaveBeenCalled()
+    expect(pointer.snapshot().aiming).toBe(false)
+  })
+
+  it('perder o pointer lock desativa aiming', () => {
+    const pointer = createPointerInput()
+    pointer.start(element)
+    lock()
+    element.dispatch('mousedown', { button: 2 })
+
+    doc.pointerLockElement = null
+    doc.dispatch('pointerlockchange')
+
+    expect(pointer.snapshot().aiming).toBe(false)
+  })
+
+  it('perder o foco da janela desativa aiming', () => {
+    const pointer = createPointerInput()
+    pointer.start(element)
+    lock()
+    element.dispatch('mousedown', { button: 2 })
+
+    win.dispatch('blur')
+
+    expect(pointer.snapshot().aiming).toBe(false)
   })
 
   it('suprime o menu de contexto nativo do botão direito', () => {
@@ -135,5 +190,19 @@ describe('pointerInput', () => {
     expect(element.count('contextmenu')).toBe(0)
     expect(doc.count('mousemove')).toBe(0)
     expect(win.count('blur')).toBe(0)
+    expect(win.count('mouseup')).toBe(0)
+  })
+
+  it('isAiming() reflete o mesmo estado do snapshot, sem drenar nada', () => {
+    const pointer = createPointerInput()
+    pointer.start(element)
+    lock()
+    element.dispatch('mousedown', { button: 2 })
+
+    expect(pointer.isAiming()).toBe(true)
+    // não é um delta — chamar de novo (ou tirar um snapshot) não muda nada
+    expect(pointer.isAiming()).toBe(true)
+    expect(pointer.snapshot().aiming).toBe(true)
+    expect(pointer.isAiming()).toBe(true)
   })
 })

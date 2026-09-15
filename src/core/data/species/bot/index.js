@@ -1,6 +1,7 @@
 import IDLE_CLIP from './clips/idle.json'
 import WALK_CLIP from './clips/walk.json'
 import RUN_CLIP from './clips/run.json'
+import THROW_CLIP from './clips/throw.json'
 
 
 export const BOT = {
@@ -15,6 +16,7 @@ export const BOT = {
     idle: IDLE_CLIP,
     walk: WALK_CLIP,
     run: RUN_CLIP,
+    throw: THROW_CLIP,
   },
   body: {
     capsuleRadius: 0.4,

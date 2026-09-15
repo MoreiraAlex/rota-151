@@ -27,18 +27,57 @@ export const GAME_CONFIG = {
       STAMINA_COST: 15,
     },
     throw: {
-      // Duração total da ação (segundos).
-      DURATION: 0.6,
+      // Duração total da ação (segundos) — precisa bater com a duração de
+      // verdade do clipe de animação de arremesso (core/data/species/<id>/
+      // clips/throw.json): clipes de AÇÃO (não cíclicos) usam `speed` como
+      // `1/duração` (mesma leitura de "ciclos/segundo" dos clipes de
+      // locomoção, mas aqui vira "a ação inteira é 1 ciclo" — ver a skill
+      // procedural-rig-animation, referências/animations/one-shot-
+      // actions.md). O clipe do bot tem `speed: 2.5` → 1/2.5 = 0.4s. Errar
+      // esse valor (maior que o real) faz o gesto reiniciar do início e
+      // ficar visivelmente "engasgado" antes de cortar pro idle — o motor
+      // não trava o clipe no fim (`loop: false` no JSON é só documentação,
+      // não é lido em lugar nenhum), ele só repete o mesmo gesto fechado.
+      DURATION: 0.4,
       // Instante (dentro da duração) em que o projétil é de fato spawnado —
       // não é keyframe de clipe, é config da própria ação (ver
-      // docs/features/014-arremessar-usar-e-invocar.md).
-      EFFECT_AT: 0.4,
+      // docs/features/014-arremessar-usar-e-invocar.md). Devia coincidir
+      // com o frame em que a MÃO solta o objeto no clipe de animação — isso
+      // não dá pra derivar só do `speed` (fica na forma da curva, não no
+      // número), então por enquanto é a mesma fração que já estava ajustada
+      // antes desta correção (0.45/0.5 = 90% da duração antiga), só
+      // reescalada pra duração certa (0.4 × 90% = 0.36) — ainda precisa de
+      // olho no jogo pra confirmar se bate com a soltura visual de verdade.
+      EFFECT_AT: 0.3,
+      // Origem do arremesso (de onde a trajetória sai e onde o projétil
+      // nasce) — aproxima a posição da MÃO a partir de `Position`/
+      // `Rotation.y` do jogador, já que o motor não tem acesso ao osso de
+      // verdade daqui (isso é conteúdo da view — ver
+      // `view/systems/heldItemViewSystem.js`, que só cuida do visual
+      // encaixado no osso, não da trajetória/spawn). Componentes somados
+      // na direção que o corpo encara (`HAND_FORWARD_OFFSET`, à frente) e
+      // à direita dele (`HAND_SIDE_OFFSET`) — mesma convenção de
+      // forward/right usada em todo o resto (`computeCameraRight`,
+      // `movementSystem.js`). `HAND_HEIGHT_OFFSET` substitui o antigo "+1"
+      // fixo.
+      HAND_FORWARD_OFFSET: 0.15,
+      HAND_SIDE_OFFSET: -0.25,
+      HAND_HEIGHT_OFFSET: 1.25,
       // Velocidade do projétil (m/s). Global, não por item — só existe um
       // throwable de teste hoje; migra pra config por item quando um
       // segundo precisar de velocidade diferente.
-      SPEED: 14,
-      // Segundos até o projétil desaparecer sozinho (sem colisão ainda).
-      LIFETIME: 3,
+      SPEED: 45,
+      // Segundos até o projétil desaparecer sozinho, mesmo já tendo
+      // atingido algo (congelado no ponto do impacto até então).
+      LIFETIME: 1.5,
+      // Alcance máximo (m) do raycast de mira, a partir da câmera — nada
+      // encontrado dentro dessa distância, mira no ponto mais distante
+      // dessa distância mesmo (em vez de mirar no infinito).
+      AIM_RANGE: 50,
+      // Custo de stamina, descontado uma vez no disparo (não por segundo) —
+      // mesmo padrão do dash. Sem stamina suficiente, o arremesso
+      // simplesmente não dispara.
+      STAMINA_COST: 2,
     },
     consume: {
       // Duração total da ação (segundos).
@@ -117,10 +156,16 @@ export const GAME_CONFIG = {
     INITIAL_PITCH: 0.35,
     INITIAL_DISTANCE: 12,
     // Limite do ângulo vertical (pitch), em radianos. O horizontal (yaw) é
-    // livre. ~0.15 rad ≈ 9° (quase rente ao chão); ~1.35 rad ≈ 77° (quase de
-    // cima). Ajuste à vontade.
-    MIN_PITCH: 0.05,
-    MAX_PITCH: 0.75,
+    // livre. `pitch` positivo põe a câmera ACIMA do alvo olhando pra baixo
+    // (MAX_PITCH ~1.35 rad ≈ 77°, quase de cima); `pitch` 0 é olhar reto,
+    // no nível do alvo. Pra olhar pra CIMA (céu, algo alto à frente), a
+    // câmera precisa descer ABAIXO do alvo e inclinar — isso é `pitch`
+    // NEGATIVO, não perto de zero (um MIN_PITCH só um pouco acima de 0
+    // nunca deixa passar do "olhar reto", por menor que seja — foi o que
+    // limitava antes). MIN_PITCH ~-0.6 rad ≈ -34° dá uma boa folga pra
+    // cima. Ajuste à vontade.
+    MIN_PITCH: -0.5,
+    MAX_PITCH: 1.35,
     // Limites do zoom, em unidades.
     MIN_DISTANCE: 5,
     MAX_DISTANCE: 25,
@@ -130,7 +175,33 @@ export const GAME_CONFIG = {
     ZOOM_SPEED: 1.5,
     // Fator de suavização do acompanhamento (maior = mais rígido).
     SMOOTHING: 12,
+    // Fator de suavização da transição do ENQUADRAMENTO de mira (o
+    // `aimBlend` que interpola entre olhar pro jogador e olhar pro
+    // `AimAnchor` travado, em `cameraFollowSystem.js`) — mesmo formato de
+    // `SMOOTHING`, mas com seu próprio ritmo, pra poder ajustar a
+    // suavidade da mira independente da suavidade do acompanhamento geral.
+    AIM_BLEND_SMOOTHING: 15,
     // Altura do ponto de mira acima da origem do alvo.
-    TARGET_HEIGHT: 1.0,
+    TARGET_HEIGHT: 1.5,
+    // Deslocamento lateral (m) do ponto que a câmera mira, em relação ao
+    // alvo — usado tanto na resolução do ponto de mira (`computeAimRay`, o
+    // raio que decide onde travar o `AimAnchor` ao começar a mirar) quanto
+    // no enquadramento renderizado de fato (`cameraFollowSystem.js`, que
+    // aplica o desvio completo enquanto travado — ver docstring lá): o
+    // retículo (fixo no centro da tela) não se move, mas o personagem sai
+    // do centro, dando o enquadramento "sobre o ombro" de verdade. 0
+    // desativa o efeito por completo (personagem sempre centralizado).
+    SHOULDER_OFFSET: 0.4,
+    // Colisão da câmera orbital (docs/backlog.md → "Câmera orbital com
+    // colisão"): raycast do alvo até a posição desejada da câmera; batendo
+    // em algo antes de `orbit.distance`, a câmera aproxima pra logo antes
+    // do ponto de impacto em vez de atravessar. COLLISION_MARGIN é a folga
+    // (m) mantida antes da superfície (senão a câmera encostaria bem em
+    // cima dela). MIN_DISTANCE_AFTER_COLLISION é o piso de quão perto do
+    // alvo a colisão pode empurrar a câmera — independente de MIN_DISTANCE
+    // (que só limita o zoom manual), porque encurralado num canto a câmera
+    // precisa poder chegar bem mais perto do que o zoom mínimo normal.
+    COLLISION_MARGIN: 0.3,
+    MIN_DISTANCE_AFTER_COLLISION: 0.5,
   },
 }

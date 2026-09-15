@@ -157,9 +157,11 @@ export function DebugPanel() {
       <p>projéteis ativos: {projectiles.length}</p>
       {projectiles.map((entity) => {
         const p = entity.get(Position)
+        const hit = entity.get(Projectile).hit
         return (
           <p key={entity} className="text-[10px] text-white/60">
-            {p.x.toFixed(1)}, {p.y.toFixed(1)}, {p.z.toFixed(1)}
+            {hit ? 'atingiu em' : 'voando'}: {p.x.toFixed(1)}, {p.y.toFixed(1)},{' '}
+            {p.z.toFixed(1)}
           </p>
         )
       })}

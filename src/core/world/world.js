@@ -14,6 +14,7 @@ import {
   CharacterController,
   AnimationState,
   ActionState,
+  AimAnchor,
   Vitals,
   HeldItem,
   Inventory,
@@ -54,10 +55,18 @@ export const playerEntity = world.spawn(
   CharacterController(PLAYER_SPECIES.body),
   AnimationState,
   ActionState,
+  AimAnchor,
   vitals,
-  HeldItem,
+  // Começa com a mão e o time já equipados — sem isso o jogo abre sem
+  // nada pra arremessar/invocar, mesmo já tendo itens/criaturas
+  // disponíveis (Inventory já começa com um kit de teste, ver
+  // core/traits/components/inventory.js). `rock` é um `throwable` do kit
+  // inicial; `fox` é a primeira criatura `kind: 'pokemon'` do registro
+  // (core/data/species/index.js) — nenhum dos dois é conteúdo de jogo de
+  // verdade ainda, só o ponto de partida mais conveniente pra testar.
+  HeldItem({ itemId: 'rock' }),
   Inventory,
-  Party,
+  Party({ slot1: 'fox' }),
 )
 
 export const cameraEntity = world.spawn(

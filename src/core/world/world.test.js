@@ -81,8 +81,8 @@ describe('world (singleton)', () => {
     }
   })
 
-  it('o player começa sem item em mãos', () => {
-    expect(playerEntity.get(HeldItem).itemId).toBeNull()
+  it('o player já começa com a rock equipada na mão', () => {
+    expect(playerEntity.get(HeldItem).itemId).toBe('rock')
   })
 
   it('o player começa com um kit de itens de teste no inventário (10 throwable + 5 consumable, pebble em pilha de 20)', () => {
@@ -91,9 +91,9 @@ describe('world (singleton)', () => {
     expect(itemIds.filter((id) => id === 'pebble')).toHaveLength(20)
   })
 
-  it('o player começa sem nenhuma criatura no time', () => {
+  it('o player já começa com a fox no slot1 do time, os outros dois vazios', () => {
     expect(playerEntity.get(Party)).toEqual({
-      slot1: null,
+      slot1: 'fox',
       slot2: null,
       slot3: null,
     })

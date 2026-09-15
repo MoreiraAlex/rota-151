@@ -25,7 +25,7 @@ import { trait } from 'koota'
 export const Inventory = trait(() => ({
   itemIds: [
     ...Array(20).fill('pebble'),
-    ...Array(10).fill('rock'),
+    ...Array(50).fill('rock'),
     ...Array(5).fill('potion'),
     ...Array(3).fill('elixir'),
   ],

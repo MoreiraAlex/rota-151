@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import { GAME_CONFIG } from '../gameConfig'
-import { resolveAnimationState } from './animationStates'
+import {
+  resolveAnimationState,
+  isOneShotAnimationState,
+} from './animationStates'
 
 const { WALK_MIN_SPEED, RUN_MIN_SPEED } = GAME_CONFIG.ANIMATION
 
@@ -63,5 +66,22 @@ describe('resolveAnimationState', () => {
         action: 'throw',
       }),
     ).toBe('throw')
+  })
+})
+
+describe('isOneShotAnimationState', () => {
+  it('dash e throw são one-shot — o relógio reinicia ao entrar nesses estados', () => {
+    expect(isOneShotAnimationState('dash')).toBe(true)
+    expect(isOneShotAnimationState('throw')).toBe(true)
+  })
+
+  it('idle/walk/run não são one-shot — cíclicos, sem "fase certa" de início', () => {
+    expect(isOneShotAnimationState('idle')).toBe(false)
+    expect(isOneShotAnimationState('walk')).toBe(false)
+    expect(isOneShotAnimationState('run')).toBe(false)
+  })
+
+  it('id desconhecido não é one-shot', () => {
+    expect(isOneShotAnimationState('nao-existe')).toBe(false)
   })
 })

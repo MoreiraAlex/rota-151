@@ -31,9 +31,10 @@ de puxar ela pra frente.
 - [ ] **Sensação de movimento** — aceleração/frenagem suave em vez de
       velocidade binária (anda ou não anda na velocidade cheia); coyote time
       pro pulo (janela curta pra pular logo após sair da borda).
-- [ ] **Câmera orbital com colisão** — raycast entre o alvo e a câmera pra
-      aproximar a distância quando bate em parede/obstáculo, em vez de
-      atravessar.
+- [X] **Câmera orbital com colisão** — entregue em
+      `docs/features/016-mira-e-arremesso.md` ("Colisão da câmera"):
+      raycast do alvo até a câmera (`cameraFollowSystem.js`), aproxima a
+      distância quando bate em parede/obstáculo, em vez de atravessar.
 - [ ] **HUD real (não-debug)** — camada de UI sempre ligada pro jogador,
       separada do `DebugPanel` (que é ferramenta interna, atrás do toggle).
 - [ ] **Persistência do jogador** — salvar/restaurar posição (e depois outros

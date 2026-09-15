@@ -2,13 +2,13 @@ import { useEffect, useRef } from 'react'
 import { useQuery } from 'koota/react'
 import { Projectile, Position, Rotation } from '@/core/traits'
 import { registerView, unregisterView } from '../registry/viewRegistry'
-
-const RADIUS = 0.15
+import { THROWABLE_RADIUS, THROWABLE_COLOR } from './throwableVisual'
 
 /**
  * Visual de um `Projectile` (ver docs/features/014-arremessar-usar-e-
  * invocar.md) — sem esqueleto, então não usa `useAnimatedModel`: uma esfera
  * simples só pra existir na cena e se mover com `syncTransformSystem`.
+ * Mesma esfera do item na mão antes de arremessar — ver `throwableVisual.js`.
  */
 export function ProjectileView({ entity }) {
   const groupRef = useRef()
@@ -21,8 +21,8 @@ export function ProjectileView({ entity }) {
   return (
     <group ref={groupRef}>
       <mesh castShadow>
-        <sphereGeometry args={[RADIUS, 12, 12]} />
-        <meshStandardMaterial color="#8a8a8a" />
+        <sphereGeometry args={[THROWABLE_RADIUS, 12, 12]} />
+        <meshStandardMaterial color={THROWABLE_COLOR} />
       </mesh>
     </group>
   )

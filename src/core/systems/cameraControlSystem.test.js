@@ -43,4 +43,34 @@ describe('cameraControlSystem', () => {
     for (let i = 0; i < 100; i++) tick({ zoom: -1 })
     expect(orbit().distance).toBeCloseTo(CAM.MIN_DISTANCE)
   })
+
+  it('mirando (input.aiming), o mouse não mexe mais no yaw/pitch — congelado pro lock-on (cameraFollowSystem.js gira sozinho)', () => {
+    const { tick, orbit } = setup()
+    const beforeYaw = orbit().yaw
+    const beforePitch = orbit().pitch
+
+    tick({ cameraYaw: 50, cameraPitch: 30, aiming: true })
+
+    expect(orbit().yaw).toBe(beforeYaw)
+    expect(orbit().pitch).toBe(beforePitch)
+  })
+
+  it('mirando, o zoom continua livre', () => {
+    const { tick, orbit } = setup()
+    const before = orbit().distance
+
+    tick({ zoom: 1, aiming: true })
+
+    expect(orbit().distance).toBeGreaterThan(before)
+  })
+
+  it('soltar a mira volta a aceitar deltas de mouse normalmente, sem salto', () => {
+    const { tick, orbit } = setup()
+    tick({ cameraYaw: 50, aiming: true }) // congelado, não muda
+    const frozenYaw = orbit().yaw
+
+    tick({ cameraYaw: 50, aiming: false })
+
+    expect(orbit().yaw).toBeLessThan(frozenYaw) // agora sim gira
+  })
 })
