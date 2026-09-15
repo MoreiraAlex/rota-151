@@ -93,6 +93,19 @@ describe('movementSystem', () => {
     ) // não drenou — a ação não "meio aconteceu"
   })
 
+  it('lê GAME_CONFIG.VITALS a cada tick — mudar em tempo real (ex.: menu de configurações) já vale no próximo tick', () => {
+    const { player, tick } = setup(0, 1)
+    const original = GAME_CONFIG.VITALS.RUN_STAMINA_DRAIN_PER_SECOND
+    GAME_CONFIG.VITALS.RUN_STAMINA_DRAIN_PER_SECOND = original * 2
+
+    try {
+      tick({ x: 0, z: -1, run: true })
+      expect(player.get(Vitals).stamina).toBeCloseTo(100 - original * 2)
+    } finally {
+      GAME_CONFIG.VITALS.RUN_STAMINA_DRAIN_PER_SECOND = original
+    }
+  })
+
   it('correr reseta o delay de regeneração de stamina', () => {
     const { player, tick } = setup(0, 1)
     tick({ x: 0, z: -1, run: true })

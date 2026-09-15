@@ -8,6 +8,10 @@
  * O clique esquerdo também é a ação `primary` (ver
  * docs/features/011-slots-de-acao.md) — só conta depois que o ponteiro já
  * está travado, pra não disparar a ação no mesmo clique que só pede o lock.
+ * O clique direito solta o mouse (mesmo efeito do Esc) — o menu de pausa
+ * (`src/app/(auth)/page.js`) abre sozinho junto, via `pointerlockchange`,
+ * do mesmo jeito que já reage ao Esc. O menu de contexto nativo do botão
+ * direito é suprimido no elemento — sem isso apareceria por cima do jogo.
  *
  * Acumula os deltas entre chamadas de `snapshot()`, que os drena — o game loop
  * consome cada movimento exatamente uma vez, mesmo com vários passos fixos por
@@ -51,8 +55,14 @@ export function createPointerInput() {
   }
 
   const onMouseDown = (event) => {
-    if (locked && event.button === 0) primaryPressed = true
+    if (!locked) return
+    if (event.button === 0) primaryPressed = true
+    else if (event.button === 2 && document.exitPointerLock) {
+      document.exitPointerLock()
+    }
   }
+
+  const onContextMenu = (event) => event.preventDefault()
 
   return {
     start(domElement) {
@@ -60,6 +70,7 @@ export function createPointerInput() {
       if (!element) return
       element.addEventListener('click', requestLock)
       element.addEventListener('mousedown', onMouseDown)
+      element.addEventListener('contextmenu', onContextMenu)
       element.addEventListener('wheel', onWheel, { passive: true })
       document.addEventListener('pointerlockchange', onPointerLockChange)
       document.addEventListener('mousemove', onPointerMove)
@@ -69,6 +80,7 @@ export function createPointerInput() {
       if (element) {
         element.removeEventListener('click', requestLock)
         element.removeEventListener('mousedown', onMouseDown)
+        element.removeEventListener('contextmenu', onContextMenu)
         element.removeEventListener('wheel', onWheel)
       }
       document.removeEventListener('pointerlockchange', onPointerLockChange)

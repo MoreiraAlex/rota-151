@@ -113,7 +113,7 @@ describe('keyboardInput', () => {
     keyboard.start()
 
     press('Space')
-    press('ControlLeft')
+    press('KeyQ')
     win.dispatch('blur')
 
     // sem isso, o pulso sobreviveria escondido e disparia no primeiro
@@ -153,17 +153,17 @@ describe('keyboardInput', () => {
     expect(keyboard.snapshot().run).toBe(true)
   })
 
-  it('ControlLeft/ControlRight mapeiam para o pulso de dash, drenado no snapshot', () => {
+  it('KeyQ/KeyE mapeiam para o pulso de dash, drenado no snapshot', () => {
     const keyboard = createKeyboardInput()
     keyboard.start()
 
-    press('ControlLeft')
+    press('KeyQ')
     expect(keyboard.snapshot().dash).toBe(true)
     // drenado — a segunda leitura sem novo keydown vem falsa, mesmo com a
     // tecla ainda fisicamente pressionada
     expect(keyboard.snapshot().dash).toBe(false)
 
-    press('ControlRight')
+    press('KeyE')
     expect(keyboard.snapshot().dash).toBe(true)
   })
 
@@ -172,7 +172,7 @@ describe('keyboardInput', () => {
     keyboard.start()
 
     win.dispatch('keydown', {
-      code: 'ControlLeft',
+      code: 'KeyQ',
       preventDefault: () => {},
       repeat: true,
     })
@@ -184,11 +184,11 @@ describe('keyboardInput', () => {
     const keyboard = createKeyboardInput()
     keyboard.start()
 
-    press('ControlLeft')
+    press('KeyQ')
     expect(keyboard.snapshot().dash).toBe(true)
 
-    release('ControlLeft')
-    press('ControlLeft')
+    release('KeyQ')
+    press('KeyQ')
     expect(keyboard.snapshot().dash).toBe(true)
   })
 

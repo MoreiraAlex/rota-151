@@ -16,6 +16,7 @@ import {
   ActionState,
   Vitals,
   HeldItem,
+  Inventory,
   Party,
 } from '../traits'
 
@@ -55,6 +56,7 @@ export const playerEntity = world.spawn(
   ActionState,
   vitals,
   HeldItem,
+  Inventory,
   Party,
 )
 

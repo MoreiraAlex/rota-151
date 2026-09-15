@@ -29,4 +29,23 @@ describe('item registry — mecanismo', () => {
     expect(getItem('pebble').category).toBe('throwable')
     expect(getItem('potion').category).toBe('consumable')
   })
+
+  it('kit de teste tem 10 throwable e 5 consumable', () => {
+    const list = listItems()
+    expect(list.filter((item) => item.category === 'throwable')).toHaveLength(
+      10,
+    )
+    expect(list.filter((item) => item.category === 'consumable')).toHaveLength(
+      5,
+    )
+  })
+
+  it('todo consumable de teste tem healAmount configurado', () => {
+    const consumables = listItems().filter(
+      (item) => item.category === 'consumable',
+    )
+    for (const item of consumables) {
+      expect(item.consumable?.healAmount).toBeGreaterThan(0)
+    }
+  })
 })

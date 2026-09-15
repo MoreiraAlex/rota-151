@@ -129,3 +129,19 @@ de puxar ela pra frente.
       mesmo `core/data/species` + motor de animação procedural que o jogador
       usa, com IA simples (parada/vagando). Adiado até o jogador estar
       redondo.
+
+## Animação
+
+- [ ] **Clipe por keyframes gravados (além de curva procedural)** —
+      `applyAnimationClip.js` hoje só entende curva procedural por eixo
+      (`sine`/`constant`/`clampedSine`/`absSine`, ver `core/animation/
+      curves.js`); um clipe gravado/exportado de outra ferramenta (ex.:
+      `bot/clips/throw1.json`, 40 frames, `quaternion`/`position` por osso
+      como array de valores brutos, `type: "keyframes"`) não é reconhecido
+      — nenhum osso sem correspondente na curva procedural recebe override,
+      então o personagem cai pra pose de descanso (T-pose) inteira durante
+      o clipe. Precisa de um caminho de aplicação novo, convivendo com o
+      procedural (não substituindo): interpolar entre os frames gravados
+      pelo tempo decorrido — slerp pra rotação (quaternion), lerp pra
+      posição — em vez de avaliar uma fórmula. Acertar o mapeamento
+      tempo→frame (fps/duração real do clipe) é parte do trabalho.

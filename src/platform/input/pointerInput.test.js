@@ -97,12 +97,42 @@ describe('pointerInput', () => {
     expect(pointer.snapshot().primary).toBe(false)
   })
 
+  it('clique direito solta o pointer lock, mesmo efeito do Esc', () => {
+    const pointer = createPointerInput()
+    pointer.start(element)
+    lock()
+
+    element.dispatch('mousedown', { button: 2 })
+
+    expect(doc.exitPointerLock).toHaveBeenCalled()
+  })
+
+  it('clique direito sem estar travado não tenta soltar o lock', () => {
+    const pointer = createPointerInput()
+    pointer.start(element)
+
+    element.dispatch('mousedown', { button: 2 })
+
+    expect(doc.exitPointerLock).not.toHaveBeenCalled()
+  })
+
+  it('suprime o menu de contexto nativo do botão direito', () => {
+    const pointer = createPointerInput()
+    pointer.start(element)
+
+    const event = { preventDefault: vi.fn() }
+    element.dispatch('contextmenu', event)
+
+    expect(event.preventDefault).toHaveBeenCalled()
+  })
+
   it('stop remove os listeners', () => {
     const pointer = createPointerInput()
     pointer.start(element)
     pointer.stop()
 
     expect(element.count('click')).toBe(0)
+    expect(element.count('contextmenu')).toBe(0)
     expect(doc.count('mousemove')).toBe(0)
     expect(win.count('blur')).toBe(0)
   })

@@ -46,6 +46,9 @@ export const GAME_CONFIG = {
       // Instante em que o efeito do item (cura, ver `item.consumable`) é
       // de fato aplicado.
       EFFECT_AT: 0.2,
+      // Quanto tempo o efeito visual de partículas (ConsumeEffect) fica na
+      // cena depois de spawnado — independente da duração da ação em si.
+      EFFECT_VISUAL_DURATION: 0.6,
     },
   },
   PARTY: {

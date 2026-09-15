@@ -48,4 +48,20 @@ describe('resolveAnimationState', () => {
       }),
     ).toBe('dash')
   })
+
+  it('action "throw" vence a locomoção, mesmo parado e no ar', () => {
+    expect(
+      resolveAnimationState({ speed: 0, grounded: false, action: 'throw' }),
+    ).toBe('throw')
+  })
+
+  it('action "throw" vence mesmo com velocidade de corrida e no chão', () => {
+    expect(
+      resolveAnimationState({
+        speed: RUN_MIN_SPEED + 1,
+        grounded: true,
+        action: 'throw',
+      }),
+    ).toBe('throw')
+  })
 })

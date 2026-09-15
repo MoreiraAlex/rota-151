@@ -1,8 +1,6 @@
 import { GAME_CONFIG } from '../gameConfig'
 import { InputControlled, Position, SummonedCreature } from '../traits'
 
-const { FOLLOW_SPEED, FOLLOW_MIN_DISTANCE } = GAME_CONFIG.PARTY
-
 /**
  * Toda `SummonedCreature` anda em direção à posição do treinador — decidido
  * em docs/features/013-criaturas-de-time.md ("segue o jogador"), construído
@@ -17,6 +15,9 @@ const { FOLLOW_SPEED, FOLLOW_MIN_DISTANCE } = GAME_CONFIG.PARTY
  */
 export function creatureFollowSystem(context) {
   const { world, delta } = context
+  // Lido a cada tick pra manipular via menu de configurações (ver
+  // docs/features/015-menu-de-pausa-e-configuracoes.md) valer na hora.
+  const { FOLLOW_SPEED, FOLLOW_MIN_DISTANCE } = GAME_CONFIG.PARTY
 
   const player = world.queryFirst(InputControlled, Position)
   if (!player) return

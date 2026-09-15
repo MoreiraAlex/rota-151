@@ -3,16 +3,7 @@ import { useQuery } from 'koota/react'
 import { getSpecies } from '@/core/data/species'
 import { SummonedCreature, Position, Rotation } from '@/core/traits'
 import { useAnimatedModel } from '../hooks/useAnimatedModel'
-
-// Tint por espécie placeholder de time (ver docs/features/013-criaturas-de-
-// time.md e docs/features/014-arremessar-usar-e-invocar.md) — fica aqui, não
-// em core/data/species, porque é só cosmético dos clones de `fox` que eu
-// criei, não dado de jogo real (Pokémon de verdade não precisa disso).
-const TINTS = {
-  'fox-red': '#c0392b',
-  'fox-green': '#2ecc71',
-  'fox-blue': '#3498db',
-}
+import { CREATURE_TINTS } from '../creatureTints'
 
 /**
  * Visual de uma `SummonedCreature` — modelo da espécie via
@@ -28,7 +19,7 @@ export function CreatureView({ entity }) {
   const { groupRef, cloned } = useAnimatedModel(entity, species)
 
   useEffect(() => {
-    const tint = TINTS[speciesId]
+    const tint = CREATURE_TINTS[speciesId]
     if (!tint) return
 
     cloned.traverse((child) => {

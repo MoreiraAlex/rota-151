@@ -16,7 +16,6 @@ const SLOTS = [
   { input: 'secondary2', slot: 'slot2' },
   { input: 'secondary3', slot: 'slot3' },
 ]
-const { SUMMON_OFFSET } = GAME_CONFIG.PARTY
 
 function findSummoned(world, slot) {
   return world
@@ -49,6 +48,9 @@ function findSummoned(world, slot) {
 export function partySummonSystem(context) {
   const { world } = context
   const input = context.input ?? {}
+  // Lido a cada tick pra manipular via menu de configurações (ver
+  // docs/features/015-menu-de-pausa-e-configuracoes.md) valer na hora.
+  const { SUMMON_OFFSET } = GAME_CONFIG.PARTY
 
   world
     .query(InputControlled, Party, Position, Rotation)

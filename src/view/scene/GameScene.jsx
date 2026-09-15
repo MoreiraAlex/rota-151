@@ -2,6 +2,7 @@ import { PerspectiveCamera, Sky } from '@react-three/drei'
 import { TEST_LEVEL } from '@/core/data/testLevel'
 import { PlayerView } from './PlayerView'
 import { ProjectilesView } from './ProjectileView'
+import { ConsumeEffectsView } from './ConsumeEffectView'
 import { CreaturesView } from './CreatureView'
 
 function obstacleRotation(rotation) {
@@ -71,6 +72,7 @@ export function GameScene({ children }) {
 
       <PlayerView />
       <ProjectilesView />
+      <ConsumeEffectsView />
       <CreaturesView />
 
       {children}

@@ -9,12 +9,13 @@ const { WALK_MIN_SPEED, RUN_MIN_SPEED } = GAME_CONFIG.ANIMATION
  * entidade (`null` quando livre).
  *
  * Cresce depois (mais estados, condições novas) sem trocar o formato. Ações
- * disparadas (dash, e no futuro arremesso/uso/invocar/recolher/morrer) vêm
+ * disparadas (dash, arremesso, e no futuro uso/invocar/recolher/morrer) vêm
  * antes da locomoção — enquanto uma ação está em andamento, ela decide a
  * animação, não a velocidade/grounded do momento.
  */
 export const ANIMATION_STATES = [
   { id: 'dash', when: (ctx) => ctx.action === 'dash' },
+  { id: 'throw', when: (ctx) => ctx.action === 'throw' },
   { id: 'run', when: (ctx) => ctx.grounded && ctx.speed > RUN_MIN_SPEED },
   { id: 'walk', when: (ctx) => ctx.grounded && ctx.speed > WALK_MIN_SPEED },
   // Fallback: parado ou no ar (sem clipe de queda ainda).

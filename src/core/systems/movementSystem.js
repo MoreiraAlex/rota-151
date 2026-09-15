@@ -10,9 +10,6 @@ import {
   OrbitCamera,
 } from '../traits'
 
-const { RUN_STAMINA_DRAIN_PER_SECOND, STAMINA_REGEN_DELAY_AFTER_USE } =
-  GAME_CONFIG.VITALS
-
 /**
  * Produz a velocidade horizontal desejada a partir do InputState e gira a
  * entidade na direção do movimento. NÃO integra Position — quem resolve o
@@ -33,6 +30,11 @@ const { RUN_STAMINA_DRAIN_PER_SECOND, STAMINA_REGEN_DELAY_AFTER_USE } =
  */
 export function movementSystem(context) {
   const { world, delta } = context
+  // Lido a cada tick (não guardado num const no topo do módulo) pra
+  // manipular via menu de configurações (ver
+  // docs/features/015-menu-de-pausa-e-configuracoes.md) valer na hora.
+  const { RUN_STAMINA_DRAIN_PER_SECOND, STAMINA_REGEN_DELAY_AFTER_USE } =
+    GAME_CONFIG.VITALS
 
   const rig = world.queryFirst(OrbitCamera)
   const yaw = rig ? rig.get(OrbitCamera).yaw : 0

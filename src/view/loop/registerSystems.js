@@ -8,6 +8,7 @@ import { playerActionSystem } from '@/core/systems/playerActionSystem'
 import { partySummonSystem } from '@/core/systems/partySummonSystem'
 import { creatureFollowSystem } from '@/core/systems/creatureFollowSystem'
 import { projectileSystem } from '@/core/systems/projectileSystem'
+import { consumeEffectSystem } from '@/core/systems/consumeEffectSystem'
 import { characterPhysicsSystem } from '@/core/systems/characterPhysicsSystem'
 import { physicsStepSystem } from '@/core/systems/physicsStepSystem'
 import { syncPhysicsSystem } from '@/core/systems/syncPhysicsSystem'
@@ -35,11 +36,12 @@ let registered = false
  * Em `presentation`: sincroniza transforms, depois câmera, depois animação
  * (a ordem entre as duas últimas não importa — nenhuma lê a outra).
  *
- * `partySummonSystem`/`creatureFollowSystem`/`projectileSystem` (v0.0.14)
- * são independentes do resto (não leem nem escrevem `Velocity`/`Grounded`
- * do treinador) — a posição exata deles na fase simulation não importa,
- * ficam perto de `playerActionSystem` (quem spawna o projétil) por
- * proximidade de leitura, não por dependência real de ordem.
+ * `partySummonSystem`/`creatureFollowSystem`/`projectileSystem`/
+ * `consumeEffectSystem` são independentes do resto (não leem nem escrevem
+ * `Velocity`/`Grounded` do treinador) — a posição exata deles na fase
+ * simulation não importa, ficam perto de `playerActionSystem` (quem spawna
+ * o projétil/efeito) por proximidade de leitura, não por dependência real
+ * de ordem.
  */
 export function registerGameSystems() {
   if (registered) return
@@ -53,6 +55,7 @@ export function registerGameSystems() {
   registerSystem(GAME_PHASES.SIMULATION, movementSystem)
   registerSystem(GAME_PHASES.SIMULATION, playerActionSystem)
   registerSystem(GAME_PHASES.SIMULATION, projectileSystem)
+  registerSystem(GAME_PHASES.SIMULATION, consumeEffectSystem)
   registerSystem(GAME_PHASES.SIMULATION, partySummonSystem)
   registerSystem(GAME_PHASES.SIMULATION, creatureFollowSystem)
   registerSystem(GAME_PHASES.SIMULATION, characterPhysicsSystem)

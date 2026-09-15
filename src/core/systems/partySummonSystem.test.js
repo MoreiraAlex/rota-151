@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { makeWorld } from '@/test/makeWorld'
+import { GAME_CONFIG } from '@/core/gameConfig'
 import {
   AnimationState,
   Party,
@@ -93,6 +94,24 @@ describe('partySummonSystem', () => {
     const summoned = world.query(SummonedCreature)
     expect(summoned).toHaveLength(1)
     expect(summoned[0].get(SummonedCreature).slot).toBe('slot2')
+  })
+
+  it('lê GAME_CONFIG.PARTY a cada tick — mudar SUMMON_OFFSET em tempo real já vale no próximo tick', () => {
+    const { world, player } = makeWorld({
+      playerPosition: { x: 0, y: 1, z: 0 },
+    })
+    player.set(Party, { slot1: 'fox-red' })
+    const original = GAME_CONFIG.PARTY.SUMMON_OFFSET
+    GAME_CONFIG.PARTY.SUMMON_OFFSET = original * 3
+
+    try {
+      tick(world, { secondary1: true })
+      const [creature] = world.query(SummonedCreature)
+      const pos = creature.get(Position)
+      expect(Math.hypot(pos.x, pos.z)).toBeCloseTo(original * 3)
+    } finally {
+      GAME_CONFIG.PARTY.SUMMON_OFFSET = original
+    }
   })
 
   it('espécie desconhecida no slot não quebra (não invoca nada)', () => {

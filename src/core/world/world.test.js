@@ -15,6 +15,7 @@ import {
   ActionState,
   Vitals,
   HeldItem,
+  Inventory,
   Party,
   OrbitCamera,
 } from '@/core/traits'
@@ -39,6 +40,7 @@ describe('world (singleton)', () => {
       ActionState,
       Vitals,
       HeldItem,
+      Inventory,
       Party,
     ]) {
       expect(playerEntity.has(t)).toBe(true)
@@ -81,6 +83,12 @@ describe('world (singleton)', () => {
 
   it('o player começa sem item em mãos', () => {
     expect(playerEntity.get(HeldItem).itemId).toBeNull()
+  })
+
+  it('o player começa com um kit de itens de teste no inventário (10 throwable + 5 consumable, pebble em pilha de 20)', () => {
+    const { itemIds } = playerEntity.get(Inventory)
+    expect(new Set(itemIds).size).toBe(15) // 15 tipos únicos (10 + 5)
+    expect(itemIds.filter((id) => id === 'pebble')).toHaveLength(20)
   })
 
   it('o player começa sem nenhuma criatura no time', () => {

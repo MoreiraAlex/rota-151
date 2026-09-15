@@ -7,16 +7,42 @@ import {
   Velocity,
   Vitals,
   HeldItem,
+  Inventory,
   Grounded,
   InputControlled,
   Projectile,
+  ConsumeEffect,
   applyHeal,
 } from '../traits'
 
-const DASH = GAME_CONFIG.PLAYER_ACTIONS.dash
-const THROW = GAME_CONFIG.PLAYER_ACTIONS.throw
-const CONSUME = GAME_CONFIG.PLAYER_ACTIONS.consume
-const { STAMINA_REGEN_DELAY_AFTER_USE } = GAME_CONFIG.VITALS
+/**
+ * Remove uma unidade de `itemId` do inventário da entidade (se houver) e
+ * devolve a nova lista. Lê/escreve via `entity.get`/`entity.set` — **não**
+ * por destructuring de uma query que inclua `Inventory` (ver nota abaixo).
+ *
+ * `Inventory` é AoS (schema função, ver core/traits/components/
+ * inventory.js). Fica só com `entity.set()` de propósito, não com mutação
+ * direta (`.splice()`) no valor de uma query: se `Inventory` estivesse na
+ * query deste system, o próprio `updateEach` reescreve o valor antigo por
+ * cima no fim de cada iteração (ele guarda o valor de antes de chamar o
+ * callback e o grava de volta pra detectar mudança — pego de surpresa
+ * testando isolado: um `entity.set()` no meio do callback, pra um trait que
+ * está na mesma query, simplesmente desaparece; sobra o valor de antes). Só
+ * funciona de verdade — persiste E dispara a notificação que `useTrait`
+ * (`PartyHud`/`InventoryPanel`/`EquipmentPanel`) escuta — quando `Inventory`
+ * não é um dos traits da query ativa, por isso não está na `world.query(...)`
+ * abaixo mesmo sendo lido/escrito aqui dentro.
+ */
+function removeOneFromInventory(entity, itemId) {
+  const { itemIds } = entity.get(Inventory)
+  const index = itemIds.indexOf(itemId)
+  const newItemIds =
+    index === -1
+      ? itemIds
+      : [...itemIds.slice(0, index), ...itemIds.slice(index + 1)]
+  entity.set(Inventory, { itemIds: newItemIds })
+  return newItemIds
+}
 
 /**
  * Inicia, avança e encerra ações disparadas por input (dash, arremesso,
@@ -48,6 +74,13 @@ const { STAMINA_REGEN_DELAY_AFTER_USE } = GAME_CONFIG.VITALS
 export function playerActionSystem(context) {
   const { world, delta } = context
   const input = context.input ?? {}
+  // Lido a cada tick (não guardado num const no topo do módulo) pra
+  // manipular via menu de configurações (ver
+  // docs/features/015-menu-de-pausa-e-configuracoes.md) valer na hora.
+  const DASH = GAME_CONFIG.PLAYER_ACTIONS.dash
+  const THROW = GAME_CONFIG.PLAYER_ACTIONS.throw
+  const CONSUME = GAME_CONFIG.PLAYER_ACTIONS.consume
+  const { STAMINA_REGEN_DELAY_AFTER_USE } = GAME_CONFIG.VITALS
 
   world
     .query(
@@ -121,7 +154,8 @@ export function playerActionSystem(context) {
             }),
             Projectile({ lifetime: THROW.LIFETIME }),
           )
-          heldItem.itemId = null
+          const newItemIds = removeOneFromInventory(entity, heldItem.itemId)
+          if (!newItemIds.includes(heldItem.itemId)) heldItem.itemId = null
         }
 
         if (action.elapsed >= THROW.DURATION) {
@@ -139,7 +173,13 @@ export function playerActionSystem(context) {
           if (item?.consumable) {
             vitals.hp = applyHeal(vitals, item.consumable.healAmount).hp
           }
-          heldItem.itemId = null
+          world.spawn(
+            Position({ x: pos.x, y: pos.y + 1, z: pos.z }),
+            Rotation, // exigido por syncTransformSystem — sem uso real (partículas)
+            ConsumeEffect({ lifetime: CONSUME.EFFECT_VISUAL_DURATION }),
+          )
+          const newItemIds = removeOneFromInventory(entity, heldItem.itemId)
+          if (!newItemIds.includes(heldItem.itemId)) heldItem.itemId = null
         }
 
         if (action.elapsed >= CONSUME.DURATION) {

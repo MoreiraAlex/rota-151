@@ -26,8 +26,8 @@ const KEY_MAP = {
 // Espaço fazia pular de novo assim que aterrissava, sem soltar a tecla.
 const EDGE_KEY_MAP = {
   Space: 'jump',
-  ControlLeft: 'dash',
-  ControlRight: 'dash',
+  KeyQ: 'dash',
+  KeyE: 'dash',
   // Botões de ação secundários (ver docs/features/011-slots-de-acao.md) — o
   // primário é o clique esquerdo do mouse, tratado em pointerInput.js.
   Digit1: 'secondary1',

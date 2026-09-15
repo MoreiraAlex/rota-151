@@ -56,6 +56,23 @@ describe('creatureFollowSystem', () => {
     expect(creature.get(Position).x).toBeCloseTo(FOLLOW_MIN_DISTANCE - 0.5)
   })
 
+  it('lê GAME_CONFIG.PARTY a cada tick — mudar FOLLOW_SPEED em tempo real já vale no próximo tick', () => {
+    const { world } = makeWorld({ playerPosition: { x: 0, y: 1, z: 0 } })
+    const creature = world.spawn(
+      Position({ x: 10, y: 1, z: 0 }),
+      SummonedCreature({ slot: 'slot1' }),
+    )
+    const original = GAME_CONFIG.PARTY.FOLLOW_SPEED
+    GAME_CONFIG.PARTY.FOLLOW_SPEED = 0
+
+    try {
+      tick(world, 1)
+      expect(creature.get(Position).x).toBeCloseTo(10) // velocidade 0, não andou
+    } finally {
+      GAME_CONFIG.PARTY.FOLLOW_SPEED = original
+    }
+  })
+
   it('sem jogador no world (nenhum InputControlled), não quebra', () => {
     const world = createWorld()
     world.spawn(
