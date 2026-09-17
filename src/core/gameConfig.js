@@ -186,4 +186,10 @@ export const GAME_CONFIG = {
     COLLISION_MARGIN: 0.3,
     MIN_DISTANCE_AFTER_COLLISION: 0.5,
   },
+  // Sem seção AUDIO aqui de propósito — volume/alcance/intervalo de som
+  // (passo, voz, ambiente) moram todos junto do PRÓPRIO som que
+  // descrevem (grupo/espécie em core/data/audio/footstepGroups.js/
+  // voiceSound.js, nível em core/data/testLevel.js/ambientSound.js) —
+  // nenhum é um número genérico igual pra tudo, então nenhum fica aqui.
+  // Ver docs/features/019-som-ambiente-e-passos.md.
 }

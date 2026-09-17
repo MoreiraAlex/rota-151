@@ -71,6 +71,37 @@ export const SPECIES_TEMPLATE = {
   // seguir o time) são exclusivos do TREINADOR — não declare aqui pra uma
   // criatura nova. Ver `../bot/index.js` se algum dia existir uma segunda
   // espécie `kind: 'trainer'`.
+  // Opcional — sem `sounds`, a espécie simplesmente não toca som de passo
+  // (ver `resolveFootstepSound`, core/data/audio/footstepGroups.js). Duas
+  // formas, escolha uma:
+  // 1) Compartilha som/volume/alcance com outras espécies do mesmo grupo
+  //    (mais comum — a maioria das criaturas cabe num punhado de grupos,
+  //    ver `core/data/audio/footstepGroups.js` pros ids disponíveis):
+  //      sounds: { footstepGroup: 'heavy' | 'light' | ... },
+  // 2) Som PRÓPRIO, sem grupo — cada campo é um array de variações (toca
+  //    uma ao acaso a cada passo, evita repetir sempre o mesmo clique):
+  //      sounds: {
+  //        footstep: {
+  //          walk: ['/assets/audio/footsteps/.../walk-01.ogg', ...],
+  //          run: ['/assets/audio/footsteps/.../run-01.ogg', ...],
+  //          volume: 0.6, // opcional
+  //          refDistance: 5, // opcional
+  //        },
+  //      },
+  // `sounds.voice` (opcional, independente do passo) — vocalização
+  // periódica (grito/som ambiente da criatura, tipo "cry"), sorteada
+  // entre variações e tocada de novo em intervalos aleatórios (ver
+  // `core/data/audio/voiceSound.js`/`../fox/index.js` pro formato de
+  // verdade em uso):
+  //      sounds: {
+  //        voice: {
+  //          clips: ['/assets/audio/voices/.../cry-01.ogg', ...],
+  //          volume: 0.8, // opcional
+  //          refDistance: 8, // opcional
+  //          minInterval: 10, // opcional, segundos
+  //          maxInterval: 25, // opcional, segundos
+  //        },
+  //      },
   stats: {},
   moves: [],
 }

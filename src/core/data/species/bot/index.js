@@ -156,6 +156,18 @@ export const BOT = {
     // soma até este tanto na direção final antes de normalizar.
     avoidanceStrength: 1.2,
   },
+  // Ver core/data/audio/footstepGroups.js — `footstepGroup` compartilha
+  // som/volume/alcance com qualquer outra espécie do mesmo grupo (aqui,
+  // passo pesado de bípede). Uma espécie que precisar de som PRÓPRIO usa
+  // `sounds: { footstep: { walk: [...], run: [...] } }` em vez disso (ver
+  // `_template/index.js`).
+  sounds: {
+    footstepGroup: 'medium',
+    // Sem `voice` ainda — mecanismo pronto (ver core/data/audio/
+    // voiceSound.js/fox/index.js pro formato de verdade em uso), só
+    // falta um arquivo de vocalização do treinador. Sem este campo, o
+    // treinador simplesmente não vocaliza (fallback gracioso).
+  },
   stats: {},
   moves: [],
 }

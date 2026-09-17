@@ -19,6 +19,10 @@ import { syncTransformSystem } from '@/view/systems/syncTransformSystem'
 import { cameraFollowSystem } from '@/view/systems/cameraFollowSystem'
 import { animationSystem } from '@/view/systems/animationSystem'
 import { heldItemViewSystem } from '@/view/systems/heldItemViewSystem'
+import { audioListenerSystem } from '@/view/systems/audioListenerSystem'
+import { footstepAudioSystem } from '@/view/systems/footstepAudioSystem'
+import { voiceAudioSystem } from '@/view/systems/voiceAudioSystem'
+import { ambientAudioSystem } from '@/view/systems/ambientAudioSystem'
 
 let registered = false
 
@@ -47,7 +51,16 @@ let registered = false
  * depois o item na mão (`heldItemViewSystem`, precisa dos ossos já
  * registrados — mas não de ordem exata com as duas anteriores, o encaixe
  * no osso é o próprio Three.js resolvendo as matrizes no render, não algo
- * que este system calcula por frame).
+ * que este system calcula por frame), depois o listener de áudio
+ * (`audioListenerSystem`, ver docs/features/019-som-ambiente-e-passos.md
+ * — precisa da posição FINAL da câmera neste frame, já depois de
+ * `cameraFollowSystem` mover ela) e por último o som de passo
+ * (`footstepAudioSystem` — depende do relógio de animação que
+ * `animationSystem` já avançou E do listener já reposicionado neste
+ * mesmo frame). `voiceAudioSystem` (vocalização periódica, por
+ * temporizador — não pelo ciclo de andar/correr) e `ambientAudioSystem`
+ * (mesma ideia, mas GLOBAL — som ambiente do nível, não de uma entidade)
+ * ficam perto dele, sem dependência real de ordem entre os três.
  *
  * `partySummonSystem`/`creatureFollowSystem`/`projectileSystem`/
  * `consumeEffectSystem` são independentes do resto (não leem nem escrevem
@@ -82,4 +95,8 @@ export function registerGameSystems() {
   registerSystem(GAME_PHASES.PRESENTATION, cameraFollowSystem)
   registerSystem(GAME_PHASES.PRESENTATION, animationSystem)
   registerSystem(GAME_PHASES.PRESENTATION, heldItemViewSystem)
+  registerSystem(GAME_PHASES.PRESENTATION, audioListenerSystem)
+  registerSystem(GAME_PHASES.PRESENTATION, footstepAudioSystem)
+  registerSystem(GAME_PHASES.PRESENTATION, voiceAudioSystem)
+  registerSystem(GAME_PHASES.PRESENTATION, ambientAudioSystem)
 }

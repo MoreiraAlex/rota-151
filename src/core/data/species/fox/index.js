@@ -66,6 +66,26 @@ export const FOX = {
     // Custo de stamina do pulo, descontado uma vez no disparo.
     jumpStaminaCost: 10,
   },
+  // Ver core/data/audio/footstepGroups.js — `footstepGroup` compartilha
+  // som/volume/alcance com qualquer outra espécie do mesmo grupo (aqui,
+  // passo leve de quadrúpede pequeno). `fox-red`/`fox-green`/`fox-blue`
+  // herdam este mesmo grupo por spread (`{...FOX, id: ...}`).
+  sounds: {
+    footstepGroup: 'medium',
+    // Vocalização periódica (ver core/data/audio/voiceSound.js) —
+    // independente de andar/correr, toca a cada 10-25s (sorteado de novo
+    // a cada vez), variação aleatória entre as duas amostras.
+    voice: {
+      clips: [
+        '/assets/audio/voices/fox/cry-01.wav',
+        '/assets/audio/voices/fox/cry-02.wav',
+      ],
+      volume: 0.8,
+      refDistance: 8,
+      minInterval: 4,
+      maxInterval: 32,
+    },
+  },
   stats: {},
   moves: [],
 }

@@ -6,8 +6,24 @@
  *
  * - size: dimensões completas [largura(x), altura(y), profundidade(z)], em unidades.
  * - rotation (opcional): giro em um eixo — { axis: 'x' | 'y' | 'z', angle } (rad).
+ * - ambientSound (opcional): som ambiente ESPORÁDICO do nível — toca uma
+ *   variação aleatória de `clips` de vez em quando (intervalo também
+ *   aleatório, entre `minInterval`/`maxInterval`), não uma faixa em loop
+ *   contínuo (ver `core/data/audio/ambientSound.js`/`view/audio/
+ *   AmbientAudio.jsx`/docs/features/019-som-ambiente-e-passos.md pro
+ *   porquê). Sem este campo, o jogo fica em silêncio ambiente (mesmo
+ *   fallback gracioso de qualquer conteúdo que ainda não existe).
  */
 export const TEST_LEVEL = {
+  ambientSound: {
+    clips: [
+      '/assets/audio/ambient/wind-01.wav',
+      '/assets/audio/ambient/wind-02.wav',
+    ],
+    volume: 0.02,
+    minInterval: 2,
+    maxInterval: 5,
+  },
   ground: { size: 60, thickness: 1 },
   obstacles: [
     // Parede para esbarrar e deslizar.
