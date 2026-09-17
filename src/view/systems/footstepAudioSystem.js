@@ -43,11 +43,24 @@ const BEATS_PER_CYCLE = 2
  * Vive na view (mexe em nó Three de áudio). Fase: presentation, perto de
  * `animationSystem` (depende do relógio de animação já avançado neste
  * frame).
+ *
+ * `entity.get(AnimationState)` pode devolver `undefined` — a entidade
+ * pode já ter sido destruída no ECS (ex.: `applyRecall`,
+ * `partySummonSystem.js`, roda na fase `simulation`, SÍNCRONA e ANTES da
+ * `presentation` no mesmo frame) enquanto o registry ainda não foi
+ * desregistrado: quem desregistra é o cleanup do `useEffect` em
+ * `useAnimatedModel.js`, disparado quando `CreatureView` desmonta — e
+ * isso só acontece no próximo commit do REACT, depois deste mesmo
+ * `useFrame` já ter rodado simulation+presentation inteiros (bug real,
+ * relatado jogando: "Cannot read properties of undefined (reading
+ * 'id')" ao recolher uma criatura). Sem `anim`, trata como "não está
+ * andando/correndo" — mesmo fallback gracioso de sempre, resolve sozinho
+ * assim que o registry for limpo no frame seguinte.
  */
 export function footstepAudioSystem() {
   for (const [entity, entry] of getFootstepAudioEntries()) {
     const anim = entity.get(AnimationState)
-    if (anim.id !== 'walk' && anim.id !== 'run') {
+    if (!anim || (anim.id !== 'walk' && anim.id !== 'run')) {
       entry.previousBeat = -1
       continue
     }

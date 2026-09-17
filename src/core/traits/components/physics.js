@@ -71,3 +71,27 @@ export const Grounded = trait()
  * mas nada consome pra ele ainda.
  */
 export const MovementBlocked = trait()
+
+/**
+ * Tag: PULSO de um tick — presente exatamente no tick em que a entidade
+ * dispara um pulo de verdade (`characterPhysicsSystem`, mesma condição
+ * que aplica `vel.y = stats.jumpSpeed`: `input.jump && wasGrounded &&
+ * entity.has(InputControlled) && stamina suficiente`). Usado por
+ * `view/systems/jumpAudioSystem.js` (docs/features/019-som-ambiente-e-
+ * passos.md) pra tocar o som de pulo no instante certo, sem precisar
+ * inferir "acabou de pular" a partir de `Grounded`/`Velocity` na view
+ * (impreciso — a queda de `Grounded` some 1-2 ticks DEPOIS do disparo de
+ * verdade, e uma cápsula quase parada no topo de uma queda também tem
+ * `vel.y` perto de zero, ambíguo com "acabou de aterrissar").
+ *
+ * Diferente de `Grounded`/`MovementBlocked` (estado CONTÍNUO, recalculado
+ * do zero todo tick): `characterPhysicsSystem` só ADICIONA esta tag,
+ * nunca remove — quem CONSOME (`jumpAudioSystem.js`) é quem tira depois
+ * de tocar o som, exatamente uma vez por pulo. Isso importa porque a fase
+ * `simulation` pode rodar mais de um tick fixo por frame renderizado
+ * (acúmulo de atraso, ver `GameLoop.jsx`) — se `characterPhysicsSystem`
+ * limpasse a tag nos ticks sem pulo novo, um pulo disparado no primeiro
+ * tick fixo do frame podia ser apagado antes da fase `presentation` (que
+ * roda só uma vez por frame) ter a chance de ver e tocar o som.
+ */
+export const Jumped = trait()

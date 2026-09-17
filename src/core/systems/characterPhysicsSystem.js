@@ -8,6 +8,7 @@ import {
   Vitals,
   Grounded,
   MovementBlocked,
+  Jumped,
   InputControlled,
 } from '../traits'
 import {
@@ -21,7 +22,10 @@ import { quaternionFromAxisAngle } from '../math'
  * Aplica gravidade e pulo à Velocity vertical, resolve o movimento do
  * personagem contra o mundo com o KinematicCharacterController do Rapier e
  * agenda a nova translação/rotação do corpo. Atualiza as tags Grounded e
- * MovementBlocked.
+ * MovementBlocked, e adiciona o pulso `Jumped` no tick em que um pulo de
+ * verdade dispara (consumido por `view/systems/jumpAudioSystem.js`, ver
+ * docstring do trait em `core/traits/components/physics.js` pro motivo
+ * de só ADICIONAR aqui, nunca remover).
  *
  * Genérico — qualquer entidade com `CharacterController`/`PhysicsBody`
  * passa por aqui, não só o jogador (`SummonedCreature` também, ver
@@ -119,6 +123,10 @@ export function characterPhysicsSystem(context) {
         vel.y = stats.jumpSpeed
         vitals.stamina -= vitals.jumpStaminaCost
         vitals.staminaRegenDelay = vitals.staminaRegenDelayAfterUse
+        // Pulso pro som de pulo (view/systems/jumpAudioSystem.js) — só
+        // ADICIONA, nunca remove aqui (ver docstring de `Jumped`,
+        // core/traits/components/physics.js).
+        entity.add(Jumped)
       }
 
       const requestedX = vel.x * delta

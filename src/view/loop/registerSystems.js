@@ -23,6 +23,8 @@ import { audioListenerSystem } from '@/view/systems/audioListenerSystem'
 import { footstepAudioSystem } from '@/view/systems/footstepAudioSystem'
 import { voiceAudioSystem } from '@/view/systems/voiceAudioSystem'
 import { ambientAudioSystem } from '@/view/systems/ambientAudioSystem'
+import { dashAudioSystem } from '@/view/systems/dashAudioSystem'
+import { jumpAudioSystem } from '@/view/systems/jumpAudioSystem'
 
 let registered = false
 
@@ -58,9 +60,12 @@ let registered = false
  * (`footstepAudioSystem` — depende do relógio de animação que
  * `animationSystem` já avançou E do listener já reposicionado neste
  * mesmo frame). `voiceAudioSystem` (vocalização periódica, por
- * temporizador — não pelo ciclo de andar/correr) e `ambientAudioSystem`
- * (mesma ideia, mas GLOBAL — som ambiente do nível, não de uma entidade)
- * ficam perto dele, sem dependência real de ordem entre os três.
+ * temporizador — não pelo ciclo de andar/correr), `ambientAudioSystem`
+ * (mesma ideia, mas GLOBAL — som ambiente do nível, não de uma entidade),
+ * `dashAudioSystem` (borda de subida de `ActionState.current === 'dash'`)
+ * e `jumpAudioSystem` (consome o pulso `Jumped`, ver core/traits/
+ * components/physics.js) ficam perto dele, sem dependência real de ordem
+ * entre eles.
  *
  * `partySummonSystem`/`creatureFollowSystem`/`projectileSystem`/
  * `consumeEffectSystem` são independentes do resto (não leem nem escrevem
@@ -99,4 +104,6 @@ export function registerGameSystems() {
   registerSystem(GAME_PHASES.PRESENTATION, footstepAudioSystem)
   registerSystem(GAME_PHASES.PRESENTATION, voiceAudioSystem)
   registerSystem(GAME_PHASES.PRESENTATION, ambientAudioSystem)
+  registerSystem(GAME_PHASES.PRESENTATION, dashAudioSystem)
+  registerSystem(GAME_PHASES.PRESENTATION, jumpAudioSystem)
 }

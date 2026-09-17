@@ -85,6 +85,10 @@ export const FOX = {
       minInterval: 4,
       maxInterval: 32,
     },
+    // Mesmo princípio de grupo de `footstepGroup` acima, ver
+    // core/data/audio/dashSound.js/jumpSound.js.
+    dashGroup: 'default',
+    jumpGroup: 'default',
   },
   stats: {},
   moves: [],

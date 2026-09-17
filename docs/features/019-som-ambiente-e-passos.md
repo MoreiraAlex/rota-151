@@ -1,10 +1,11 @@
-# 🚀 Versão 0.0.19 — Som ambiente, som de passos e vocalização periódica
+# 🚀 Versão 0.0.19 — Som ambiente, passos, vocalização, dash e pulo
 
 Primeiro mecanismo de áudio do jogo. Som de PASSO, VOCALIZAÇÃO periódica
-("voz"/grito, tipo "cry" de Pokémon) e som AMBIENTE do nível já nascem
-todos com áudio de verdade (o usuário indicou `.exemple/Steps/Steps/`,
-`.exemple/fox/` e `.exemple/ambient/`, nessa ordem, em rodadas
-separadas). Passo/voz funcionam pra qualquer personagem (treinador ou
+("voz"/grito, tipo "cry" de Pokémon), som AMBIENTE do nível, som de DASH
+e de PULO já nascem todos com áudio de verdade (o usuário indicou
+`.exemple/Steps/Steps/`, `.exemple/fox/`, `.exemple/ambient/` e
+`.exemple/dash/`+`.exemple/jump/`, nessa ordem, em rodadas separadas).
+Passo/voz/dash/pulo funcionam pra qualquer personagem (treinador ou
 criatura, controlado ou IA); ambiente é global, do nível.
 
 > Versionamento e nome do arquivo: ver `docs/development-workflow.md`.
@@ -13,7 +14,7 @@ criatura, controlado ou IA); ambiente é global, do nível.
 
 ## Visão geral
 
-Três peças, graus de prontidão diferentes:
+Cinco peças, graus de prontidão diferentes:
 
 - **Passos**: `.exemple/Steps/Steps/` (fora do repo, `.gitignore`) é uma
   biblioteca de SFX real (padrão de nomes de jogo de parkour tipo Mirror's
@@ -45,14 +46,25 @@ Três peças, graus de prontidão diferentes:
   mecanismo da vocalização periódica, só que GLOBAL (do nível, não de uma
   entidade).
 
-Pedido explícito de estrutura pro som de PASSO: criaturas de tamanhos/
-estilos diferentes vão ter sons diferentes, mas várias vão compartilhar o
-mesmo som (e as mesmas configs de volume/alcance) — daí o conceito de
-GRUPO compartilhado + override individual por espécie (seção abaixo).
-Vocalização e ambiente NÃO têm esse conceito de grupo ainda (não foi
-pedido pra eles) — cada espécie/o nível declara a própria config ou
-nenhuma; adicionar grupo depois, se fizer falta, é o mesmo desenho já
-usado pro passo.
+- **Dash e pulo**: `.exemple/dash/` (2 arquivos) e `.exemple/jump/` (3
+  arquivos) trouxeram amostras reais, mesma nota de transparência sobre
+  origem se aplica. Pedido explícito: "seguindo o mesmo princípio dos
+  grupos de áudio" — ou seja, mesmo grupo compartilhado + override
+  individual do som de passo, aplicado aqui também. Diferente de todos os
+  outros quatro sons (que tocam por CICLO de passada, TEMPORIZADOR
+  aleatório, ou os dois), dash/pulo tocam no INSTANTE do próprio evento —
+  ver seção própria abaixo pra como cada um detecta esse instante.
+
+Pedido explícito de estrutura pro som de PASSO (e, depois, DASH/PULO):
+criaturas de tamanhos/estilos diferentes vão ter sons diferentes, mas
+várias vão compartilhar o mesmo som (e as mesmas configs de volume/
+alcance) — daí o conceito de GRUPO compartilhado + override individual
+por espécie (seção abaixo), reaproveitado por
+`core/data/audio/actionSoundGroups.js` pra dash/pulo em vez de duplicar a
+mesma função de resolução de novo. Vocalização e ambiente NÃO têm esse
+conceito de grupo ainda (não foi pedido pra eles) — cada espécie/o nível
+declara a própria config ou nenhuma; adicionar grupo depois, se fizer
+falta, é o mesmo desenho já usado pro passo/dash/pulo.
 
 ## Grupo compartilhado + override individual (`core/data/audio/footstepGroups.js`)
 
@@ -241,6 +253,43 @@ ambiente não pertence a "alguém" no mundo:
 Sem `TEST_LEVEL.ambientSound`, fica em silêncio, sem quebrar nada (mesmo
 fallback gracioso de sempre).
 
+## Som de dash e de pulo — tocam no INSTANTE do evento
+
+Diferente dos outros três sons (ciclo de passada, temporizador aleatório,
+ou os dois), dash/pulo são disparados por um EVENTO instantâneo — cada um
+precisou de uma forma diferente de detectar esse instante, escolhida pra
+não precisar de dado novo em ECS quando o sinal já existia, e pra ser
+precisa quando não existia:
+
+- **Dash**: `ActionState.current` já fica `'dash'` durante toda a duração
+  da ação (~0.25s, vários ticks) — nenhum dado novo necessário.
+  `view/systems/dashAudioSystem.js` detecta a BORDA DE SUBIDA (`entry.
+  previousAction` guardado no registro — mesmo princípio de `previousBeat`
+  do passo) e toca só no tick em que `current` vira `'dash'`, não todo
+  tick enquanto a ação dura.
+- **Pulo**: NÃO existia nenhum dado contínuo equivalente — pular é uma
+  mudança instantânea de `Velocity.y`, não uma "ação com duração" como
+  dash. Inferir "acabou de pular" só a partir do que a view já tinha
+  (`Grounded`/`Velocity`) seria impreciso: a tag `Grounded` só cai 1-2
+  ticks DEPOIS do disparo de verdade (o corpo ainda encosta no chão logo
+  após o impulso), e uma cápsula quase parada no topo de uma queda
+  também tem `vel.y` perto de zero — ambíguo com "acabou de aterrissar".
+  Por isso ganhou um sinal novo e preciso no CORE: `Jumped`
+  (`core/traits/components/physics.js`), um pulso de UM TICK adicionado
+  por `characterPhysicsSystem.js` na MESMA condição que já aplica
+  `vel.y = jumpSpeed`. Detalhe de corretude: o system só ADICIONA a tag,
+  nunca remove — é `view/systems/jumpAudioSystem.js` quem tira, depois de
+  tocar o som. Isso importa porque a fase `simulation` pode rodar mais de
+  um tick fixo por frame renderizado (acúmulo de atraso, `GameLoop.jsx`)
+  — se `characterPhysicsSystem` limpasse a tag todo tick sem pulo novo,
+  um pulo disparado no primeiro tick fixo do frame podia ser apagado
+  antes da `presentation` (que roda uma vez por frame) ter a chance de
+  ver e tocar o som.
+
+Os dois reaproveitam `pickRandomVariation` (variação aleatória) e o mesmo
+formato `{ clips, volume?, refDistance? }` de grupo/individual — só a
+detecção do instante muda.
+
 ## Arquivos-chave
 
 - `core/data/audio/footstepGroups.js` — grupos, `getFootstepGroup`,
@@ -249,8 +298,15 @@ fallback gracioso de sempre).
   intervalo (sem grupo, ver "Visão geral").
 - `core/data/audio/ambientSound.js` — `resolveAmbientSound`, defaults de
   intervalo (sem grupo, dado de NÍVEL, não de espécie).
+- `core/data/audio/actionSoundGroups.js` — `createActionSoundResolver`,
+  fábrica do padrão grupo+individual (extraída de `footstepGroups.js`
+  pra dash/pulo reusarem sem duplicar a função de novo).
+- `core/data/audio/dashSound.js`/`jumpSound.js` — grupos (`DASH_SOUND_
+  GROUPS`/`JUMP_SOUND_GROUPS`, hoje só `default` em cada), construídos
+  com a fábrica acima.
 - `core/data/species/bot/index.js`/`fox/index.js`/`_template/index.js` —
-  bloco `sounds` (footstep + voice, ver seções acima).
+  bloco `sounds` (footstep + voice + dashGroup + jumpGroup, ver seções
+  acima).
 - `core/data/testLevel.js` — `ambientSound: { clips, volume?,
   minInterval?, maxInterval? }` (real, 2 rajadas de vento).
 - `core/gameConfig.js` — SEM seção `AUDIO` de propósito: volume/alcance/
@@ -264,7 +320,8 @@ fallback gracioso de sempre).
 - `view/audio/audioBufferCache.js` — `loadAudioBuffer(path)`, cache por
   path, nunca rejeita (resolve `null` em erro de carga).
 - `view/audio/pickRandomVariation.js` — sorteio (com reposição, qualquer
-  tamanho de array) reaproveitado pelos três systems de áudio.
+  tamanho de array) reaproveitado por todos os systems de áudio de
+  variação.
 - `view/audio/ambientAudioState.js` — estado ÚNICO (não registry por
   entidade) do som ambiente: `{ audio, buffers, minInterval, maxInterval,
   timer }`.
@@ -272,23 +329,34 @@ fallback gracioso de sempre).
   carrega os buffers, cuida do desbloqueio de autoplay; não chama
   `.play()` mais (isso é do system).
 - `view/registry/footstepAudioRegistry.js` — entidade → `{ audio,
-  buffers: { walk, run }, previousBeat }`.
-- `view/registry/voiceAudioRegistry.js` — entidade → `{ audio, buffers,
-  minInterval, maxInterval, timer }`; `registerVoiceAudio(..., {
-  immediate })` zera o timer inicial pra criatura recém-invocada. Ambos
-  mesmo padrão de `animationRegistry.js`.
-- `view/hooks/useAnimatedModel.js` — dois efeitos: cria/carrega/registra
-  o `PositionalAudio` de passo e o de voz, cada um se a espécie tiver a
-  config correspondente resolvida; passa `immediate:
-  entity.has(SummonedCreature)` pro registro de voz.
+  buffers: { walk, run }, previousBeat }` (formato próprio, dois arrays).
+- `view/registry/createSimpleAudioRegistry.js` — fábrica do formato `{
+  audio, buffers, ...extra }` (um array só) — extraída quando dash/pulo
+  precisaram do MESMO formato que `voiceAudioRegistry.js` já usava
+  (escrito antes da fábrica existir, não migrado pra não mexer em código
+  já funcionando sem necessidade).
+- `view/registry/dashAudioRegistry.js`/`jumpAudioRegistry.js` —
+  construídos com a fábrica acima; dash guarda `previousAction` extra
+  (detecta borda de subida), pulo não precisa de nada além do padrão.
+- `core/traits/components/physics.js` — `Jumped` (tag pulso, ver seção
+  "Som de dash e de pulo" acima).
+- `core/systems/characterPhysicsSystem.js` — adiciona `Jumped` no tick do
+  pulo de verdade (nunca remove — quem consome tira).
+- `view/hooks/useAnimatedModel.js` — `setupPositionalActionSound` (helper
+  local, não exportado) fatora a criação/carregamento/registro comum a
+  voz/dash/pulo (formato `{ clips, volume?, refDistance? }`); passo
+  continua com o próprio efeito (walk/run). Quatro `useEffect`s ao todo.
 - `view/systems/footstepAudioSystem.js` — detecta a troca de beat e toca.
 - `view/systems/voiceAudioSystem.js` — conta o timer (por entidade) e
   toca ao zerar.
 - `view/systems/ambientAudioSystem.js` — mesma ideia, mas lê o estado
   único em vez de um registry.
+- `view/systems/dashAudioSystem.js` — detecta a borda de subida de
+  `ActionState.current === 'dash'` e toca.
+- `view/systems/jumpAudioSystem.js` — consome o pulso `Jumped` e toca.
 - `view/loop/registerSystems.js` — registra `audioListenerSystem`/
-  `footstepAudioSystem`/`voiceAudioSystem`/`ambientAudioSystem` na fase
-  presentation.
+  `footstepAudioSystem`/`voiceAudioSystem`/`ambientAudioSystem`/
+  `dashAudioSystem`/`jumpAudioSystem` na fase presentation.
 - `public/assets/audio/footsteps/<grupo>/{walk,run}-0N.ogg` — arquivos
   reais (amostra de `.exemple/Steps/Steps/`); nome da pasta segue o id do
   grupo em `footstepGroups.js`, muda se o grupo for renomeado.
@@ -296,14 +364,52 @@ fallback gracioso de sempre).
   de `.exemple/fox/`).
 - `public/assets/audio/ambient/wind-0N.wav` — 2 arquivos reais (amostra
   de `.exemple/ambient/`).
+- `public/assets/audio/dash/default/dash-0N.wav`/`jump/default/jump-0N.wav`
+  — arquivos reais (amostra de `.exemple/dash/`/`.exemple/jump/`).
 - Não muda: `pointerInput.js`/`keyboardInput.js` (nenhum sabe de áudio),
   `PlayerView.jsx`/`CreatureView.jsx` (só o hook que já usam ganha os
   efeitos por dentro), `animationStateSystem.js`/`animationSystem.js`
   (footstep só CONSOME o relógio que eles já produzem; voz/ambiente nem
-  usam esse relógio, são por temporizador).
+  usam esse relógio, são por temporizador; dash lê `ActionState`, não
+  precisa de `animationStateSystem` saber de nada novo), `playerActionSystem.js`
+  (dispara/avança o dash normalmente — `Jumped` é adicionado por
+  `characterPhysicsSystem.js`, não por ele).
+
+## Bug real: recolher uma criatura derrubava o jogo
+
+`Uncaught TypeError: Cannot read properties of undefined (reading 'id')`
+em `footstepAudioSystem.js`, relatado jogando ao recolher uma criatura.
+
+Causa: `applyRecall` (`partySummonSystem.js`) destrói a entidade no ECS
+na fase `simulation` — SÍNCRONA e ANTES da `presentation`, dentro do
+MESMO `useFrame` (`GameLoop.jsx`). Quem de fato tira a entidade dos
+registries de áudio (`footstepAudioRegistry.js`/`dashAudioRegistry.js`/
+etc.) é o cleanup do `useEffect` em `useAnimatedModel.js`, disparado só
+quando `CreatureView` desmonta — e isso só acontece no PRÓXIMO commit do
+React, depois deste mesmo frame já ter rodado `simulation` +
+`presentation` inteiros. Por um frame inteiro, o registry ainda aponta
+pra uma entidade que o koota já não tem mais NENHUM dado — `entity.get(
+AnimationState)`/`entity.get(ActionState)` devolvem `undefined`, e o
+código lia `.id`/`.current` direto em cima sem checar.
+
+`footstepAudioSystem.js` e `dashAudioSystem.js` (os dois únicos que
+chamam `entity.get(...)` e leem uma propriedade na sequência) ganharam a
+checagem — sem o trait, trata como "não está andando/correndo"/"sem dash
+em andamento", mesmo fallback gracioso de sempre; resolve sozinho assim
+que o registry for limpo de verdade no frame seguinte.
+`voiceAudioSystem.js` nunca lê trait nenhum (só timer) e `jumpAudioSystem.js`
+usa `entity.has(...)` (não quebra do mesmo jeito) — não precisaram de
+mudança.
 
 ## Testes
 
+- `view/systems/footstepAudioSystem.test.js`/`dashAudioSystem.test.js`
+  (novos) — regressão do bug acima: entidade destruída (`entity.destroy()`)
+  ainda registrada não derruba o system; entidade viva sem estar andando/
+  correndo (ou sem dash em andamento) também não quebra. Únicos dois
+  `*AudioSystem.js` com teste — não tocam áudio de verdade, só provam que
+  não lançam exceção nesses dois cenários (headless, sem depender de
+  WebAudio: o crash acontecia ANTES de qualquer chamada de áudio).
 - `core/data/audio/footstepGroups.test.js` — `getFootstepGroup` (id
   conhecido/desconhecido); `resolveFootstepSound`: sem `sounds`/sem
   `footstep`+`footstepGroup` declarados → `null`; `footstepGroup` resolve
@@ -336,6 +442,30 @@ fallback gracioso de sempre).
   sempre devolve o MESMO objeto (estado global, não por entidade); mutar
   o estado persiste pra próxima leitura; `resetAmbientAudioState` volta
   tudo ao zerado/vazio. Também objeto puro, testável sem WebAudio.
+- `core/data/audio/actionSoundGroups.test.js` (novo) — testa a FÁBRICA
+  genérica (`createActionSoundResolver`) com grupos fictícios: `getGroup`
+  (id conhecido/desconhecido); `resolve`: sem `sounds`/sem nenhuma das
+  duas chaves → `null`; chave de grupo resolve; grupo desconhecido → `null`;
+  chave individual vence a de grupo mesmo as duas declaradas; individual
+  sozinha funciona; duas instâncias da fábrica não compartilham chaves
+  entre si.
+- `core/data/audio/dashSound.test.js`/`jumpSound.test.js` (novos) — não
+  repetem a matriz de `actionSoundGroups.test.js` (já cobre a lógica em
+  si); só confirmam a integração de verdade: todo grupo tem pelo menos
+  uma variação; `bot`/`fox` (espécies reais) resolvem o grupo que cada um
+  declara (`sounds.dashGroup`/`jumpGroup`), nunca `null`.
+- `core/systems/characterPhysicsSystem.test.js` — 2 testes novos: pulo de
+  verdade adiciona `Jumped`, e o system NUNCA remove sozinho (continua
+  presente mesmo depois de vários ticks sem pular de novo — quem consome
+  tira, ver `jumpAudioSystem.js`); sem `input.jump`, ou no ar (já sem
+  `Grounded`), não adiciona.
+- `view/registry/createSimpleAudioRegistry.test.js` (novo) — testa a
+  FÁBRICA genérica: entrada nasce com `buffers` vazio; `extra` é mesclado
+  na entrada; `get` de entidade nunca registrada devolve `undefined`;
+  `unregister` remove a entrada (e não quebra se a entidade não estava
+  registrada); `unregister` para o áudio se estava tocando, e desconecta;
+  `all()` itera todas as entradas; duas instâncias da fábrica têm
+  registries independentes.
 - **Sem teste automatizado pro resto** (listener/buffer cache/hook/
   systems que de fato tocam áudio) — `AudioContext`/decodificação de
   buffer não existem no ambiente de teste (Vitest/node, sem WebAudio),
@@ -347,9 +477,13 @@ fallback gracioso de sempre).
 ## Fora de escopo
 
 - Voz do treinador (`bot`) — mecanismo pronto, falta o arquivo.
-- Grupo compartilhado pra vocalização/ambiente (só passo tem isso hoje)
-  — não pedido ainda; mesmo desenho de `footstepGroups.js` se um dia
-  fizer falta.
+- Grupo compartilhado pra vocalização/ambiente (só passo/dash/pulo têm
+  isso hoje) — não pedido ainda pra eles; mesmo desenho de
+  `footstepGroups.js`/`actionSoundGroups.js` se um dia fizer falta.
+- Som de dash/pulo PRÓPRIO por espécie (`sounds.dash`/`sounds.jump`,
+  sem grupo) — mecanismo já suporta (mesmo `createActionSoundResolver`
+  de `footstepGroup`), só ninguém pediu um som individual ainda; hoje
+  `bot`/`fox` os dois usam o grupo `default`.
 - Slider de volume "de verdade" no menu de pausa — fica pro
   `ConfigEditor.jsx` genérico do F2 por enquanto. Como volume não é mais
   uma seção `GAME_CONFIG.AUDIO` (mora em cada som/nível/espécie), deixou

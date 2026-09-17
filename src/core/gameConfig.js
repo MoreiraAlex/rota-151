@@ -36,9 +36,9 @@ export const GAME_CONFIG = {
       // Duração do impulso (segundos).
       DURATION: 0.25,
       // Unidades por segundo — maior que o runSpeed de qualquer espécie hoje.
-      SPEED: 14,
+      SPEED: 15,
       // Custo de stamina, descontado uma vez no disparo (não por segundo).
-      STAMINA_COST: 15,
+      STAMINA_COST: 8,
     },
   },
   // Grade de navegação usada por `core/pathfinding.js` pra contornar

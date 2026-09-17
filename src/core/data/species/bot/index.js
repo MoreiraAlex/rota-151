@@ -42,7 +42,7 @@ export const BOT = {
     // Stamina gasta por segundo enquanto realmente correndo.
     runStaminaDrainPerSecond: 2,
     // Custo de stamina do pulo, descontado uma vez no disparo.
-    jumpStaminaCost: 10,
+    jumpStaminaCost: 5,
   },
   // Exclusivo do treinador (`getPlayerSpecies()`, ver
   // core/data/species/index.js) — arremesso/consumo/invocar/recolher só
@@ -167,6 +167,10 @@ export const BOT = {
     // voiceSound.js/fox/index.js pro formato de verdade em uso), só
     // falta um arquivo de vocalização do treinador. Sem este campo, o
     // treinador simplesmente não vocaliza (fallback gracioso).
+    // Mesmo princípio de grupo de `footstepGroup` acima, ver
+    // core/data/audio/dashSound.js/jumpSound.js.
+    dashGroup: 'default',
+    jumpGroup: 'default',
   },
   stats: {},
   moves: [],

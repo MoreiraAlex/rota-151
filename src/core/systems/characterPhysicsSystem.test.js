@@ -15,6 +15,7 @@ import {
   CharacterController,
   Grounded,
   MovementBlocked,
+  Jumped,
 } from '@/core/traits'
 import {
   initPhysics,
@@ -195,6 +196,39 @@ describe('characterPhysicsSystem + integração Rapier', () => {
     // uma cápsula bem alongada e deitada tem mais folga de contato ao
     // assentar do que uma quase esférica em pé.
     expect(Math.abs(player.get(Position).y - yGround)).toBeLessThan(0.15)
+  })
+
+  it('pulo de verdade adiciona o pulso `Jumped` — sem tentar pular, ou sem conseguir, não adiciona', () => {
+    const { world, player } = makeWorld({
+      playerPosition: { x: 0, y: 1, z: 0 },
+    })
+    run(world, 30)
+    expect(player.has(Jumped)).toBe(false)
+
+    tick(world, { jump: true })
+    expect(player.has(Jumped)).toBe(true)
+
+    // O system só ADICIONA — nunca remove sozinho (ver docstring do
+    // trait, core/traits/components/physics.js). Continuar tickando sem
+    // pular de novo não deveria fazer a tag sumir sozinha.
+    for (let i = 0; i < 30; i++) tick(world)
+    expect(player.has(Jumped)).toBe(true)
+  })
+
+  it('sem `input.jump`, ou no ar (sem `Grounded`), não adiciona `Jumped`', () => {
+    const { world, player } = makeWorld({
+      playerPosition: { x: 0, y: 1, z: 0 },
+    })
+    run(world, 30)
+
+    tick(world) // sem input.jump
+    expect(player.has(Jumped)).toBe(false)
+
+    tick(world, { jump: true }) // pula de verdade — dispara Jumped
+    player.remove(Jumped) // limpa pra testar o próximo tick isolado
+
+    tick(world, { jump: true }) // ainda no ar (subindo) — não pula de novo
+    expect(player.has(Jumped)).toBe(false)
   })
 
   it('pular desconta o custo de stamina uma vez; sem stamina suficiente, não pula', () => {

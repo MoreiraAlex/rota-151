@@ -8,6 +8,7 @@ export {
   CharacterController,
   Grounded,
   MovementBlocked,
+  Jumped,
 } from './components/physics'
 export { AnimationState } from './components/animation'
 export { ActionState } from './components/action'

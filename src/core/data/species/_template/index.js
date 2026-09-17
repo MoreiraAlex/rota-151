@@ -102,6 +102,17 @@ export const SPECIES_TEMPLATE = {
   //          maxInterval: 25, // opcional, segundos
   //        },
   //      },
+  // `sounds.dashGroup`/`sounds.jumpGroup` (opcionais, mesmo princípio de
+  // `footstepGroup` — grupo compartilhado, ver `core/data/audio/
+  // dashSound.js`/`jumpSound.js` pros ids disponíveis) — toca no INSTANTE
+  // do dash/pulo, não por temporizador nem ciclo de passada:
+  //      sounds: { dashGroup: 'default', jumpGroup: 'default' },
+  // Som PRÓPRIO de dash/pulo, sem grupo — mesmo formato de `footstep`
+  // individual acima, um array de variações cada:
+  //      sounds: {
+  //        dash: { clips: ['/assets/audio/dash/.../dash-01.wav', ...], volume: 0.6 },
+  //        jump: { clips: ['/assets/audio/jump/.../jump-01.wav', ...], volume: 0.6 },
+  //      },
   stats: {},
   moves: [],
 }
