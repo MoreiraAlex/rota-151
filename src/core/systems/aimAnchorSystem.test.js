@@ -1,6 +1,13 @@
 import { describe, it, expect, afterEach } from 'vitest'
 import { makeWorld } from '@/test/makeWorld'
-import { AimAnchor, OrbitCamera } from '@/core/traits'
+import {
+  AimAnchor,
+  InputControlled,
+  OrbitCamera,
+  PhysicsBody,
+  Position,
+  SummonedCreature,
+} from '@/core/traits'
 import { aimAnchorSystem } from './aimAnchorSystem'
 
 const spawnedWorlds = []
@@ -67,5 +74,20 @@ describe('aimAnchorSystem', () => {
     tick(world, { aiming: true })
 
     expect(player.get(AimAnchor)).not.toEqual(first)
+  })
+
+  it('uma SummonedCreature controlada (troca de controle, ver docs/features/018-troca-de-controle-treinador-criatura.md) nunca ativa AimAnchor, mesmo mirando', () => {
+    const { world } = spawnWorld()
+    const creature = world.spawn(
+      Position,
+      AimAnchor,
+      PhysicsBody,
+      SummonedCreature({ slot: 'slot1', speciesId: 'fox' }),
+      InputControlled,
+    )
+
+    tick(world, { aiming: true })
+
+    expect(creature.get(AimAnchor).active).toBe(false)
   })
 })

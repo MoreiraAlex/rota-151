@@ -42,8 +42,10 @@ import { quaternionFromAxisAngle } from '../math'
  * `GROUNDED_STICK`/gravidade vêm do config global (epsilon técnico do
  * algoritmo de snap-to-ground, igual pra toda entidade); a força do pulo
  * (`jumpSpeed`) vem de MovementStats — dado por entidade. Pular custa
- * stamina (`JUMP_STAMINA_COST`, descontada uma vez no disparo) — sem
- * stamina suficiente, não pula, mesma forma que `wasGrounded` já bloqueia.
+ * stamina (`Vitals.jumpStaminaCost`, por espécie — ver
+ * docs/features/018-troca-de-controle-treinador-criatura.md — descontada
+ * uma vez no disparo) — sem stamina suficiente, não pula, mesma forma que
+ * `wasGrounded` já bloqueia.
  * `Vitals` continua na query mesmo só tendo uso dentro do bloco de pulo
  * (gatiado por `InputControlled`) — `entity.get()` fora da query ativa
  * devolve um retrato (`snapshot`), não a referência com escrita de volta
@@ -81,8 +83,6 @@ export function characterPhysicsSystem(context) {
   const { world, delta } = context
   const input = context.input ?? {}
   const cfg = GAME_CONFIG.PHYSICS
-  const { JUMP_STAMINA_COST, STAMINA_REGEN_DELAY_AFTER_USE } =
-    GAME_CONFIG.VITALS
   const rapierWorld = getRapierWorld()
   const controller = getCharacterController()
 
@@ -114,11 +114,11 @@ export function characterPhysicsSystem(context) {
         input.jump &&
         wasGrounded &&
         entity.has(InputControlled) &&
-        vitals.stamina >= JUMP_STAMINA_COST
+        vitals.stamina >= vitals.jumpStaminaCost
       ) {
         vel.y = stats.jumpSpeed
-        vitals.stamina -= JUMP_STAMINA_COST
-        vitals.staminaRegenDelay = STAMINA_REGEN_DELAY_AFTER_USE
+        vitals.stamina -= vitals.jumpStaminaCost
+        vitals.staminaRegenDelay = vitals.staminaRegenDelayAfterUse
       }
 
       const requestedX = vel.x * delta

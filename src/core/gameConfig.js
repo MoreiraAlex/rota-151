@@ -1,8 +1,14 @@
 /**
  * Configuração central do jogo.
  *
- * Toda constante ajustável vive aqui, agrupada por domínio. Systems e
- * componentes leem daqui — nunca declaram números mágicos.
+ * Toda constante ajustável e GENÉRICA (igual pra qualquer entidade —
+ * zoom de câmera, gravidade, algoritmo do character controller) vive
+ * aqui, agrupada por domínio. Config que varia POR ESPÉCIE (velocidade,
+ * vitals, e — desde docs/features/018-troca-de-controle-treinador-
+ * criatura.md — custos/delays de stamina/HP e o que é exclusivo do
+ * treinador: arremesso/consumo/invocar/recolher/comportamento de time)
+ * mora em `core/data/species/<id>/index.js`, não aqui. Systems leem
+ * daqui — nunca declaram números mágicos.
  */
 export const GAME_CONFIG = {
   LOOP: {
@@ -17,6 +23,14 @@ export const GAME_CONFIG = {
   WORLD: {
     SEED: 151,
   },
+  // Só `dash` continua aqui — funciona igual pra qualquer entidade
+  // controlada (treinador ou criatura, ver docs/features/018-troca-de-
+  // controle-treinador-criatura.md), sem variar por espécie. Arremesso,
+  // consumo, invocar/recolher e o comportamento de time (antes `PARTY`
+  // aqui) viraram config exclusiva do TREINADOR — só ele dispara essas
+  // ações de verdade — em `core/data/species/bot/index.js`
+  // (`actions`/`party`), lidos via `getPlayerSpecies()`
+  // (`core/data/species/index.js`).
   PLAYER_ACTIONS: {
     dash: {
       // Duração do impulso (segundos).
@@ -26,114 +40,6 @@ export const GAME_CONFIG = {
       // Custo de stamina, descontado uma vez no disparo (não por segundo).
       STAMINA_COST: 15,
     },
-    throw: {
-      // Duração total da ação (segundos) — precisa bater com a duração de
-      // verdade do clipe de animação de arremesso (core/data/species/<id>/
-      // clips/throw.json): clipes de AÇÃO (não cíclicos) usam `speed` como
-      // `1/duração` (mesma leitura de "ciclos/segundo" dos clipes de
-      // locomoção, mas aqui vira "a ação inteira é 1 ciclo" — ver a skill
-      // procedural-rig-animation, referências/animations/one-shot-
-      // actions.md). O clipe do bot tem `speed: 2.5` → 1/2.5 = 0.4s. Errar
-      // esse valor (maior que o real) faz o gesto reiniciar do início e
-      // ficar visivelmente "engasgado" antes de cortar pro idle — o motor
-      // não trava o clipe no fim (`loop: false` no JSON é só documentação,
-      // não é lido em lugar nenhum), ele só repete o mesmo gesto fechado.
-      DURATION: 0.4,
-      // Instante (dentro da duração) em que o projétil é de fato spawnado —
-      // não é keyframe de clipe, é config da própria ação (ver
-      // docs/features/014-arremessar-usar-e-invocar.md). Devia coincidir
-      // com o frame em que a MÃO solta o objeto no clipe de animação — isso
-      // não dá pra derivar só do `speed` (fica na forma da curva, não no
-      // número), então por enquanto é a mesma fração que já estava ajustada
-      // antes desta correção (0.45/0.5 = 90% da duração antiga), só
-      // reescalada pra duração certa (0.4 × 90% = 0.36) — ainda precisa de
-      // olho no jogo pra confirmar se bate com a soltura visual de verdade.
-      EFFECT_AT: 0.3,
-      // Origem do arremesso (de onde a trajetória sai e onde o projétil
-      // nasce) — aproxima a posição da MÃO a partir de `Position`/
-      // `Rotation.y` do jogador, já que o motor não tem acesso ao osso de
-      // verdade daqui (isso é conteúdo da view — ver
-      // `view/systems/heldItemViewSystem.js`, que só cuida do visual
-      // encaixado no osso, não da trajetória/spawn). Componentes somados
-      // na direção que o corpo encara (`HAND_FORWARD_OFFSET`, à frente) e
-      // à direita dele (`HAND_SIDE_OFFSET`) — mesma convenção de
-      // forward/right usada em todo o resto (`computeCameraRight`,
-      // `movementSystem.js`). `HAND_HEIGHT_OFFSET` substitui o antigo "+1"
-      // fixo.
-      HAND_FORWARD_OFFSET: 0.15,
-      HAND_SIDE_OFFSET: -0.25,
-      HAND_HEIGHT_OFFSET: 1.25,
-      // Velocidade do projétil (m/s). Global, não por item — só existe um
-      // throwable de teste hoje; migra pra config por item quando um
-      // segundo precisar de velocidade diferente.
-      SPEED: 45,
-      // Segundos até o projétil desaparecer sozinho, mesmo já tendo
-      // atingido algo (congelado no ponto do impacto até então).
-      LIFETIME: 1.5,
-      // Alcance máximo (m) do raycast de mira, a partir da câmera — nada
-      // encontrado dentro dessa distância, mira no ponto mais distante
-      // dessa distância mesmo (em vez de mirar no infinito).
-      AIM_RANGE: 30,
-      // Custo de stamina, descontado uma vez no disparo (não por segundo) —
-      // mesmo padrão do dash. Sem stamina suficiente, o arremesso
-      // simplesmente não dispara.
-      STAMINA_COST: 2,
-    },
-    consume: {
-      // Duração total da ação (segundos).
-      DURATION: 0.4,
-      // Instante em que o efeito do item (cura, ver `item.consumable`) é
-      // de fato aplicado.
-      EFFECT_AT: 0.2,
-      // Quanto tempo o efeito visual de partículas (ConsumeEffect) fica na
-      // cena depois de spawnado — independente da duração da ação em si.
-      EFFECT_VISUAL_DURATION: 0.6,
-    },
-    // Invocar/recolher criatura de time (ver `partySummonSystem.js` e
-    // docs/features/017-locomocao-e-recolhimento-de-criaturas.md) — mesmo
-    // padrão de ação com duração/efeito-no-meio de dash/throw/consume
-    // acima, só que quem avança/aplica o efeito é `partySummonSystem.js`,
-    // não este arquivo (`playerActionSystem.js` explicitamente ignora
-    // `current` 'summon'/'recall', ver docstring do system).
-    summon: {
-      // Duração total da ação (segundos) — trava movimento e qualquer
-      // outra ação (dash/arremesso/uso/outra invocação) até terminar.
-      DURATION: 0.6,
-      // Instante em que a `SummonedCreature` de fato nasce.
-      EFFECT_AT: 0.3,
-    },
-    recall: {
-      // Duração total da ação (segundos).
-      DURATION: 0.6,
-      // Instante em que a `SummonedCreature` de fato é destruída.
-      EFFECT_AT: 0.3,
-    },
-  },
-  PARTY: {
-    // Distância inicial (m) da criatura ao nascer (no instante de efeito
-    // da ação de invocar), na direção que a CÂMERA está apontando (não
-    // `Rotation.y` do treinador — ele gira pra encarar essa mesma direção
-    // no disparo, ver `partySummonSystem.js`).
-    SUMMON_OFFSET: 15,
-    // Distância mínima (m) que a criatura mantém do treinador — não chega
-    // mais perto que isso, pra não empilhar em cima dele.
-    FOLLOW_MIN_DISTANCE: 4,
-    // Distância (m) além da qual a criatura corre (`runSpeed`, por
-    // espécie) em vez de andar (`walkSpeed`) pra alcançar o treinador —
-    // ver creatureFollowSystem. Entre `FOLLOW_MIN_DISTANCE` e este valor,
-    // anda; abaixo de `FOLLOW_MIN_DISTANCE`, parada.
-    RUN_DISTANCE: 6,
-    // Distância (m) abaixo da qual outro personagem (treinador ou outra
-    // criatura) conta como "muito perto" — soma repulsão na direção de
-    // movimento pra desviar ANTES de esbarrar de verdade (personagens
-    // colidem fisicamente de propósito, ver core/physics/colliders.js —
-    // isso aqui evita precisar chegar nesse ponto). Maior que a soma dos
-    // raios de duas cápsulas típicas.
-    AVOIDANCE_RADIUS: 2.5,
-    // Peso da repulsão de `AVOIDANCE_RADIUS` em relação à direção
-    // principal (waypoint/treinador, sempre vetor unitário) — cada vizinho
-    // próximo soma até este tanto na direção final antes de normalizar.
-    AVOIDANCE_STRENGTH: 1.2,
   },
   // Grade de navegação usada por `core/pathfinding.js` pra contornar
   // obstáculos do `TEST_LEVEL` em vez de andar em linha reta — ver
@@ -178,20 +84,6 @@ export const GAME_CONFIG = {
     // `creatureFollowSystem.js`. Só usado no tick em que a criatura está
     // travada, pra escolher entre desviar à esquerda ou à direita.
     AVOIDANCE_PROBE_DISTANCE: 1.5,
-  },
-  VITALS: {
-    // Segundos sem regenerar HP depois de tomar dano — não é atributo de
-    // criatura, é comportamento do motor (custo de ação também é aqui, ver
-    // decisão em 010-hp-e-stamina.md). Regeneração em si (%/segundo) é que
-    // vem da espécie (core/data/species/<id>/index.js).
-    HP_REGEN_DELAY_AFTER_DAMAGE: 5,
-    // Segundos sem regenerar stamina depois do último uso (correr, dash ou
-    // pulo) — reseta a cada dreno, igual ao delay de HP reseta a cada dano.
-    STAMINA_REGEN_DELAY_AFTER_USE: 3,
-    // Stamina gasta por segundo enquanto realmente correndo.
-    RUN_STAMINA_DRAIN_PER_SECOND: 2,
-    // Custo de stamina do pulo, descontado uma vez no disparo.
-    JUMP_STAMINA_COST: 10,
   },
   ANIMATION: {
     // Abaixo disso, considera parado (idle).

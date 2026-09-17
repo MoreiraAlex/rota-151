@@ -12,7 +12,12 @@ export {
 export { AnimationState } from './components/animation'
 export { ActionState } from './components/action'
 export { AimAnchor } from './components/aimAnchor'
-export { Vitals, applyDamage, applyHeal } from './components/vitals'
+export {
+  Vitals,
+  applyDamage,
+  applyHeal,
+  vitalsFromSpecies,
+} from './components/vitals'
 export { HeldItem } from './components/heldItem'
 export { Inventory } from './components/inventory'
 export { Party } from './components/party'

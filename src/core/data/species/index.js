@@ -38,6 +38,22 @@ export function getSpecies(id, registry = SPECIES_REGISTRY) {
   return registry[id] ?? null
 }
 
+/**
+ * Atalho pra `getSpecies(PLAYER_SPECIES_ID)` — usado por qualquer system
+ * que precise de config exclusiva do treinador (arremesso, consumo,
+ * invocar/recolher, comportamento de time — `actions`/`party` em
+ * `core/data/species/bot/index.js`), não de "quem está sendo controlado
+ * agora" (isso é `InputControlled`, ver docs/features/018-troca-de-
+ * controle-treinador-criatura.md). Essas ações só fazem sentido pro
+ * treinador de verdade (só ele tem `Party`/itens de verdade), então
+ * resolvê-las pela identidade fixa do jogador é correto mesmo depois da
+ * troca de controle — nunca clona, mesma referência de `SPECIES_REGISTRY`,
+ * então mutação ao vivo (debug/tuning) continua valendo.
+ */
+export function getPlayerSpecies() {
+  return getSpecies(PLAYER_SPECIES_ID)
+}
+
 export function listSpecies(registry = SPECIES_REGISTRY) {
   return Object.values(registry)
 }

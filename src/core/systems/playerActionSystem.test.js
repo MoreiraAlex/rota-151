@@ -16,12 +16,20 @@ import {
 } from '@/core/traits'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import { getItem } from '@/core/data/items'
+import { getSpecies, getPlayerSpecies } from '@/core/data/species'
 import { computeAimRay } from '@/core/camera/orbitCamera'
 import { playerActionSystem } from './playerActionSystem'
 
+// DASH continua global (GAME_CONFIG) — THROW/CONSUME são exclusivos do
+// treinador (`getPlayerSpecies().actions`, ver docs/features/018-troca-
+// de-controle-treinador-criatura.md), sempre a espécie `bot` de verdade,
+// não a `fox` que este arquivo usa pro player de teste (ver
+// `test/makeWorld.js`).
 const { DURATION, SPEED, STAMINA_COST } = GAME_CONFIG.PLAYER_ACTIONS.dash
-const THROW = GAME_CONFIG.PLAYER_ACTIONS.throw
-const CONSUME = GAME_CONFIG.PLAYER_ACTIONS.consume
+const { throw: THROW, consume: CONSUME } = getPlayerSpecies().actions
+// Vitals do PLAYER de teste (espécie 'fox', ver `test/makeWorld.js`) —
+// diferente de THROW/CONSUME acima, que são sempre do treinador 'bot'.
+const PLAYER_VITALS = getSpecies('fox').vitals
 
 function tick(world, input = {}, delta = 1 / 60) {
   playerActionSystem({ world, delta, input })
@@ -30,16 +38,16 @@ function tick(world, input = {}, delta = 1 / 60) {
 // Reproduz `resolveHandOrigin` (playerActionSystem.js, não exportada) pra
 // validar a fiação — mesmo padrão já usado aqui pra `resolveThrowLaunch`.
 function resolveHandOrigin(pos, rotY) {
-  const { HAND_FORWARD_OFFSET, HAND_SIDE_OFFSET, HAND_HEIGHT_OFFSET } = THROW
+  const { handForwardOffset, handSideOffset, handHeightOffset } = THROW
   const forwardX = Math.sin(rotY)
   const forwardZ = Math.cos(rotY)
   const rightX = Math.cos(rotY)
   const rightZ = -Math.sin(rotY)
 
   return {
-    x: pos.x + forwardX * HAND_FORWARD_OFFSET + rightX * HAND_SIDE_OFFSET,
-    y: pos.y + HAND_HEIGHT_OFFSET,
-    z: pos.z + forwardZ * HAND_FORWARD_OFFSET + rightZ * HAND_SIDE_OFFSET,
+    x: pos.x + forwardX * handForwardOffset + rightX * handSideOffset,
+    y: pos.y + handHeightOffset,
+    z: pos.z + forwardZ * handForwardOffset + rightZ * handSideOffset,
   }
 }
 
@@ -111,7 +119,7 @@ describe('playerActionSystem — dash', () => {
     tick(world, { dash: true })
 
     expect(player.get(Vitals).staminaRegenDelay).toBeCloseTo(
-      GAME_CONFIG.VITALS.STAMINA_REGEN_DELAY_AFTER_USE,
+      PLAYER_VITALS.staminaRegenDelayAfterUse,
     )
   })
 
@@ -206,7 +214,7 @@ describe('playerActionSystem — arremesso (item throwable)', () => {
     })
 
     tick(world, { primary: true, aiming: true })
-    const ticksUntilRelease = Math.ceil(THROW.EFFECT_AT / (1 / 60))
+    const ticksUntilRelease = Math.ceil(THROW.effectAt / (1 / 60))
     for (let i = 0; i < ticksUntilRelease; i++) tick(world, {})
 
     expect(changed).toBe(true)
@@ -247,11 +255,11 @@ describe('playerActionSystem — arremesso (item throwable)', () => {
     const throwOrigin = resolveHandOrigin(pos, Math.PI / 2)
     const orbit = camera.get(OrbitCamera)
     const { origin, direction } = computeAimRay(pos, orbit)
-    const { AIM_RANGE, SPEED } = THROW
+    const { aimRange, speed: SPEED } = THROW
     const aimPoint = {
-      x: origin.x + direction.x * AIM_RANGE,
-      y: origin.y + direction.y * AIM_RANGE,
-      z: origin.z + direction.z * AIM_RANGE,
+      x: origin.x + direction.x * aimRange,
+      y: origin.y + direction.y * aimRange,
+      z: origin.z + direction.z * aimRange,
     }
     const dx = aimPoint.x - throwOrigin.x
     const dy = aimPoint.y - throwOrigin.y
@@ -286,44 +294,45 @@ describe('playerActionSystem — arremesso (item throwable)', () => {
     player.set(HeldItem, { itemId: 'pebble' })
 
     tick(world, { primary: true, aiming: true })
-    expect(player.get(Vitals).stamina).toBeCloseTo(100 - THROW.STAMINA_COST)
+    expect(player.get(Vitals).stamina).toBeCloseTo(100 - THROW.staminaCost)
     expect(player.get(Vitals).staminaRegenDelay).toBeCloseTo(
-      GAME_CONFIG.VITALS.STAMINA_REGEN_DELAY_AFTER_USE,
+      PLAYER_VITALS.staminaRegenDelayAfterUse,
     )
 
     // continuar no meio do arremesso não desconta de novo
     tick(world, {})
-    expect(player.get(Vitals).stamina).toBeCloseTo(100 - THROW.STAMINA_COST)
+    expect(player.get(Vitals).stamina).toBeCloseTo(100 - THROW.staminaCost)
   })
 
   it('sem stamina suficiente, o arremesso não dispara', () => {
     const { world, player } = spawnWorld()
     player.set(HeldItem, { itemId: 'pebble' })
-    player.set(Vitals, { stamina: THROW.STAMINA_COST - 1 })
+    player.set(Vitals, { stamina: THROW.staminaCost - 1 })
 
     tick(world, { primary: true, aiming: true })
 
     expect(player.get(ActionState).current).toBe(null)
-    expect(player.get(Vitals).stamina).toBe(THROW.STAMINA_COST - 1) // não descontou
+    expect(player.get(Vitals).stamina).toBe(THROW.staminaCost - 1) // não descontou
   })
 
   it('mudar AIM_RANGE muda de verdade a direção resolvida do arremesso — não fica preso a um alcance fixo', () => {
     const { world, player, camera } = spawnWorld()
     player.set(HeldItem, { itemId: 'pebble' })
     camera.set(OrbitCamera, { yaw: 0, pitch: 0.3, distance: 10 })
-    const originalRange = GAME_CONFIG.PLAYER_ACTIONS.throw.AIM_RANGE
+    const throwConfig = getPlayerSpecies().actions.throw
+    const originalRange = throwConfig.aimRange
 
     try {
-      GAME_CONFIG.PLAYER_ACTIONS.throw.AIM_RANGE = 5
+      throwConfig.aimRange = 5
       tick(world, { primary: true, aiming: true })
       const shortRangeAction = { ...player.get(ActionState) }
 
-      for (let i = 0; i < Math.ceil(THROW.DURATION / (1 / 60)) + 1; i++) {
+      for (let i = 0; i < Math.ceil(THROW.duration / (1 / 60)) + 1; i++) {
         tick(world, {})
       }
       player.set(HeldItem, { itemId: 'pebble' })
 
-      GAME_CONFIG.PLAYER_ACTIONS.throw.AIM_RANGE = 300
+      throwConfig.aimRange = 300
       tick(world, { primary: true, aiming: true })
       const longRangeAction = player.get(ActionState)
 
@@ -334,20 +343,20 @@ describe('playerActionSystem — arremesso (item throwable)', () => {
           shortRangeAction.dirY,
           shortRangeAction.dirZ,
         ),
-      ).toBeCloseTo(THROW.SPEED)
+      ).toBeCloseTo(THROW.speed)
       expect(
         Math.hypot(
           longRangeAction.dirX,
           longRangeAction.dirY,
           longRangeAction.dirZ,
         ),
-      ).toBeCloseTo(THROW.SPEED)
+      ).toBeCloseTo(THROW.speed)
       // ...mas a direção em si muda — alcance curto mira num ponto mais
       // perto do jogador (mais paralaxe), alcance longo converge quase
       // paralelo à câmera.
       expect(longRangeAction.dirY).not.toBeCloseTo(shortRangeAction.dirY, 2)
     } finally {
-      GAME_CONFIG.PLAYER_ACTIONS.throw.AIM_RANGE = originalRange
+      throwConfig.aimRange = originalRange
     }
   })
 
@@ -369,9 +378,9 @@ describe('playerActionSystem — arremesso (item throwable)', () => {
     const distance = Math.hypot(dx, dy, dz)
 
     const action = player.get(ActionState)
-    expect(action.dirX).toBeCloseTo((dx / distance) * THROW.SPEED)
-    expect(action.dirY).toBeCloseTo((dy / distance) * THROW.SPEED)
-    expect(action.dirZ).toBeCloseTo((dz / distance) * THROW.SPEED)
+    expect(action.dirX).toBeCloseTo((dx / distance) * THROW.speed)
+    expect(action.dirY).toBeCloseTo((dy / distance) * THROW.speed)
+    expect(action.dirZ).toBeCloseTo((dz / distance) * THROW.speed)
   })
 
   it('só spawna o projétil ao cruzar o instante de liberação, uma vez só', () => {
@@ -389,7 +398,7 @@ describe('playerActionSystem — arremesso (item throwable)', () => {
     // nenhuma com o comportamento de verdade sendo testado).
     let sawEmpty = false
     let spawnCount = 0
-    const totalTicks = Math.ceil(THROW.DURATION / (1 / 60)) + 5
+    const totalTicks = Math.ceil(THROW.duration / (1 / 60)) + 5
     for (let i = 0; i < totalTicks; i++) {
       const before = world.query(Projectile).length
       tick(world, {})
@@ -409,7 +418,7 @@ describe('playerActionSystem — arremesso (item throwable)', () => {
 
     tick(world, { primary: true, aiming: true })
     const action = { ...player.get(ActionState) }
-    const ticksUntilRelease = Math.ceil(THROW.EFFECT_AT / (1 / 60))
+    const ticksUntilRelease = Math.ceil(THROW.effectAt / (1 / 60))
     for (let i = 0; i < ticksUntilRelease; i++) tick(world, {})
 
     const [projectileEntity] = world.query(Projectile)
@@ -421,12 +430,12 @@ describe('playerActionSystem — arremesso (item throwable)', () => {
     expect(vel.y).toBeCloseTo(action.dirY)
     expect(vel.z).toBeCloseTo(action.dirZ)
     // Reto (sem arco) — o módulo total é sempre SPEED.
-    expect(Math.hypot(vel.x, vel.y, vel.z)).toBeCloseTo(THROW.SPEED)
-    // lifetime é sempre THROW.LIFETIME direto da config — sem cálculo
+    expect(Math.hypot(vel.x, vel.y, vel.z)).toBeCloseTo(THROW.speed)
+    // lifetime é sempre THROW.lifetime direto da config — sem cálculo
     // dinâmico (revisado: o lifetime conta desde o lançamento, não desde
     // o impacto, e não deve variar com a distância até o ponto de mira).
     expect(projectileEntity.get(Projectile).lifetime).toBeCloseTo(
-      THROW.LIFETIME,
+      THROW.lifetime,
     )
   })
 
@@ -435,7 +444,7 @@ describe('playerActionSystem — arremesso (item throwable)', () => {
     player.set(HeldItem, { itemId: 'pebble' })
 
     tick(world, { primary: true, aiming: true })
-    const steps = Math.ceil(THROW.DURATION / (1 / 60)) + 1
+    const steps = Math.ceil(THROW.duration / (1 / 60)) + 1
     for (let i = 0; i < steps; i++) tick(world, {})
 
     expect(player.get(ActionState).current).toBe(null)
@@ -447,7 +456,7 @@ describe('playerActionSystem — arremesso (item throwable)', () => {
     player.set(Inventory, { itemIds: ['pebble'] })
 
     tick(world, { primary: true, aiming: true })
-    const ticksUntilRelease = Math.ceil(THROW.EFFECT_AT / (1 / 60))
+    const ticksUntilRelease = Math.ceil(THROW.effectAt / (1 / 60))
     for (let i = 0; i < ticksUntilRelease; i++) tick(world, {})
 
     expect(player.get(Inventory).itemIds).toEqual([])
@@ -460,7 +469,7 @@ describe('playerActionSystem — arremesso (item throwable)', () => {
     player.set(Inventory, { itemIds: ['pebble', 'pebble'] })
 
     tick(world, { primary: true, aiming: true })
-    const ticksUntilRelease = Math.ceil(THROW.EFFECT_AT / (1 / 60))
+    const ticksUntilRelease = Math.ceil(THROW.effectAt / (1 / 60))
     for (let i = 0; i < ticksUntilRelease; i++) tick(world, {})
 
     expect(player.get(Inventory).itemIds).toEqual(['pebble'])
@@ -473,10 +482,10 @@ describe('playerActionSystem — arremesso (item throwable)', () => {
     player.set(Inventory, { itemIds: ['pebble', 'pebble'] })
 
     tick(world, { primary: true, aiming: true })
-    const ticksUntilRelease = Math.ceil(THROW.EFFECT_AT / (1 / 60))
+    const ticksUntilRelease = Math.ceil(THROW.effectAt / (1 / 60))
     for (let i = 0; i < ticksUntilRelease; i++) tick(world, {})
     const remainingTicks = Math.ceil(
-      (THROW.DURATION - THROW.EFFECT_AT) / (1 / 60),
+      (THROW.duration - THROW.effectAt) / (1 / 60),
     )
     for (let i = 0; i < remainingTicks + 1; i++) tick(world, {})
 
@@ -515,7 +524,7 @@ describe('playerActionSystem — uso (item consumable)', () => {
 
     tick(world, { primary: true, aiming: true })
 
-    const ticksUntilEffect = Math.ceil(CONSUME.EFFECT_AT / (1 / 60))
+    const ticksUntilEffect = Math.ceil(CONSUME.effectAt / (1 / 60))
     for (let i = 0; i < ticksUntilEffect - 1; i++) {
       tick(world, {})
       expect(player.get(Vitals).hp).toBe(50)
@@ -535,7 +544,7 @@ describe('playerActionSystem — uso (item consumable)', () => {
     player.set(HeldItem, { itemId: 'potion' })
 
     tick(world, { primary: true, aiming: true })
-    const steps = Math.ceil(CONSUME.DURATION / (1 / 60)) + 1
+    const steps = Math.ceil(CONSUME.duration / (1 / 60)) + 1
     for (let i = 0; i < steps; i++) tick(world, {})
 
     expect(player.get(ActionState).current).toBe(null)
@@ -547,7 +556,7 @@ describe('playerActionSystem — uso (item consumable)', () => {
     player.set(Inventory, { itemIds: ['potion'] })
 
     tick(world, { primary: true, aiming: true })
-    const ticksUntilEffect = Math.ceil(CONSUME.EFFECT_AT / (1 / 60))
+    const ticksUntilEffect = Math.ceil(CONSUME.effectAt / (1 / 60))
     for (let i = 0; i < ticksUntilEffect; i++) tick(world, {})
 
     expect(player.get(Inventory).itemIds).toEqual([])
@@ -559,7 +568,7 @@ describe('playerActionSystem — uso (item consumable)', () => {
     player.set(HeldItem, { itemId: 'potion' })
 
     tick(world, { primary: true, aiming: true })
-    const ticksUntilEffect = Math.ceil(CONSUME.EFFECT_AT / (1 / 60))
+    const ticksUntilEffect = Math.ceil(CONSUME.effectAt / (1 / 60))
     for (let i = 0; i < ticksUntilEffect - 1; i++) {
       tick(world, {})
       expect(world.query(ConsumeEffect).length).toBe(0)
@@ -575,7 +584,7 @@ describe('playerActionSystem — uso (item consumable)', () => {
     player.set(Inventory, { itemIds: ['potion', 'potion'] })
 
     tick(world, { primary: true, aiming: true })
-    const ticksUntilEffect = Math.ceil(CONSUME.EFFECT_AT / (1 / 60))
+    const ticksUntilEffect = Math.ceil(CONSUME.effectAt / (1 / 60))
     for (let i = 0; i < ticksUntilEffect; i++) tick(world, {})
 
     expect(player.get(Inventory).itemIds).toEqual(['potion'])

@@ -1,7 +1,6 @@
 import { describe, it, expect, afterEach } from 'vitest'
 import { makeWorld } from '@/test/makeWorld'
 import { getSpecies } from '@/core/data/species'
-import { GAME_CONFIG } from '@/core/gameConfig'
 import {
   Position,
   Rotation,
@@ -16,7 +15,12 @@ import { movementSystem } from './movementSystem'
 
 const { walkSpeed: WALK_SPEED, runSpeed: RUN_SPEED } =
   getSpecies('fox').movement
-const { RUN_STAMINA_DRAIN_PER_SECOND } = GAME_CONFIG.VITALS
+// Vitals do player de teste também vem de 'fox' (ver test/makeWorld.js) —
+// RUN_STAMINA_DRAIN_PER_SECOND/STAMINA_REGEN_DELAY_AFTER_USE deixaram de
+// ser globais (GAME_CONFIG.VITALS) e viraram parte de `vitals` por espécie
+// (docs/features/018-troca-de-controle-treinador-criatura.md).
+const { runStaminaDrainPerSecond: RUN_STAMINA_DRAIN_PER_SECOND } =
+  getSpecies('fox').vitals
 
 // koota limita a 16 worlds vivos por vez — este arquivo sozinho já passa
 // disso (um setup() novo por teste). Rastreia e destrói ao final de cada
@@ -104,24 +108,30 @@ describe('movementSystem', () => {
     ) // não drenou — a ação não "meio aconteceu"
   })
 
-  it('lê GAME_CONFIG.VITALS a cada tick — mudar em tempo real (ex.: menu de configurações) já vale no próximo tick', () => {
+  it('lê Vitals.runStaminaDrainPerSecond da própria entidade a cada tick — mudar já vale no próximo tick', () => {
+    // RUN_STAMINA_DRAIN_PER_SECOND deixou de ser global (GAME_CONFIG) —
+    // agora é copiado da espécie pro trait Vitals no spawn (ver
+    // docs/features/018-troca-de-controle-treinador-criatura.md), então
+    // mudar a espécie DEPOIS do spawn não afeta quem já existe (mesmo
+    // motivo de MovementStats/outros dados por espécie). O que continua
+    // valendo "ao vivo" é mudar o campo direto na própria entidade —
+    // prova que o system lê `vitals.runStaminaDrainPerSecond` fresco a
+    // cada tick, não um valor cacheado no topo da função.
     const { player, tick } = setup(0, 1)
-    const original = GAME_CONFIG.VITALS.RUN_STAMINA_DRAIN_PER_SECOND
-    GAME_CONFIG.VITALS.RUN_STAMINA_DRAIN_PER_SECOND = original * 2
+    const doubled = RUN_STAMINA_DRAIN_PER_SECOND * 2
+    player.set(Vitals, { runStaminaDrainPerSecond: doubled })
 
-    try {
-      tick({ x: 0, z: -1, run: true })
-      expect(player.get(Vitals).stamina).toBeCloseTo(100 - original * 2)
-    } finally {
-      GAME_CONFIG.VITALS.RUN_STAMINA_DRAIN_PER_SECOND = original
-    }
+    tick({ x: 0, z: -1, run: true })
+
+    expect(player.get(Vitals).stamina).toBeCloseTo(100 - doubled)
   })
 
   it('correr reseta o delay de regeneração de stamina', () => {
     const { player, tick } = setup(0, 1)
+    const { staminaRegenDelayAfterUse } = getSpecies('fox').vitals
     tick({ x: 0, z: -1, run: true })
     expect(player.get(Vitals).staminaRegenDelay).toBeCloseTo(
-      GAME_CONFIG.VITALS.STAMINA_REGEN_DELAY_AFTER_USE,
+      staminaRegenDelayAfterUse,
     )
   })
 

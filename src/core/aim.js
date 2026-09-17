@@ -1,7 +1,7 @@
-import { GAME_CONFIG } from './gameConfig'
 import { computeAimRay } from './camera/orbitCamera'
 import { castRay } from './physics/raycast'
 import { wrapAngle } from './math'
+import { getPlayerSpecies } from './data/species'
 import { OrbitCamera } from './traits'
 
 /**
@@ -32,11 +32,16 @@ export function resolveCameraYaw(world) {
 /**
  * Ponto de mira: raio a partir da câmera (`computeAimRay`, na direção que
  * o retículo no centro da tela representa — ver `tools/hud/Crosshair.jsx`),
- * limitado a `AIM_RANGE`; sem nada no caminho dentro desse alcance, mira no
+ * limitado a `aimRange`; sem nada no caminho dentro desse alcance, mira no
  * ponto mais distante mesmo (em vez de "infinito"). `excludeColliderHandle`
  * (a cápsula de quem está mirando) evita que o raio acerte a própria
  * entidade — ele passa bem na frente do próprio corpo, já que a câmera
- * olha mais ou menos pra lá.
+ * olha mais ou menos pra lá. `aimRange` vem de `getPlayerSpecies().
+ * actions.throw` — mirar só existe pro treinador (`aimAnchorSystem.js`
+ * bloqueia explicitamente pra qualquer `SummonedCreature`, mesmo
+ * controlada — ver docs/features/018-troca-de-controle-treinador-
+ * criatura.md), então resolver pela espécie fixa do jogador é seguro
+ * aqui, não pela entidade que chamou.
  *
  * Compartilhado entre `playerActionSystem` (mira do arremesso) e
  * `aimAnchorSystem` (ponto de referência pra orbitar ao mirar — ver
@@ -48,20 +53,20 @@ export function resolveCameraYaw(world) {
  */
 export function resolveAimPoint(world, playerPos, excludeColliderHandle) {
   const cameraRig = world.queryFirst(OrbitCamera)
-  const { AIM_RANGE } = GAME_CONFIG.PLAYER_ACTIONS.throw
+  const { aimRange } = getPlayerSpecies().actions.throw
   if (!cameraRig) {
-    return { x: playerPos.x, y: playerPos.y, z: playerPos.z + AIM_RANGE }
+    return { x: playerPos.x, y: playerPos.y, z: playerPos.z + aimRange }
   }
 
   const orbit = cameraRig.get(OrbitCamera)
   const { origin, direction } = computeAimRay(playerPos, orbit)
 
-  const hit = castRay(origin, direction, AIM_RANGE, { excludeColliderHandle })
+  const hit = castRay(origin, direction, aimRange, { excludeColliderHandle })
   return hit
     ? hit.point
     : {
-        x: origin.x + direction.x * AIM_RANGE,
-        y: origin.y + direction.y * AIM_RANGE,
-        z: origin.z + direction.z * AIM_RANGE,
+        x: origin.x + direction.x * aimRange,
+        y: origin.y + direction.y * aimRange,
+        z: origin.z + direction.z * aimRange,
       }
 }

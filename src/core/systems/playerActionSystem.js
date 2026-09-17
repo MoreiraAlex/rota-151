@@ -1,5 +1,6 @@
 import { GAME_CONFIG } from '../gameConfig'
 import { getItem } from '../data/items'
+import { getPlayerSpecies } from '../data/species'
 import { resolveAimPoint } from '../aim'
 import {
   ActionState,
@@ -27,7 +28,7 @@ import {
  * (botão direito segurado, ver `aimAnchorSystem.js`), é o ponto travado
  * (o mesmo que a câmera está mostrando, `cameraFollowSystem.js`); sem
  * ancoragem ativa, é o ponto de mira resolvido na hora
- * (`resolveAimPoint`, que por sua vez respeita `AIM_RANGE`: sem nada no
+ * (`resolveAimPoint`, que por sua vez respeita `aimRange`: sem nada no
  * caminho dentro desse alcance, mira no ponto mais distante mesmo, em vez
  * de "infinito").
  */
@@ -35,32 +36,34 @@ import {
  * Aproxima a posição da MÃO a partir de `Position`/`Rotation.y` do
  * jogador — usada tanto pra origem da trajetória (`resolveThrowLaunch`,
  * no disparo) quanto pro ponto onde o projétil de fato nasce (na
- * liberação, `EFFECT_AT`). O motor headless não tem acesso ao osso de
+ * liberação, `effectAt`). O motor headless não tem acesso ao osso de
  * verdade (isso vive na view, ver `view/systems/heldItemViewSystem.js`,
  * que só cuida do visual do item encaixado no osso — não afeta física nem
  * trajetória) — esta é uma aproximação geométrica: à frente do corpo
- * (`HAND_FORWARD_OFFSET`) e à direita dele (`HAND_SIDE_OFFSET`, mesma
+ * (`handForwardOffset`) e à direita dele (`handSideOffset`, mesma
  * convenção de forward/right de `computeCameraRight`/`movementSystem.js`),
- * numa altura fixa (`HAND_HEIGHT_OFFSET`) acima de `Position` (que fica
- * na base/pés do personagem).
+ * numa altura fixa (`handHeightOffset`) acima de `Position` (que fica na
+ * base/pés do personagem). `throwConfig` é `getPlayerSpecies().actions.
+ * throw` (config exclusiva do treinador, ver docs/features/018-troca-de-
+ * controle-treinador-criatura.md) — recebido como parâmetro em vez de
+ * resolvido aqui dentro pra não repetir o lookup a cada chamada.
  */
-function resolveHandOrigin(pos, rotY) {
-  const { HAND_FORWARD_OFFSET, HAND_SIDE_OFFSET, HAND_HEIGHT_OFFSET } =
-    GAME_CONFIG.PLAYER_ACTIONS.throw
+function resolveHandOrigin(pos, rotY, throwConfig) {
+  const { handForwardOffset, handSideOffset, handHeightOffset } = throwConfig
   const forwardX = Math.sin(rotY)
   const forwardZ = Math.cos(rotY)
   const rightX = Math.cos(rotY)
   const rightZ = -Math.sin(rotY)
 
   return {
-    x: pos.x + forwardX * HAND_FORWARD_OFFSET + rightX * HAND_SIDE_OFFSET,
-    y: pos.y + HAND_HEIGHT_OFFSET,
-    z: pos.z + forwardZ * HAND_FORWARD_OFFSET + rightZ * HAND_SIDE_OFFSET,
+    x: pos.x + forwardX * handForwardOffset + rightX * handSideOffset,
+    y: pos.y + handHeightOffset,
+    z: pos.z + forwardZ * handForwardOffset + rightZ * handSideOffset,
   }
 }
 
-function resolveThrowLaunch(aimPoint, throwOrigin) {
-  const { SPEED } = GAME_CONFIG.PLAYER_ACTIONS.throw
+function resolveThrowLaunch(aimPoint, throwOrigin, throwConfig) {
+  const { speed } = throwConfig
 
   const dx = aimPoint.x - throwOrigin.x
   const dy = aimPoint.y - throwOrigin.y
@@ -68,13 +71,13 @@ function resolveThrowLaunch(aimPoint, throwOrigin) {
   const distance = Math.hypot(dx, dy, dz)
 
   if (distance === 0) {
-    return { x: 0, y: 0, z: SPEED }
+    return { x: 0, y: 0, z: speed }
   }
 
   return {
-    x: (dx / distance) * SPEED,
-    y: (dy / distance) * SPEED,
-    z: (dz / distance) * SPEED,
+    x: (dx / distance) * speed,
+    y: (dy / distance) * speed,
+    z: (dz / distance) * speed,
   }
 }
 
@@ -156,10 +159,13 @@ export function playerActionSystem(context) {
   // Lido a cada tick (não guardado num const no topo do módulo) pra
   // manipular via menu de configurações (ver
   // docs/features/015-menu-de-pausa-e-configuracoes.md) valer na hora.
+  // `DASH` continua global (`GAME_CONFIG`) — funciona igual pra qualquer
+  // entidade controlada, sem variar por espécie. `THROW`/`CONSUME` são
+  // exclusivos do treinador (`getPlayerSpecies().actions`, ver
+  // docs/features/018-troca-de-controle-treinador-criatura.md) — só ele
+  // arremessa/consome de verdade (item real só existe nele).
   const DASH = GAME_CONFIG.PLAYER_ACTIONS.dash
-  const THROW = GAME_CONFIG.PLAYER_ACTIONS.throw
-  const CONSUME = GAME_CONFIG.PLAYER_ACTIONS.consume
-  const { STAMINA_REGEN_DELAY_AFTER_USE } = GAME_CONFIG.VITALS
+  const { throw: THROW, consume: CONSUME } = getPlayerSpecies().actions
 
   world
     .query(
@@ -187,24 +193,24 @@ export function playerActionSystem(context) {
             action.dirX = Math.sin(rot.y)
             action.dirZ = Math.cos(rot.y)
             vitals.stamina -= DASH.STAMINA_COST
-            vitals.staminaRegenDelay = STAMINA_REGEN_DELAY_AFTER_USE
+            vitals.staminaRegenDelay = vitals.staminaRegenDelayAfterUse
           } else if (input.primary && input.aiming) {
             const item = heldItem.itemId ? getItem(heldItem.itemId) : null
 
             if (
               item?.category === 'throwable' &&
-              vitals.stamina >= THROW.STAMINA_COST
+              vitals.stamina >= THROW.staminaCost
             ) {
               action.current = 'throw'
               action.elapsed = 0
-              const throwOrigin = resolveHandOrigin(pos, rot.y)
+              const throwOrigin = resolveHandOrigin(pos, rot.y, THROW)
               // Com a mira travada (AimAnchor), o arremesso vai pro mesmo
               // ponto que a câmera já está mostrando — não recalcula via
               // raycast de novo no instante do disparo.
               const aimPoint = anchor.active
                 ? { x: anchor.x, y: anchor.y, z: anchor.z }
                 : resolveAimPoint(world, pos, body.colliderHandle)
-              const velocity = resolveThrowLaunch(aimPoint, throwOrigin)
+              const velocity = resolveThrowLaunch(aimPoint, throwOrigin, THROW)
               action.dirX = velocity.x
               action.dirY = velocity.y
               action.dirZ = velocity.z
@@ -213,8 +219,8 @@ export function playerActionSystem(context) {
               // corpo continuava olhando pra onde já estava andando, mesmo
               // arremessando pra outro lado.
               rot.y = Math.atan2(velocity.x, velocity.z)
-              vitals.stamina -= THROW.STAMINA_COST
-              vitals.staminaRegenDelay = STAMINA_REGEN_DELAY_AFTER_USE
+              vitals.stamina -= THROW.staminaCost
+              vitals.staminaRegenDelay = vitals.staminaRegenDelayAfterUse
             } else if (item?.category === 'consumable') {
               action.current = 'consume'
               action.elapsed = 0
@@ -256,24 +262,24 @@ export function playerActionSystem(context) {
 
         if (action.current === 'throw') {
           if (
-            previousElapsed < THROW.EFFECT_AT &&
-            action.elapsed >= THROW.EFFECT_AT
+            previousElapsed < THROW.effectAt &&
+            action.elapsed >= THROW.effectAt
           ) {
             world.spawn(
-              Position(resolveHandOrigin(pos, rot.y)),
+              Position(resolveHandOrigin(pos, rot.y, THROW)),
               Rotation, // exigido por syncTransformSystem — sem uso real (esfera)
               // dirX/dirY/dirZ já são a velocidade de lançamento resolvida
               // no disparo (ver resolveThrowLaunch) — não uma direção
-              // unitária pra multiplicar por SPEED aqui (SPEED já entrou no
-              // cálculo lá).
+              // unitária pra multiplicar por `speed` aqui (`speed` já
+              // entrou no cálculo lá).
               Velocity({ x: action.dirX, y: action.dirY, z: action.dirZ }),
-              Projectile({ lifetime: THROW.LIFETIME }),
+              Projectile({ lifetime: THROW.lifetime }),
             )
             const newItemIds = removeOneFromInventory(entity, heldItem.itemId)
             if (!newItemIds.includes(heldItem.itemId)) heldItem.itemId = null
           }
 
-          if (action.elapsed >= THROW.DURATION) {
+          if (action.elapsed >= THROW.duration) {
             action.current = null
           }
           return
@@ -281,8 +287,8 @@ export function playerActionSystem(context) {
 
         if (action.current === 'consume') {
           if (
-            previousElapsed < CONSUME.EFFECT_AT &&
-            action.elapsed >= CONSUME.EFFECT_AT
+            previousElapsed < CONSUME.effectAt &&
+            action.elapsed >= CONSUME.effectAt
           ) {
             const item = heldItem.itemId ? getItem(heldItem.itemId) : null
             if (item?.consumable) {
@@ -291,13 +297,13 @@ export function playerActionSystem(context) {
             world.spawn(
               Position({ x: pos.x, y: pos.y + 1, z: pos.z }),
               Rotation, // exigido por syncTransformSystem — sem uso real (partículas)
-              ConsumeEffect({ lifetime: CONSUME.EFFECT_VISUAL_DURATION }),
+              ConsumeEffect({ lifetime: CONSUME.effectVisualDuration }),
             )
             const newItemIds = removeOneFromInventory(entity, heldItem.itemId)
             if (!newItemIds.includes(heldItem.itemId)) heldItem.itemId = null
           }
 
-          if (action.elapsed >= CONSUME.DURATION) {
+          if (action.elapsed >= CONSUME.duration) {
             action.current = null
           }
         }

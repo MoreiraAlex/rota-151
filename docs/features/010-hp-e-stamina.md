@@ -82,6 +82,17 @@ verdade (isso é conteúdo de combate, fora de escopo aqui).
   comportamento do motor, não da criatura (se algum dia uma espécie
   precisar de custo próprio, é a mesma migração já feita antes pra
   `body`/`movement`, feita quando aparecer o caso real).
+  > **Atualização**: decisão revertida a pedido do usuário — o caso real
+  > apareceu com a troca de controle treinador↔criatura (docs/features/
+  > 018-troca-de-controle-treinador-criatura.md): `HP_REGEN_DELAY_AFTER_
+  > DAMAGE`/`STAMINA_REGEN_DELAY_AFTER_USE`/`RUN_STAMINA_DRAIN_PER_SECOND`/
+  > `JUMP_STAMINA_COST` saíram de `GAME_CONFIG.VITALS` e viraram parte do
+  > bloco `vitals` por espécie (`core/data/species/<id>/index.js`, campos
+  > `hpRegenDelayAfterDamage`/`staminaRegenDelayAfterUse`/
+  > `runStaminaDrainPerSecond`/`jumpStaminaCost`, copiados pro trait
+  > `Vitals` no spawn via `vitalsFromSpecies`, ver
+  > `core/traits/components/vitals.js`). Continuam iguais pra toda espécie
+  > hoje — só a localização mudou, não os valores.
 - **Validação de HP: botão de debug, não um sistema de dano** — o pedido
   foi "algo pra eu validar", não uma fonte de dano de jogo de verdade
   (inimigo, queda, hazard — todos ainda por desenhar). `DebugPanel.jsx`

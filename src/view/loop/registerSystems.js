@@ -1,6 +1,7 @@
 import { registerSystem, GAME_PHASES } from '@/core/systems'
 import { inputSystem } from '@/core/systems/inputSystem'
 import { physicsBootstrapSystem } from '@/core/systems/physicsBootstrapSystem'
+import { controlSwitchSystem } from '@/core/systems/controlSwitchSystem'
 import { cameraControlSystem } from '@/core/systems/cameraControlSystem'
 import { aimAnchorSystem } from '@/core/systems/aimAnchorSystem'
 import { vitalsRegenSystem } from '@/core/systems/vitalsRegenSystem'
@@ -26,7 +27,11 @@ let registered = false
  * e view), por isso vive na camada view — não no core headless.
  *
  * A ordem dentro da fase `simulation` é parte do comportamento:
- *   bootstrap → controle de câmera → captura/libera o ponto de mira
+ *   bootstrap → troca de controle treinador/criatura (`controlSwitchSystem`,
+ *   ver docs/features/018-troca-de-controle-treinador-criatura.md — precisa
+ *   mover `InputControlled`/`CameraTarget` ANTES de qualquer system que leia
+ *   essas tags neste mesmo tick) → controle de câmera → captura/libera o
+ *   ponto de mira
  *   travado (`aimAnchorSystem`, precisa do yaw/pitch já atualizados pelo
  *   controle de câmera deste tick) → regeneração de HP/stamina → movimento
  *   (lê o `AimAnchor` já resolvido neste mesmo tick pra decidir orbitar ou
@@ -58,6 +63,7 @@ export function registerGameSystems() {
   registerSystem(GAME_PHASES.INPUT, inputSystem)
 
   registerSystem(GAME_PHASES.SIMULATION, physicsBootstrapSystem)
+  registerSystem(GAME_PHASES.SIMULATION, controlSwitchSystem)
   registerSystem(GAME_PHASES.SIMULATION, cameraControlSystem)
   registerSystem(GAME_PHASES.SIMULATION, aimAnchorSystem)
   registerSystem(GAME_PHASES.SIMULATION, vitalsRegenSystem)

@@ -1,5 +1,11 @@
 import { resolveAimPoint } from '../aim'
-import { AimAnchor, Position, PhysicsBody, InputControlled } from '../traits'
+import {
+  AimAnchor,
+  Position,
+  PhysicsBody,
+  InputControlled,
+  SummonedCreature,
+} from '../traits'
 
 /**
  * Captura/libera o ponto de mira travado (`AimAnchor`, ver docstring do
@@ -23,7 +29,14 @@ export function aimAnchorSystem(context) {
 
   world
     .query(InputControlled, AimAnchor, Position, PhysicsBody)
-    .updateEach(([anchor, pos, body]) => {
+    .updateEach(([anchor, pos, body], entity) => {
+      // Mirar não é um dos verbos permitidos controlando uma criatura (só
+      // andar/correr/pular/dash, ver docs/features/018-troca-de-controle-
+      // treinador-criatura.md) — uma `SummonedCreature` carrega `AimAnchor`
+      // só pra caber na query de `movementSystem.js`, nunca ativa de
+      // verdade, mesmo segurando o botão direito.
+      if (entity.has(SummonedCreature)) return
+
       if (aiming && !anchor.active) {
         const point = resolveAimPoint(world, pos, body.colliderHandle)
         anchor.active = true

@@ -50,14 +50,27 @@ export const SPECIES_TEMPLATE = {
     jumpSpeed: 9,
   },
   // Opcional — sem isso, o spawn usa os defaults do trait Vitals (100/100,
-  // regen 2%/10%). Só declare se esta criatura precisar de números próprios.
+  // regen 2%/10%, delays/custos abaixo). Só declare se esta criatura
+  // precisar de números próprios.
   vitals: {
     maxHp: 100,
     // % do máximo regenerado por segundo (enquanto não está no delay pós-dano).
     hpRegenPercent: 2,
+    // Segundos sem regenerar HP depois de tomar dano.
+    hpRegenDelayAfterDamage: 5,
     maxStamina: 100,
     staminaRegenPercent: 10,
+    // Segundos sem regenerar stamina depois do último uso (correr/dash/pulo).
+    staminaRegenDelayAfterUse: 3,
+    // Stamina gasta por segundo enquanto realmente correndo.
+    runStaminaDrainPerSecond: 2,
+    // Custo de stamina do pulo, descontado uma vez no disparo.
+    jumpStaminaCost: 10,
   },
+  // `actions`/`party` (arremesso/consumo/invocar/recolher e distâncias de
+  // seguir o time) são exclusivos do TREINADOR — não declare aqui pra uma
+  // criatura nova. Ver `../bot/index.js` se algum dia existir uma segunda
+  // espécie `kind: 'trainer'`.
   stats: {},
   moves: [],
 }

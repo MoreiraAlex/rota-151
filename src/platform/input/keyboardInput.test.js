@@ -37,6 +37,10 @@ describe('keyboardInput', () => {
       secondary1: false,
       secondary2: false,
       secondary3: false,
+      switchSlot1: false,
+      switchSlot2: false,
+      switchSlot3: false,
+      returnToBot: false,
     })
   })
 
@@ -113,7 +117,7 @@ describe('keyboardInput', () => {
     keyboard.start()
 
     press('Space')
-    press('KeyQ')
+    press('AltLeft')
     win.dispatch('blur')
 
     // sem isso, o pulso sobreviveria escondido e disparia no primeiro
@@ -138,6 +142,10 @@ describe('keyboardInput', () => {
       secondary1: false,
       secondary2: false,
       secondary3: false,
+      switchSlot1: false,
+      switchSlot2: false,
+      switchSlot3: false,
+      returnToBot: false,
     })
   })
 
@@ -153,18 +161,15 @@ describe('keyboardInput', () => {
     expect(keyboard.snapshot().run).toBe(true)
   })
 
-  it('KeyQ/KeyE mapeiam para o pulso de dash, drenado no snapshot', () => {
+  it('AltLeft mapeia para o pulso de dash, drenado no snapshot', () => {
     const keyboard = createKeyboardInput()
     keyboard.start()
 
-    press('KeyQ')
+    press('AltLeft')
     expect(keyboard.snapshot().dash).toBe(true)
     // drenado — a segunda leitura sem novo keydown vem falsa, mesmo com a
     // tecla ainda fisicamente pressionada
     expect(keyboard.snapshot().dash).toBe(false)
-
-    press('KeyE')
-    expect(keyboard.snapshot().dash).toBe(true)
   })
 
   it('segurar a tecla de dash (auto-repeat do SO) não gera novo pulso', () => {
@@ -172,7 +177,7 @@ describe('keyboardInput', () => {
     keyboard.start()
 
     win.dispatch('keydown', {
-      code: 'KeyQ',
+      code: 'AltLeft',
       preventDefault: () => {},
       repeat: true,
     })
@@ -184,21 +189,21 @@ describe('keyboardInput', () => {
     const keyboard = createKeyboardInput()
     keyboard.start()
 
-    press('KeyQ')
+    press('AltLeft')
     expect(keyboard.snapshot().dash).toBe(true)
 
-    release('KeyQ')
-    press('KeyQ')
+    release('AltLeft')
+    press('AltLeft')
     expect(keyboard.snapshot().dash).toBe(true)
   })
 
-  it('Digit1/2/3 mapeiam para os pulsos de secondary1/2/3, drenados no snapshot', () => {
+  it('KeyQ/KeyE/KeyR mapeiam para os pulsos de secondary1/2/3, drenados no snapshot', () => {
     const keyboard = createKeyboardInput()
     keyboard.start()
 
-    press('Digit1')
-    press('Digit2')
-    press('Digit3')
+    press('KeyQ')
+    press('KeyE')
+    press('KeyR')
     expect(keyboard.snapshot()).toMatchObject({
       secondary1: true,
       secondary2: true,
@@ -212,12 +217,12 @@ describe('keyboardInput', () => {
     })
   })
 
-  it('segurar Digit1 (auto-repeat do SO) não gera novo pulso de secondary1', () => {
+  it('segurar KeyQ (auto-repeat do SO) não gera novo pulso de secondary1', () => {
     const keyboard = createKeyboardInput()
     keyboard.start()
 
     win.dispatch('keydown', {
-      code: 'Digit1',
+      code: 'KeyQ',
       preventDefault: () => {},
       repeat: true,
     })
@@ -229,15 +234,75 @@ describe('keyboardInput', () => {
     const keyboard = createKeyboardInput()
     keyboard.start()
 
-    press('Digit1')
-    press('Digit2')
-    press('Digit3')
+    press('KeyQ')
+    press('KeyE')
+    press('KeyR')
     win.dispatch('blur')
 
     expect(keyboard.snapshot()).toMatchObject({
       secondary1: false,
       secondary2: false,
       secondary3: false,
+    })
+  })
+
+  it('Digit1/2/3 mapeiam para os pulsos de troca de controle switchSlot1/2/3, drenados no snapshot', () => {
+    const keyboard = createKeyboardInput()
+    keyboard.start()
+
+    press('Digit1')
+    press('Digit2')
+    press('Digit3')
+    expect(keyboard.snapshot()).toMatchObject({
+      switchSlot1: true,
+      switchSlot2: true,
+      switchSlot3: true,
+    })
+    // drenado — segunda leitura sem novo keydown vem falsa
+    expect(keyboard.snapshot()).toMatchObject({
+      switchSlot1: false,
+      switchSlot2: false,
+      switchSlot3: false,
+    })
+  })
+
+  it('Digit4 mapeia para o pulso de returnToBot, drenado no snapshot', () => {
+    const keyboard = createKeyboardInput()
+    keyboard.start()
+
+    press('Digit4')
+    expect(keyboard.snapshot().returnToBot).toBe(true)
+    expect(keyboard.snapshot().returnToBot).toBe(false)
+  })
+
+  it('segurar Digit1 (auto-repeat do SO) não gera novo pulso de switchSlot1', () => {
+    const keyboard = createKeyboardInput()
+    keyboard.start()
+
+    win.dispatch('keydown', {
+      code: 'Digit1',
+      preventDefault: () => {},
+      repeat: true,
+    })
+
+    expect(keyboard.snapshot().switchSlot1).toBe(false)
+  })
+
+  it('perder o foco descarta pulsos pendentes de switchSlot1/2/3 e returnToBot', () => {
+    const keyboard = createKeyboardInput()
+    keyboard.start()
+
+    press('Digit1')
+    press('Digit2')
+    press('Digit3')
+    press('Digit4')
+    win.dispatch('blur')
+
+    expect(keyboard.snapshot()).toMatchObject({
+      switchSlot1: false,
+      switchSlot2: false,
+      switchSlot3: false,
+      returnToBot: false,
     })
   })
 

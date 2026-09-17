@@ -1,13 +1,15 @@
-import { GAME_CONFIG } from '../gameConfig'
-import { getSpecies } from '../data/species'
+import { getSpecies, getPlayerSpecies } from '../data/species'
 import { resolveCameraYaw } from '../aim'
 import { isPhysicsReady } from '../physics/physicsWorld'
 import { createCharacterBody, destroyCharacterBody } from '../physics/colliders'
 import {
   ActionState,
+  AimAnchor,
   AnimationState,
   CharacterController,
+  HeldItem,
   InputControlled,
+  InputState,
   MovementStats,
   Party,
   PathState,
@@ -16,7 +18,7 @@ import {
   Rotation,
   SummonedCreature,
   Velocity,
-  Vitals,
+  vitalsFromSpecies,
 } from '../traits'
 
 // Mapeia o pulso de input (`secondaryN`, ver docs/features/011-slots-de-
@@ -27,7 +29,12 @@ const SLOTS = [
   { input: 'secondary3', slot: 'slot3' },
 ]
 
-function findSummoned(world, slot) {
+/**
+ * Acha a `SummonedCreature` de um slot, se houver. Exportado — também usado
+ * por `controlSwitchSystem.js` (docs/features/018-troca-de-controle-
+ * treinador-criatura.md) pra achar o alvo de uma troca de controle.
+ */
+export function findSummoned(world, slot) {
   return world
     .query(SummonedCreature)
     .find((entity) => entity.get(SummonedCreature).slot === slot)
@@ -77,7 +84,7 @@ function beginSummon(world, action, rot, slot) {
   rot.y = cameraYaw
 }
 
-/** Efeito de `'recall'`, no instante `EFFECT_AT` — desfaz o corpo físico e destrói a entidade. */
+/** Efeito de `'recall'`, no instante `effectAt` — desfaz o corpo físico e destrói a entidade. */
 function applyRecall(world, slot) {
   const creature = findSummoned(world, slot)
   if (!creature) return
@@ -86,13 +93,14 @@ function applyRecall(world, slot) {
 }
 
 /**
- * Efeito de `'summon'`, no instante `EFFECT_AT` — spawna a
+ * Efeito de `'summon'`, no instante `effectAt` — spawna a
  * `SummonedCreature` de verdade, com física (`createCharacterBody`, ver
  * docstring do system) e os traits que `creatureFollowSystem`/
  * `characterPhysicsSystem`/`animationStateSystem` precisam. Posição vem
  * de `pos` (o treinador não se move durante a ação — `ActionState`
  * trava o movimento, ver `movementSystem.js`) deslocada por
- * `SUMMON_OFFSET` na direção travada no disparo (`action.dirX/dirZ`).
+ * `getPlayerSpecies().party.summonOffset` na direção travada no disparo
+ * (`action.dirX/dirZ`).
  */
 function applySummon(world, action, party, pos, slot) {
   const speciesId = party[slot]
@@ -100,11 +108,11 @@ function applySummon(world, action, party, pos, slot) {
   const species = getSpecies(speciesId)
   if (!species) return
 
-  const { SUMMON_OFFSET } = GAME_CONFIG.PARTY
+  const { summonOffset } = getPlayerSpecies().party
   const spawnPosition = {
-    x: pos.x + action.dirX * SUMMON_OFFSET,
+    x: pos.x + action.dirX * summonOffset,
     y: pos.y,
-    z: pos.z + action.dirZ * SUMMON_OFFSET,
+    z: pos.z + action.dirZ * summonOffset,
   }
 
   const physicsBody = isPhysicsReady()
@@ -124,9 +132,28 @@ function applySummon(world, action, party, pos, slot) {
     Velocity,
     CharacterController(species.body),
     MovementStats(species.movement),
-    Vitals, // sem uso real — só pra entrar na query de characterPhysicsSystem
+    // Vitals de verdade agora (antes era `Vitals` cru, sempre default —
+    // não copiava da espécie). Passou a importar de fato: correr/pular
+    // controlando a criatura (feature 018) drena/regenera pelos números
+    // DELA, não um valor global (`vitalsFromSpecies`, ver
+    // core/traits/components/vitals.js).
+    vitalsFromSpecies(species.vitals),
     PhysicsBody(physicsBody),
     PathState, // default vazio — creatureFollowSystem calcula no 1º tick
+    // InputState/AimAnchor/HeldItem: sem uso real enquanto a criatura é IA —
+    // só pra ela já caber nas queries de movementSystem/playerActionSystem/
+    // aimAnchorSystem no instante em que ganhar `InputControlled` (troca de
+    // controle, ver controlSwitchSystem.js e docs/features/018-troca-de-
+    // controle-treinador-criatura.md). `HeldItem.itemId` nunca é setado pra
+    // uma criatura, então arremesso/consumo caem sozinhos no `else { return
+    // }` de playerActionSystem.js — viram no-op de graça, sem precisar
+    // excluir nada explicitamente; dash não depende de item nenhum, já
+    // funciona assim que `InputControlled` chegar. Mirar (AimAnchor.active)
+    // é bloqueado à parte, em aimAnchorSystem.js — não é um dos verbos
+    // permitidos controlando uma criatura.
+    InputState,
+    AimAnchor,
+    HeldItem,
   )
 }
 
@@ -136,12 +163,23 @@ function applySummon(world, action, party, pos, slot) {
  * desequipado do time — ver docs/features/017-locomocao-e-recolhimento-
  * de-criaturas.md.
  *
+ * A query principal NÃO exige mais `InputControlled` (só `Party`, que já é
+ * exclusivo do treinador — nenhuma criatura tem esse trait) — o
+ * recolhimento automático (slot esvaziado pelo `InventoryPanel`) precisa
+ * rodar não importa quem esteja sendo pilotado no momento (ver
+ * docs/features/018-troca-de-controle-treinador-criatura.md). Só a reação
+ * a `secondaryN` (Q/E/R) fica de fato restrita a `entity.has(InputControlled)`
+ * — enquanto uma criatura está no controle, essas teclas são reservadas
+ * pras skills dela (futuro), não devem invocar/recolher por cima.
+ *
  * Invocar/recolher são AÇÕES de verdade agora, com duração
- * (`GAME_CONFIG.PLAYER_ACTIONS.summon`/`recall`) — mesmo mecanismo
+ * (`getPlayerSpecies().actions.summon`/`recall`, ver docs/features/018-
+ * troca-de-controle-treinador-criatura.md — exclusivo do treinador, só
+ * ele invoca/recolhe) — mesmo mecanismo
  * genérico de `ActionState` que dash/arremesso/uso já usam
  * (`playerActionSystem.js`): travam `current` no disparo, o efeito de
  * verdade (spawnar/destruir a `SummonedCreature`) só acontece depois, no
- * instante `EFFECT_AT`, e `current` volta a `null` em `DURATION`. As duas
+ * instante `effectAt`, e `current` volta a `null` em `duration`. As duas
  * fontes que escrevem `ActionState` (este system e `playerActionSystem.js`)
  * só iniciam uma ação nova quando `current` já está `null` — então dash/
  * arremesso/uso e invocar/recolher nunca se sobrepõem: enquanto uma
@@ -192,12 +230,11 @@ function applySummon(world, action, party, pos, slot) {
 export function partySummonSystem(context) {
   const { world, delta } = context
   const input = context.input ?? {}
-  const SUMMON = GAME_CONFIG.PLAYER_ACTIONS.summon
-  const RECALL = GAME_CONFIG.PLAYER_ACTIONS.recall
+  const { summon: SUMMON, recall: RECALL } = getPlayerSpecies().actions
 
   world
-    .query(InputControlled, Party, Position, Rotation, ActionState)
-    .updateEach(([party, pos, rot, action]) => {
+    .query(Party, Position, Rotation, ActionState)
+    .updateEach(([party, pos, rot, action], entity) => {
       // Recolhimento automático — só quando o treinador está livre (não
       // interrompe uma ação já em andamento). Só uma por tick: se sobrar
       // mais de um slot órfão, os próximos são pegos nos ticks seguintes,
@@ -220,10 +257,7 @@ export function partySummonSystem(context) {
         const previousElapsed = action.elapsed
         action.elapsed += delta
 
-        if (
-          previousElapsed < cfg.EFFECT_AT &&
-          action.elapsed >= cfg.EFFECT_AT
-        ) {
+        if (previousElapsed < cfg.effectAt && action.elapsed >= cfg.effectAt) {
           if (action.current === 'summon') {
             applySummon(world, action, party, pos, action.pendingSlot)
           } else {
@@ -231,7 +265,7 @@ export function partySummonSystem(context) {
           }
         }
 
-        if (action.elapsed >= cfg.DURATION) {
+        if (action.elapsed >= cfg.duration) {
           action.current = null
           action.pendingSlot = null
         }
@@ -239,6 +273,16 @@ export function partySummonSystem(context) {
       }
 
       if (action.current !== null) return // ocupado com dash/arremesso/uso
+
+      // secondaryN (Q/E/R) só invoca/recolhe enquanto o TREINADOR está no
+      // controle — `context.input` é um snapshot global (único dispositivo
+      // de input), então sem essa checagem a criatura controlada (ver
+      // controlSwitchSystem.js) invocaria/recolheria o time por cima, e as
+      // mesmas teclas viram skills dela no futuro (docs/features/018-troca-
+      // de-controle-treinador-criatura.md). O recolhimento automático acima
+      // não tem essa restrição — desequipar pelo InventoryPanel deve
+      // recolher a criatura não importa quem esteja sendo pilotado.
+      if (!entity.has(InputControlled)) return
 
       for (const { input: inputKey, slot } of SLOTS) {
         if (!input[inputKey]) continue

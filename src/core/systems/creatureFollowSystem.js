@@ -2,7 +2,9 @@ import { GAME_CONFIG } from '../gameConfig'
 import { lerpAngle } from '../math'
 import { findPath } from '../pathfinding'
 import { castRay } from '../physics/raycast'
+import { getPlayerSpecies } from '../data/species'
 import {
+  CharacterController,
   InputControlled,
   MovementBlocked,
   MovementStats,
@@ -10,16 +12,29 @@ import {
   PhysicsBody,
   Position,
   Rotation,
-  SummonedCreature,
   Velocity,
 } from '../traits'
 
 /**
- * Toda `SummonedCreature` anda em direção à posição do treinador — decidido
- * em docs/features/013-criaturas-de-time.md ("segue o jogador"). Acha o
- * treinador via `InputControlled` (não um singleton importado), mesma
- * técnica que qualquer system headless já usa pra achar "o jogador" —
- * funciona igual em teste (`makeWorld`) e no jogo real.
+ * Todo personagem que NÃO está sendo pilotado agora anda em direção a quem
+ * está — decidido em docs/features/013-criaturas-de-time.md ("segue o
+ * jogador"), generalizado em docs/features/018-troca-de-controle-
+ * treinador-criatura.md pra suportar trocar de controle: normalmente é
+ * "toda criatura segue o treinador", mas com o controle numa criatura, é o
+ * TREINADOR (virou "o bot") quem passa a seguir, e a criatura controlada
+ * some da lista de seguidores. Acha quem está sendo pilotado via
+ * `InputControlled` (não um singleton importado), mesma técnica que
+ * qualquer system headless já usa pra achar "o jogador" — funciona igual
+ * em teste (`makeWorld`) e no jogo real; como só uma entidade por vez tem
+ * essa tag (é ela quem `controlSwitchSystem.js` move), isso já resolve
+ * pra quem quer que seja o alvo no momento, sem esta função precisar saber
+ * se é o treinador ou uma criatura.
+ *
+ * Quem segue é generalizado por `CharacterController` (trait física que
+ * treinador e toda criatura têm os dois) menos quem tem `InputControlled`
+ * agora — não mais por `SummonedCreature` especificamente, que era como
+ * "seguidor" e "criatura" significavam a mesma coisa antes de existir
+ * troca de controle.
  *
  * Produz `Velocity`/`Rotation` (intenção) em vez de mexer em `Position`
  * direto — mesmo desenho de `movementSystem.js` pro jogador. Quem de fato
@@ -32,17 +47,19 @@ import {
  *
  * Desde que a criatura ganhou física de verdade (docs/features/017-
  * locomocao-e-recolhimento-de-criaturas.md), ir direto em linha reta até o
- * treinador faz ela esbarrar/deslizar contra paredes e obstáculos em vez
- * de contornar. A direção de movimento agora vem de `core/pathfinding.js`
- * (A* numa grade baqueada de `TEST_LEVEL`, ver docstring de lá) — o
- * caminho calculado fica cacheado em `PathState` (trait AoS própria da
- * criatura) e só é recalculado a cada `PATHFINDING.REPATH_INTERVAL`
- * segundos (`repathTimer`), não todo tick: a grade não muda, o treinador
- * não anda tão rápido a ponto de precisar de um caminho nervoso, e
- * recalcular menos evita zigue-zague na trajetória. Sem waypoints (nenhum
- * obstáculo relevante no meio, ou nenhum caminho encontrado) cai de volta
- * na linha reta até o treinador — mesmo fallback gracioso usado no resto
- * do motor quando um recurso não está disponível.
+ * alvo (quem está sendo seguido — normalmente o treinador, ou o próprio
+ * treinador seguindo uma criatura enquanto ela está no controle) faz ela
+ * esbarrar/deslizar contra paredes e obstáculos em vez de contornar. A
+ * direção de movimento agora vem de `core/pathfinding.js` (A* numa grade
+ * baqueada de `TEST_LEVEL`, ver docstring de lá) — o caminho calculado
+ * fica cacheado em `PathState` (trait AoS própria de cada seguidor) e só é
+ * recalculado a cada `PATHFINDING.REPATH_INTERVAL` segundos
+ * (`repathTimer`), não todo tick: a grade não muda, o alvo não anda tão
+ * rápido a ponto de precisar de um caminho nervoso, e recalcular menos
+ * evita zigue-zague na trajetória. Sem waypoints (nenhum obstáculo
+ * relevante no meio, ou nenhum caminho encontrado) cai de volta na linha
+ * reta até o alvo — mesmo fallback gracioso usado no resto do motor
+ * quando um recurso não está disponível.
  *
  * Velocidade vem de `MovementStats` da própria criatura (por espécie, ver
  * `core/data/species/<id>/index.js`), não de um valor global único: dentro
@@ -51,13 +68,13 @@ import {
  * transição de velocidade que dá o walk/run de verdade (`animationStateSystem`
  * já decide o clipe a partir de `WALK_MIN_SPEED`/`RUN_MIN_SPEED`, sem
  * precisar de um limiar próprio aqui). A decisão anda/corre usa a
- * distância até o TREINADOR, não até o waypoint atual — só a direção do
+ * distância até o ALVO, não até o waypoint atual — só a direção do
  * movimento muda com o pathfinding, o ritmo de aproximação continua igual
  * ao de antes.
  *
  * ## `Velocity` segue `Rotation`, não o contrário
  *
- * O destino muda com frequência — o treinador anda, o caminho recalcula
+ * O destino muda com frequência — o alvo anda, o caminho recalcula
  * (`PATHFINDING.REPATH_INTERVAL`), o waypoint atual é alcançado — e cada
  * troca podia mudar a direção alvo (`atan2` do waypoint/repulsão) de um
  * jeito abrupto de um tick pro outro. Antes, `Velocity` virava direto pra
@@ -82,18 +99,19 @@ import {
  *
  * Personagens colidem fisicamente de verdade entre si (`characterPhysicsSystem.js`
  * não filtra outros personagens — pedido explícito do usuário: não se
- * atravessam). Sem mais nada, isso faria criaturas se esbarrarem/
- * empurrarem ao convergir todas pro treinador — em vez disso, cada
- * criatura soma um vetor de REPULSÃO de qualquer outro personagem
- * (treinador ou outra criatura) mais perto que `PARTY.AVOIDANCE_RADIUS`
+ * atravessam). Sem mais nada, isso faria seguidores se esbarrarem/
+ * empurrarem ao convergir todos pro mesmo alvo — em vez disso, cada
+ * seguidor soma um vetor de REPULSÃO de qualquer outro personagem
+ * (`CharacterController` — alvo ou outro seguidor, controlado ou não) mais
+ * perto que `PARTY.AVOIDANCE_RADIUS`
  * (mais forte quanto mais perto) na direção de movimento ANTES de virar
  * `Velocity`, desviando proativamente do caminho de quem está por perto em
  * vez de precisar esbarrar de verdade pra reagir. Mesmo dentro de
- * `FOLLOW_MIN_DISTANCE` (perto o bastante do treinador pra "chegar"), uma
- * criatura ainda usa só a repulsão (sem perseguir mais o treinador) se
- * outro personagem estiver perto demais — sem isso, duas criaturas
- * "estacionadas" na mesma distância do treinador podiam acabar sobrepostas
- * sem nenhuma delas se mexer pra desfazer isso.
+ * `FOLLOW_MIN_DISTANCE` (perto o bastante do alvo pra "chegar"), um
+ * seguidor ainda usa só a repulsão (sem perseguir mais o alvo) se outro
+ * personagem estiver perto demais — sem isso, dois seguidores
+ * "estacionados" na mesma distância do alvo podiam acabar sobrepostos sem
+ * nenhum deles se mexer pra desfazer isso.
  *
  * ## Evasão local (`MovementBlocked`)
  *
@@ -125,40 +143,46 @@ export function creatureFollowSystem(context) {
   const { world, delta } = context
   // Lido a cada tick pra manipular via menu de configurações (ver
   // docs/features/015-menu-de-pausa-e-configuracoes.md) valer na hora.
+  // `party` é exclusivo do treinador (`getPlayerSpecies()`, ver
+  // docs/features/018-troca-de-controle-treinador-criatura.md) — é sempre
+  // em relação a quem tem `Party`, não a uma espécie qualquer.
   const {
-    FOLLOW_MIN_DISTANCE,
-    RUN_DISTANCE,
-    AVOIDANCE_RADIUS,
-    AVOIDANCE_STRENGTH,
-  } = GAME_CONFIG.PARTY
+    followMinDistance: FOLLOW_MIN_DISTANCE,
+    runDistance: RUN_DISTANCE,
+    avoidanceRadius: AVOIDANCE_RADIUS,
+    avoidanceStrength: AVOIDANCE_STRENGTH,
+  } = getPlayerSpecies().party
   const {
     REPATH_INTERVAL,
     WAYPOINT_ARRIVAL_DISTANCE,
     AVOIDANCE_PROBE_DISTANCE,
   } = GAME_CONFIG.PATHFINDING
 
-  const player = world.queryFirst(InputControlled, Position)
-  if (!player) return
-  const playerPos = player.get(Position)
+  const controlled = world.queryFirst(InputControlled, Position)
+  if (!controlled) return
+  const targetPos = controlled.get(Position)
 
-  // Todo personagem (treinador + toda SummonedCreature), lido uma vez por
-  // tick — usado pela evasão entre personagens abaixo pra achar quem está
-  // perto de cada criatura. Leitura simples (nunca escrita por aqui), então
-  // `entity.get(Position)` fora da query principal é seguro (a ressalva de
-  // SoA/query ativa é só sobre ESCRITA não persistir, ver docstring de
-  // `PathState` mais abaixo).
-  const others = [
-    { entity: player, pos: playerPos },
-    ...world
-      .query(SummonedCreature, Position)
-      .map((e) => ({ entity: e, pos: e.get(Position) })),
-  ]
+  // Todo personagem físico (treinador + toda SummonedCreature, controlado
+  // ou não), lido uma vez por tick — usado pela evasão entre personagens
+  // abaixo pra achar quem está perto de cada seguidor. Uma única query por
+  // `CharacterController` (em vez de "o controlado" + "toda
+  // SummonedCreature" separados) evita listar a mesma entidade duas vezes
+  // quando ela é as duas coisas ao mesmo tempo (uma criatura controlada
+  // ainda tem `SummonedCreature`). Leitura simples (nunca escrita por
+  // aqui), então `entity.get(Position)` fora da query principal é seguro (a
+  // ressalva de SoA/query ativa é só sobre ESCRITA não persistir, ver
+  // docstring de `PathState` mais abaixo).
+  const others = world
+    .query(CharacterController, Position)
+    .map((e) => ({ entity: e, pos: e.get(Position) }))
 
   world
-    .query(SummonedCreature, MovementStats, Velocity, Rotation, Position)
+    .query(CharacterController, MovementStats, Velocity, Rotation, Position)
     .updateEach(([, stats, vel, rot, pos], entity) => {
-      const dx = playerPos.x - pos.x
-      const dz = playerPos.z - pos.z
+      if (entity.has(InputControlled)) return // é quem está sendo pilotado — não segue ninguém
+
+      const dx = targetPos.x - pos.x
+      const dz = targetPos.z - pos.z
       const distance = Math.hypot(dx, dz)
 
       // Repulsão de qualquer outro personagem mais perto que
@@ -190,9 +214,9 @@ export function creatureFollowSystem(context) {
       let speed
 
       if (distance <= FOLLOW_MIN_DISTANCE) {
-        // Perto o bastante do treinador pra "chegar", mas outro
+        // Perto o bastante do alvo pra "chegar", mas outro
         // personagem está perto demais — só desvia, sem perseguir mais o
-        // treinador (já não precisa).
+        // alvo (já não precisa).
         dirX = avoidX
         dirZ = avoidZ
         speed = stats.walkSpeed
@@ -213,13 +237,13 @@ export function creatureFollowSystem(context) {
 
         const blockedRisingEdge = isBlocked && !wasBlocked
         if (repathTimer <= 0 || blockedRisingEdge) {
-          waypoints = findPath(pos, playerPos)
+          waypoints = findPath(pos, targetPos)
           waypointIndex = 0
           repathTimer = REPATH_INTERVAL
         }
 
-        let targetX = playerPos.x
-        let targetZ = playerPos.z
+        let targetX = targetPos.x
+        let targetZ = targetPos.z
         if (waypointIndex < waypoints.length) {
           const waypoint = waypoints[waypointIndex]
           if (

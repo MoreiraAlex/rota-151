@@ -45,7 +45,7 @@ export const FOX = {
   movement: {
     // Unidades por segundo (1 unidade = 1 metro).
     walkSpeed: 2,
-    runSpeed: 5,
+    runSpeed: 10,
     // Fator de suavização do giro em direção ao movimento (rad/s aprox.).
     turnSpeed: 10,
     // Velocidade vertical inicial do pulo (m/s).
@@ -55,8 +55,16 @@ export const FOX = {
     maxHp: 100,
     // % do máximo regenerado por segundo (enquanto não está no delay pós-dano).
     hpRegenPercent: 2,
+    // Segundos sem regenerar HP depois de tomar dano.
+    hpRegenDelayAfterDamage: 5,
     maxStamina: 100,
     staminaRegenPercent: 10,
+    // Segundos sem regenerar stamina depois do último uso (correr/dash/pulo).
+    staminaRegenDelayAfterUse: 3,
+    // Stamina gasta por segundo enquanto realmente correndo.
+    runStaminaDrainPerSecond: 2,
+    // Custo de stamina do pulo, descontado uma vez no disparo.
+    jumpStaminaCost: 10,
   },
   stats: {},
   moves: [],

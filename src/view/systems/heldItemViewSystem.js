@@ -1,7 +1,6 @@
 import * as THREE from 'three'
-import { GAME_CONFIG } from '@/core/gameConfig'
 import { getItem } from '@/core/data/items'
-import { PLAYER_SPECIES_ID } from '@/core/data/species'
+import { PLAYER_SPECIES_ID, getPlayerSpecies } from '@/core/data/species'
 import { getAnimatedBonesEntry } from '@/view/registry/animationRegistry'
 import { THROWABLE_RADIUS, THROWABLE_COLOR } from '@/view/scene/throwableVisual'
 import {
@@ -74,7 +73,7 @@ export function heldItemViewSystem(context) {
 
   const alreadyReleased =
     action.current === 'throw' &&
-    action.elapsed >= GAME_CONFIG.PLAYER_ACTIONS.throw.EFFECT_AT
+    action.elapsed >= getPlayerSpecies().actions.throw.effectAt
 
   const shouldShow =
     item?.category === 'throwable' && !!anchor.active && !alreadyReleased

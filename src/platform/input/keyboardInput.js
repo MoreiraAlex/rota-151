@@ -26,13 +26,21 @@ const KEY_MAP = {
 // Espaço fazia pular de novo assim que aterrissava, sem soltar a tecla.
 const EDGE_KEY_MAP = {
   Space: 'jump',
-  KeyQ: 'dash',
-  KeyE: 'dash',
+  AltLeft: 'dash',
   // Botões de ação secundários (ver docs/features/011-slots-de-acao.md) — o
   // primário é o clique esquerdo do mouse, tratado em pointerInput.js.
-  Digit1: 'secondary1',
-  Digit2: 'secondary2',
-  Digit3: 'secondary3',
+  KeyQ: 'secondary1',
+  KeyE: 'secondary2',
+  KeyR: 'secondary3',
+  // Troca de controle treinador↔criatura (ver docs/features/018-troca-de-
+  // controle-treinador-criatura.md) — 1/2/3 trocam pro slot correspondente
+  // (mesma correspondência de slot que Q/E/R usam pra invocar/recolher,
+  // só que numa tecla diferente, pra não colidir com a mesma tecla
+  // significando duas coisas), 4 devolve o controle pro treinador.
+  Digit1: 'switchSlot1',
+  Digit2: 'switchSlot2',
+  Digit3: 'switchSlot3',
+  Digit4: 'returnToBot',
 }
 
 export function createKeyboardInput() {
@@ -85,6 +93,10 @@ export function createKeyboardInput() {
         secondary1: justPressed.has('secondary1'),
         secondary2: justPressed.has('secondary2'),
         secondary3: justPressed.has('secondary3'),
+        switchSlot1: justPressed.has('switchSlot1'),
+        switchSlot2: justPressed.has('switchSlot2'),
+        switchSlot3: justPressed.has('switchSlot3'),
+        returnToBot: justPressed.has('returnToBot'),
       }
       justPressed.clear()
       return snapshot

@@ -23,7 +23,6 @@ import {
 } from '@/core/physics/physicsWorld'
 import { quaternionFromAxisAngle } from '@/core/math'
 import { createCharacterBody } from '@/core/physics/colliders'
-import { GAME_CONFIG } from '@/core/gameConfig'
 import { getSpecies } from '@/core/data/species'
 import { inputSystem } from './inputSystem'
 import { physicsBootstrapSystem } from './physicsBootstrapSystem'
@@ -199,7 +198,11 @@ describe('characterPhysicsSystem + integração Rapier', () => {
   })
 
   it('pular desconta o custo de stamina uma vez; sem stamina suficiente, não pula', () => {
-    const { JUMP_STAMINA_COST } = GAME_CONFIG.VITALS
+    // Vitals do player de teste vem de 'fox' (test/makeWorld.js) —
+    // JUMP_STAMINA_COST/STAMINA_REGEN_DELAY_AFTER_USE deixaram de ser
+    // globais e viraram parte de `vitals` por espécie (ver
+    // docs/features/018-troca-de-controle-treinador-criatura.md).
+    const { jumpStaminaCost: JUMP_STAMINA_COST } = FOX.vitals
     const { world, player } = makeWorld({
       playerPosition: { x: 0, y: 1, z: 0 },
     })
@@ -209,7 +212,7 @@ describe('characterPhysicsSystem + integração Rapier', () => {
     tick(world, { jump: true })
     expect(player.get(Vitals).stamina).toBeCloseTo(100 - JUMP_STAMINA_COST)
     expect(player.get(Vitals).staminaRegenDelay).toBeCloseTo(
-      GAME_CONFIG.VITALS.STAMINA_REGEN_DELAY_AFTER_USE,
+      FOX.vitals.staminaRegenDelayAfterUse,
     )
 
     // pousa de novo antes de tentar o segundo pulo

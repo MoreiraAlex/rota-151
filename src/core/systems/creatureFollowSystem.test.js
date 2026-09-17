@@ -1,8 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import { createWorld } from 'koota'
 import { makeWorld } from '@/test/makeWorld'
-import { getSpecies } from '@/core/data/species'
+import { getSpecies, getPlayerSpecies } from '@/core/data/species'
 import {
+  CharacterController,
+  InputControlled,
   MovementBlocked,
   MovementStats,
   PathState,
@@ -15,7 +17,11 @@ import {
 import { GAME_CONFIG } from '@/core/gameConfig'
 import { creatureFollowSystem } from './creatureFollowSystem'
 
-const { FOLLOW_MIN_DISTANCE, RUN_DISTANCE } = GAME_CONFIG.PARTY
+// `party` é exclusivo do treinador (`getPlayerSpecies()`, ver
+// docs/features/018-troca-de-controle-treinador-criatura.md) — sempre a
+// espécie `bot` de verdade, não a `fox` usada pro player de teste abaixo.
+const { followMinDistance: FOLLOW_MIN_DISTANCE, runDistance: RUN_DISTANCE } =
+  getPlayerSpecies().party
 const { walkSpeed: WALK_SPEED, runSpeed: RUN_SPEED } =
   getSpecies('fox').movement
 
@@ -28,6 +34,11 @@ function spawnCreature(world, position) {
     MovementStats(getSpecies('fox').movement),
     PathState,
     PhysicsBody, // toda SummonedCreature real também tem (ver partySummonSystem.js)
+    // A query de seguidores agora é por CharacterController, não mais por
+    // SummonedCreature (ver docstring do system — troca de controle,
+    // docs/features/018-troca-de-controle-treinador-criatura.md) — toda
+    // SummonedCreature real também tem (partySummonSystem.js).
+    CharacterController,
   )
 }
 
@@ -106,11 +117,12 @@ describe('creatureFollowSystem', () => {
     expect(creature.get(Rotation).y).toBeCloseTo(1.7)
   })
 
-  it('lê GAME_CONFIG.PARTY a cada tick — mudar RUN_DISTANCE em tempo real já vale no próximo tick', () => {
+  it('lê getPlayerSpecies().party a cada tick — mudar runDistance em tempo real já vale no próximo tick', () => {
     const { world } = makeWorld({ playerPosition: { x: 0, y: 1, z: 0 } })
     const creature = spawnCreature(world, { x: RUN_DISTANCE + 1, y: 1, z: 0 })
-    const original = GAME_CONFIG.PARTY.RUN_DISTANCE
-    GAME_CONFIG.PARTY.RUN_DISTANCE = 0 // qualquer distância > 0 já corre
+    const partyConfig = getPlayerSpecies().party
+    const original = partyConfig.runDistance
+    partyConfig.runDistance = 0 // qualquer distância > 0 já corre
 
     try {
       tick(world)
@@ -122,7 +134,7 @@ describe('creatureFollowSystem', () => {
       const vel = creature.get(Velocity)
       expect(Math.hypot(vel.x, vel.z)).toBeCloseTo(RUN_SPEED)
     } finally {
-      GAME_CONFIG.PARTY.RUN_DISTANCE = original
+      partyConfig.runDistance = original
     }
   })
 
@@ -230,6 +242,32 @@ describe('creatureFollowSystem', () => {
     const vel = creature.get(Velocity)
     expect(vel.x).toBe(0)
     expect(vel.z).toBe(0)
+  })
+
+  it('trocando o controle pra criatura, o treinador vira seguidor e a criatura controlada não é sobrescrita', () => {
+    // Simula o pós-troca de controle (controlSwitchSystem.js, ver
+    // docs/features/018-troca-de-controle-treinador-criatura.md): o
+    // treinador perde InputControlled, a criatura ganha.
+    const { world, player } = makeWorld({
+      playerPosition: { x: 0, y: 1, z: 0 },
+    })
+    const creature = spawnCreature(world, { x: 10, y: 1, z: 0 })
+    player.remove(InputControlled)
+    creature.add(InputControlled)
+    creature.set(Velocity, { x: 0, y: 0, z: 0 })
+
+    for (let i = 0; i < 120; i++) tick(world)
+
+    // Treinador (agora "o bot") se move em direção à criatura, que está
+    // em +X daqui.
+    const trainerVel = player.get(Velocity)
+    expect(trainerVel.x).toBeGreaterThan(0)
+
+    // A criatura controlada não é seguidora de ninguém — este system nunca
+    // toca a Velocity dela (fica como o teste deixou, sem se mover).
+    const creatureVel = creature.get(Velocity)
+    expect(creatureVel.x).toBe(0)
+    expect(creatureVel.z).toBe(0)
   })
 
   it('sem jogador no world (nenhum InputControlled), não quebra', () => {

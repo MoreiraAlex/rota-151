@@ -1,11 +1,12 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, afterEach } from 'vitest'
 import { makeWorld } from '@/test/makeWorld'
 import { wrapAngle } from '@/core/math'
-import { GAME_CONFIG } from '@/core/gameConfig'
+import { getPlayerSpecies } from '@/core/data/species'
 import {
   ActionState,
   AnimationState,
   CharacterController,
+  InputControlled,
   MovementStats,
   OrbitCamera,
   Party,
@@ -21,7 +22,28 @@ import { partySummonSystem } from './partySummonSystem'
 import { playerActionSystem } from './playerActionSystem'
 
 const DELTA = 1 / 60
-const SUMMON = GAME_CONFIG.PLAYER_ACTIONS.summon
+// summon/recall e o offset de invocação são exclusivos do treinador
+// (`getPlayerSpecies().actions`/`.party`, ver docs/features/018-troca-
+// de-controle-treinador-criatura.md) — sempre a espécie `bot` de
+// verdade, não a `fox` que este arquivo usa pro player de teste.
+const SUMMON = getPlayerSpecies().actions.summon
+
+// Koota limita a 16 worlds vivos por processo — este arquivo cria um por
+// teste e nunca os destruía, o que batia exatamente nesse teto (achado ao
+// adicionar mais testes, ver docs/features/018-troca-de-controle-
+// treinador-criatura.md). Mesmo padrão já usado em aimAnchorSystem.test.js/
+// movementSystem.test.js/playerActionSystem.test.js: acumula os worlds
+// criados e destrói todos depois de cada teste.
+const spawnedWorlds = []
+function spawnWorld(...args) {
+  const created = makeWorld(...args)
+  spawnedWorlds.push(created.world)
+  return created
+}
+
+afterEach(() => {
+  while (spawnedWorlds.length) spawnedWorlds.pop().destroy()
+})
 
 function tick(world, input = {}) {
   partySummonSystem({ world, delta: DELTA, input })
@@ -39,7 +61,7 @@ function advanceUntilFree(world, player) {
 
 describe('partySummonSystem', () => {
   it('slot vazio: apertar o botão não faz nada — nem invoca, nem inicia ação', () => {
-    const { world, player } = makeWorld()
+    const { world, player } = spawnWorld()
 
     tick(world, { secondary1: true })
 
@@ -48,7 +70,7 @@ describe('partySummonSystem', () => {
   })
 
   it('espécie desconhecida no slot não invoca nada, nem inicia ação', () => {
-    const { world, player } = makeWorld()
+    const { world, player } = spawnWorld()
     player.set(Party, { slot1: 'nao-existe' })
 
     tick(world, { secondary1: true })
@@ -58,7 +80,7 @@ describe('partySummonSystem', () => {
   })
 
   it('apertar com uma espécie equipada dispara a ação "summon" e gira o treinador pra direção da câmera — sem invocar ainda', () => {
-    const { world, player, camera } = makeWorld({
+    const { world, player, camera } = spawnWorld({
       playerPosition: { x: 0, y: 1, z: 0 },
     })
     player.set(Party, { slot1: 'fox-red' })
@@ -75,14 +97,14 @@ describe('partySummonSystem', () => {
   })
 
   it('a criatura só nasce no instante de efeito (EFFECT_AT), exatamente uma vez', () => {
-    const { world, player } = makeWorld()
+    const { world, player } = spawnWorld()
     player.set(Party, { slot1: 'fox-red' })
 
     tick(world, { secondary1: true })
 
     let sawEmpty = false
     let spawnCount = 0
-    const totalTicks = Math.ceil(SUMMON.DURATION / DELTA) + 5
+    const totalTicks = Math.ceil(SUMMON.duration / DELTA) + 5
     for (let i = 0; i < totalTicks; i++) {
       const before = world.query(SummonedCreature).length
       tick(world, {})
@@ -97,7 +119,7 @@ describe('partySummonSystem', () => {
   })
 
   it('a ação termina sozinha (current volta a null) depois de DURATION', () => {
-    const { world, player } = makeWorld()
+    const { world, player } = spawnWorld()
     player.set(Party, { slot1: 'fox-red' })
 
     tick(world, { secondary1: true })
@@ -108,7 +130,7 @@ describe('partySummonSystem', () => {
   })
 
   it('a criatura nasce na direção que a câmera apontava no disparo, perto do treinador', () => {
-    const { world, player, camera } = makeWorld({
+    const { world, player, camera } = spawnWorld({
       playerPosition: { x: 5, y: 1, z: 5 },
     })
     player.set(Party, { slot1: 'fox-red' })
@@ -119,7 +141,7 @@ describe('partySummonSystem', () => {
 
     const [creature] = world.query(SummonedCreature, Position)
     const pos = creature.get(Position)
-    const { SUMMON_OFFSET } = GAME_CONFIG.PARTY
+    const { summonOffset: SUMMON_OFFSET } = getPlayerSpecies().party
     // Direção de nascimento = pra ONDE a câmera aponta (yaw + π), não
     // `orbit.yaw` cru.
     const facing = Math.PI / 2 + Math.PI
@@ -128,7 +150,7 @@ describe('partySummonSystem', () => {
   })
 
   it('a criatura invocada guarda a espécie e nasce com física/animação de verdade', () => {
-    const { world, player } = makeWorld()
+    const { world, player } = spawnWorld()
     player.set(Party, { slot1: 'fox-red' })
 
     tick(world, { secondary1: true })
@@ -151,7 +173,7 @@ describe('partySummonSystem', () => {
   })
 
   it('enquanto invoca, apertar outro secondaryN não inicia nada', () => {
-    const { world, player } = makeWorld()
+    const { world, player } = spawnWorld()
     player.set(Party, { slot1: 'fox-red', slot2: 'fox-green' })
 
     tick(world, { secondary1: true })
@@ -165,7 +187,7 @@ describe('partySummonSystem', () => {
   })
 
   it('recolher pelo secondaryN dispara a ação "recall", gira o treinador pra encarar a criatura (não a câmera), e só destrói no efeito', () => {
-    const { world, player } = makeWorld({
+    const { world, player } = spawnWorld({
       playerPosition: { x: 0, y: 1, z: 0 },
     })
     player.set(Party, { slot1: 'fox-red' })
@@ -189,7 +211,7 @@ describe('partySummonSystem', () => {
   })
 
   it('desequipar uma criatura já invocada (Party[slot] = null) dispara o recolhimento como ação — não é instantâneo', () => {
-    const { world, player } = makeWorld()
+    const { world, player } = spawnWorld()
     player.set(Party, { slot1: 'fox-red' })
     tick(world, { secondary1: true })
     advanceUntilFree(world, player)
@@ -205,8 +227,38 @@ describe('partySummonSystem', () => {
     expect(world.query(SummonedCreature).length).toBe(0)
   })
 
+  it('recolhimento automático dispara mesmo com o treinador fora do controle (troca de controle pra outra criatura, ver controlSwitchSystem.js)', () => {
+    const { world, player } = spawnWorld()
+    player.set(Party, { slot1: 'fox-red' })
+    tick(world, { secondary1: true })
+    advanceUntilFree(world, player)
+    expect(world.query(SummonedCreature).length).toBe(1)
+
+    // Simula o treinador tendo perdido o controle pra outra criatura
+    // (docs/features/018-troca-de-controle-treinador-criatura.md) — o
+    // desequipar ainda tem que recolher, não importa quem está pilotando.
+    player.remove(InputControlled)
+    player.set(Party, { slot1: null })
+    tick(world, {})
+
+    expect(player.get(ActionState).current).toBe('recall')
+    advanceUntilFree(world, player)
+    expect(world.query(SummonedCreature).length).toBe(0)
+  })
+
+  it('secondaryN não invoca/recolhe enquanto o treinador está fora do controle (reservado pras skills da criatura, ver docs/features/018-troca-de-controle-treinador-criatura.md)', () => {
+    const { world, player } = spawnWorld()
+    player.set(Party, { slot1: 'fox-red' })
+    player.remove(InputControlled)
+
+    tick(world, { secondary1: true })
+
+    expect(world.query(SummonedCreature).length).toBe(0)
+    expect(player.get(ActionState).current).toBe(null)
+  })
+
   it('desequipar também gira o treinador pra encarar a criatura recolhida automaticamente', () => {
-    const { world, player } = makeWorld({
+    const { world, player } = spawnWorld({
       playerPosition: { x: 0, y: 1, z: 0 },
     })
     player.set(Party, { slot1: 'fox-red' })
@@ -224,7 +276,7 @@ describe('partySummonSystem', () => {
   })
 
   it('desequipar durante outra ação em andamento espera ela terminar antes de recolher', () => {
-    const { world, player } = makeWorld()
+    const { world, player } = spawnWorld()
     player.set(Party, { slot1: 'fox-red', slot2: 'fox-green' })
     tick(world, { secondary1: true })
     advanceUntilFree(world, player)
@@ -251,7 +303,7 @@ describe('partySummonSystem', () => {
   })
 
   it('invocar sequencialmente as 3 criaturas — uma ação de cada vez, mas dá pra ter as 3 de fora ao final', () => {
-    const { world, player } = makeWorld()
+    const { world, player } = spawnWorld()
     player.set(Party, {
       slot1: 'fox-red',
       slot2: 'fox-green',
@@ -273,7 +325,7 @@ describe('partySummonSystem', () => {
   })
 
   it('enquanto uma ação do jogador (dash) está em andamento, invocar não começa', () => {
-    const { world, player } = makeWorld()
+    const { world, player } = spawnWorld()
     player.set(Party, { slot1: 'fox-red' })
     player.set(ActionState, { current: 'dash', elapsed: 0 })
 
@@ -284,7 +336,7 @@ describe('partySummonSystem', () => {
   })
 
   it('enquanto invoca/recolhe, nenhuma outra ação do jogador (dash) pode começar', () => {
-    const { world, player } = makeWorld()
+    const { world, player } = spawnWorld()
     player.set(Party, { slot1: 'fox-red' })
 
     tick(world, { secondary1: true })
@@ -295,13 +347,14 @@ describe('partySummonSystem', () => {
     expect(player.get(ActionState).current).toBe('summon') // não virou dash
   })
 
-  it('lê GAME_CONFIG.PARTY/PLAYER_ACTIONS a cada tick — mudar SUMMON_OFFSET em tempo real já vale no efeito', () => {
-    const { world, player } = makeWorld({
+  it('lê getPlayerSpecies().party a cada tick — mudar summonOffset em tempo real já vale no efeito', () => {
+    const { world, player } = spawnWorld({
       playerPosition: { x: 0, y: 1, z: 0 },
     })
     player.set(Party, { slot1: 'fox-red' })
-    const original = GAME_CONFIG.PARTY.SUMMON_OFFSET
-    GAME_CONFIG.PARTY.SUMMON_OFFSET = original * 3
+    const partyConfig = getPlayerSpecies().party
+    const original = partyConfig.summonOffset
+    partyConfig.summonOffset = original * 3
 
     try {
       tick(world, { secondary1: true })
@@ -310,7 +363,7 @@ describe('partySummonSystem', () => {
       const pos = creature.get(Position)
       expect(Math.hypot(pos.x, pos.z)).toBeCloseTo(original * 3)
     } finally {
-      GAME_CONFIG.PARTY.SUMMON_OFFSET = original
+      partyConfig.summonOffset = original
     }
   })
 })

@@ -1,8 +1,7 @@
 'use client'
 
-import { useTrait, useTag, useQuery } from 'koota/react'
+import { useTrait, useTag, useQuery, useQueryFirst } from 'koota/react'
 import { playerEntity, cameraEntity } from '@/core/world/world'
-import { GAME_CONFIG } from '@/core/gameConfig'
 import { getItem, listItems } from '@/core/data/items'
 import { listSpecies, resolveSpeciesKind } from '@/core/data/species'
 import {
@@ -12,6 +11,7 @@ import {
   Grounded,
   OrbitCamera,
   CharacterController,
+  InputControlled,
   MovementStats,
   PathState,
   Vitals,
@@ -29,26 +29,43 @@ const CREATURE_SPECIES = listSpecies().filter(
 const DEBUG_DAMAGE_AMOUNT = 20
 
 /**
- * Painel de texto com estado ao vivo do jogador/câmera + config relevante
- * pra tunar. Lê via hooks do koota (fora do Canvas — o WorldProvider cobre a
- * página inteira). Ferramenta de debug: só monta quando o toggle está ligado
- * (ver src/app/(auth)/page.js), nunca requisito de gameplay.
+ * Painel de texto com estado ao vivo de quem está no controle + câmera +
+ * config relevante pra tunar. Lê via hooks do koota (fora do Canvas — o
+ * WorldProvider cobre a página inteira). Ferramenta de debug: só monta
+ * quando o toggle está ligado (ver src/app/(auth)/page.js), nunca
+ * requisito de gameplay.
+ *
+ * Posição/velocidade/animação/chão/cápsula/movimento/vitals seguem quem
+ * tem `InputControlled` AGORA (`useQueryFirst`, mesma técnica headless de
+ * achar "quem está sendo pilotado" — ver docs/features/018-troca-de-
+ * controle-treinador-criatura.md), não mais fixo em `playerEntity`: depois
+ * de trocar de controle pra uma criatura, esse é o corpo que de fato
+ * importa debugar (inclusive vitals — pular/dashar controlando uma
+ * criatura drena A STAMINA DELA, não a do treinador, ver
+ * `characterPhysicsSystem.js`/`playerActionSystem.js`). `heldItem`/`party`
+ * continuam fixos no treinador (`playerEntity`) de propósito — são dados
+ * PRÓPRIOS dele (`Party`/item de arremesso equipado), fazem sentido editar
+ * não importa quem está sendo pilotado no momento.
  */
 export function DebugPanel() {
-  const position = useTrait(playerEntity, Position)
-  const velocity = useTrait(playerEntity, Velocity)
-  const anim = useTrait(playerEntity, AnimationState)
-  const grounded = useTag(playerEntity, Grounded)
+  const controlled = useQueryFirst(InputControlled, Position)
+  const position = useTrait(controlled, Position)
+  const velocity = useTrait(controlled, Velocity)
+  const anim = useTrait(controlled, AnimationState)
+  const grounded = useTag(controlled, Grounded)
   const orbit = useTrait(cameraEntity, OrbitCamera)
-  const body = useTrait(playerEntity, CharacterController)
-  const movement = useTrait(playerEntity, MovementStats)
-  const vitals = useTrait(playerEntity, Vitals)
+  const body = useTrait(controlled, CharacterController)
+  const movement = useTrait(controlled, MovementStats)
+  const vitals = useTrait(controlled, Vitals)
+  const controlledCreature = useTrait(controlled, SummonedCreature)
   const heldItem = useTrait(playerEntity, HeldItem)
   const party = useTrait(playerEntity, Party)
+  const playerPath = useTrait(playerEntity, PathState)
   const projectiles = useQuery(Projectile, Position)
   const summoned = useQuery(SummonedCreature, Position)
 
   if (
+    !controlled ||
     !position ||
     !velocity ||
     !anim ||
@@ -63,12 +80,19 @@ export function DebugPanel() {
   }
 
   const item = heldItem.itemId ? getItem(heldItem.itemId) : null
+  const isBot = controlled === playerEntity
 
   const speed = Math.hypot(velocity.x, velocity.z)
   const capsuleHeight = 2 * (body.capsuleRadius + body.capsuleHalfHeight)
 
   return (
     <div className="pointer-events-none absolute bottom-4 left-4 space-y-1 rounded bg-black/70 p-3 font-mono text-xs text-white">
+      <p className="text-white/60">
+        controlando:{' '}
+        {isBot
+          ? 'treinador'
+          : `${controlledCreature?.speciesId} (${controlledCreature?.slot})`}
+      </p>
       <p>
         pos: {position.x.toFixed(2)}, {position.y.toFixed(2)},{' '}
         {position.z.toFixed(2)}
@@ -118,13 +142,13 @@ export function DebugPanel() {
         type="button"
         className="pointer-events-auto mt-1 rounded bg-red-900 px-2 py-1 text-[10px] hover:bg-red-800"
         onClick={() => {
-          const current = playerEntity.get(Vitals)
-          playerEntity.set(
+          const current = controlled.get(Vitals)
+          controlled.set(
             Vitals,
             applyDamage(
               current,
               DEBUG_DAMAGE_AMOUNT,
-              GAME_CONFIG.VITALS.HP_REGEN_DELAY_AFTER_DAMAGE,
+              current.hpRegenDelayAfterDamage,
             ),
           )
         }}
@@ -174,20 +198,41 @@ export function DebugPanel() {
               .map((entity) => entity.get(SummonedCreature).slot)
               .join(', ')}
       </p>
-      {summoned.map((entity) => {
-        const { slot } = entity.get(SummonedCreature)
-        const { waypoints, waypointIndex, repathTimer } = entity.get(PathState)
-        const remaining = waypoints.length - waypointIndex
-        return (
-          <p key={entity} className="text-[10px] text-white/60">
-            {slot} · path:{' '}
-            {remaining > 0 ? `${remaining} waypoint(s)` : 'direto (sem desvio)'}
-            {' · '}
-            recalc em {Math.max(0, repathTimer).toFixed(2)}s
-          </p>
-        )
-      })}
+      {/* Só quem está SEGUINDO tem path de verdade (ver creatureFollowSystem.js
+          — pula quem tem InputControlled) — a criatura controlada agora não
+          aparece aqui (o PathState dela ficou parado no último valor de
+          antes da troca, mostrar seria enganoso), e o treinador aparece
+          quando ele é quem virou o bot (docs/features/018-troca-de-
+          controle-treinador-criatura.md). */}
+      {!isBot && playerPath && (
+        <PathStatusRow label="treinador (bot)" pathState={playerPath} />
+      )}
+      {summoned
+        .filter((entity) => entity !== controlled)
+        .map((entity) => (
+          <PathStatusRow
+            key={entity}
+            label={entity.get(SummonedCreature).slot}
+            pathState={entity.get(PathState)}
+          />
+        ))}
     </div>
+  )
+}
+
+/** Uma linha de status de caminho (waypoints restantes + recálculo) — usada
+ * tanto pro treinador virando bot quanto pra cada criatura invocada que
+ * não seja quem está sendo controlado agora (ver DebugPanel acima). */
+function PathStatusRow({ label, pathState }) {
+  const { waypoints, waypointIndex, repathTimer } = pathState
+  const remaining = waypoints.length - waypointIndex
+  return (
+    <p className="text-[10px] text-white/60">
+      {label} · path:{' '}
+      {remaining > 0 ? `${remaining} waypoint(s)` : 'direto (sem desvio)'}
+      {' · '}
+      recalc em {Math.max(0, repathTimer).toFixed(2)}s
+    </p>
   )
 }
 

@@ -1,4 +1,3 @@
-import { GAME_CONFIG } from '../gameConfig'
 import { lerpAngle } from '../math'
 import {
   Velocity,
@@ -36,8 +35,10 @@ import {
  *
  * Correr só vale com stamina disponível — sem isso, cai pra andar sozinho
  * (sem travar o jogador em nenhum estado quebrado) e drena
- * `RUN_STAMINA_DRAIN_PER_SECOND` enquanto realmente em movimento (segurar
- * o modificador de corrida parado não gasta nada). Mirando (`input.aiming`,
+ * `Vitals.runStaminaDrainPerSecond` (por espécie, ver
+ * docs/features/018-troca-de-controle-treinador-criatura.md) enquanto
+ * realmente em movimento (segurar o modificador de corrida parado não
+ * gasta nada). Mirando (`input.aiming`,
  * botão direito segurado — ver `platform/input/pointerInput.js`), correr
  * também não vale, mesma lógica: cai pra andar em vez de travar — não dá
  * pra atirar correndo, só andando ou parado.
@@ -56,11 +57,6 @@ import {
 export function movementSystem(context) {
   const { world, delta } = context
   const aiming = !!context.input?.aiming
-  // Lido a cada tick (não guardado num const no topo do módulo) pra
-  // manipular via menu de configurações (ver
-  // docs/features/015-menu-de-pausa-e-configuracoes.md) valer na hora.
-  const { RUN_STAMINA_DRAIN_PER_SECOND, STAMINA_REGEN_DELAY_AFTER_USE } =
-    GAME_CONFIG.VITALS
 
   const rig = world.queryFirst(OrbitCamera)
   const cameraYaw = rig ? rig.get(OrbitCamera).yaw : 0
@@ -101,14 +97,14 @@ export function movementSystem(context) {
       const worldZ = -input.x * sinYaw + input.z * cosYaw
 
       const hasMoveIntent = worldX !== 0 || worldZ !== 0
-      const runCost = RUN_STAMINA_DRAIN_PER_SECOND * delta
+      const runCost = vitals.runStaminaDrainPerSecond * delta
       const isRunning =
         input.run && !aiming && hasMoveIntent && vitals.stamina >= runCost
       const speed = isRunning ? stats.runSpeed : stats.walkSpeed
 
       if (isRunning) {
         vitals.stamina = Math.max(0, vitals.stamina - runCost)
-        vitals.staminaRegenDelay = STAMINA_REGEN_DELAY_AFTER_USE
+        vitals.staminaRegenDelay = vitals.staminaRegenDelayAfterUse
       }
 
       vel.x = worldX * speed

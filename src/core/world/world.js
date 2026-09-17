@@ -15,10 +15,11 @@ import {
   AnimationState,
   ActionState,
   AimAnchor,
-  Vitals,
+  vitalsFromSpecies,
   HeldItem,
   Inventory,
   Party,
+  PathState,
 } from '../traits'
 
 export const world = createWorld()
@@ -30,18 +31,7 @@ export const world = createWorld()
 // espécies diferentes um do outro.
 const PLAYER_SPECIES = getSpecies(PLAYER_SPECIES_ID)
 
-// `vitals` é opcional na espécie — sem ele, usa os defaults do próprio
-// trait (ver core/traits/components/vitals.js) em vez de quebrar o spawn.
-const vitals = PLAYER_SPECIES.vitals
-  ? Vitals({
-      hp: PLAYER_SPECIES.vitals.maxHp,
-      maxHp: PLAYER_SPECIES.vitals.maxHp,
-      hpRegenPercent: PLAYER_SPECIES.vitals.hpRegenPercent,
-      stamina: PLAYER_SPECIES.vitals.maxStamina,
-      maxStamina: PLAYER_SPECIES.vitals.maxStamina,
-      staminaRegenPercent: PLAYER_SPECIES.vitals.staminaRegenPercent,
-    })
-  : Vitals
+const vitals = vitalsFromSpecies(PLAYER_SPECIES.vitals)
 
 export const playerEntity = world.spawn(
   Position({ x: 0, y: 2, z: 0 }),
@@ -67,6 +57,12 @@ export const playerEntity = world.spawn(
   HeldItem({ itemId: 'rock' }),
   Inventory,
   Party({ slot1: 'fox' }),
+  // Default vazio — só passa a ter uso se o treinador virar "o bot",
+  // seguindo uma criatura sob controle do jogador (ver
+  // creatureFollowSystem.js e docs/features/018-troca-de-controle-
+  // treinador-criatura.md). Toda SummonedCreature já tinha isso desde a
+  // feature 017; falta aqui pro treinador poder ser seguidor também.
+  PathState,
 )
 
 export const cameraEntity = world.spawn(
