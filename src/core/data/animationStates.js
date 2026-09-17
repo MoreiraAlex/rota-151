@@ -9,9 +9,9 @@ const { WALK_MIN_SPEED, RUN_MIN_SPEED } = GAME_CONFIG.ANIMATION
  * entidade (`null` quando livre).
  *
  * Cresce depois (mais estados, condições novas) sem trocar o formato. Ações
- * disparadas (dash, arremesso, e no futuro uso/invocar/recolher/morrer) vêm
- * antes da locomoção — enquanto uma ação está em andamento, ela decide a
- * animação, não a velocidade/grounded do momento.
+ * disparadas (dash, arremesso, invocar/recolher criatura, e no futuro uso/
+ * morrer) vêm antes da locomoção — enquanto uma ação está em andamento,
+ * ela decide a animação, não a velocidade/grounded do momento.
  *
  * `oneShot: true` marca um clipe de AÇÃO (não cíclico, ver a skill
  * procedural-rig-animation) — `animationSystem.js` (view) usa isso pra
@@ -27,7 +27,26 @@ const { WALK_MIN_SPEED, RUN_MIN_SPEED } = GAME_CONFIG.ANIMATION
  */
 export const ANIMATION_STATES = [
   { id: 'dash', oneShot: true, when: (ctx) => ctx.action === 'dash' },
-  { id: 'throw', oneShot: true, when: (ctx) => ctx.action === 'throw' },
+  // 'summon' (invocar criatura, ver docs/features/017-locomocao-e-
+  // recolhimento-de-criaturas.md) reusa o MESMO clipe/id do arremesso —
+  // pedido explícito do usuário ("usar a animação de arremesso" pra
+  // invocar), não um clipe novo. Por isso não é uma entrada própria: o
+  // `when` do 'throw' bate pras duas ações, e `AnimationState.id` acaba
+  // sendo 'throw' também ao invocar — `animationSystem.js` busca
+  // `entry.clips['throw']` normalmente, sem saber que a ação de verdade
+  // foi outra.
+  {
+    id: 'throw',
+    oneShot: true,
+    when: (ctx) => ctx.action === 'throw' || ctx.action === 'summon',
+  },
+  // 'recall' (recolher criatura) ainda não tem clipe próprio autorado —
+  // fica com o id dela mesma (não reusa 'throw'), então
+  // `animationSystem.js` cai no fallback de "clipe ausente" (pose de
+  // descanso) até o clipe chegar em `core/data/species/<id>/clips/
+  // recall.json` — o mecanismo (oneShot, resolução por ActionState.current)
+  // já fica pronto, só falta o conteúdo.
+  { id: 'recall', oneShot: true, when: (ctx) => ctx.action === 'recall' },
   { id: 'run', when: (ctx) => ctx.grounded && ctx.speed > RUN_MIN_SPEED },
   { id: 'walk', when: (ctx) => ctx.grounded && ctx.speed > WALK_MIN_SPEED },
   // Fallback: parado ou no ar (sem clipe de queda ainda).

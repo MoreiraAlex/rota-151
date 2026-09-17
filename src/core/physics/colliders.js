@@ -83,3 +83,21 @@ export function createCharacterBody(
 
   return { bodyHandle: body.handle, colliderHandle: collider.handle }
 }
+
+/**
+ * Desfaz `createCharacterBody` — remove o rigid body (e o collider
+ * atrelado a ele, o Rapier cuida disso sozinho) do world físico. Usado
+ * quando uma entidade com corpo dinâmico (hoje só `SummonedCreature`, ver
+ * `partySummonSystem.js`) é destruída — sem isso, cada ciclo de invocar/
+ * recolher vazaria um rigid body no world do Rapier, que nunca mais seria
+ * usado nem liberado. `bodyHandle < 0` (nunca chegou a ser criado, ex.:
+ * física ainda não estava pronta na invocação) ou um handle que já não
+ * existe mais não fazem nada — seguro chamar sempre, sem checar antes.
+ */
+export function destroyCharacterBody(bodyHandle) {
+  if (bodyHandle < 0) return
+  const world = getRapierWorld()
+  const body = world.getRigidBody(bodyHandle)
+  if (!body) return
+  world.removeRigidBody(body)
+}

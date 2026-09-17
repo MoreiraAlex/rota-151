@@ -14,6 +14,7 @@ import {
   PhysicsBody,
   CharacterController,
   Grounded,
+  MovementBlocked,
 } from '@/core/traits'
 import {
   initPhysics,
@@ -21,6 +22,7 @@ import {
   getRapierWorld,
 } from '@/core/physics/physicsWorld'
 import { quaternionFromAxisAngle } from '@/core/math'
+import { createCharacterBody } from '@/core/physics/colliders'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import { getSpecies } from '@/core/data/species'
 import { inputSystem } from './inputSystem'
@@ -140,13 +142,34 @@ describe('characterPhysicsSystem + integração Rapier', () => {
     expect(player.get(Position).z).toBeLessThan(-3)
   })
 
+  it('marca MovementBlocked ao empurrar reto contra a parede — desmarca ao soltar o input', () => {
+    const { world, player } = makeWorld({
+      playerPosition: { x: 0, y: 1, z: 0 },
+    })
+    // Ainda longe da parede — deslocamento pedido bate com o real.
+    run(world, 30, { forward: true })
+    expect(player.has(MovementBlocked)).toBe(false)
+
+    // Segue empurrando até encostar de vez na parede e ficar preso nela.
+    run(world, 170, { forward: true })
+    expect(player.has(MovementBlocked)).toBe(true)
+
+    // Sem input, não pede deslocamento nenhum — não é "bloqueado", é parado.
+    tick(world)
+    expect(player.has(MovementBlocked)).toBe(false)
+  })
+
   it('sobe a rampa andando em +x', () => {
     const { world, player } = makeWorld({
       playerPosition: { x: 0, y: 1, z: 0 },
     })
     run(world, 6)
     const yFlat = player.get(Position).y
-    run(world, 140, { right: true })
+    // Ticks suficientes pra percorrer bem além da rampa, derivado da
+    // velocidade de andar ATUAL da espécie — não um número fixo (já
+    // quebrou uma vez quando FOX.movement.walkSpeed mudou de 4 pra 2).
+    const ticksToClimb = Math.ceil((8 / FOX.movement.walkSpeed) * 60)
+    run(world, ticksToClimb, { right: true })
     const pos = player.get(Position)
     expect(pos.x).toBeGreaterThan(4)
     expect(pos.y).toBeGreaterThan(yFlat + 0.4)
@@ -202,5 +225,46 @@ describe('characterPhysicsSystem + integração Rapier', () => {
     // não subiu — o pulo não disparou (tolerância larga: ver nota de
     // precisão de assentamento no teste "pula a partir do chão" acima)
     expect(Math.abs(peak - yGround)).toBeLessThan(0.15)
+  })
+
+  it('entidade sem InputControlled (ex.: SummonedCreature) não pula, mesmo com input.jump — só o jogador pula', () => {
+    const { world, player } = makeWorld({
+      playerPosition: { x: 0, y: 1, z: 0 },
+    })
+    // Corpo dinâmico criado na hora, mesma função que
+    // `partySummonSystem.js` usa pra dar física de verdade a uma
+    // criatura invocada (physicsBootstrapSystem só roda uma vez, no
+    // início — não alcança uma entidade spawnada depois, ver
+    // docs/features/017-locomocao-e-recolhimento-de-criaturas.md).
+    const creature = world.spawn(
+      Position({ x: 3, y: 1, z: 0 }),
+      Rotation,
+      Velocity,
+      MovementStats(FOX.movement),
+      Vitals,
+      PhysicsBody,
+      CharacterController(FOX.body),
+    )
+    const handles = createCharacterBody(creature.get(Position), {
+      radius: FOX.body.capsuleRadius,
+      halfHeight: FOX.body.capsuleHalfHeight,
+      axis: FOX.body.capsuleAxis,
+    })
+    creature.set(PhysicsBody, handles)
+
+    run(world, 30) // ambos assentam no chão
+    const playerGroundY = player.get(Position).y
+    const creatureGroundY = creature.get(Position).y
+
+    let playerPeak = playerGroundY
+    let creaturePeak = creatureGroundY
+    for (let i = 0; i < 100; i++) {
+      tick(world, { jump: true })
+      playerPeak = Math.max(playerPeak, player.get(Position).y)
+      creaturePeak = Math.max(creaturePeak, creature.get(Position).y)
+    }
+
+    expect(playerPeak).toBeGreaterThan(playerGroundY + 0.8) // jogador pulou
+    expect(creaturePeak - creatureGroundY).toBeLessThan(0.15) // criatura não
   })
 })

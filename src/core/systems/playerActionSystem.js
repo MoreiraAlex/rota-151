@@ -132,6 +132,16 @@ function removeOneFromInventory(entity, itemId) {
  * `delta` deste tick cruzar `EFFECT_AT` — dispara exatamente uma vez, sem
  * precisar de um campo "já disparei" extra no trait.
  *
+ * `ActionState` também é usado por `partySummonSystem.js` (invocar/
+ * recolher criatura, ver docs/features/017-locomocao-e-recolhimento-de-
+ * criaturas.md) — as duas fontes só iniciam uma ação nova quando
+ * `current` já está `null`, então nunca se sobrepõem. Este system
+ * explicitamente ignora (retorna sem tocar `elapsed`) qualquer
+ * `action.current` que não seja `'dash'`/`'throw'`/`'consume'` — sem
+ * isso, o incremento de `elapsed` (incondicional, mais abaixo) dobraria a
+ * velocidade de uma ação de invocar/recolher já em andamento, que
+ * `partySummonSystem.js` avança por conta própria.
+ *
  * Headless. Fase: simulation, depois do movementSystem (cuja Rotation.y já
  * reflete a direção do input deste frame — é essa direção que o dash trava)
  * e antes do characterPhysicsSystem (que resolve a Velocity contra o
@@ -214,6 +224,20 @@ export function playerActionSystem(context) {
           } else {
             return
           }
+        }
+
+        // `action.current` pode ser uma ação que este system não conhece —
+        // 'summon'/'recall' (ver `partySummonSystem.js`), que progride e
+        // encerra a própria ação sozinho. Sem esse corte, o incremento de
+        // `elapsed` abaixo (incondicional) rodaria em cima de uma ação que
+        // já está sendo avançada por outro system, dobrando a velocidade
+        // com que ela progride.
+        if (
+          action.current !== 'dash' &&
+          action.current !== 'throw' &&
+          action.current !== 'consume'
+        ) {
+          return
         }
 
         const previousElapsed = action.elapsed

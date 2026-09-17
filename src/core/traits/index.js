@@ -7,6 +7,7 @@ export {
   PhysicsBody,
   CharacterController,
   Grounded,
+  MovementBlocked,
 } from './components/physics'
 export { AnimationState } from './components/animation'
 export { ActionState } from './components/action'
@@ -18,3 +19,4 @@ export { Party } from './components/party'
 export { Projectile } from './components/projectile'
 export { ConsumeEffect } from './components/consumeEffect'
 export { SummonedCreature } from './components/summonedCreature'
+export { PathState } from './components/pathfinding'

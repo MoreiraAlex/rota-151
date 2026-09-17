@@ -89,17 +89,84 @@ export const GAME_CONFIG = {
       // cena depois de spawnado — independente da duração da ação em si.
       EFFECT_VISUAL_DURATION: 0.6,
     },
+    // Invocar/recolher criatura de time (ver `partySummonSystem.js` e
+    // docs/features/017-locomocao-e-recolhimento-de-criaturas.md) — mesmo
+    // padrão de ação com duração/efeito-no-meio de dash/throw/consume
+    // acima, só que quem avança/aplica o efeito é `partySummonSystem.js`,
+    // não este arquivo (`playerActionSystem.js` explicitamente ignora
+    // `current` 'summon'/'recall', ver docstring do system).
+    summon: {
+      // Duração total da ação (segundos) — trava movimento e qualquer
+      // outra ação (dash/arremesso/uso/outra invocação) até terminar.
+      DURATION: 0.6,
+      // Instante em que a `SummonedCreature` de fato nasce.
+      EFFECT_AT: 0.3,
+    },
+    recall: {
+      // Duração total da ação (segundos).
+      DURATION: 0.6,
+      // Instante em que a `SummonedCreature` de fato é destruída.
+      EFFECT_AT: 0.3,
+    },
   },
   PARTY: {
-    // Distância inicial (m) da criatura ao ser invocada, à frente do
-    // treinador na direção que ele olha.
-    SUMMON_OFFSET: 2,
-    // Velocidade (m/s) com que a criatura invocada se aproxima do
-    // treinador — ver creatureFollowSystem.
-    FOLLOW_SPEED: 6,
+    // Distância inicial (m) da criatura ao nascer (no instante de efeito
+    // da ação de invocar), na direção que a CÂMERA está apontando (não
+    // `Rotation.y` do treinador — ele gira pra encarar essa mesma direção
+    // no disparo, ver `partySummonSystem.js`).
+    SUMMON_OFFSET: 15,
     // Distância mínima (m) que a criatura mantém do treinador — não chega
     // mais perto que isso, pra não empilhar em cima dele.
-    FOLLOW_MIN_DISTANCE: 2,
+    FOLLOW_MIN_DISTANCE: 4,
+    // Distância (m) além da qual a criatura corre (`runSpeed`, por
+    // espécie) em vez de andar (`walkSpeed`) pra alcançar o treinador —
+    // ver creatureFollowSystem. Entre `FOLLOW_MIN_DISTANCE` e este valor,
+    // anda; abaixo de `FOLLOW_MIN_DISTANCE`, parada.
+    RUN_DISTANCE: 6,
+  },
+  // Grade de navegação usada por `core/pathfinding.js` pra contornar
+  // obstáculos do `TEST_LEVEL` em vez de andar em linha reta — ver
+  // `creatureFollowSystem.js`.
+  PATHFINDING: {
+    // Tamanho (m) de cada célula da grade — grade cobre
+    // `TEST_LEVEL.ground.size / CELL_SIZE` células por eixo.
+    CELL_SIZE: 1,
+    // Margem (m) somada ao contorno de cada obstáculo antes de marcar
+    // células como não-andáveis — evita a cápsula da criatura raspar
+    // quina de obstáculo (a grade só sabe de células inteiras).
+    OBSTACLE_MARGIN: 0.4,
+    // Segundos entre recálculos de caminho por criatura — recalcular todo
+    // tick é desperdício (o treinador não se move tão rápido assim) e
+    // deixa a trajetória mais nervosa.
+    REPATH_INTERVAL: 0.5,
+    // Distância (m) até um waypoint pra considerá-lo alcançado e avançar
+    // pro próximo.
+    WAYPOINT_ARRIVAL_DISTANCE: 0.5,
+    // Diferença de elevação (m) entre células vizinhas (incluindo
+    // diagonais) acima da qual vira "penhasco" intransponível sem rampa —
+    // ver "Elevação (heightmap)" em core/pathfinding.js. Precisa ficar
+    // entre o degrau por célula de uma rampa normal (~0.48m com os
+    // ângulos usados no nível de teste) e o salto de um terraço sem rampa
+    // (1.8m na trilha de teste) — senão ou bloqueia rampas de verdade, ou
+    // deixa passar de um andar pro outro sem rampa nenhuma.
+    MAX_CLIMB_STEP: 0.6,
+    // Distância máxima (m) de um único salto suavizado do caminho
+    // (`boundedSmoothPath` em core/pathfinding.js) — mesmo que um trecho
+    // reto inteiro seja andável célula a célula, virar UM waypoint só bem
+    // longe (a trilha de teste inteira, por exemplo, cabe numa lane de só
+    // ~4m de largura) dá tempo demais pra criatura desviar da lane antes
+    // da próxima correção (giro suavizado por `turnSpeed`, física) — ela
+    // acaba esbarrando de lado numa rampa (ou passando por baixo dela) em
+    // vez de subir. Maior que distâncias comuns em campo aberto (mantém o
+    // comportamento de sempre pra esses casos, um waypoint só até o alvo),
+    // bem menor que o comprimento de um atalho perigoso atravessando
+    // vários terraços/rampas.
+    MAX_SHORTCUT_DISTANCE: 8,
+    // Distância (m) dos dois raycasts laterais de evasão local — ver
+    // `MovementBlocked` em `characterPhysicsSystem.js`/
+    // `creatureFollowSystem.js`. Só usado no tick em que a criatura está
+    // travada, pra escolher entre desviar à esquerda ou à direita.
+    AVOIDANCE_PROBE_DISTANCE: 1.5,
   },
   VITALS: {
     // Segundos sem regenerar HP depois de tomar dano — não é atributo de
@@ -148,6 +215,18 @@ export const GAME_CONFIG = {
       // Velocidade vertical mantida enquanto no chão (mantém o snap ativo) —
       // epsilon técnico do algoritmo, não atributo de criatura.
       GROUNDED_STICK: -2,
+      // Sinal de "tem algo sólido na frente que não era esperado" — ver
+      // trait `MovementBlocked`. Só entra na conta quando o deslocamento
+      // PEDIDO neste tick (Velocity * delta, no plano XZ) já passa dessa
+      // distância mínima (m) — evita marcar bloqueado por causa de ruído
+      // quando a entidade já está quase parada (pedido ~0, qualquer
+      // razão real/pedido vira instável).
+      MIN_BLOCKED_CHECK_DISTANCE: 0.01,
+      // Razão (deslocamento real / pedido, no plano XZ) abaixo da qual
+      // marca `MovementBlocked`. Baixo de propósito — deslizar ao longo
+      // de uma parede em ângulo (o KCC já faz isso, mantém progresso) não
+      // deve contar como bloqueado, só um estancamento quase total.
+      BLOCKED_MOVEMENT_RATIO: 0.15,
     },
   },
   CAMERA: {

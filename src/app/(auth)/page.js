@@ -6,6 +6,7 @@ import { WorldProvider } from '@/core/world/WorldProvider'
 import { GameLoop } from '@/view/loop/GameLoop'
 import { GameScene } from '@/view/scene/GameScene'
 import { PhysicsDebugView } from '@/tools/debug/PhysicsDebugView'
+import { PathfindingDebugView } from '@/tools/debug/PathfindingDebugView'
 import { DebugPanel } from '@/tools/debug/DebugPanel'
 import { PauseMenu } from '@/tools/menu/PauseMenu'
 import { PartyHud } from '@/tools/hud/PartyHud'
@@ -114,7 +115,14 @@ export default function GamePage() {
       >
         <Canvas shadows>
           <GameLoop />
-          <GameScene>{showDebug && <PhysicsDebugView />}</GameScene>
+          <GameScene>
+            {showDebug && (
+              <>
+                <PhysicsDebugView />
+                <PathfindingDebugView />
+              </>
+            )}
+          </GameScene>
         </Canvas>
 
         <Crosshair />

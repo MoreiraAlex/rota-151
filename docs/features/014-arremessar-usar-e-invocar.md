@@ -291,10 +291,9 @@ desde a v0.0.13.
 - **Categoria `weapon`** — continua sem handler nem conteúdo.
 - **Animação de arremesso/uso/invocar do treinador** — clipe é conteúdo de
   espécie, por conta do autor, mesmo espírito de sempre.
-- **Locomoção de verdade da criatura invocada** — ela desliza (posição
-  interpolada) animando idle fixo, não anda de verdade (walk/run
-  conforme velocidade, virar de frente pro treinador). `creatureFollowSystem`
-  ganhar isso é refinamento futuro, não bloqueia a validação visual atual.
+- ~~**Locomoção de verdade da criatura invocada**~~ — entregue em
+  `docs/features/017-locomocao-e-recolhimento-de-criaturas.md`: física real
+  (`characterPhysicsSystem`) e walk/run de verdade conforme velocidade.
 - **Modelo distinto por espécie de time** — as 4 (`fox`/`fox-red`/
   `fox-green`/`fox-blue`) continuam o mesmo `.glb`, só o tint de cor muda;
   modelo de verdade por Pokémon é conteúdo a definir depois.

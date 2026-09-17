@@ -40,12 +40,12 @@ export const FOX = {
     // local, em unidades de mundo — não escala com `model.scale`). Ajusta
     // aqui toda vez que capsuleRadius/capsuleHalfHeight/capsuleAxis mudam,
     // pra manter o modelo visualmente alinhado com o collider.
-    modelOffset: [0, -0.5, 0],
+    modelOffset: [0, -0.4, 0],
   },
   movement: {
     // Unidades por segundo (1 unidade = 1 metro).
-    walkSpeed: 4,
-    runSpeed: 10,
+    walkSpeed: 2,
+    runSpeed: 5,
     // Fator de suavização do giro em direção ao movimento (rad/s aprox.).
     turnSpeed: 10,
     // Velocidade vertical inicial do pulo (m/s).

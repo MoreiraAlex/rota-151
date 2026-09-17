@@ -7,6 +7,8 @@ import {
   MovementStats,
   Vitals,
   Grounded,
+  MovementBlocked,
+  InputControlled,
 } from '../traits'
 import {
   isPhysicsReady,
@@ -18,7 +20,17 @@ import { quaternionFromAxisAngle } from '../math'
 /**
  * Aplica gravidade e pulo à Velocity vertical, resolve o movimento do
  * personagem contra o mundo com o KinematicCharacterController do Rapier e
- * agenda a nova translação/rotação do corpo. Atualiza a tag Grounded.
+ * agenda a nova translação/rotação do corpo. Atualiza as tags Grounded e
+ * MovementBlocked.
+ *
+ * Genérico — qualquer entidade com `CharacterController`/`PhysicsBody`
+ * passa por aqui, não só o jogador (`SummonedCreature` também, ver
+ * `partySummonSystem.js` e docs/features/017-locomocao-e-recolhimento-de-
+ * criaturas.md — precisa de gravidade/colisão real igual ao treinador).
+ * Pular é a única parte exclusiva do jogador: gatiada por
+ * `entity.has(InputControlled)`, porque `context.input` é um snapshot
+ * GLOBAL (o único dispositivo de input é o do jogador) — sem esse filtro,
+ * toda criatura pularia junto sempre que o jogador apertasse pular.
  *
  * O corpo físico também gira junto com `Rotation.y` (girar só translação
  * bastava enquanto a cápsula era sempre em pé — radialmente simétrica em Y,
@@ -32,9 +44,29 @@ import { quaternionFromAxisAngle } from '../math'
  * (`jumpSpeed`) vem de MovementStats — dado por entidade. Pular custa
  * stamina (`JUMP_STAMINA_COST`, descontada uma vez no disparo) — sem
  * stamina suficiente, não pula, mesma forma que `wasGrounded` já bloqueia.
+ * `Vitals` continua na query mesmo só tendo uso dentro do bloco de pulo
+ * (gatiado por `InputControlled`) — `entity.get()` fora da query ativa
+ * devolve um retrato (`snapshot`), não a referência com escrita de volta
+ * que `updateEach` dá pros traits SoA que estão de fato na query; mutar um
+ * `entity.get()` avulso não persistiria (achado testando: a stamina não
+ * descontava).
+ *
+ * `MovementBlocked` compara o deslocamento REAL (`computedMovement()`, já
+ * resolvido contra o mundo) com o PEDIDO (`Velocity * delta`) no plano
+ * XZ — se o real ficar bem abaixo do pedido
+ * (`GAME_CONFIG.PHYSICS.CHARACTER.BLOCKED_MOVEMENT_RATIO`), tem algo
+ * sólido na frente que quem gerou a `Velocity` não previu (ver
+ * `creatureFollowSystem.js`, que usa isso pra desviar lateralmente — a
+ * própria física reporta o bloqueio, mais direto e confiável do que tentar
+ * prever de antemão toda geometria capaz de enganar a grade de
+ * pathfinding, ver docs/features/017-locomocao-e-recolhimento-de-
+ * criaturas.md). Só
+ * entra na conta quando o pedido já passa de `MIN_BLOCKED_CHECK_DISTANCE`
+ * (evita razão instável perto de zero quando a entidade já está quase
+ * parada).
  *
  * Headless (Rapier-compat roda em Node). Fase: simulation, depois do
- * movementSystem e antes do physicsStepSystem.
+ * movementSystem/creatureFollowSystem e antes do physicsStepSystem.
  */
 export function characterPhysicsSystem(context) {
   if (!isPhysicsReady()) return
@@ -71,16 +103,24 @@ export function characterPhysicsSystem(context) {
         vel.y += cfg.GRAVITY * delta
       }
 
-      if (input.jump && wasGrounded && vitals.stamina >= JUMP_STAMINA_COST) {
+      if (
+        input.jump &&
+        wasGrounded &&
+        entity.has(InputControlled) &&
+        vitals.stamina >= JUMP_STAMINA_COST
+      ) {
         vel.y = stats.jumpSpeed
         vitals.stamina -= JUMP_STAMINA_COST
         vitals.staminaRegenDelay = STAMINA_REGEN_DELAY_AFTER_USE
       }
 
+      const requestedX = vel.x * delta
+      const requestedZ = vel.z * delta
+
       controller.computeColliderMovement(collider, {
-        x: vel.x * delta,
+        x: requestedX,
         y: vel.y * delta,
-        z: vel.z * delta,
+        z: requestedZ,
       })
       const movement = controller.computedMovement()
       const translation = rigidBody.translation()
@@ -95,5 +135,16 @@ export function characterPhysicsSystem(context) {
       if (isGrounded && !wasGrounded) entity.add(Grounded)
       if (!isGrounded && wasGrounded) entity.remove(Grounded)
       if (isGrounded && vel.y < 0) vel.y = 0
+
+      const requestedDistance = Math.hypot(requestedX, requestedZ)
+      const isBlocked =
+        requestedDistance > cfg.CHARACTER.MIN_BLOCKED_CHECK_DISTANCE &&
+        Math.hypot(movement.x, movement.z) / requestedDistance <
+          cfg.CHARACTER.BLOCKED_MOVEMENT_RATIO
+      if (isBlocked && !entity.has(MovementBlocked)) {
+        entity.add(MovementBlocked)
+      } else if (!isBlocked && entity.has(MovementBlocked)) {
+        entity.remove(MovementBlocked)
+      }
     })
 }

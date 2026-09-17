@@ -13,6 +13,7 @@ import {
   OrbitCamera,
   CharacterController,
   MovementStats,
+  PathState,
   Vitals,
   HeldItem,
   Party,
@@ -173,6 +174,19 @@ export function DebugPanel() {
               .map((entity) => entity.get(SummonedCreature).slot)
               .join(', ')}
       </p>
+      {summoned.map((entity) => {
+        const { slot } = entity.get(SummonedCreature)
+        const { waypoints, waypointIndex, repathTimer } = entity.get(PathState)
+        const remaining = waypoints.length - waypointIndex
+        return (
+          <p key={entity} className="text-[10px] text-white/60">
+            {slot} · path:{' '}
+            {remaining > 0 ? `${remaining} waypoint(s)` : 'direto (sem desvio)'}
+            {' · '}
+            recalc em {Math.max(0, repathTimer).toFixed(2)}s
+          </p>
+        )
+      })}
     </div>
   )
 }

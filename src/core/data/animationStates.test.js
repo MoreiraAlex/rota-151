@@ -67,12 +67,25 @@ describe('resolveAnimationState', () => {
       }),
     ).toBe('throw')
   })
+
+  it('action "summon" (invocar criatura) reusa o id/clipe "throw" — pedido explícito, sem clipe próprio', () => {
+    expect(
+      resolveAnimationState({ speed: 0, grounded: false, action: 'summon' }),
+    ).toBe('throw')
+  })
+
+  it('action "recall" (recolher criatura) tem id próprio — clipe ainda não existe, mas o mecanismo já resolve', () => {
+    expect(
+      resolveAnimationState({ speed: 0, grounded: false, action: 'recall' }),
+    ).toBe('recall')
+  })
 })
 
 describe('isOneShotAnimationState', () => {
-  it('dash e throw são one-shot — o relógio reinicia ao entrar nesses estados', () => {
+  it('dash, throw (inclui summon) e recall são one-shot — o relógio reinicia ao entrar nesses estados', () => {
     expect(isOneShotAnimationState('dash')).toBe(true)
     expect(isOneShotAnimationState('throw')).toBe(true)
+    expect(isOneShotAnimationState('recall')).toBe(true)
   })
 
   it('idle/walk/run não são one-shot — cíclicos, sem "fase certa" de início', () => {

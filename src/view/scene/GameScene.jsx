@@ -14,6 +14,14 @@ function obstacleRotation(rotation) {
   ]
 }
 
+// Cor por tipo — 'floor' (terraço andável, ver "Elevação (heightmap)" em
+// core/pathfinding.js) num tom de pedra, diferente do marrom de 'ramp' e do
+// cinza padrão de 'box'.
+const OBSTACLE_COLOR = {
+  ramp: '#b08968',
+  floor: '#9c9182',
+}
+
 /**
  * Desenha o nível de teste a partir de TEST_LEVEL — o mesmo dado que gera os
  * colliders em core/physics, então o visível bate com o colidível.
@@ -38,7 +46,7 @@ function TestLevelView() {
         >
           <boxGeometry args={obstacle.size} />
           <meshStandardMaterial
-            color={obstacle.type === 'ramp' ? '#b08968' : '#8a8a8a'}
+            color={OBSTACLE_COLOR[obstacle.type] ?? '#8a8a8a'}
           />
         </mesh>
       ))}
