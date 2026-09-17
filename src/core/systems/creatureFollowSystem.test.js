@@ -56,7 +56,11 @@ describe('creatureFollowSystem', () => {
     const midDistance = (FOLLOW_MIN_DISTANCE + RUN_DISTANCE) / 2
     const creature = spawnCreature(world, { x: midDistance, y: 1, z: 0 })
 
-    tick(world)
+    // Velocity segue Rotation, suavizada por turnSpeed (ver docstring do
+    // system) — não bate com o alvo já no 1º tick de propósito (é a troca
+    // de destino suave que resolve o esbarrão relatado jogando). Roda até
+    // convergir, mesmo padrão do teste de rotação abaixo.
+    for (let i = 0; i < 120; i++) tick(world)
 
     const vel = creature.get(Velocity)
     expect(vel.x).toBeCloseTo(-WALK_SPEED) // treinador está em -X daqui
@@ -71,7 +75,7 @@ describe('creatureFollowSystem', () => {
       z: 0,
     })
 
-    tick(world)
+    for (let i = 0; i < 120; i++) tick(world)
 
     const vel = creature.get(Velocity)
     expect(vel.x).toBeCloseTo(-RUN_SPEED)
@@ -110,7 +114,13 @@ describe('creatureFollowSystem', () => {
 
     try {
       tick(world)
-      expect(creature.get(Velocity).x).toBeCloseTo(-RUN_SPEED)
+      // A MAGNITUDE de Velocity reflete `speed` desde o 1º tick, mesmo com
+      // Velocity seguindo Rotation suavizada — só a direção (como esse
+      // total se divide entre x/z) demora a convergir, a magnitude não
+      // (sin²+cos²=1 sempre), então isso ainda confere config lido ao vivo
+      // sem precisar convergir rotação nenhuma.
+      const vel = creature.get(Velocity)
+      expect(Math.hypot(vel.x, vel.z)).toBeCloseTo(RUN_SPEED)
     } finally {
       GAME_CONFIG.PARTY.RUN_DISTANCE = original
     }
@@ -141,7 +151,7 @@ describe('creatureFollowSystem', () => {
     expect(creature.get(PathState).repathTimer).toBeGreaterThan(0)
   })
 
-  it('MovementBlocked desvia lateralmente em vez de continuar reto — e força recálculo imediato', () => {
+  it('MovementBlocked desvia lateralmente em vez de continuar reto — e força recálculo imediato na borda de subida', () => {
     // Sem física real inicializada, castRay (core/physics/raycast.js)
     // devolve null pros dois lados (nada no caminho pra "acertar") — o
     // desvio ainda assim escolhe um lado de forma determinística (empate
@@ -157,11 +167,69 @@ describe('creatureFollowSystem', () => {
     })
     creature.add(MovementBlocked)
 
-    tick(world)
+    tick(world) // borda de subida (wasBlocked começa false) — recalcula
 
     const vel = creature.get(Velocity)
     expect(vel.z).not.toBeCloseTo(0) // desviou lateralmente, não foi reto
-    expect(creature.get(PathState).repathTimer).toBe(0) // recalcula já no próximo tick
+    // Recalculou JÁ (repathTimer volta a REPATH_INTERVAL, não fica em 0) —
+    // só na borda de subida, não every tick enquanto travada (refazer o A*
+    // a 60/s seria puro desperdício, ver docstring do system).
+    const { REPATH_INTERVAL } = GAME_CONFIG.PATHFINDING
+    expect(creature.get(PathState).repathTimer).toBeCloseTo(REPATH_INTERVAL)
+
+    tick(world) // ainda travada, mas não é mais borda de subida
+    expect(creature.get(PathState).repathTimer).toBeLessThan(REPATH_INTERVAL)
+  })
+
+  it('desvia proativamente de outra criatura próxima em vez de convergir reto pro treinador', () => {
+    // Personagens colidem fisicamente de verdade entre si (pedido explícito
+    // do usuário: não se atravessam) — sem evasão proativa, criaturas iam
+    // esbarrar/empurrar ao convergir todas pro treinador. player em (0,0);
+    // criatura-alvo em (7,0) iria reto em -X; outra criatura bem perto
+    // dela, deslocada em +Z, deve empurrar a resultante pra -Z.
+    const { world } = makeWorld({ playerPosition: { x: 0, y: 1, z: 0 } })
+    const creature = spawnCreature(world, { x: 7, y: 1, z: 0 })
+    spawnCreature(world, { x: 7, y: 1, z: 1 }) // 1m de distância — dentro de AVOIDANCE_RADIUS
+
+    // Velocity segue Rotation suavizada — precisa de tempo pra convergir
+    // (mesmo padrão dos outros testes de direção nesta suíte).
+    for (let i = 0; i < 120; i++) tick(world)
+
+    const vel = creature.get(Velocity)
+    expect(vel.z).toBeLessThan(0) // afasta da outra criatura (que está em +Z)
+    expect(vel.x).toBeLessThan(0) // ainda avança em direção ao treinador
+  })
+
+  it('mesmo dentro de FOLLOW_MIN_DISTANCE, desvia se outra criatura estiver perto demais', () => {
+    // Sem isso, duas criaturas "estacionadas" na mesma distância do
+    // treinador podiam ficar sobrepostas sem nenhuma se mexer.
+    const { world } = makeWorld({ playerPosition: { x: 0, y: 1, z: 0 } })
+    const stopX = FOLLOW_MIN_DISTANCE - 0.5
+    const creature = spawnCreature(world, { x: stopX, y: 1, z: 0 })
+    spawnCreature(world, { x: stopX, y: 1, z: 1 }) // 1m de distância
+
+    for (let i = 0; i < 120; i++) tick(world)
+
+    const vel = creature.get(Velocity)
+    expect(Math.hypot(vel.x, vel.z)).toBeGreaterThan(0) // não ficou parada
+    expect(vel.z).toBeLessThan(0) // pura repulsão, afasta da outra criatura
+  })
+
+  it('sem ninguém por perto, dentro de FOLLOW_MIN_DISTANCE continua parada normalmente', () => {
+    // Regressão: a evasão não deve fazer uma criatura sozinha (sem outro
+    // personagem por perto) se mexer à toa.
+    const { world } = makeWorld({ playerPosition: { x: 0, y: 1, z: 0 } })
+    const creature = spawnCreature(world, {
+      x: FOLLOW_MIN_DISTANCE - 0.5,
+      y: 1,
+      z: 0,
+    })
+
+    tick(world)
+
+    const vel = creature.get(Velocity)
+    expect(vel.x).toBe(0)
+    expect(vel.z).toBe(0)
   })
 
   it('sem jogador no world (nenhum InputControlled), não quebra', () => {

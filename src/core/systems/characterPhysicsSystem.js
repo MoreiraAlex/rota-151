@@ -65,6 +65,13 @@ import { quaternionFromAxisAngle } from '../math'
  * (evita razão instável perto de zero quando a entidade já está quase
  * parada).
  *
+ * `computeColliderMovement` NÃO filtra outros personagens — colide contra
+ * qualquer collider no caminho, jogador/criatura incluídos (pedido
+ * explícito do usuário: personagens não podem se atravessar). Não esbarrar
+ * feio nem empurrar em grupo é responsabilidade de EVASÃO PROATIVA
+ * (`creatureFollowSystem.js` desvia de outros personagens próximos antes
+ * de precisar colidir de verdade), não de fingir que a colisão não existe.
+ *
  * Headless (Rapier-compat roda em Node). Fase: simulation, depois do
  * movementSystem/creatureFollowSystem e antes do physicsStepSystem.
  */

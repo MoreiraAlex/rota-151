@@ -44,9 +44,19 @@ o mundo de graça.
   dentro de `PARTY.FOLLOW_MIN_DISTANCE`, parada; além de
   `PARTY.RUN_DISTANCE`, corre (`runSpeed`) pra alcançar o treinador; entre
   os dois, anda (`walkSpeed`).
-- Gira em direção ao próprio movimento (`atan2`, suavizado por
-  `turnSpeed`) — mesma fórmula do jogador. Parada, não gira (congela na
-  última direção).
+- `Velocity` SEGUE `Rotation`, não o contrário: só a `Rotation` gira
+  suavemente rumo à direção alvo (`atan2`, `lerpAngle`/`turnSpeed` — mesma
+  fórmula do jogador), e `Velocity` é derivada dela já suavizada (`sin`/
+  `cos` da `Rotation` vezes a velocidade). O destino muda com frequência
+  (o treinador anda, o caminho recalcula, um waypoint é alcançado) — antes,
+  `Velocity` virava direto pra cada direção NOVA (instantânea) e só a
+  `Rotation` visual suavizava atrás, dando pra ver o corpo apontando um
+  jeito enquanto já se movia por outro, e a troca abrupta de `Velocity`
+  contra a física podia parecer uma travada (bug real, relatado jogando).
+  Invertendo a dependência, mudar de destino faz a criatura curvar
+  gradualmente pra lá em vez de virar/deslizar de repente — em regime
+  (perseguindo o mesmo alvo por um tempo), o resultado é idêntico a antes,
+  só a transição fica suave. Parada, não gira (congela na última direção).
 - A `Velocity` resultante já alimenta `core/systems/animationStateSystem.js`
   sem nenhuma mudança nele — ele já resolve idle/walk/run a partir só de
   `Velocity`/`Grounded`/`ActionState.current` pra qualquer entidade com
@@ -83,6 +93,36 @@ bloco de pulo — mesma decisão que manter esses campos garante que mutar
 um retrato, não a referência com escrita de volta que `updateEach` dá pra
 quem está na query) e `animationStateSystem` (`ActionState.current`
 sempre `null` — a criatura não tem ações próprias).
+
+### Personagens colidem de verdade, mas se evitam proativamente
+
+Bug real, jogando com o time cheio: com mais de uma criatura invocada,
+elas ficavam se esbarrando/empurrando entre si (e empurrando o jogador
+junto) — o `KinematicCharacterController` do Rapier trata QUALQUER
+collider no caminho como obstáculo por padrão, personagem ou não, se nada
+disser o contrário.
+
+Uma primeira versão desta rodada fazia personagens simplesmente se
+IGNORAREM entre si na física (`InteractionGroups` do Rapier, atravessava
+um pelo outro) — revertida a pedido do usuário: passar direto por cima de
+outro personagem não é aceitável, mesmo que resolva o esbarrão. A colisão
+física entre personagens continua real e sem filtro nenhum
+(`createCharacterBody`/`computeColliderMovement`, sem mudança) — o
+controle de não esbarrar vem de EVASÃO PROATIVA, não de fingir que a
+colisão não existe.
+
+`creatureFollowSystem.js` soma, pra cada criatura, um vetor de REPULSÃO
+de qualquer outro personagem (treinador ou outra criatura) mais perto que
+`PARTY.AVOIDANCE_RADIUS` — mais forte quanto mais perto, zero na borda do
+raio — e mistura isso na direção de movimento (waypoint/treinador) ANTES
+de virar `Velocity`, com peso `PARTY.AVOIDANCE_STRENGTH`. Isso desvia do
+caminho de quem está por perto antes mesmo de chegar a colidir de
+verdade. Vale mesmo dentro de `FOLLOW_MIN_DISTANCE` (perto o bastante do
+treinador pra "chegar"): se outro personagem estiver perto demais, a
+criatura usa só a repulsão (sem perseguir mais o treinador) em vez de
+travar Velocity em zero — sem isso, duas criaturas "estacionadas" na
+mesma distância do treinador podiam ficar sobrepostas sem nenhuma se
+mexer pra desfazer isso.
 
 ## Invocar e recolher são ações
 
@@ -314,23 +354,31 @@ frente que o pathfinding não previu, seja lá o que for — a tag
 `MovementBlocked` marca isso (mesmo padrão de `Grounded`, calculada por
 tick).
 
-`creatureFollowSystem.js` reage: com a tag presente (do tick anterior),
-força `repathTimer = 0` (recalcula já no próximo tick, sem esperar
-`REPATH_INTERVAL`) e, só NESSE tick, ignora o waypoint — usa `castRay`
-(`core/physics/raycast.js`) nas duas perpendiculares da direção travada e
-segue pela que tiver mais espaço livre, deslizando de lado até destravar
-em vez de continuar empurrando reto contra o obstáculo. Autocorretivo:
-assim que o deslocamento real voltar a bater com o pedido, a tag some e a
-criatura volta a seguir o waypoint normalmente — sem temporizador de
-"tentando há muito tempo".
+`creatureFollowSystem.js` reage: na BORDA DE SUBIDA da tag (ficou travada
+agora, não já estava — `PathState.wasBlocked`), força `repathTimer = 0`
+(recalcula já no próximo tick, sem esperar `REPATH_INTERVAL`) — só uma vez
+por episódio de bloqueio, não todo tick enquanto a tag persiste (achado no
+code review desta feature: forçar `repathTimer = 0` incondicionalmente
+refazia o A* — com `grid.clone()`, ~7 mil alocações de nó pra uma grade de
+60×60 — a até 60x/s enquanto a criatura ficasse travada, puro desperdício
+de GC pra um sinal que só precisa disparar uma vez por episódio). Enquanto
+travada, ignora o waypoint — usa `castRay` (`core/physics/raycast.js`) nas
+duas perpendiculares da direção travada e segue pela que tiver mais
+espaço livre, deslizando de lado até destravar em vez de continuar
+empurrando reto contra o obstáculo. Autocorretivo: assim que o
+deslocamento real voltar a bater com o pedido, a tag some e a criatura
+volta a seguir o waypoint normalmente — sem temporizador de "tentando há
+muito tempo".
 
 ## Configuração
 
 `GAME_CONFIG.PARTY`: `SUMMON_OFFSET` (distância do treinador ao nascer, na
 direção da câmera travada no disparo), `FOLLOW_MIN_DISTANCE` (distância
 mínima do treinador — parada dentro dela), `RUN_DISTANCE` (além dela,
-corre em vez de andar). `FOLLOW_SPEED` (velocidade única, global) foi
-removido — cada espécie usa sua própria `walkSpeed`/`runSpeed` agora.
+corre em vez de andar), `AVOIDANCE_RADIUS`/`AVOIDANCE_STRENGTH` (evasão
+entre personagens, ver seção acima). `FOLLOW_SPEED` (velocidade única,
+global) foi removido — cada espécie usa sua própria `walkSpeed`/
+`runSpeed` agora.
 
 `GAME_CONFIG.PLAYER_ACTIONS.summon`/`recall`: `DURATION`/`EFFECT_AT`,
 mesmo formato de `dash`/`throw`/`consume` — `partySummonSystem.js` é
@@ -368,7 +416,8 @@ waypoints faltam e quanto falta pro próximo recálculo.
 ## Arquivos-chave
 
 - `core/systems/creatureFollowSystem.js` — Velocity/Rotation, walk/run,
-  segue waypoints do pathfinding, reage a `MovementBlocked`.
+  segue waypoints do pathfinding, evasão entre personagens (repulsão
+  proativa), reage a `MovementBlocked`.
 - `core/systems/partySummonSystem.js` — `beginSummon`/`beginRecall`
   (disparo: trava `ActionState`, gira o treinador pra câmera/criatura) e
   `applySummon`/`applyRecall` (efeito, no `EFFECT_AT`: física + spawn/
@@ -384,16 +433,21 @@ waypoints faltam e quanto falta pro próximo recálculo.
 - `core/traits/components/action.js` — `ActionState` ganhou `pendingSlot`
   (qual slot uma invocação/recolhimento em andamento diz respeito).
 - `core/systems/characterPhysicsSystem.js` — genérico, pulo restrito a
-  `InputControlled`, calcula `MovementBlocked`.
+  `InputControlled`, calcula `MovementBlocked`. Colide contra qualquer
+  personagem sem filtro (não filtra mais outros personagens — ver
+  "Personagens colidem de verdade" acima).
 - `core/physics/colliders.js` — `createCharacterBody` (já existia),
-  `destroyCharacterBody` (novo).
+  `destroyCharacterBody` (novo). Sem grupo de interação especial — uma
+  tentativa anterior marcava personagens pra se ignorarem entre si
+  (revertida).
 - `core/traits/components/physics.js` — `PhysicsBody`/`CharacterController`
   (docstring atualizada, dono de escrita não é mais só o bootstrap),
   `MovementBlocked` (nova tag).
 - `core/pathfinding.js` — grade de navegação, heightmap, `findPath`,
   `boundedSmoothPath`.
 - `core/traits/components/pathfinding.js` — `PathState` (caminho
-  cacheado por criatura).
+  cacheado por criatura, inclui `wasBlocked` pra detectar a borda de
+  subida de `MovementBlocked`).
 - `core/data/testLevel.js` — trilha de teste (4 terraços), reforço físico
   sob cada rampa.
 - `core/physics/raycast.js` — `castRay` (já existia, usado agora também
@@ -410,9 +464,19 @@ waypoints faltam e quanto falta pro próximo recálculo.
 - `core/systems/creatureFollowSystem.test.js` — testa `Velocity`/
   `Rotation` resultantes (parada/anda/corre conforme distância, gira em
   direção ao movimento, parada não gira), desvio de obstáculo via
-  pathfinding, throttle de recálculo (`repathTimer`), e reação a
+  pathfinding, throttle de recálculo (`repathTimer`), reação a
   `MovementBlocked` (desvia lateralmente em vez de ir reto, força
-  recálculo imediato).
+  recálculo só na borda de subida — não todo tick enquanto travada), e
+  evasão entre personagens (desvia de outra criatura próxima mesmo indo
+  em direção ao treinador; usa só repulsão, sem congelar, se estiver perto
+  demais de outra criatura mesmo já dentro de `FOLLOW_MIN_DISTANCE`; sem
+  ninguém por perto continua parando normalmente). Testes de direção
+  rodam vários ticks até convergir (`Velocity` segue `Rotation`
+  suavizada, não bate com o alvo já no 1º tick de propósito — mesmo
+  padrão do teste de rotação); o teste de config ao vivo confere pela
+  MAGNITUDE de `Velocity` (`hypot(vel.x, vel.z)`, que reflete `speed`
+  desde o 1º tick, já que `sin²+cos²=1` independe da rotação ainda não
+  ter convergido) em vez de esperar a direção também.
 - `core/systems/partySummonSystem.test.js` — reescrito pro modelo de ação
   com duração (mesmo padrão de `playerActionSystem.test.js`: dispara,
   confere que trava `ActionState`/gira o treinador SEM efeito ainda,
@@ -426,7 +490,10 @@ waypoints faltam e quanto falta pro próximo recálculo.
 - `core/systems/characterPhysicsSystem.test.js` — entidade sem
   `InputControlled` (ex.: uma criatura) não pula mesmo com
   `input.jump: true`; `MovementBlocked` marca ao empurrar reto contra uma
-  parede e desmarca ao soltar o input.
+  parede e desmarca ao soltar o input; jogador é barrado por uma criatura
+  parada no meio do caminho (colisão real entre personagens, não se
+  atravessam), e a criatura não se move sozinha (corpo cinemático não é
+  empurrado por colisão).
 - `core/data/animationStates.test.js` — `resolveAnimationState`:
   `action: 'summon'` resolve pra `'throw'`; `action: 'recall'` resolve
   pra `'recall'`. `isOneShotAnimationState('recall')` também `true`.

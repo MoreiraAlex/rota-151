@@ -267,4 +267,41 @@ describe('characterPhysicsSystem + integração Rapier', () => {
     expect(playerPeak).toBeGreaterThan(playerGroundY + 0.8) // jogador pulou
     expect(creaturePeak - creatureGroundY).toBeLessThan(0.15) // criatura não
   })
+
+  it('personagens colidem entre si de verdade — não se atravessam (pedido explícito do usuário)', () => {
+    // Uma tentativa anterior fazia personagens se ignorarem entre si
+    // (`InteractionGroups`) — revertida: o usuário não quer que jogador e
+    // criaturas se atravessem, só que tenham controle pra não esbarrar
+    // (evasão proativa, ver creatureFollowSystem.test.js). No nível físico
+    // puro, sem nenhuma evasão rodando, uma criatura parada no caminho do
+    // jogador continua sendo um obstáculo sólido de verdade, igual a
+    // qualquer outro collider.
+    const { world, player } = makeWorld({
+      playerPosition: { x: 0, y: 1, z: 0 },
+    })
+    const creature = world.spawn(
+      Position({ x: 3, y: 1, z: 0 }),
+      Rotation,
+      Velocity,
+      MovementStats(FOX.movement),
+      Vitals,
+      PhysicsBody,
+      CharacterController(FOX.body),
+    )
+    const handles = createCharacterBody(creature.get(Position), {
+      radius: FOX.body.capsuleRadius,
+      halfHeight: FOX.body.capsuleHalfHeight,
+      axis: FOX.body.capsuleAxis,
+    })
+    creature.set(PhysicsBody, handles)
+
+    run(world, 200, { right: true }) // pra +x — reta contra a criatura
+
+    // Barrado pela criatura bem antes de alcançar x=3 (a cápsula dela +
+    // a do jogador somam raio suficiente pra parar bem antes disso).
+    expect(player.get(Position).x).toBeLessThan(2.5)
+    // A criatura continua exatamente onde foi colocada — corpo cinemático
+    // não é empurrado por colisão, só quem escreve a Velocity dele move.
+    expect(creature.get(Position).x).toBeCloseTo(3, 1)
+  })
 })

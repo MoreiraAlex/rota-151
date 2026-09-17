@@ -59,6 +59,15 @@ const CAPSULE_TILT = {
  * deita a cápsula (`'x'`/`'z'`) pra corpos alongados na horizontal
  * (quadrúpedes) em vez de em pé (`'y'`, padrão). Retorna os handles para
  * guardar no trait PhysicsBody.
+ *
+ * Collider sem grupo de interação especial — colide com QUALQUER outro
+ * collider, incluindo outros personagens (jogador/criaturas entre si).
+ * Uma tentativa anterior fazia personagens se ignorarem entre si
+ * (`InteractionGroups`, atravessava um pelo outro) — revertida a pedido
+ * do usuário: passar direto um pelo outro não é aceitável, o controle de
+ * não esbarrar tem que vir de EVASÃO (`creatureFollowSystem.js` desvia
+ * proativamente de outros personagens próximos), não de fingir que eles
+ * não existem fisicamente.
  */
 export function createCharacterBody(
   position,

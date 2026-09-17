@@ -73,7 +73,7 @@ export const GAME_CONFIG = {
       // Alcance máximo (m) do raycast de mira, a partir da câmera — nada
       // encontrado dentro dessa distância, mira no ponto mais distante
       // dessa distância mesmo (em vez de mirar no infinito).
-      AIM_RANGE: 50,
+      AIM_RANGE: 30,
       // Custo de stamina, descontado uma vez no disparo (não por segundo) —
       // mesmo padrão do dash. Sem stamina suficiente, o arremesso
       // simplesmente não dispara.
@@ -123,6 +123,17 @@ export const GAME_CONFIG = {
     // ver creatureFollowSystem. Entre `FOLLOW_MIN_DISTANCE` e este valor,
     // anda; abaixo de `FOLLOW_MIN_DISTANCE`, parada.
     RUN_DISTANCE: 6,
+    // Distância (m) abaixo da qual outro personagem (treinador ou outra
+    // criatura) conta como "muito perto" — soma repulsão na direção de
+    // movimento pra desviar ANTES de esbarrar de verdade (personagens
+    // colidem fisicamente de propósito, ver core/physics/colliders.js —
+    // isso aqui evita precisar chegar nesse ponto). Maior que a soma dos
+    // raios de duas cápsulas típicas.
+    AVOIDANCE_RADIUS: 2.5,
+    // Peso da repulsão de `AVOIDANCE_RADIUS` em relação à direção
+    // principal (waypoint/treinador, sempre vetor unitário) — cada vizinho
+    // próximo soma até este tanto na direção final antes de normalizar.
+    AVOIDANCE_STRENGTH: 1.2,
   },
   // Grade de navegação usada por `core/pathfinding.js` pra contornar
   // obstáculos do `TEST_LEVEL` em vez de andar em linha reta — ver
