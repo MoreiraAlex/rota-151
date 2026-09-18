@@ -23,8 +23,13 @@ export const FOX = {
     scale: 0.015,
     // Extraída do próprio `.glb` (único material/textura do modelo) pra
     // dar pra editar por fora — ver docs/features/020-fox-selvagens-cena-
-    // e-texturas.md.
-    texture: '/assets/textures/fox/fox-diffuse.png',
+    // e-texturas.md. `flipY: false` porque essa textura em específico
+    // segue a convenção de UV do glTF (de onde foi extraída) — oposta ao
+    // default do projeto (`true`, ver `textureCache.js`), que assume o
+    // caso mais comum hoje (arquivo de rip independente).
+    texture: {
+      0: { path: '/assets/textures/fox/fox-diffuse.png', flipY: false },
+    },
   },
   clips: {
     idle: IDLE_CLIP,

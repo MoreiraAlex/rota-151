@@ -1,0 +1,1724 @@
+{
+  "name": "charmander-run",
+  "loop": true,
+  "speed": 2,
+  "bones": {
+    "Waist": {
+      "rotation": {
+        "x": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": 0.06102
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.05127,
+              "frequencyScale": 1,
+              "phaseTurns": 0.975
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.02205,
+              "frequencyScale": 2,
+              "phaseTurns": 0.36119
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.01156,
+              "frequencyScale": 3,
+              "phaseTurns": 0.6219
+            }
+          ]
+        },
+        "y": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": -0.0897
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.0343,
+              "frequencyScale": 1,
+              "phaseTurns": 0.9424
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.01883,
+              "frequencyScale": 2,
+              "phaseTurns": 0.43544
+            }
+          ]
+        },
+        "z": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": -0.02968
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.04408,
+              "frequencyScale": 1,
+              "phaseTurns": 0.93163
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.00758,
+              "frequencyScale": 2,
+              "phaseTurns": 0.5679
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.01984,
+              "frequencyScale": 3,
+              "phaseTurns": 0.82928
+            }
+          ]
+        }
+      },
+      "position": {
+        "x": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "sine",
+              "amplitude": 0.16966,
+              "frequencyScale": 1,
+              "phaseTurns": 0.9533
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.08854,
+              "frequencyScale": 2,
+              "phaseTurns": 0.7675
+            }
+          ]
+        },
+        "y": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": -1.40019
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.28616,
+              "frequencyScale": 1,
+              "phaseTurns": 0.9662
+            },
+            {
+              "type": "sine",
+              "amplitude": 1.13144,
+              "frequencyScale": 2,
+              "phaseTurns": 0.8363
+            }
+          ]
+        },
+        "z": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "sine",
+              "amplitude": 0.5342,
+              "frequencyScale": 1,
+              "phaseTurns": 0.9623
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.63739,
+              "frequencyScale": 2,
+              "phaseTurns": 0.7548
+            }
+          ]
+        }
+      }
+    },
+    "LThigh": {
+      "rotation": {
+        "x": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": -0.05527
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.09909,
+              "frequencyScale": 1,
+              "phaseTurns": 0.98843
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.01959,
+              "frequencyScale": 2,
+              "phaseTurns": 0.57347
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.01576,
+              "frequencyScale": 3,
+              "phaseTurns": 0.54956
+            }
+          ]
+        },
+        "y": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": -0.29094
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.54163,
+              "frequencyScale": 1,
+              "phaseTurns": 0.57158
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.15405,
+              "frequencyScale": 2,
+              "phaseTurns": 0.79511
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.05426,
+              "frequencyScale": 3,
+              "phaseTurns": 0.54539
+            }
+          ]
+        },
+        "z": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": -0.01802
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.12187,
+              "frequencyScale": 1,
+              "phaseTurns": 0.49601
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.03882,
+              "frequencyScale": 2,
+              "phaseTurns": 0.91518
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.0242,
+              "frequencyScale": 3,
+              "phaseTurns": 0.43906
+            }
+          ]
+        }
+      }
+    },
+    "LLeg": {
+      "rotation": {
+        "x": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": -0.1369
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.30084,
+              "frequencyScale": 1,
+              "phaseTurns": 0.74163
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.17882,
+              "frequencyScale": 2,
+              "phaseTurns": 0.82327
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.08909,
+              "frequencyScale": 3,
+              "phaseTurns": 0.81779
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.05307,
+              "frequencyScale": 4,
+              "phaseTurns": 0.8386
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.02888,
+              "frequencyScale": 5,
+              "phaseTurns": 0.84811
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.01497,
+              "frequencyScale": 6,
+              "phaseTurns": 0.86371
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.00803,
+              "frequencyScale": 7,
+              "phaseTurns": 0.87151
+            }
+          ]
+        },
+        "y": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": 0.64492
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.42632,
+              "frequencyScale": 1,
+              "phaseTurns": 0.2565
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.33921,
+              "frequencyScale": 2,
+              "phaseTurns": 0.35412
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.08044,
+              "frequencyScale": 3,
+              "phaseTurns": 0.97271
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.00715,
+              "frequencyScale": 4,
+              "phaseTurns": 0.86365
+            }
+          ]
+        },
+        "z": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": 0.23353
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.35903,
+              "frequencyScale": 1,
+              "phaseTurns": 0.31117
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.22718,
+              "frequencyScale": 2,
+              "phaseTurns": 0.32172
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.14095,
+              "frequencyScale": 3,
+              "phaseTurns": 0.34083
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.05178,
+              "frequencyScale": 4,
+              "phaseTurns": 0.34843
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.02816,
+              "frequencyScale": 5,
+              "phaseTurns": 0.34328
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.01544,
+              "frequencyScale": 6,
+              "phaseTurns": 0.36356
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.00794,
+              "frequencyScale": 7,
+              "phaseTurns": 0.37197
+            }
+          ]
+        }
+      }
+    },
+    "LFoot": {
+      "rotation": {
+        "x": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": -0.00476
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.08131,
+              "frequencyScale": 1,
+              "phaseTurns": 0.78475
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.01306,
+              "frequencyScale": 2,
+              "phaseTurns": 0.86519
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.01108,
+              "frequencyScale": 3,
+              "phaseTurns": 0.8203
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.00627,
+              "frequencyScale": 4,
+              "phaseTurns": 0.47497
+            }
+          ]
+        },
+        "y": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": -0.36518
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.39126,
+              "frequencyScale": 1,
+              "phaseTurns": 0.93107
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.16843,
+              "frequencyScale": 2,
+              "phaseTurns": 0.87615
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.02931,
+              "frequencyScale": 3,
+              "phaseTurns": 0.2993
+            }
+          ]
+        },
+        "z": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": -0.0053
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.03052,
+              "frequencyScale": 1,
+              "phaseTurns": 0.61256
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.033,
+              "frequencyScale": 2,
+              "phaseTurns": 0.53847
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.01692,
+              "frequencyScale": 3,
+              "phaseTurns": 0.38194
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.0083,
+              "frequencyScale": 4,
+              "phaseTurns": 0.57512
+            }
+          ]
+        }
+      }
+    },
+    "LToe": {
+      "rotation": {
+        "x": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": -0.00586
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.00811,
+              "frequencyScale": 1,
+              "phaseTurns": 0.83518
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.00974,
+              "frequencyScale": 2,
+              "phaseTurns": 0.06193
+            }
+          ]
+        },
+        "y": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": -0.01552
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.01361,
+              "frequencyScale": 1,
+              "phaseTurns": 0.22944
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.01032,
+              "frequencyScale": 2,
+              "phaseTurns": 0.63309
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.013,
+              "frequencyScale": 3,
+              "phaseTurns": 0.05435
+            }
+          ]
+        },
+        "z": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": 0.00298
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.00596,
+              "frequencyScale": 1,
+              "phaseTurns": 0.4077
+            }
+          ]
+        }
+      }
+    },
+    "RThigh": {
+      "rotation": {
+        "x": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": 0.1048
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.07888,
+              "frequencyScale": 1,
+              "phaseTurns": 0.20681
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.03746,
+              "frequencyScale": 2,
+              "phaseTurns": 0.87426
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.01457,
+              "frequencyScale": 3,
+              "phaseTurns": 0.5145
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.0053,
+              "frequencyScale": 4,
+              "phaseTurns": 0.6221
+            }
+          ]
+        },
+        "y": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": -0.33452
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.67309,
+              "frequencyScale": 1,
+              "phaseTurns": 0.04244
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.17484,
+              "frequencyScale": 2,
+              "phaseTurns": 0.77673
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.06444,
+              "frequencyScale": 3,
+              "phaseTurns": 0.00692
+            }
+          ]
+        },
+        "z": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": -0.03569
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.17275,
+              "frequencyScale": 1,
+              "phaseTurns": 0.45216
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.03871,
+              "frequencyScale": 2,
+              "phaseTurns": 0.41581
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.05295,
+              "frequencyScale": 3,
+              "phaseTurns": 0.25681
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.00589,
+              "frequencyScale": 4,
+              "phaseTurns": 0.77445
+            }
+          ]
+        }
+      }
+    },
+    "RLeg": {
+      "rotation": {
+        "x": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": -0.00506
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.09059,
+              "frequencyScale": 1,
+              "phaseTurns": 0.61838
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.03284,
+              "frequencyScale": 2,
+              "phaseTurns": 0.425
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.08208,
+              "frequencyScale": 3,
+              "phaseTurns": 0.35904
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.02249,
+              "frequencyScale": 4,
+              "phaseTurns": 0.85961
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.02501,
+              "frequencyScale": 5,
+              "phaseTurns": 0.4124
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.01596,
+              "frequencyScale": 6,
+              "phaseTurns": 0.89837
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.01114,
+              "frequencyScale": 7,
+              "phaseTurns": 0.43969
+            }
+          ]
+        },
+        "y": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": 0.68779
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.43737,
+              "frequencyScale": 1,
+              "phaseTurns": 0.73333
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.4039,
+              "frequencyScale": 2,
+              "phaseTurns": 0.33543
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.08437,
+              "frequencyScale": 3,
+              "phaseTurns": 0.45591
+            }
+          ]
+        },
+        "z": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": -0.01207
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.02884,
+              "frequencyScale": 1,
+              "phaseTurns": 0.77318
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.03156,
+              "frequencyScale": 2,
+              "phaseTurns": 0.41527
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.03204,
+              "frequencyScale": 3,
+              "phaseTurns": 0.88087
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.03361,
+              "frequencyScale": 4,
+              "phaseTurns": 0.35856
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.03286,
+              "frequencyScale": 5,
+              "phaseTurns": 0.92978
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.01413,
+              "frequencyScale": 6,
+              "phaseTurns": 0.38462
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.01114,
+              "frequencyScale": 7,
+              "phaseTurns": 0.93677
+            }
+          ]
+        }
+      }
+    },
+    "RFoot": {
+      "rotation": {
+        "x": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": 0.03944
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.07462,
+              "frequencyScale": 1,
+              "phaseTurns": 0.90231
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.04244,
+              "frequencyScale": 2,
+              "phaseTurns": 0.68106
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.01233,
+              "frequencyScale": 3,
+              "phaseTurns": 0.26475
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.00593,
+              "frequencyScale": 4,
+              "phaseTurns": 0.81
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.00606,
+              "frequencyScale": 5,
+              "phaseTurns": 0.42385
+            }
+          ]
+        },
+        "y": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": -0.30702
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.39817,
+              "frequencyScale": 1,
+              "phaseTurns": 0.43894
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.19215,
+              "frequencyScale": 2,
+              "phaseTurns": 0.85959
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.03675,
+              "frequencyScale": 3,
+              "phaseTurns": 0.78902
+            }
+          ]
+        },
+        "z": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": 0.02881
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.06951,
+              "frequencyScale": 1,
+              "phaseTurns": 0.79468
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.01902,
+              "frequencyScale": 2,
+              "phaseTurns": 0.46875
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.0207,
+              "frequencyScale": 3,
+              "phaseTurns": 0.29362
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.00424,
+              "frequencyScale": 4,
+              "phaseTurns": 0.94073
+            }
+          ]
+        }
+      }
+    },
+    "RToe": {
+      "rotation": {
+        "x": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": -0.02081
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.00912,
+              "frequencyScale": 1,
+              "phaseTurns": 0.87915
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.00987,
+              "frequencyScale": 2,
+              "phaseTurns": 0.38439
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.00793,
+              "frequencyScale": 3,
+              "phaseTurns": 0.40788
+            }
+          ]
+        },
+        "y": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": -0.04196
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.01745,
+              "frequencyScale": 1,
+              "phaseTurns": 0.4726
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.00652,
+              "frequencyScale": 2,
+              "phaseTurns": 0.64332
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.01219,
+              "frequencyScale": 3,
+              "phaseTurns": 0.53037
+            }
+          ]
+        },
+        "z": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": 0.03729
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.00805,
+              "frequencyScale": 2,
+              "phaseTurns": 0.44015
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.00599,
+              "frequencyScale": 3,
+              "phaseTurns": 0.2387
+            }
+          ]
+        }
+      }
+    },
+    "Tail1": {
+      "rotation": {
+        "x": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": -0.00003
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.00599,
+              "frequencyScale": 3,
+              "phaseTurns": 0.38001
+            }
+          ]
+        },
+        "z": {
+          "type": "sine",
+          "amplitude": 0.01905,
+          "frequencyScale": 3,
+          "phaseTurns": 0.88001
+        }
+      }
+    },
+    "Tail2": {
+      "rotation": {
+        "z": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": 0.00002
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.03982,
+              "frequencyScale": 3,
+              "phaseTurns": 0.75999
+            }
+          ]
+        }
+      }
+    },
+    "Tail3": {
+      "rotation": {
+        "x": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": -0.00003
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.00429,
+              "frequencyScale": 3,
+              "phaseTurns": 0.64031
+            }
+          ]
+        },
+        "z": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": 0.00002
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.05977,
+              "frequencyScale": 3,
+              "phaseTurns": 0.64
+            }
+          ]
+        }
+      }
+    },
+    "Tail4": {
+      "rotation": {
+        "x": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": 0.00002
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.00806,
+              "frequencyScale": 3,
+              "phaseTurns": 0.52028
+            }
+          ]
+        },
+        "z": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": -0.00001
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.07948,
+              "frequencyScale": 3,
+              "phaseTurns": 0.52001
+            }
+          ]
+        }
+      }
+    },
+    "Tail5": {
+      "rotation": {
+        "x": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": 0.00005
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.01476,
+              "frequencyScale": 3,
+              "phaseTurns": 0.40011
+            }
+          ]
+        },
+        "z": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": -0.00006
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.09873,
+              "frequencyScale": 3,
+              "phaseTurns": 0.40001
+            }
+          ]
+        }
+      }
+    },
+    "Tail6": {
+      "rotation": {
+        "x": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": 0.00002
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.02402,
+              "frequencyScale": 3,
+              "phaseTurns": 0.27993
+            }
+          ]
+        },
+        "z": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": -0.0001
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.11733,
+              "frequencyScale": 3,
+              "phaseTurns": 0.27999
+            }
+          ]
+        }
+      }
+    },
+    "Spine1": {
+      "rotation": {
+        "x": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": -0.04937
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.0646,
+              "frequencyScale": 1,
+              "phaseTurns": 0.46197
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.02187,
+              "frequencyScale": 2,
+              "phaseTurns": 0.88475
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.01394,
+              "frequencyScale": 3,
+              "phaseTurns": 0.20323
+            }
+          ]
+        },
+        "y": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": -0.3471
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.03359,
+              "frequencyScale": 1,
+              "phaseTurns": 0.44833
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.01941,
+              "frequencyScale": 2,
+              "phaseTurns": 0.92556
+            }
+          ]
+        },
+        "z": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": 0.03598
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.04405,
+              "frequencyScale": 1,
+              "phaseTurns": 0.42327
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.00905,
+              "frequencyScale": 2,
+              "phaseTurns": 0.10272
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.02076,
+              "frequencyScale": 3,
+              "phaseTurns": 0.34533
+            }
+          ]
+        }
+      }
+    },
+    "LShoulder": {
+      "rotation": {
+        "x": {
+          "type": "constant",
+          "value": -0.43633
+        }
+      }
+    },
+    "LArm": {
+      "rotation": {
+        "x": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": 0.36859
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.20282,
+              "frequencyScale": 1,
+              "phaseTurns": 0.16934
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.00584,
+              "frequencyScale": 2,
+              "phaseTurns": 0.25533
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.02156,
+              "frequencyScale": 3,
+              "phaseTurns": 0.39963
+            }
+          ]
+        },
+        "y": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": 0.20162
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.35897,
+              "frequencyScale": 1,
+              "phaseTurns": 0.05605
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.00833,
+              "frequencyScale": 2,
+              "phaseTurns": 0.65643
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.01236,
+              "frequencyScale": 3,
+              "phaseTurns": 0.08614
+            }
+          ]
+        },
+        "z": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": -0.51608
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.06575,
+              "frequencyScale": 1,
+              "phaseTurns": 0.55493
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.04202,
+              "frequencyScale": 2,
+              "phaseTurns": 0.64767
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.00438,
+              "frequencyScale": 3,
+              "phaseTurns": 0.61569
+            }
+          ]
+        }
+      }
+    },
+    "LForeArm": {
+      "rotation": {
+        "x": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": -0.46464
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.25069,
+              "frequencyScale": 1,
+              "phaseTurns": 0.88258
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.09648,
+              "frequencyScale": 2,
+              "phaseTurns": 0.89169
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.02756,
+              "frequencyScale": 3,
+              "phaseTurns": 0.96067
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.00638,
+              "frequencyScale": 4,
+              "phaseTurns": 0.42004
+            }
+          ]
+        },
+        "y": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": -0.95888
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.11448,
+              "frequencyScale": 1,
+              "phaseTurns": 0.9376
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.03273,
+              "frequencyScale": 2,
+              "phaseTurns": 0.27474
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.0213,
+              "frequencyScale": 3,
+              "phaseTurns": 0.56218
+            }
+          ]
+        },
+        "z": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": -0.31293
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.16959,
+              "frequencyScale": 1,
+              "phaseTurns": 0.71995
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.09426,
+              "frequencyScale": 2,
+              "phaseTurns": 0.87971
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.02446,
+              "frequencyScale": 3,
+              "phaseTurns": 0.98143
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.0059,
+              "frequencyScale": 4,
+              "phaseTurns": 0.43783
+            }
+          ]
+        }
+      }
+    },
+    "LHand": {
+      "rotation": {
+        "x": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": -0.05449
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.09556,
+              "frequencyScale": 1,
+              "phaseTurns": 0.10332
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.02311,
+              "frequencyScale": 2,
+              "phaseTurns": 0.88129
+            }
+          ]
+        },
+        "y": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": -0.39194
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.08135,
+              "frequencyScale": 1,
+              "phaseTurns": 0.03389
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.00897,
+              "frequencyScale": 2,
+              "phaseTurns": 0.28673
+            }
+          ]
+        },
+        "z": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": -0.06766
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.05946,
+              "frequencyScale": 1,
+              "phaseTurns": 0.57897
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.00911,
+              "frequencyScale": 2,
+              "phaseTurns": 0.01396
+            }
+          ]
+        }
+      }
+    },
+    "Head": {
+      "rotation": {
+        "y": {
+          "type": "constant",
+          "value": 0.34907
+        }
+      }
+    },
+    "RShoulder": {
+      "rotation": {
+        "x": {
+          "type": "constant",
+          "value": 0.43633
+        }
+      }
+    },
+    "RArm": {
+      "rotation": {
+        "x": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": -0.46607
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.21304,
+              "frequencyScale": 1,
+              "phaseTurns": 0.0495
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.03299,
+              "frequencyScale": 2,
+              "phaseTurns": 0.13288
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.02431,
+              "frequencyScale": 3,
+              "phaseTurns": 0.46853
+            }
+          ]
+        },
+        "y": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": 0.17227
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.49542,
+              "frequencyScale": 1,
+              "phaseTurns": 0.52668
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.03604,
+              "frequencyScale": 2,
+              "phaseTurns": 0.84213
+            }
+          ]
+        },
+        "z": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": 0.44658
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.10046,
+              "frequencyScale": 1,
+              "phaseTurns": 0.46265
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.01548,
+              "frequencyScale": 2,
+              "phaseTurns": 0.796
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.01527,
+              "frequencyScale": 3,
+              "phaseTurns": 0.87173
+            }
+          ]
+        }
+      }
+    },
+    "RForeArm": {
+      "rotation": {
+        "x": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": 0.46195
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.05873,
+              "frequencyScale": 1,
+              "phaseTurns": 0.015
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.08419,
+              "frequencyScale": 2,
+              "phaseTurns": 0.71648
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.00768,
+              "frequencyScale": 3,
+              "phaseTurns": 0.22474
+            }
+          ]
+        },
+        "y": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": -0.85274
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.05065,
+              "frequencyScale": 1,
+              "phaseTurns": 0.67268
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.04926,
+              "frequencyScale": 2,
+              "phaseTurns": 0.20947
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.00903,
+              "frequencyScale": 3,
+              "phaseTurns": 0.72491
+            }
+          ]
+        },
+        "z": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": 0.29443
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.10559,
+              "frequencyScale": 1,
+              "phaseTurns": 0.58489
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.0626,
+              "frequencyScale": 2,
+              "phaseTurns": 0.69155
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.00833,
+              "frequencyScale": 3,
+              "phaseTurns": 0.3592
+            }
+          ]
+        }
+      }
+    },
+    "RHand": {
+      "rotation": {
+        "x": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": 0.14354
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.09657,
+              "frequencyScale": 1,
+              "phaseTurns": 0.93358
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.03303,
+              "frequencyScale": 2,
+              "phaseTurns": 0.83636
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.01069,
+              "frequencyScale": 3,
+              "phaseTurns": 0.57434
+            }
+          ]
+        },
+        "y": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": -0.27535
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.15725,
+              "frequencyScale": 1,
+              "phaseTurns": 0.43968
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.03702,
+              "frequencyScale": 2,
+              "phaseTurns": 0.20409
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.01868,
+              "frequencyScale": 3,
+              "phaseTurns": 0.09278
+            }
+          ]
+        },
+        "z": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": 0.20614
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.04121,
+              "frequencyScale": 1,
+              "phaseTurns": 0.90442
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.03811,
+              "frequencyScale": 2,
+              "phaseTurns": 0.66652
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.00953,
+              "frequencyScale": 3,
+              "phaseTurns": 0.50618
+            }
+          ]
+        }
+      }
+    }
+  }
+}

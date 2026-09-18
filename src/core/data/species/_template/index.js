@@ -27,12 +27,21 @@ export const SPECIES_TEMPLATE = {
     // 1) string — uma textura pra TODO mesh do modelo, pra `.glb` com um
     //    material só (ver `../fox/index.js`):
     // texture: '/assets/textures/nome/diffuse.png',
-    // 2) `{ materialIndex: path }` — um diffuse por material, pra `.glb`
-    //    com vários materiais (corpo/olhos/etc. separados — ver
-    //    `../bulbasaur/index.js`). `materialIndex` é a ordem de encontro
-    //    dos meshes em `cloned.traverse`, conferida visualmente no
-    //    navegador, não um metadado do `.glb`.
-    // texture: { 0: '/assets/textures/nome/body.png', 1: '/assets/textures/nome/eyes.png' },
+    // 2) `{ materialIndex: { path, ... } }` — um diffuse por material, pra
+    //    `.glb` com vários materiais (corpo/olhos/etc. separados — ver
+    //    `../001-bulbasaur/index.js`). `materialIndex` é a ordem de
+    //    encontro dos meshes em `cloned.traverse`, conferida visualmente
+    //    no navegador, não um metadado do `.glb`. O valor de cada entrada é
+    //    SEMPRE um objeto (nunca a string do path direto) — `path` é
+    //    obrigatório, o resto é opcional e só faz sentido quando a textura
+    //    de verdade é um atlas maior que a região que aquele material deve
+    //    mostrar: `center`/`repeat`/`pan` (offset) recortam um pedaço dela,
+    //    `rotation` (graus) gira o UV, `flipY` sobrescreve o default (`true`
+    //    — ver `textureCache.js`) só pra esta textura específica.
+    // texture: {
+    //   0: { path: '/assets/textures/nome/body.png' },
+    //   1: { path: '/assets/textures/nome/eyes.png', flipY: false },
+    // },
   },
   clips: {
     // idle: IDLE_CLIP,

@@ -15,16 +15,27 @@ const cache = new Map()
  * `loadAudioBuffer` (espécie sem `model.texture` configurado é o caso
  * normal, não um erro).
  *
- * `flipY = false` e `colorSpace = SRGBColorSpace` são setados na mão: a
- * textura foi extraída de dentro de um `.glb` (ver docs/features/020-fox-
- * selvagens-cena-e-texturas.md), onde o `GLTFLoader` já aplicava os dois
- * ajustes por baixo dos panos pra bater com a convenção de UV do glTF
- * (origem no canto superior esquerdo) e a codificação sRGB de uma textura
- * de cor base. Carregando o mesmo arquivo "cru" por fora do glTF (`THREE.
- * TextureLoader` puro, sem passar pelo parser), os defaults dele não batem
- * com isso — sem replicar os dois ajustes, a textura aparece de cabeça pra
- * baixo e/ou lavada em cima da MESMA geometria/UV que antes vinha correta
- * pelo pipeline do glTF.
+ * Defaults genéricos, aplicados a QUALQUER textura carregada por aqui,
+ * independente de quem chama:
+ * - `colorSpace = SRGBColorSpace` — convenção de textura de cor base
+ *   (diffuse), não dado bruto (normal map, mask, etc. precisariam de
+ *   `NoColorSpace`, mas este cache só serve diffuse hoje).
+ * - `wrapS`/`wrapT = RepeatWrapping` — sem isso, o default do three
+ *   (`ClampToEdgeWrapping`) quebra qualquer recorte de atlas por
+ *   `repeat`/`pan` que `useAnimatedModel.js` aplique por cima (a região
+ *   fora de `[0,1]` simplesmente clampa na borda em vez de repetir).
+ * - `flipY = true` — default do PROJETO (a maioria das texturas hoje é
+ *   arquivo de rip independente, não extraído de dentro de um `.glb`).
+ *   Quem precisar do oposto (ex.: uma textura que FOI extraída de um
+ *   `.glb`, que segue a convenção de UV do glTF — origem no canto
+ *   superior esquerdo, oposta à de uma imagem comum) sobrescreve por
+ *   entrada em `species.model.texture[materialIndex].flipY`
+ *   (`useAnimatedModel.js`), nunca aqui — este cache é compartilhado por
+ *   path entre todo mundo que carregar o mesmo arquivo.
+ *
+ * Falha de carga nunca rejeita: resolve `null`, e quem chama trata "sem
+ * textura" como no-op gracioso — mesmo padrão de `loadAudioBuffer`
+ * (espécie sem `model.texture` configurado é o caso normal, não um erro).
  */
 export function loadTexture(path) {
   if (!cache.has(path)) {
@@ -34,8 +45,10 @@ export function loadTexture(path) {
         loader.load(
           path,
           (texture) => {
-            texture.flipY = false
+            texture.flipY = true
             texture.colorSpace = THREE.SRGBColorSpace
+            texture.wrapS = THREE.RepeatWrapping
+            texture.wrapT = THREE.RepeatWrapping
             resolve(texture)
           },
           undefined,

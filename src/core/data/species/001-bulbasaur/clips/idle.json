@@ -1,0 +1,106 @@
+{
+  "name": "creature-idle",
+  "loop": true,
+  "speed": 0.29268,
+  "bones": {
+    "Head": {
+      "rotation": {
+        "x": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": 0.00085
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.01553,
+              "frequencyScale": 1,
+              "phaseTurns": 0.31107
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.00574,
+              "frequencyScale": 2,
+              "phaseTurns": 0.19608
+            }
+          ]
+        },
+        "y": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": -0.01474
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.01827,
+              "frequencyScale": 1,
+              "phaseTurns": 0.5343
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.00414,
+              "frequencyScale": 2,
+              "phaseTurns": 0.35918
+            }
+          ]
+        },
+        "z": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": 0.01098
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.13298,
+              "frequencyScale": 1,
+              "phaseTurns": 0.29958
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.07063,
+              "frequencyScale": 2,
+              "phaseTurns": 0.12661
+            }
+          ]
+        }
+      }
+    },
+    "Waist": {
+      "position": {
+        "y": {
+          "type": "constant",
+          "value": -1.4678
+        },
+        "z": {
+          "type": "constant",
+          "value": -1.22898
+        }
+      }
+    },
+    "LFeelerC01": { "rotation": { "y": { "type": "constant", "value": 1.5707963268 } } },
+    "LFeelerC02": { "rotation": { "y": { "type": "constant", "value": 1.5707963268 } } },
+    "LFeelerC03": { "rotation": { "y": { "type": "constant", "value": 1.5707963268 } } },
+    "LFeelerC04": { "rotation": { "y": { "type": "constant", "value": 1.5707963268 } } },
+    "LFeelerC05": { "rotation": { "y": { "type": "constant", "value": 1.5707963268 } } },
+    "LFeelerC06": { "rotation": { "y": { "type": "constant", "value": 1.5707963268 } } },
+    "LFeelerC07": { "rotation": { "y": { "type": "constant", "value": 1.5707963268 } } },
+    "LFeelerC08": { "rotation": { "y": { "type": "constant", "value": 1.5707963268 } } },
+    "LFeelerC09": { "rotation": { "y": { "type": "constant", "value": 1.5707963268 } } },
+    "LFeelerC10": { "rotation": { "y": { "type": "constant", "value": 1.5707963268 } } },
+    "RFeelerC01": { "rotation": { "y": { "type": "constant", "value": -1.5707963268 } } },
+    "RFeelerC02": { "rotation": { "y": { "type": "constant", "value": -1.5707963268 } } },
+    "RFeelerC03": { "rotation": { "y": { "type": "constant", "value": -1.5707963268 } } },
+    "RFeelerC04": { "rotation": { "y": { "type": "constant", "value": -1.5707963268 } } },
+    "RFeelerC05": { "rotation": { "y": { "type": "constant", "value": -1.5707963268 } } },
+    "RFeelerC06": { "rotation": { "y": { "type": "constant", "value": -1.5707963268 } } },
+    "RFeelerC07": { "rotation": { "y": { "type": "constant", "value": -1.5707963268 } } },
+    "RFeelerC08": { "rotation": { "y": { "type": "constant", "value": -1.5707963268 } } },
+    "RFeelerC09": { "rotation": { "y": { "type": "constant", "value": -1.5707963268 } } },
+    "RFeelerC10": { "rotation": { "y": { "type": "constant", "value": -1.5707963268 } } }
+  }
+}

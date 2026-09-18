@@ -158,10 +158,11 @@ export function useAnimatedModel(entity, species) {
     // Duas formas de `species.model.texture`:
     // - string: UMA textura pra TODO mesh do modelo (caso FOX/WOLF — `.glb`
     //   com um material só, a textura cobre o modelo inteiro).
-    // - `{ [materialIndex]: path }`: um path por material, pra modelo com
-    //   vários materiais (caso Bulbasaur — corpo/folha/olhos são materiais
-    //   diferentes, cada um com seu diffuse; ver `species/bulbasaur/index.js`).
-    //   `materialIndex` é a ORDEM DE ENCONTRO dos meshes em `cloned.traverse`
+    // - `{ [materialIndex]: { path, ... } }`: um objeto por material, pra
+    //   modelo com vários materiais (caso Bulbasaur — corpo/folha/olhos são
+    //   materiais diferentes, cada um com seu diffuse; ver
+    //   `species/001-bulbasaur/index.js`). `materialIndex` é a ORDEM DE ENCONTRO
+    //   dos meshes em `cloned.traverse`
     //   (0, 1, 2, ...) — não vem de metadado nenhum do `.glb` (nome de
     //   material se repete entre slots diferentes nesse arquivo), então é
     //   sensível à estrutura do modelo: se o modelo for reexportado com
@@ -189,16 +190,15 @@ export function useAnimatedModel(entity, species) {
           // aplicado, não só o que falhou).
           if (!loaded) return [Number(materialIndex), null]
 
-          loaded.colorSpace = THREE.SRGBColorSpace
-          loaded.wrapS = THREE.RepeatWrapping
-          loaded.wrapT = THREE.RepeatWrapping
-          loaded.needsUpdate = true
-
-          // `loadTexture` já seta `flipY = false` (convenção de textura
-          // extraída de `.glb`, ver docstring de `textureCache.js`) — só
-          // sobrescreve quando a espécie pedir explicitamente outra coisa
-          // (ex.: sheet de expressão não extraído do glTF).
-          loaded.flipY = obj.flipY ?? true
+          // `colorSpace`/`wrapS`/`wrapT`/`flipY` (default `true`) já vêm
+          // setados por `loadTexture` (`textureCache.js`) — genéricos pra
+          // QUALQUER textura carregada por ali. Só sobrescreve `flipY`
+          // aqui quando a espécie parametrizar explicitamente (ex.: uma
+          // textura que FOI extraída de dentro de um `.glb`, que segue a
+          // convenção de UV oposta — ver `species/fox/index.js`).
+          if (obj.flipY !== undefined) {
+            loaded.flipY = obj.flipY
+          }
 
           if (obj.center) {
             loaded.center.set(obj.center.x, obj.center.y)
@@ -224,6 +224,13 @@ export function useAnimatedModel(entity, species) {
               (1 - loaded.repeat.y) / 2 + panY,
             )
           }
+
+          // Sempre por ÚLTIMO — flag de reupload pro GPU, precisa vir
+          // DEPOIS de qualquer mutação acima (flipY/center/rotation/repeat/
+          // pan), senão uma alteração feita depois deste ponto correria o
+          // risco de não pegar o próximo frame já com o valor certo.
+          loaded.needsUpdate = true
+
           return [Number(materialIndex), loaded]
         }),
       ),

@@ -18,7 +18,9 @@ import { FOX_GREEN } from './fox-green'
 import { FOX_BLUE } from './fox-blue'
 import { BOT } from './bot'
 import { WOLF } from './wolf'
-import { BULBASAUR } from './bulbasaur'
+import { BULBASAUR } from './001-bulbasaur'
+import { CHARMANDER } from './004-charmander'
+import { SQUIRTLE } from './007-squirtle'
 
 export const SPECIES_REGISTRY = {
   [FOX.id]: FOX,
@@ -28,6 +30,8 @@ export const SPECIES_REGISTRY = {
   [BOT.id]: BOT,
   [WOLF.id]: WOLF,
   [BULBASAUR.id]: BULBASAUR,
+  [CHARMANDER.id]: CHARMANDER,
+  [SQUIRTLE.id]: SQUIRTLE,
 }
 
 /**

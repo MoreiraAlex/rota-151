@@ -56,7 +56,7 @@ export const playerEntity = world.spawn(
   // verdade ainda, só o ponto de partida mais conveniente pra testar.
   HeldItem({ itemId: 'rock' }),
   Inventory,
-  Party({ slot1: 'fox' }),
+  Party({ slot1: 'bulbasaur', slot2: 'charmander', slot3: 'squirtle' }),
   // Default vazio — só passa a ter uso se o treinador virar "o bot",
   // seguindo uma criatura sob controle do jogador (ver
   // creatureFollowSystem.js e docs/features/018-troca-de-controle-

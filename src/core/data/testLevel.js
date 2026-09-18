@@ -20,6 +20,32 @@
  *   pertencer ao time do treinador. Ver docs/features/020-fox-selvagens-
  *   cena-e-texturas.md.
  */
+
+const WILD_CREATURE_COUNT = 0
+
+const WILD_CREATURE_SPECIES = [
+  'bulbasaur',
+  'charmander',
+  'squirtle',
+  // 'fox',
+  // 'wolf',
+]
+
+const generateWildCreatures = (count) =>
+  Array.from({ length: count }, (_, index) => ({
+    id: `wild-${index + 1}`,
+    speciesId:
+      WILD_CREATURE_SPECIES[
+        Math.floor(Math.random() * WILD_CREATURE_SPECIES.length)
+      ],
+    position: [
+      Math.random() * 120 - 60,
+      1,
+      Math.random() * 120 - 60,
+    ],
+  }))
+
+
 export const TEST_LEVEL = {
   ambientSound: {
     clips: [
@@ -361,12 +387,21 @@ export const TEST_LEVEL = {
   ],
   // Espalhadas pela área nova, longe do spawn do jogador (perto da origem)
   // e da trilha de teste — ver docstring do campo lá em cima.
-  wildCreatures: [
-    { id: 'wolf-1', speciesId: 'wolf', position: [35, 1, 35] },
-    { id: 'wild-fox-2', speciesId: 'fox-red', position: [-35, 1, -30] },
-    { id: 'wild-fox-3', speciesId: 'fox-green', position: [40, 1, -45] },
-    { id: 'wild-fox-4', speciesId: 'fox-blue', position: [-50, 1, 40] },
-    { id: 'wild-fox-5', speciesId: 'fox', position: [50, 1, 50] },
-    { id: 'wild-fox-6', speciesId: 'fox-red', position: [-55, 1, -50] },
-  ],
+  // wildCreatures: [
+  //   // { id: 'wolf-1', speciesId: 'wolf', position: [35, 1, 35] },
+  //   // { id: 'wild-fox-2', speciesId: 'fox-red', position: [-35, 1, -30] },
+  //   // { id: 'wild-fox-3', speciesId: 'fox-green', position: [40, 1, -45] },
+  //   // { id: 'wild-fox-4', speciesId: 'fox-blue', position: [-50, 1, 40] },
+  //   // { id: 'wild-fox-5', speciesId: 'fox', position: [50, 1, 50] },
+  //   // { id: 'wild-fox-6', speciesId: 'fox-red', position: [-55, 1, -50] },
+  //   { id: 'wild-bulbasaur-1', speciesId: 'bulbasaur', position: [-50, 1, 40] },
+  //   { id: 'wild-bulbasaur-2', speciesId: 'bulbasaur', position: [50, 1, 50] },
+  //   { id: 'wild-charmander-1', speciesId: 'charmander', position: [-35, 1, -30] },
+  //   { id: 'wild-charmander-2', speciesId: 'charmander', position: [40, 1, -45] },
+  //   { id: 'wild-squirtle-1', speciesId: 'squirtle', position: [-55, 1, -50] },
+  //   { id: 'wild-squirtle-2', speciesId: 'squirtle', position: [-40, 1, -50] },
+  // ],
+  wildCreatures: generateWildCreatures(WILD_CREATURE_COUNT),
 }
+
+
