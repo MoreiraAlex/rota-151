@@ -1,8 +1,9 @@
 /**
  * Nível de teste da física.
  *
- * Fonte única: os colliders (core/physics) e os meshes (view/scene/GameScene)
- * são gerados a partir daqui, então o visível bate com o colidível.
+ * Fonte única: os colliders (core/physics), a grade de pathfinding
+ * (core/pathfinding.js) e os meshes (view/scene/GameScene) são gerados a
+ * partir daqui, então o visível bate com o colidível/andável.
  *
  * - size: dimensões completas [largura(x), altura(y), profundidade(z)], em unidades.
  * - rotation (opcional): giro em um eixo — { axis: 'x' | 'y' | 'z', angle } (rad).
@@ -13,6 +14,11 @@
  *   AmbientAudio.jsx`/docs/features/019-som-ambiente-e-passos.md pro
  *   porquê). Sem este campo, o jogo fica em silêncio ambiente (mesmo
  *   fallback gracioso de qualquer conteúdo que ainda não existe).
+ * - wildCreatures (opcional): criaturas selvagens spawnadas UMA VEZ pelo
+ *   `wildCreatureSpawnSystem.js` no início do jogo — `{ id, speciesId,
+ *   position: [x,y,z] }`. Vagam sozinhas (`wildWanderSystem.js`), sem
+ *   pertencer ao time do treinador. Ver docs/features/020-fox-selvagens-
+ *   cena-e-texturas.md.
  */
 export const TEST_LEVEL = {
   ambientSound: {
@@ -24,8 +30,81 @@ export const TEST_LEVEL = {
     minInterval: 2,
     maxInterval: 5,
   },
-  ground: { size: 60, thickness: 1 },
+  // 150 (era 60) — espaço pra fox selvagens vagarem longe de tudo que já
+  // existia perto da origem (ver docs/features/020-fox-selvagens-cena-e-
+  // texturas.md). A grade de pathfinding cresce em células (60/CELL_SIZE →
+  // 150/CELL_SIZE por eixo), mas é lazy/cacheada uma vez só
+  // (`core/pathfinding.js`), sem custo por tick.
+  ground: { size: 150, thickness: 1 },
   obstacles: [
+    // Muro de contorno — sem ele, sair da borda do chão é queda livre pro
+    // limbo (nada segura isso hoje, ver characterPhysicsSystem.js). Altura
+    // bem acima do pulo máximo de qualquer espécie (~0,9m com
+    // movement.jumpSpeed/PHYSICS.GRAVITY atuais), posicionado exatamente na
+    // borda de `ground.size` (±75). `type: 'box'` normal — sem mecanismo
+    // novo em TestLevelView/colliders.js/pathfinding.js.
+    {
+      id: 'boundary-north',
+      type: 'box',
+      position: [0, 2, -75],
+      size: [151, 4, 1],
+    },
+    {
+      id: 'boundary-south',
+      type: 'box',
+      position: [0, 2, 75],
+      size: [151, 4, 1],
+    },
+    {
+      id: 'boundary-east',
+      type: 'box',
+      position: [75, 2, 0],
+      size: [1, 4, 151],
+    },
+    {
+      id: 'boundary-west',
+      type: 'box',
+      position: [-75, 2, 0],
+      size: [1, 4, 151],
+    },
+
+    // Pedras espalhadas pela área nova (fora do raio de tudo que já existia
+    // perto da origem) — o que os fox selvagens (`wildWanderSystem.js`)
+    // desviarem ao vagar.
+    { id: 'rock-1', type: 'box', position: [30, 0.75, 40], size: [2, 1.5, 2] },
+    { id: 'rock-2', type: 'box', position: [45, 1, -20], size: [3, 2, 2.5] },
+    {
+      id: 'rock-3',
+      type: 'box',
+      position: [-40, 0.6, -35],
+      size: [1.8, 1.2, 1.8],
+    },
+    {
+      id: 'rock-4',
+      type: 'box',
+      position: [-55, 1.1, 30],
+      size: [2.5, 2.2, 2],
+    },
+    { id: 'rock-5', type: 'box', position: [20, 0.9, -50], size: [2, 1.8, 3] },
+    {
+      id: 'rock-6',
+      type: 'box',
+      position: [-25, 0.7, 55],
+      size: [2.2, 1.4, 2.2],
+    },
+    {
+      id: 'rock-7',
+      type: 'box',
+      position: [55, 0.8, 55],
+      size: [1.6, 1.6, 1.6],
+    },
+    {
+      id: 'rock-8',
+      type: 'box',
+      position: [-60, 0.9, -55],
+      size: [2.8, 1.8, 2],
+    },
+
     // Parede para esbarrar e deslizar.
     { id: 'wall', type: 'box', position: [0, 1, -7], size: [10, 2, 0.5] },
     // Degrau baixo — transposto sozinho pelo auto-step.
@@ -279,5 +358,15 @@ export const TEST_LEVEL = {
       position: [4.405, 3.6, 20],
       size: [5, 7.2, 14],
     },
+  ],
+  // Espalhadas pela área nova, longe do spawn do jogador (perto da origem)
+  // e da trilha de teste — ver docstring do campo lá em cima.
+  wildCreatures: [
+    { id: 'wolf-1', speciesId: 'wolf', position: [35, 1, 35] },
+    { id: 'wild-fox-2', speciesId: 'fox-red', position: [-35, 1, -30] },
+    { id: 'wild-fox-3', speciesId: 'fox-green', position: [40, 1, -45] },
+    { id: 'wild-fox-4', speciesId: 'fox-blue', position: [-50, 1, 40] },
+    { id: 'wild-fox-5', speciesId: 'fox', position: [50, 1, 50] },
+    { id: 'wild-fox-6', speciesId: 'fox-red', position: [-55, 1, -50] },
   ],
 }

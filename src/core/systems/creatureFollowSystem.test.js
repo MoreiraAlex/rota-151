@@ -13,6 +13,7 @@ import {
   Rotation,
   SummonedCreature,
   Velocity,
+  WildCreature,
 } from '@/core/traits'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import { creatureFollowSystem } from './creatureFollowSystem'
@@ -275,6 +276,36 @@ describe('creatureFollowSystem', () => {
     spawnCreature(world, { x: 10, y: 1, z: 0 })
 
     expect(() => tick(world)).not.toThrow()
+
+    world.destroy()
+  })
+
+  it('ignora WildCreature — não a puxa pro treinador nem mexe no PathState dela', () => {
+    // Bug real, relatado jogando: sem este filtro, esta system e
+    // wildWanderSystem.js brigavam pelo MESMO PathState de uma
+    // WildCreature (esta aqui recalculando rumo ao treinador sempre que o
+    // PRÓPRIO repathTimer vencia), fazendo a criatura selvagem ficar
+    // trocando de rota toda hora em vez de vagar sozinha.
+    const { world } = makeWorld({ playerPosition: { x: 0, y: 1, z: 0 } })
+    const wild = world.spawn(
+      Position({ x: 10, y: 1, z: 0 }),
+      Rotation,
+      Velocity,
+      WildCreature({ speciesId: 'fox' }),
+      MovementStats(getSpecies('fox').movement),
+      PathState,
+      PhysicsBody,
+      CharacterController,
+    )
+
+    tick(world)
+
+    const vel = wild.get(Velocity)
+    expect(vel.x).toBe(0)
+    expect(vel.z).toBe(0)
+    // PathState nunca foi tocado (continua no default de spawn) — prova
+    // que a entidade nem entrou na lógica de perseguir o treinador.
+    expect(wild.get(PathState).waypoints).toEqual([])
 
     world.destroy()
   })

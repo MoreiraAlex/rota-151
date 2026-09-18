@@ -11,8 +11,8 @@ import RUN_CLIP from './clips/run.json'
  * cápsula deitada de quadrúpede) até haver conteúdo de criatura de verdade.
  * Sem prefixo numérico de dex — não é um Pokémon de verdade.
  */
-export const FOX = {
-  id: 'fox',
+export const WOLF = {
+  id: 'wolf',
   dexNumber: null,
   // Placeholder de criatura selvagem, não o treinador — ver comentário
   // acima. Sem espécie kind: 'pokemon' de verdade ainda, resolveActionSlots
@@ -24,7 +24,7 @@ export const FOX = {
     // Extraída do próprio `.glb` (único material/textura do modelo) pra
     // dar pra editar por fora — ver docs/features/020-fox-selvagens-cena-
     // e-texturas.md.
-    texture: '/assets/textures/fox/fox-diffuse.png',
+    texture: '/assets/textures/wolf/wolf.png',
   },
   clips: {
     idle: IDLE_CLIP,

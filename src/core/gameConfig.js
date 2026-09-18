@@ -85,6 +85,24 @@ export const GAME_CONFIG = {
     // travada, pra escolher entre desviar à esquerda ou à direita.
     AVOIDANCE_PROBE_DISTANCE: 1.5,
   },
+  // `wildWanderSystem.js` — genérico pra qualquer `WildCreature`, não varia
+  // por espécie (ver docs/features/020-fox-selvagens-cena-e-texturas.md).
+  WILD_WANDER: {
+    // Raio (m) em torno do ponto de spawn (`WanderState.homeX/homeZ`) onde
+    // um novo destino pode ser sorteado — mantém cada criatura vagando por
+    // uma área local, não atravessando o mapa inteiro.
+    RADIUS: 12,
+    // Segundos parada ao chegar num destino, antes de sortear o próximo
+    // (sorteado de novo a cada vez, entre os dois).
+    MIN_PAUSE: 3,
+    MAX_PAUSE: 8,
+    // Distância (m) até o destino atual pra considerá-lo alcançado.
+    ARRIVAL_DISTANCE: 0.6,
+    // Segundos perseguindo o mesmo destino sem chegar antes de desistir e
+    // sortear outro — trava de segurança contra destino praticamente
+    // inalcançável (ver docstring de `WanderState.chaseTimer`).
+    MAX_CHASE_TIME: 15,
+  },
   ANIMATION: {
     // Abaixo disso, considera parado (idle).
     WALK_MIN_SPEED: 0.3,

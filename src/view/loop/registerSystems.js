@@ -9,6 +9,8 @@ import { movementSystem } from '@/core/systems/movementSystem'
 import { playerActionSystem } from '@/core/systems/playerActionSystem'
 import { partySummonSystem } from '@/core/systems/partySummonSystem'
 import { creatureFollowSystem } from '@/core/systems/creatureFollowSystem'
+import { wildCreatureSpawnSystem } from '@/core/systems/wildCreatureSpawnSystem'
+import { wildWanderSystem } from '@/core/systems/wildWanderSystem'
 import { projectileSystem } from '@/core/systems/projectileSystem'
 import { consumeEffectSystem } from '@/core/systems/consumeEffectSystem'
 import { characterPhysicsSystem } from '@/core/systems/characterPhysicsSystem'
@@ -72,7 +74,12 @@ let registered = false
  * `Velocity`/`Grounded` do treinador) — a posição exata deles na fase
  * simulation não importa, ficam perto de `playerActionSystem` (quem spawna
  * o projétil/efeito) por proximidade de leitura, não por dependência real
- * de ordem.
+ * de ordem. `wildCreatureSpawnSystem`/`wildWanderSystem` (docs/features/020-
+ * fox-selvagens-cena-e-texturas.md) seguem o mesmo raciocínio — ficam perto
+ * de `partySummonSystem`/`creatureFollowSystem` (mesma família: criaturas
+ * não-jogador que precisam existir/se mover antes de `characterPhysicsSystem`
+ * integrar a `Velocity` delas), sem depender de ordem exata com eles
+ * (`WildCreature` e `SummonedCreature` nunca são a mesma entidade).
  */
 export function registerGameSystems() {
   if (registered) return
@@ -91,6 +98,8 @@ export function registerGameSystems() {
   registerSystem(GAME_PHASES.SIMULATION, consumeEffectSystem)
   registerSystem(GAME_PHASES.SIMULATION, partySummonSystem)
   registerSystem(GAME_PHASES.SIMULATION, creatureFollowSystem)
+  registerSystem(GAME_PHASES.SIMULATION, wildCreatureSpawnSystem)
+  registerSystem(GAME_PHASES.SIMULATION, wildWanderSystem)
   registerSystem(GAME_PHASES.SIMULATION, characterPhysicsSystem)
   registerSystem(GAME_PHASES.SIMULATION, physicsStepSystem)
   registerSystem(GAME_PHASES.SIMULATION, syncPhysicsSystem)

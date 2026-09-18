@@ -22,6 +22,17 @@ export const SPECIES_TEMPLATE = {
   model: {
     path: '/assets/models/nome.glb',
     scale: 1,
+    // Opcional — sem isso, usa a própria textura já embutida no `.glb`
+    // (se houver). Duas formas (`useAnimatedModel.js`):
+    // 1) string — uma textura pra TODO mesh do modelo, pra `.glb` com um
+    //    material só (ver `../fox/index.js`):
+    // texture: '/assets/textures/nome/diffuse.png',
+    // 2) `{ materialIndex: path }` — um diffuse por material, pra `.glb`
+    //    com vários materiais (corpo/olhos/etc. separados — ver
+    //    `../bulbasaur/index.js`). `materialIndex` é a ordem de encontro
+    //    dos meshes em `cloned.traverse`, conferida visualmente no
+    //    navegador, não um metadado do `.glb`.
+    // texture: { 0: '/assets/textures/nome/body.png', 1: '/assets/textures/nome/eyes.png' },
   },
   clips: {
     // idle: IDLE_CLIP,

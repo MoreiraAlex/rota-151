@@ -15,6 +15,7 @@ import { resolveDashSound } from '@/core/data/audio/dashSound'
 import { resolveJumpSound } from '@/core/data/audio/jumpSound'
 import { getAudioListener } from '../audio/audioListener'
 import { loadAudioBuffer } from '../audio/audioBufferCache'
+import { loadTexture } from '../textures/textureCache'
 import { registerView, unregisterView } from '../registry/viewRegistry'
 import {
   registerAnimatedBones,
@@ -109,6 +110,13 @@ function setupPositionalActionSound(
  * referência, só geometria/esqueleto são únicos por clone) — quem precisar
  * tingir uma instância sem afetar as outras que carregam o mesmo `.glb`
  * precisa clonar o material antes de mudar a cor (ver `CreatureView.jsx`).
+ * Textura por espécie (`species.model.texture`, opcional — string pra
+ * modelo de material único como FOX/WOLF, ou `{ [materialIndex]: path }`
+ * pra modelo com vários materiais como Bulbasaur — ver docs/features/020-
+ * fox-selvagens-cena-e-texturas.md) segue o mesmo cuidado, aplicada aqui
+ * mesmo (não só em `CreatureView`) porque é config de `species.model`, no
+ * mesmo nível de `path`/`scale` — qualquer entidade que use este hook
+ * (treinador incluso) ganha de graça se um dia configurar textura própria.
  *
  * Retorna `{ groupRef, cloned }`: `groupRef` vai no `<group ref>` que o
  * `syncTransformSystem` move; `cloned` é a cena pra renderizar via
@@ -142,6 +150,111 @@ export function useAnimatedModel(entity, species) {
       }
     })
   }, [cloned])
+
+  useEffect(() => {
+    const texture = species.model.texture
+    if (!texture) return
+
+    // Duas formas de `species.model.texture`:
+    // - string: UMA textura pra TODO mesh do modelo (caso FOX/WOLF — `.glb`
+    //   com um material só, a textura cobre o modelo inteiro).
+    // - `{ [materialIndex]: path }`: um path por material, pra modelo com
+    //   vários materiais (caso Bulbasaur — corpo/folha/olhos são materiais
+    //   diferentes, cada um com seu diffuse; ver `species/bulbasaur/index.js`).
+    //   `materialIndex` é a ORDEM DE ENCONTRO dos meshes em `cloned.traverse`
+    //   (0, 1, 2, ...) — não vem de metadado nenhum do `.glb` (nome de
+    //   material se repete entre slots diferentes nesse arquivo), então é
+    //   sensível à estrutura do modelo: se o modelo for reexportado com
+    //   meshes em outra ordem, os índices no `index.js` da espécie precisam
+    //   ser conferidos de novo visualmente.
+    const isPerMaterial = typeof texture === 'object'
+    const entries = isPerMaterial
+      ? Object.entries(texture)
+      : [['0', { path: texture }]]
+
+    let cancelled = false
+    const materialIndexByMesh = new Map()
+    let nextMaterialIndex = 0
+    cloned.traverse((child) => {
+      if (child.isMesh) materialIndexByMesh.set(child, nextMaterialIndex++)
+    })
+
+    Promise.all(
+      entries.map(([materialIndex, obj]) =>
+        loadTexture(obj.path).then((loaded) => {
+          // `loadTexture` já resolve `null` (em vez de rejeitar) numa carga
+          // que falhou — precisa sair ANTES de mexer em propriedade de
+          // textura, senão o `.then()` lança em cima de `null` e derruba o
+          // `Promise.all` inteiro (nenhum material de NENHUM índice seria
+          // aplicado, não só o que falhou).
+          if (!loaded) return [Number(materialIndex), null]
+
+          loaded.colorSpace = THREE.SRGBColorSpace
+          loaded.wrapS = THREE.RepeatWrapping
+          loaded.wrapT = THREE.RepeatWrapping
+          loaded.needsUpdate = true
+
+          // `loadTexture` já seta `flipY = false` (convenção de textura
+          // extraída de `.glb`, ver docstring de `textureCache.js`) — só
+          // sobrescreve quando a espécie pedir explicitamente outra coisa
+          // (ex.: sheet de expressão não extraído do glTF).
+          loaded.flipY = obj.flipY ?? true
+
+          if (obj.center) {
+            loaded.center.set(obj.center.x, obj.center.y)
+          }
+
+          if (obj.rotation !== undefined) {
+            loaded.rotation = THREE.MathUtils.degToRad(obj.rotation)
+          }
+
+          if (obj.repeat) {
+            loaded.repeat.set(
+              obj.repeat.x ?? loaded.repeat.x,
+              obj.repeat.y ?? loaded.repeat.y,
+            )
+          }
+
+          if (obj.pan) {
+            const panX = obj.pan.x ?? 0
+            const panY = obj.pan.y ?? 0
+
+            loaded.offset.set(
+              (1 - loaded.repeat.x) / 2 + panX,
+              (1 - loaded.repeat.y) / 2 + panY,
+            )
+          }
+          return [Number(materialIndex), loaded]
+        }),
+      ),
+    ).then((loadedByIndex) => {
+      if (cancelled) return
+      const textureByIndex = new Map(
+        loadedByIndex.filter(([, loaded]) => loaded),
+      )
+      if (textureByIndex.size === 0) return
+
+      // Clona o material antes de mudar `.map` — `SkeletonUtils.clone` (acima)
+      // reusa material por referência entre instâncias do mesmo `.glb`; sem
+      // clonar, a textura vazaria pra qualquer outra entidade carregando o
+      // mesmo asset (mesmo motivo do tint em `CreatureView.jsx`).
+      for (const [child, materialIndex] of materialIndexByMesh) {
+        // Forma string (`isPerMaterial` falso): aplica a MESMA textura em
+        // todo mesh, ignorando o índice — mantém o comportamento de sempre.
+        const loaded = isPerMaterial
+          ? textureByIndex.get(materialIndex)
+          : textureByIndex.get(0)
+        if (!loaded) continue
+        child.material = child.material.clone()
+        child.material.map = loaded
+        child.material.needsUpdate = true
+      }
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [cloned, species])
 
   useEffect(() => {
     registerView(entity, groupRef.current)

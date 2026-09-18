@@ -4,7 +4,7 @@ import { AmbientAudio } from '@/view/audio/AmbientAudio'
 import { PlayerView } from './PlayerView'
 import { ProjectilesView } from './ProjectileView'
 import { ConsumeEffectsView } from './ConsumeEffectView'
-import { CreaturesView } from './CreatureView'
+import { CreaturesView, WildCreaturesView } from './CreatureView'
 
 function obstacleRotation(rotation) {
   if (!rotation) return [0, 0, 0]
@@ -34,7 +34,7 @@ function TestLevelView() {
     <>
       <mesh position={[0, -ground.thickness / 2, 0]} receiveShadow>
         <boxGeometry args={[ground.size, ground.thickness, ground.size]} />
-        <meshStandardMaterial color="#4a7c3a" />
+        <meshStandardMaterial color="#35271f" />
       </mesh>
 
       {obstacles.map((obstacle) => (
@@ -85,6 +85,7 @@ export function GameScene({ children }) {
       <ProjectilesView />
       <ConsumeEffectsView />
       <CreaturesView />
+      <WildCreaturesView />
 
       {children}
     </>

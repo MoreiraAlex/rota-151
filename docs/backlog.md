@@ -126,10 +126,10 @@ de puxar ela pra frente.
 
 ## Criaturas
 
-- [ ] **Criaturas selvagens no mundo** — entidades não-jogáveis usando o
-      mesmo `core/data/species` + motor de animação procedural que o jogador
-      usa, com IA simples (parada/vagando). Adiado até o jogador estar
-      redondo.
+- [X] **Criaturas selvagens no mundo** — entregue em
+      `docs/features/020-fox-selvagens-cena-e-texturas.md`: `WildCreature`/
+      `wildWanderSystem` (vagar com pathfind, sem interação com o jogador
+      ainda).
 
 ## Animação
 

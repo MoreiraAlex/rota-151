@@ -13,6 +13,7 @@ import {
   Position,
   Rotation,
   Velocity,
+  WildCreature,
 } from '../traits'
 
 /**
@@ -34,7 +35,11 @@ import {
  * treinador e toda criatura têm os dois) menos quem tem `InputControlled`
  * agora — não mais por `SummonedCreature` especificamente, que era como
  * "seguidor" e "criatura" significavam a mesma coisa antes de existir
- * troca de controle.
+ * troca de controle. Também exclui quem tem `WildCreature` (docs/
+ * features/020-fox-selvagens-cena-e-texturas.md) — essas também têm
+ * `CharacterController`, mas vagam sozinhas (`wildWanderSystem.js`), sem
+ * seguir o treinador; sem o filtro, as duas systems brigavam pelo MESMO
+ * `PathState` da mesma entidade (bug real, relatado jogando).
  *
  * Produz `Velocity`/`Rotation` (intenção) em vez de mexer em `Position`
  * direto — mesmo desenho de `movementSystem.js` pro jogador. Quem de fato
@@ -180,6 +185,16 @@ export function creatureFollowSystem(context) {
     .query(CharacterController, MovementStats, Velocity, Rotation, Position)
     .updateEach(([, stats, vel, rot, pos], entity) => {
       if (entity.has(InputControlled)) return // é quem está sendo pilotado — não segue ninguém
+      // `WildCreature` também tem `CharacterController` (mesmo pipeline
+      // físico) mas vaga sozinha (`wildWanderSystem.js`, docs/features/020-
+      // fox-selvagens-cena-e-texturas.md) — sem este filtro, as duas
+      // systems brigavam pelo MESMO `PathState` da mesma entidade (esta
+      // aqui recalculando rumo ao treinador sempre que seu próprio
+      // `repathTimer` vencia, `wildWanderSystem` reaproveitando esses
+      // waypoints por engano até o PRÓPRIO repath dele vencer) — bug real,
+      // relatado jogando como "a criatura selvagem fica trocando de rota
+      // toda hora".
+      if (entity.has(WildCreature)) return
 
       const dx = targetPos.x - pos.x
       const dz = targetPos.z - pos.z
