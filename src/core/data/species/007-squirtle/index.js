@@ -1,6 +1,7 @@
 import IDLE_CLIP from './clips/idle.json'
 import WALK_CLIP from './clips/walk.json'
 import RUN_CLIP from './clips/run.json'
+import CRY_CLIP from './clips/cry.json'
 
 export const SQUIRTLE = {
   id: 'squirtle',
@@ -16,8 +17,14 @@ export const SQUIRTLE = {
         flipY: false,
         center: {x: 0.5, y: 0.5},
         repeat: {x: 1, y: 1},
-        pan: {x: -0.5, y: 0},
-        rotation: 180
+        rotation: 180,
+        eyeStates: {
+          awake: {
+            open: { x: -0.5, y: 0 },
+            closed: { x: -0.5, y: 0.5 },
+          },
+        },
+        blink: { minInterval: 2, maxInterval: 6, closedDuration: 0.15 },
       },
     },
   },
@@ -26,6 +33,7 @@ export const SQUIRTLE = {
     idle: IDLE_CLIP,
     walk: WALK_CLIP,
     run: RUN_CLIP,
+    cry: CRY_CLIP
   },
   body: {
     capsuleRadius: 0.3,

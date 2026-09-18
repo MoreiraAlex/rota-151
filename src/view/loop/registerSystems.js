@@ -28,6 +28,8 @@ import { voiceAudioSystem } from '@/view/systems/voiceAudioSystem'
 import { ambientAudioSystem } from '@/view/systems/ambientAudioSystem'
 import { dashAudioSystem } from '@/view/systems/dashAudioSystem'
 import { jumpAudioSystem } from '@/view/systems/jumpAudioSystem'
+import { eyeBlinkSystem } from '@/view/systems/eyeBlinkSystem'
+import { mouthSyncSystem } from '@/view/systems/mouthSyncSystem'
 
 let registered = false
 
@@ -71,7 +73,17 @@ let registered = false
  * `dashAudioSystem` (borda de subida de `ActionState.current === 'dash'`)
  * e `jumpAudioSystem` (consome o pulso `Jumped`, ver core/traits/
  * components/physics.js) ficam perto dele, sem dependência real de ordem
- * entre eles.
+ * entre eles. `eyeBlinkSystem`
+ * (docs/features/023-estado-de-humor-e-
+ * piscar-de-olhos.md — alterna célula de atlas de olho aberto/fechado por
+ * temporizador, mesma família de "efeito periódico por entidade" que
+ * `voiceAudioSystem`) fica na mesma vizinhança, também sem dependência
+ * real de ordem. `mouthSyncSystem` (docs/features/023-estado-de-humor-e-
+ * piscar-de-olhos.md, seção "Boca sincronizada com o grito") é DIFERENTE
+ * dos outros da vizinhança — precisa rodar
+ * DEPOIS de `animationSystem` de verdade (senão o clipe de idle/walk/run
+ * escreveria por cima do overlay de boca no mesmo frame), por isso fica
+ * registrado por último, não só por proximidade.
  *
  * `partySummonSystem`/`creatureFollowSystem`/`projectileSystem`/
  * `consumeEffectSystem` são independentes do resto (não leem nem escrevem
@@ -120,4 +132,6 @@ export function registerGameSystems() {
   registerSystem(GAME_PHASES.PRESENTATION, ambientAudioSystem)
   registerSystem(GAME_PHASES.PRESENTATION, dashAudioSystem)
   registerSystem(GAME_PHASES.PRESENTATION, jumpAudioSystem)
+  registerSystem(GAME_PHASES.PRESENTATION, eyeBlinkSystem)
+  registerSystem(GAME_PHASES.PRESENTATION, mouthSyncSystem)
 }

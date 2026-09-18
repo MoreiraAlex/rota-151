@@ -10,6 +10,7 @@ import {
   HeldItem,
   InputControlled,
   InputState,
+  Mood,
   MovementStats,
   Party,
   PathState,
@@ -154,6 +155,11 @@ function applySummon(world, action, party, pos, slot) {
     InputState,
     AimAnchor,
     HeldItem,
+    // Default 'awake' — mesmo trait universal simples de AnimationState/
+    // ActionState acima. Espécie sem `eyeStates` configurado (a maioria
+    // hoje) nunca é lida por `eyeBlinkSystem.js`, sem custo (ver docs/
+    // features/023-estado-de-humor-e-piscar-de-olhos.md).
+    Mood,
   )
 }
 

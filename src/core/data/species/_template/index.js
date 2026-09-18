@@ -42,10 +42,44 @@ export const SPECIES_TEMPLATE = {
     //   0: { path: '/assets/textures/nome/body.png' },
     //   1: { path: '/assets/textures/nome/eyes.png', flipY: false },
     // },
+    // `pan` acima é uma célula FIXA, pra sempre — pra um atlas de olho com
+    // várias expressões (aberto/fechado/dormindo/braba/etc., ver
+    // `../001-bulbasaur/index.js`) que precisam ALTERNAR sozinhas
+    // (piscar) e mudar conforme o humor da criatura (`core/traits/
+    // components/mood.js`, docs/features/023-estado-de-humor-e-piscar-de-
+    // olhos.md), troca `pan` por `eyeStates` (mutuamente exclusivos — uma
+    // entrada usa um ou outro, nunca os dois): um objeto por humor, cada
+    // um com uma célula `open` e uma `closed` (mesmo formato de `pan`).
+    // `blink` (opcional, defaults 2-6s aberto / 0.12s fechado) ajusta o
+    // ritmo de piscar. `view/systems/eyeBlinkSystem.js` cuida do resto —
+    // sem código nenhum além da config.
+    // texture: {
+    //   1: {
+    //     path: '/assets/textures/nome/eyes-atlas.png',
+    //     repeat: { x: 1 / 4, y: 1 / 4 },
+    //     eyeStates: {
+    //       awake: { open: { x: -0.5, y: -0.25 }, closed: { x: -0.25, y: -0.25 } },
+    //       sleeping: { open: { x: -0.5, y: -0.5 }, closed: { x: -0.25, y: -0.5 } },
+    //     },
+    //     blink: { minInterval: 2, maxInterval: 6, closedDuration: 0.12 },
+    //   },
+    // },
   },
   clips: {
     // idle: IDLE_CLIP,
     // walk: WALK_CLIP,
+    // `cry` (opcional — ver `../001-bulbasaur/index.js`, docs/features/
+    // 023-estado-de-humor-e-piscar-de-olhos.md, seção "Boca sincronizada
+    // com o grito") — clipe de boca/cabeça/antena
+    // tocado EXATAMENTE enquanto `sounds.voice` está tocando de verdade
+    // (não um temporizador próprio — os dois seguem o mesmo evento de
+    // áudio, nunca dessincronizam). Mesmo formato de idle/walk/run, mas
+    // só precisa animar os ossos da boca pra cima (cabeça/queixo/antenas
+    // etc.) — `view/hooks/useAnimatedModel.js` já isola só esses ossos
+    // sozinho, não precisa declarar nada a mais aqui. Sem `sounds.voice`
+    // configurado também, o clipe simplesmente nunca dispara (precisa dos
+    // dois: som pra sincronizar E clipe pra tocar).
+    // cry: CRY_CLIP,
   },
   body: {
     // Cápsula de colisão: altura total = 2 * (capsuleRadius + capsuleHalfHeight).

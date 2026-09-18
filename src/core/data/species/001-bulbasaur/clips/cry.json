@@ -1,0 +1,60 @@
+{
+  "name": "creature-cry",
+  "loop": false,
+  "speed": 2,
+  "bones": {
+  
+   "Jaw": {
+  "rotation": {
+    "y": {
+      "type": "sum",
+      "curves": [
+        {
+          "type": "constant",
+          "value": -0.008
+        },
+        {
+          "type": "sine",
+          "amplitude": 0.028,
+          "frequencyScale": 1.35,
+          "phaseTurns": 0.12
+        },
+        {
+          "type": "sine",
+          "amplitude": 0.009,
+          "frequencyScale": 2.7,
+          "phaseTurns": 0.37
+        },
+        {
+          "type": "sine",
+          "amplitude": 0.004,
+          "frequencyScale": 4.9,
+          "phaseTurns": 0.61
+        }
+      ]
+    }
+  }
+},
+  
+    "LFeelerC01": { "rotation": { "y": { "type": "constant", "value": 1.5707963268 } } },
+    "LFeelerC02": { "rotation": { "y": { "type": "constant", "value": 1.5707963268 } } },
+    "LFeelerC03": { "rotation": { "y": { "type": "constant", "value": 1.5707963268 } } },
+    "LFeelerC04": { "rotation": { "y": { "type": "constant", "value": 1.5707963268 } } },
+    "LFeelerC05": { "rotation": { "y": { "type": "constant", "value": 1.5707963268 } } },
+    "LFeelerC06": { "rotation": { "y": { "type": "constant", "value": 1.5707963268 } } },
+    "LFeelerC07": { "rotation": { "y": { "type": "constant", "value": 1.5707963268 } } },
+    "LFeelerC08": { "rotation": { "y": { "type": "constant", "value": 1.5707963268 } } },
+    "LFeelerC09": { "rotation": { "y": { "type": "constant", "value": 1.5707963268 } } },
+    "LFeelerC10": { "rotation": { "y": { "type": "constant", "value": 1.5707963268 } } },
+    "RFeelerC01": { "rotation": { "y": { "type": "constant", "value": -1.5707963268 } } },
+    "RFeelerC02": { "rotation": { "y": { "type": "constant", "value": -1.5707963268 } } },
+    "RFeelerC03": { "rotation": { "y": { "type": "constant", "value": -1.5707963268 } } },
+    "RFeelerC04": { "rotation": { "y": { "type": "constant", "value": -1.5707963268 } } },
+    "RFeelerC05": { "rotation": { "y": { "type": "constant", "value": -1.5707963268 } } },
+    "RFeelerC06": { "rotation": { "y": { "type": "constant", "value": -1.5707963268 } } },
+    "RFeelerC07": { "rotation": { "y": { "type": "constant", "value": -1.5707963268 } } },
+    "RFeelerC08": { "rotation": { "y": { "type": "constant", "value": -1.5707963268 } } },
+    "RFeelerC09": { "rotation": { "y": { "type": "constant", "value": -1.5707963268 } } },
+    "RFeelerC10": { "rotation": { "y": { "type": "constant", "value": -1.5707963268 } } }
+  }
+}

@@ -3,6 +3,11 @@
   "loop": true,
   "speed": 1,
   "bones": {
+    "Jaw": {
+      "rotation": {
+        "y": { "type": "constant", "value": 0.2000  }
+      }
+    },
     "Waist": {
       "rotation": {
         "x": {

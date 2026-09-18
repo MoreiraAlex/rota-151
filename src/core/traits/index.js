@@ -12,6 +12,7 @@ export {
 } from './components/physics'
 export { AnimationState } from './components/animation'
 export { ActionState } from './components/action'
+export { Mood } from './components/mood'
 export { AimAnchor } from './components/aimAnchor'
 export {
   Vitals,

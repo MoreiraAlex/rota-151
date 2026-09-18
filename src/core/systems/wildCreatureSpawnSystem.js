@@ -7,6 +7,7 @@ import {
   ActionState,
   AnimationState,
   CharacterController,
+  Mood,
   MovementStats,
   PathState,
   PhysicsBody,
@@ -101,6 +102,10 @@ export function wildCreatureSpawnSystem(context) {
         pauseTimer: MIN_PAUSE + Math.random() * (MAX_PAUSE - MIN_PAUSE),
         chaseTimer: 0,
       }),
+      // Default 'awake' — mesmo trait universal simples de AnimationState/
+      // ActionState acima, ver docs/features/023-estado-de-humor-e-piscar-
+      // de-olhos.md.
+      Mood,
     )
   }
 }

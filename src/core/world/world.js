@@ -20,6 +20,7 @@ import {
   Inventory,
   Party,
   PathState,
+  Mood,
 } from '../traits'
 
 export const world = createWorld()
@@ -63,6 +64,11 @@ export const playerEntity = world.spawn(
   // treinador-criatura.md). Toda SummonedCreature já tinha isso desde a
   // feature 017; falta aqui pro treinador poder ser seguidor também.
   PathState,
+  // Default 'awake' — sem uso real pro treinador ainda (sem `eyeStates`
+  // configurado pra ele), mesmo trait universal simples que
+  // `AnimationState`/`ActionState`, ver docs/features/023-estado-de-
+  // humor-e-piscar-de-olhos.md.
+  Mood,
 )
 
 export const cameraEntity = world.spawn(

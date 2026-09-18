@@ -70,6 +70,14 @@
         }
       }
     },
+    "Jaw": {
+      "rotation": {
+        "y": { "type": "constant", "value": -0.1500  }
+      },
+      "position": {
+        "x": { "type": "constant", "value": 3  }
+      }
+    },
     "Waist": {
       "position": {
         "y": {

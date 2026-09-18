@@ -12,6 +12,7 @@ import {
   OrbitCamera,
   CharacterController,
   InputControlled,
+  Mood,
   MovementStats,
   PathState,
   Vitals,
@@ -21,6 +22,8 @@ import {
   SummonedCreature,
   applyDamage,
 } from '@/core/traits'
+
+const MOOD_OPTIONS = ['awake', 'sleeping', 'angry']
 
 const CREATURE_SPECIES = listSpecies().filter(
   (species) => resolveSpeciesKind(species) === 'pokemon',
@@ -57,6 +60,7 @@ export function DebugPanel() {
   const body = useTrait(controlled, CharacterController)
   const movement = useTrait(controlled, MovementStats)
   const vitals = useTrait(controlled, Vitals)
+  const mood = useTrait(controlled, Mood)
   const controlledCreature = useTrait(controlled, SummonedCreature)
   const heldItem = useTrait(playerEntity, HeldItem)
   const party = useTrait(playerEntity, Party)
@@ -73,6 +77,7 @@ export function DebugPanel() {
     !body ||
     !movement ||
     !vitals ||
+    !mood ||
     !heldItem ||
     !party
   ) {
@@ -93,6 +98,24 @@ export function DebugPanel() {
           ? 'treinador'
           : `${controlledCreature?.speciesId} (${controlledCreature?.slot})`}
       </p>
+      {/* Humor (docs/features/023-estado-de-humor-e-piscar-de-olhos.md) —
+          sem IA nenhuma decidindo isso ainda, só este seletor pra testar.
+          Só tem efeito visível numa espécie com `eyeStates` configurado
+          (hoje só Bulbasaur) — controlando o treinador ou outra espécie, é
+          inofensivo (`Mood` existe em todo mundo, só nada lê pra ele). */}
+      <select
+        className="pointer-events-auto rounded bg-black/60 px-1 py-0.5 text-[10px] text-white"
+        value={mood.state}
+        onChange={(event) => {
+          controlled.set(Mood, { state: event.target.value })
+        }}
+      >
+        {MOOD_OPTIONS.map((state) => (
+          <option key={state} value={state}>
+            humor: {state}
+          </option>
+        ))}
+      </select>
       <p>
         pos: {position.x.toFixed(2)}, {position.y.toFixed(2)},{' '}
         {position.z.toFixed(2)}

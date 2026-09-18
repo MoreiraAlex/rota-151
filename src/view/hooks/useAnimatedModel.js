@@ -3,7 +3,7 @@ import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { clone as cloneSkeleton } from 'three/examples/jsm/utils/SkeletonUtils.js'
 
-import { SummonedCreature } from '@/core/traits'
+import { SummonedCreature, Mood } from '@/core/traits'
 import { resolveBones } from '@/core/animation/resolveBones'
 import { resolveFootstepSound } from '@/core/data/audio/footstepGroups'
 import {
@@ -27,6 +27,14 @@ import {
   registerTailFire,
   unregisterTailFire,
 } from '../registry/tailFireRegistry'
+import {
+  registerEyeBlink,
+  unregisterEyeBlink,
+} from '../registry/eyeBlinkRegistry'
+import {
+  registerMouthSync,
+  unregisterMouthSync,
+} from '../registry/mouthSyncRegistry'
 import {
   registerFootstepAudio,
   unregisterFootstepAudio,
@@ -54,6 +62,17 @@ const DEFAULT_VOICE_VOLUME = 0.8
 const DEFAULT_VOICE_REF_DISTANCE = 8
 const DEFAULT_ACTION_SOUND_VOLUME = 0.6
 const DEFAULT_ACTION_SOUND_REF_DISTANCE = 6
+const DEFAULT_BLINK_MIN_INTERVAL = 2
+const DEFAULT_BLINK_MAX_INTERVAL = 6
+const DEFAULT_BLINK_CLOSED_DURATION = 0.12
+
+// Mesmo fallback de `view/systems/eyeBlinkSystem.js` (mantido em sincronia
+// na mão — arquivos pequenos, acoplar os dois por import cruzado hook↔system
+// não vale a pena): humor sem estado declarado pra ele cai no PRIMEIRO
+// declarado, em vez de travar sem reagir.
+function resolveEyeState(states, mood) {
+  return states[mood] ?? states[Object.keys(states)[0]]
+}
 
 // Nome do osso da ponta da cauda, por espécie — puramente visual (nomes
 // vêm do rig 3D, não faz sentido core saber disso), mesmo raciocínio de
@@ -169,6 +188,16 @@ function setupPositionalActionSound(
  * entidade. Simulação de partícula em si avança em `view/systems/
  * tailFireSystem.js`, mesma separação "hook prepara, system avança" do
  * áudio.
+ *
+ * Boca sincronizada com o grito (`species.clips.cry`, opcional — ver docs/
+ * features/023-estado-de-humor-e-piscar-de-olhos.md, seção "Boca
+ * sincronizada com o grito"): resolve um SUBCONJUNTO
+ * dos ossos já registrados (só os que o clipe de grito de fato anima —
+ * cabeça/queixo/antenas, tipicamente) e registra em
+ * `mouthSyncRegistry.js`. `view/systems/mouthSyncSystem.js` toca o clipe
+ * nesses ossos exatamente enquanto o ÁUDIO do grito (`sounds.voice`) está
+ * tocando de verdade — os dois lêem o MESMO evento (`audio.isPlaying`),
+ * nunca dessincronizam.
  */
 export function useAnimatedModel(entity, species) {
   const groupRef = useRef()
@@ -248,7 +277,23 @@ export function useAnimatedModel(entity, species) {
             )
           }
 
-          if (obj.pan) {
+          if (obj.eyeStates) {
+            // Olho de múltiplos estados (ver docs/features/023-estado-de-
+            // humor-e-piscar-de-olhos.md) — offset inicial vem da célula
+            // "aberto" do humor ATUAL (`Mood`), não de `pan` estático
+            // (mutuamente exclusivos: uma entrada usa um ou outro).
+            // `eyeBlinkSystem.js` assume dali em diante; sem isso aqui, a
+            // textura nasceria na célula (0,0) do atlas até o 1º tick do
+            // system corrigir — um flash visível da célula errada.
+            const mood = entity.get(Mood)?.state ?? 'awake'
+            const state = resolveEyeState(obj.eyeStates, mood)
+            if (state) {
+              loaded.offset.set(
+                (1 - loaded.repeat.x) / 2 + state.open.x,
+                (1 - loaded.repeat.y) / 2 + state.open.y,
+              )
+            }
+          } else if (obj.pan) {
             const panX = obj.pan.x ?? 0
             const panY = obj.pan.y ?? 0
 
@@ -264,13 +309,18 @@ export function useAnimatedModel(entity, species) {
           // risco de não pegar o próximo frame já com o valor certo.
           loaded.needsUpdate = true
 
-          return [Number(materialIndex), loaded]
+          return [Number(materialIndex), loaded, obj]
         }),
       ),
     ).then((loadedByIndex) => {
       if (cancelled) return
       const textureByIndex = new Map(
-        loadedByIndex.filter(([, loaded]) => loaded),
+        loadedByIndex
+          .filter(([, loaded]) => loaded)
+          .map(([materialIndex, loaded, obj]) => [
+            materialIndex,
+            { loaded, obj },
+          ]),
       )
       if (textureByIndex.size === 0) return
 
@@ -281,20 +331,49 @@ export function useAnimatedModel(entity, species) {
       for (const [child, materialIndex] of materialIndexByMesh) {
         // Forma string (`isPerMaterial` falso): aplica a MESMA textura em
         // todo mesh, ignorando o índice — mantém o comportamento de sempre.
-        const loaded = isPerMaterial
+        const entry = isPerMaterial
           ? textureByIndex.get(materialIndex)
           : textureByIndex.get(0)
-        if (!loaded) continue
+        if (!entry) continue
         child.material = child.material.clone()
-        child.material.map = loaded
+        child.material.map = entry.loaded
         child.material.needsUpdate = true
       }
+
+      // Unidades de piscar — uma por textura carregada com `eyeStates`
+      // (normalmente só o olho, mas sem travar em 1). `loaded` é a MESMA
+      // referência de textura atribuída como `.map` acima (textura não é
+      // clonada, só o material) — mutar `.offset` nela no `eyeBlinkSystem.js`
+      // já reflete direto, sem precisar re-consultar material nenhum.
+      const eyeBlinkUnits = []
+      for (const { loaded, obj } of textureByIndex.values()) {
+        if (!obj.eyeStates) continue
+        const minInterval = obj.blink?.minInterval ?? DEFAULT_BLINK_MIN_INTERVAL
+        const maxInterval = obj.blink?.maxInterval ?? DEFAULT_BLINK_MAX_INTERVAL
+        eyeBlinkUnits.push({
+          texture: loaded,
+          repeat: { x: loaded.repeat.x, y: loaded.repeat.y },
+          states: obj.eyeStates,
+          blink: {
+            minInterval,
+            maxInterval,
+            closedDuration:
+              obj.blink?.closedDuration ?? DEFAULT_BLINK_CLOSED_DURATION,
+          },
+          phase: 'open',
+          timer: minInterval + Math.random() * (maxInterval - minInterval),
+          lastMood: entity.get(Mood)?.state ?? 'awake',
+        })
+      }
+      if (eyeBlinkUnits.length > 0) registerEyeBlink(entity, eyeBlinkUnits)
     })
 
     return () => {
       cancelled = true
+      unregisterEyeBlink(entity)
     }
-  }, [cloned, species])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cloned, entity, species])
 
   useEffect(() => {
     registerView(entity, groupRef.current)
@@ -345,6 +424,41 @@ export function useAnimatedModel(entity, species) {
     return () => {
       cancelled = true
       unregisterTailFire(entity)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entity, species])
+
+  // Boca sincronizada com o grito (`species.clips.cry`, opcional — ver
+  // docs/features/023-estado-de-humor-e-piscar-de-olhos.md, seção "Boca
+  // sincronizada com o grito") — mesma razão de rodar depois do efeito de
+  // ossos que o fogo de cauda acima: precisa do osso já registrado,
+  // disponível na hora (mesmo commit React).
+  useEffect(() => {
+    const cryClip = species.clips?.cry
+    if (!cryClip) return
+
+    const bonesEntry = getAnimatedBonesEntry(entity)?.bones
+    if (!bonesEntry) return
+
+    // SUBCONJUNTO, não o mapa inteiro — ver docstring de
+    // `mouthSyncRegistry.js` pro porquê (`applyAnimationClip` reseta pra
+    // pose de descanso todo osso do mapa que recebe).
+    const bones = {}
+    for (const boneName of Object.keys(cryClip.bones)) {
+      const bone = bonesEntry[boneName]
+      if (bone) bones[boneName] = bone
+    }
+    if (Object.keys(bones).length === 0) return // rig sem nenhum osso do clipe — no-op gracioso
+
+    registerMouthSync(entity, {
+      bones,
+      clip: cryClip,
+      elapsed: 0,
+      wasPlaying: false,
+    })
+
+    return () => {
+      unregisterMouthSync(entity)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entity, species])
