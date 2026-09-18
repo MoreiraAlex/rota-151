@@ -13,6 +13,7 @@ import {
 } from '@/core/data/audio/voiceSound'
 import { resolveDashSound } from '@/core/data/audio/dashSound'
 import { resolveJumpSound } from '@/core/data/audio/jumpSound'
+import { createFlame } from '@/view/vfx/flameParticles'
 import { getAudioListener } from '../audio/audioListener'
 import { loadAudioBuffer } from '../audio/audioBufferCache'
 import { loadTexture } from '../textures/textureCache'
@@ -20,7 +21,12 @@ import { registerView, unregisterView } from '../registry/viewRegistry'
 import {
   registerAnimatedBones,
   unregisterAnimatedBones,
+  getAnimatedBonesEntry,
 } from '../registry/animationRegistry'
+import {
+  registerTailFire,
+  unregisterTailFire,
+} from '../registry/tailFireRegistry'
 import {
   registerFootstepAudio,
   unregisterFootstepAudio,
@@ -48,6 +54,25 @@ const DEFAULT_VOICE_VOLUME = 0.8
 const DEFAULT_VOICE_REF_DISTANCE = 8
 const DEFAULT_ACTION_SOUND_VOLUME = 0.6
 const DEFAULT_ACTION_SOUND_REF_DISTANCE = 6
+
+// Nome do osso da ponta da cauda, por espécie — puramente visual (nomes
+// vêm do rig 3D, não faz sentido core saber disso), mesmo raciocínio de
+// `HAND_BONE_BY_SPECIES` em `heldItemViewSystem.js`. Só espécies com fogo
+// de cauda entram aqui — sem entrada (ou sem `species.vfx.tailFire`
+// configurado), o efeito abaixo não cria nada e não quebra.
+const TAIL_BONE_BY_SPECIES = {
+  charmander: 'Tail6',
+}
+
+// Únicas texturas de fogo existentes no projeto hoje (extraídas do rip do
+// Charmander, ver docs/features/021-pokemons-iniciais-e-selvagens-por-
+// sorteio.md) — se uma segunda espécie precisar de fogo com arquivo
+// PRÓPRIO no futuro, isso vira campo configurável em `tailFire`; por
+// enquanto, fixo aqui evita complicar a config à toa (YAGNI).
+const TAIL_FIRE_TEXTURE_PATHS = {
+  sten: '/assets/textures/004-charmander/default/pm0004_00_FireStenA1.png',
+  core: '/assets/textures/004-charmander/default/pm0004_00_FireCoreA1.png',
+}
 
 /**
  * Cria/carrega/registra um `THREE.PositionalAudio` de "um array de
@@ -136,6 +161,14 @@ function setupPositionalActionSound(
  * normais). Uma `SummonedCreature` já vocaliza (som de "voz") assim que
  * invocada, não espera o primeiro intervalo aleatório — recolher não tem
  * som especial nenhum, só some (ver `immediate` em `registerVoiceAudio`).
+ *
+ * Fogo de cauda (`species.vfx.tailFire`, opcional — ver docs/features/022-
+ * fogo-de-cauda-do-charmander.md) segue o mesmo espírito, mas encaixado
+ * num OSSO nomeado (`TAIL_BONE_BY_SPECIES`), não no grupo raiz — precisa
+ * seguir a pose animada da cauda, não só a posição/rotação geral da
+ * entidade. Simulação de partícula em si avança em `view/systems/
+ * tailFireSystem.js`, mesma separação "hook prepara, system avança" do
+ * áudio.
  */
 export function useAnimatedModel(entity, species) {
   const groupRef = useRef()
@@ -283,6 +316,38 @@ export function useAnimatedModel(entity, species) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cloned, entity])
+
+  // Fogo de cauda (`species.vfx.tailFire`, opcional — ver docs/features/
+  // 022-fogo-de-cauda-do-charmander.md) — precisa do osso já registrado
+  // pelo efeito ACIMA; roda depois dele na mesma árvore React (mesmo
+  // commit, ordem de declaração), então o osso já está disponível aqui
+  // sem precisar do retry-todo-frame que `heldItemViewSystem.js` precisa
+  // (ali é um system ECS separado, cadência diferente da árvore React).
+  useEffect(() => {
+    const tailFire = species.vfx?.tailFire
+    const boneName = TAIL_BONE_BY_SPECIES[species.id]
+    if (!tailFire || !boneName) return
+
+    const bone = getAnimatedBonesEntry(entity)?.bones[boneName]?.bone
+    if (!bone) return // rig sem esse osso (ex.: reexportado sem cauda) — no-op gracioso
+
+    let cancelled = false
+    Promise.all([
+      loadTexture(TAIL_FIRE_TEXTURE_PATHS.sten),
+      loadTexture(TAIL_FIRE_TEXTURE_PATHS.core),
+    ]).then(([sten, core]) => {
+      if (cancelled || !sten || !core) return
+      const flame = createFlame({ sten, core }, tailFire)
+      bone.add(flame.group)
+      registerTailFire(entity, flame, bone, tailFire)
+    })
+
+    return () => {
+      cancelled = true
+      unregisterTailFire(entity)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entity, species])
 
   useEffect(() => {
     const footstep = resolveFootstepSound(species)

@@ -19,7 +19,6 @@ export const CHARMANDER = {
         rotation: 180
       },
       1: { path: '/assets/textures/004-charmander/default/pm0004_00_Body1.png' },
-      3: { path: '/assets/textures/004-charmander/default/pm0004_00_FireStenA1.png' },
     },
   },
 
@@ -65,6 +64,46 @@ export const CHARMANDER = {
     },
     dashGroup: 'default',
     jumpGroup: 'default',
+  },
+  // Fogo de partícula na ponta da cauda (ver docs/features/022-fogo-de-
+  // cauda-do-charmander.md) — encaixado no osso `Tail6`
+  // (`TAIL_BONE_BY_SPECIES`, `useAnimatedModel.js`), acompanha a animação
+  // sozinho. `width`/`height`/`density` bem menores que o default de
+  // `createFlame` (calibrado pra uma fogueira ~1 unidade) — uma chama de
+  // cauda é bem menor, ver `view/vfx/flameParticles.js`.
+  vfx: {
+    tailFire: {
+      shape: 'cone',
+      width: 0.05,
+      height: 2,
+      density: 1,
+      turbulence: 0,
+      scale: 0.3,
+      // Rotação LOCAL fixa (graus) por cima da orientação herdada do osso
+      // — o fogo saía "deitado" na cauda porque `bone.add()` também herda
+      // a orientação de repouso do rig, não só a posição (ver
+      // tailFireSystem.js). Ajusta x/y/z olhando o resultado no jogo.
+      rotation: { x: 90, y: 0, z: 0 },
+      // Deslocamento LOCAL (unidades de mundo) a partir da origem do osso
+      // — ajusta na mão se a chama não nascer exatamente onde deveria em
+      // relação à ponta da cauda (ver tailFireSystem.js).
+      position: { x: 0.1, y: 0, z: 0 },
+      // Luz de verdade (`THREE.PointLight`, filha do mesmo grupo — já
+      // acompanha escala/rotação/posição acima de graça, ver docstring de
+      // `createFlame` em flameParticles.js). `distance` bem menor que o
+      // default de fogueira (3) — chama de cauda não devia iluminar uma
+      // área grande.
+      light: {
+        color: '#ff8a3d',
+        distance: 8,
+        decay: 0.2,
+        baseIntensity: 5,
+        // Sombra dinâmica (cubemap de PointLight, mais caro que uma luz
+        // sem sombra) — liga pra ver o Charmander/objetos por perto
+        // reagirem ao flicker da chama.
+        castShadow: false,
+      },
+    },
   },
   stats: {},
   moves: [],
