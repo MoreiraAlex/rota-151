@@ -31,12 +31,17 @@ export function resolveCameraYaw(world) {
 
 /**
  * Ponto de mira: raio a partir da câmera (`computeAimRay`, na direção que
- * o retículo no centro da tela representa — ver `tools/hud/Crosshair.jsx`),
- * limitado a `aimRange`; sem nada no caminho dentro desse alcance, mira no
- * ponto mais distante mesmo (em vez de "infinito"). `excludeColliderHandle`
- * (a cápsula de quem está mirando) evita que o raio acerte a própria
- * entidade — ele passa bem na frente do próprio corpo, já que a câmera
- * olha mais ou menos pra lá. `aimRange` vem de `getPlayerSpecies().
+ * o retículo no centro da tela representa — ver `tools/hud/Crosshair.jsx`;
+ * a posição da câmera em si já vem corrigida por colisão, mesma correção
+ * que a câmera renderizada usa, ver docstring de `computeAimRay` —
+ * sem isso, em pitches extremos a mira partia de um ponto bem diferente
+ * do que a câmera de fato mostrava na tela), limitado a `aimRange`; sem
+ * nada no caminho dentro desse alcance, mira no ponto mais distante mesmo
+ * (em vez de "infinito"). `excludeColliderHandle` (a cápsula de quem está
+ * mirando) evita que o raio acerte a própria entidade — ele passa bem na
+ * frente do próprio corpo, já que a câmera olha mais ou menos pra lá, e
+ * também é usado na PRÓPRIA correção de colisão da câmera, pelo mesmo
+ * motivo. `aimRange` vem de `getPlayerSpecies().
  * actions.throw` — mirar só existe pro treinador (`aimAnchorSystem.js`
  * bloqueia explicitamente pra qualquer `SummonedCreature`, mesmo
  * controlada — ver docs/features/018-troca-de-controle-treinador-
@@ -59,7 +64,11 @@ export function resolveAimPoint(world, playerPos, excludeColliderHandle) {
   }
 
   const orbit = cameraRig.get(OrbitCamera)
-  const { origin, direction } = computeAimRay(playerPos, orbit)
+  const { origin, direction } = computeAimRay(
+    playerPos,
+    orbit,
+    excludeColliderHandle,
+  )
 
   const hit = castRay(origin, direction, aimRange, { excludeColliderHandle })
   return hit
@@ -69,4 +78,42 @@ export function resolveAimPoint(world, playerPos, excludeColliderHandle) {
         y: origin.y + direction.y * aimRange,
         z: origin.z + direction.z * aimRange,
       }
+}
+
+/**
+ * Aproxima a posição da MÃO a partir de `Position`/`Rotation.y` do
+ * jogador — usada tanto pra origem de uma trajetória (`playerActionSystem`,
+ * arremesso) quanto pro ponto onde o objeto de fato nasce/é lançado (na
+ * liberação, `effectAt` — arremesso E, desde docs/features/024-esfera-de-
+ * invocar.md, a `SummonBall` também). O motor headless não tem acesso ao
+ * osso de verdade (isso vive na view, ver `view/systems/
+ * heldItemViewSystem.js`, que só cuida do visual do item encaixado no
+ * osso — não afeta física nem trajetória) — esta é uma aproximação
+ * geométrica: à frente do corpo (`handForwardOffset`) e à direita dele
+ * (`handSideOffset`, mesma convenção de forward/right de
+ * `computeCameraRight`/`movementSystem.js`), numa altura fixa
+ * (`handHeightOffset`) acima de `Position` (que fica na base/pés do
+ * personagem).
+ *
+ * `config` é `getPlayerSpecies().actions.throw`/`.summon` (config
+ * exclusiva do treinador, ver docs/features/018-troca-de-controle-
+ * treinador-criatura.md) — recebido como parâmetro em vez de resolvido
+ * aqui dentro pra não repetir o lookup a cada chamada, e pra deixar quem
+ * chama escolher qual ação (cada uma tem seus próprios
+ * `handForwardOffset`/`handSideOffset`/`handHeightOffset`, podem divergir
+ * — ex.: segurar uma esfera pra invocar pode "parecer" diferente de
+ * segurar um item pra arremessar).
+ */
+export function resolveHandOrigin(pos, rotY, config) {
+  const { handForwardOffset, handSideOffset, handHeightOffset } = config
+  const forwardX = Math.sin(rotY)
+  const forwardZ = Math.cos(rotY)
+  const rightX = Math.cos(rotY)
+  const rightZ = -Math.sin(rotY)
+
+  return {
+    x: pos.x + forwardX * handForwardOffset + rightX * handSideOffset,
+    y: pos.y + handHeightOffset,
+    z: pos.z + forwardZ * handForwardOffset + rightZ * handSideOffset,
+  }
 }

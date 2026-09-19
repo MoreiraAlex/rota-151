@@ -13,6 +13,8 @@ import {
 } from '@/core/data/audio/voiceSound'
 import { resolveDashSound } from '@/core/data/audio/dashSound'
 import { resolveJumpSound } from '@/core/data/audio/jumpSound'
+import { resolveSummonSound } from '@/core/data/audio/summonSound'
+import { resolveRecallSound } from '@/core/data/audio/recallSound'
 import { createFlame } from '@/view/vfx/flameParticles'
 import { getAudioListener } from '../audio/audioListener'
 import { loadAudioBuffer } from '../audio/audioBufferCache'
@@ -55,6 +57,16 @@ import {
   unregisterJumpAudio,
   getJumpAudioEntry,
 } from '../registry/jumpAudioRegistry'
+import {
+  registerSummonAudio,
+  unregisterSummonAudio,
+  getSummonAudioEntry,
+} from '../registry/summonAudioRegistry'
+import {
+  registerRecallAudio,
+  unregisterRecallAudio,
+  getRecallAudioEntry,
+} from '../registry/recallAudioRegistry'
 
 const DEFAULT_FOOTSTEP_VOLUME = 0.6
 const DEFAULT_FOOTSTEP_REF_DISTANCE = 5
@@ -166,18 +178,25 @@ function setupPositionalActionSound(
  * `syncTransformSystem` move; `cloned` é a cena pra renderizar via
  * `<primitive object={cloned} .../>`.
  *
- * Também registra o som de passo, vocalização periódica, dash e pulo da
- * espécie (ver docs/features/019-som-ambiente-e-passos.md), cada um se
- * houver — mesmo ciclo de vida do resto (nasce/morre junto com o modelo,
+ * Também registra o som de passo, vocalização periódica, dash, pulo,
+ * invocar e recolher da espécie (ver docs/features/019-som-ambiente-e-
+ * passos.md, docs/features/023-estado-de-humor-e-piscar-de-olhos.md,
+ * seção "Som de invocar/recolher"), cada um se houver — mesmo ciclo de
+ * vida do resto (nasce/morre junto com o modelo,
  * sem vazar nó de áudio quando uma criatura é recolhida). Cada um é um
  * `THREE.PositionalAudio` próprio, anexado ao MESMO grupo que
  * `syncTransformSystem` move, então acompanham a entidade em 3D de
  * graça, sem system de posição próprio. Os `view/systems/*AudioSystem.js`
  * correspondentes decidem QUANDO tocar cada um (ciclo de andar/correr,
- * temporizador aleatório, ou o instante do próprio evento — dash/pulo);
- * este hook só prepara os nós e carrega os buffers. Espécie sem `sounds`
- * resolvido pra um som não cria nada PRA ELE (os outros continuam
- * normais). Uma `SummonedCreature` já vocaliza (som de "voz") assim que
+ * temporizador aleatório, ou o instante do próprio evento — dash/pulo/
+ * invocar/recolher); este hook só prepara os nós e carrega os buffers.
+ * `invocar`/`recolher` só têm efeito de verdade no TREINADOR (única
+ * espécie com `Party`) — numa criatura, `resolveSummonSound`/
+ * `resolveRecallSound` sempre voltam `null` (ela nunca tem `sounds.summon`/
+ * `recall` configurado), mesmo fallback gracioso de sempre, sem
+ * precisar de checagem especial aqui. Espécie sem `sounds` resolvido pra
+ * um som não cria nada PRA ELE (os outros continuam normais). Uma
+ * `SummonedCreature` já vocaliza (som de "voz") assim que
  * invocada, não espera o primeiro intervalo aleatório — recolher não tem
  * som especial nenhum, só some (ver `immediate` em `registerVoiceAudio`).
  *
@@ -562,6 +581,48 @@ export function useAnimatedModel(entity, species) {
         register: registerJumpAudio,
         unregister: unregisterJumpAudio,
         get: getJumpAudioEntry,
+      },
+    )
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entity, species])
+
+  useEffect(() => {
+    const summon = resolveSummonSound(species)
+    if (!summon) return
+
+    return setupPositionalActionSound(
+      entity,
+      groupRef,
+      summon,
+      {
+        volume: DEFAULT_ACTION_SOUND_VOLUME,
+        refDistance: DEFAULT_ACTION_SOUND_REF_DISTANCE,
+      },
+      {
+        register: registerSummonAudio,
+        unregister: unregisterSummonAudio,
+        get: getSummonAudioEntry,
+      },
+    )
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entity, species])
+
+  useEffect(() => {
+    const recall = resolveRecallSound(species)
+    if (!recall) return
+
+    return setupPositionalActionSound(
+      entity,
+      groupRef,
+      recall,
+      {
+        volume: DEFAULT_ACTION_SOUND_VOLUME,
+        refDistance: DEFAULT_ACTION_SOUND_REF_DISTANCE,
+      },
+      {
+        register: registerRecallAudio,
+        unregister: unregisterRecallAudio,
+        get: getRecallAudioEntry,
       },
     )
     // eslint-disable-next-line react-hooks/exhaustive-deps

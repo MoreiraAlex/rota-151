@@ -124,7 +124,11 @@ export const SPECIES_TEMPLATE = {
   // `actions`/`party` (arremesso/consumo/invocar/recolher e distâncias de
   // seguir o time) são exclusivos do TREINADOR — não declare aqui pra uma
   // criatura nova. Ver `../bot/index.js` se algum dia existir uma segunda
-  // espécie `kind: 'trainer'`.
+  // espécie `kind: 'trainer'`. `sounds.summon`/`sounds.recall` (abaixo, ver
+  // docs/features/023-estado-de-humor-e-piscar-de-olhos.md, seção "Som de
+  // invocar/recolher") são igualmente exclusivos do treinador — uma
+  // criatura nunca invoca/recolhe outra, não faz sentido configurar isso
+  // aqui.
   // Opcional — sem `sounds`, a espécie simplesmente não toca som de passo
   // (ver `resolveFootstepSound`, core/data/audio/footstepGroups.js). Duas
   // formas, escolha uma:
@@ -166,6 +170,17 @@ export const SPECIES_TEMPLATE = {
   //      sounds: {
   //        dash: { clips: ['/assets/audio/dash/.../dash-01.wav', ...], volume: 0.6 },
   //        jump: { clips: ['/assets/audio/jump/.../jump-01.wav', ...], volume: 0.6 },
+  //      },
+  // `sounds.summon`/`sounds.recall` (opcionais, SÓ FAZEM SENTIDO em `../bot/
+  // index.js` — ver comentário "exclusivos do TREINADOR" acima; nenhuma
+  // criatura nova declara isso) — mesmo formato de `dash`/`jump` acima
+  // (sem grupo, um array de variações), tocado no INSTANTE em que a
+  // criatura de fato aparece/some (`effectAt` de `actions.summon`/
+  // `actions.recall`, não o clique do botão), ver docs/features/023-
+  // estado-de-humor-e-piscar-de-olhos.md, seção "Som de invocar/recolher":
+  //      sounds: {
+  //        summon: { clips: ['/assets/audio/summon/summon-01.wav', ...], volume: 0.6 },
+  //        recall: { clips: ['/assets/audio/recall/recall-01.wav', ...], volume: 0.6 },
   //      },
   // `vfx.tailFire` (opcional — ver `../004-charmander/index.js`, docs/
   // features/022-fogo-de-cauda-do-charmander.md) — fogo de partícula

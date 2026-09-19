@@ -1,4 +1,5 @@
 import { GAME_CONFIG } from '../gameConfig'
+import { castRay } from '../physics/raycast'
 
 /**
  * Deslocamento da câmera em relação ao ponto que ela orbita, a partir de
@@ -79,23 +80,96 @@ export function computeLookAtPoint(targetPosition, orbit, aimBlend) {
 }
 
 /**
- * Raio de mira: de onde a câmera está (`computeCameraPosition`, posição
- * instantânea, sem a suavização de `cameraFollowSystem` — não faz
- * diferença pro instante do disparo de uma ação) até onde ela de fato olha
- * com o desvio de ombro **completo** (`computeLookAtPoint` com
- * `aimBlend: 1`) — quem chama isto (`playerActionSystem`, ao disparar um
- * arremesso) só faz sentido enquanto `input.aiming` já está de verdade,
- * então a mira em si usa sempre o enquadramento final, não o que a câmera
+ * Ajusta `uncollided` (posição desejada da câmera, sem colisão) pra logo
+ * antes de qualquer coisa (parede/obstáculo/chão) no caminho entre
+ * `pivot` e ela — em vez de atravessar. `COLLISION_MARGIN` é a folga (m)
+ * mantida antes da superfície; `MIN_DISTANCE_AFTER_COLLISION` é o piso de
+ * quão perto do pivô a câmera pode chegar. Sem física pronta ainda
+ * (`castRay` devolve `null`) ou sem nada no caminho, devolve `uncollided`
+ * sem alteração.
+ *
+ * Compartilhado por `cameraFollowSystem.js` (posição de RENDER da câmera
+ * de verdade) e `computeAimRay` (abaixo — sem essa correção aqui, a mira
+ * calculava a partir da posição IDEAL da câmera, que em pitches extremos
+ * podia ficar dentro do chão/parede — bem diferente da posição que
+ * `cameraFollowSystem.js` de fato usa pra renderizar depois de corrigida.
+ * Bug real, relatado jogando: olhando bem pra cima/baixo, o arremesso
+ * saía numa direção sem relação nenhuma com pra onde a câmera renderizada
+ * estava de fato apontando).
+ */
+export function resolveCameraCollision(
+  pivot,
+  uncollided,
+  excludeColliderHandle,
+  { COLLISION_MARGIN, MIN_DISTANCE_AFTER_COLLISION },
+) {
+  const toDesired = {
+    x: uncollided.x - pivot.x,
+    y: uncollided.y - pivot.y,
+    z: uncollided.z - pivot.z,
+  }
+  const desiredDistance = Math.hypot(toDesired.x, toDesired.y, toDesired.z)
+  if (desiredDistance === 0) return uncollided
+
+  const direction = {
+    x: toDesired.x / desiredDistance,
+    y: toDesired.y / desiredDistance,
+    z: toDesired.z / desiredDistance,
+  }
+
+  const hit = castRay(pivot, direction, desiredDistance, {
+    excludeColliderHandle,
+  })
+  if (!hit) return uncollided
+
+  const distance = Math.max(
+    MIN_DISTANCE_AFTER_COLLISION,
+    hit.distance - COLLISION_MARGIN,
+  )
+  return {
+    x: pivot.x + direction.x * distance,
+    y: pivot.y + direction.y * distance,
+    z: pivot.z + direction.z * distance,
+  }
+}
+
+/**
+ * Raio de mira: de onde a câmera está de VERDADE (`computeCameraPosition`,
+ * já corrigida por colisão via `resolveCameraCollision` — mesma correção
+ * que `cameraFollowSystem.js` aplica pra render, ver docstring dela pro
+ * porquê; posição instantânea, sem a suavização de posição/lookAt de
+ * `cameraFollowSystem` — não faz diferença pro instante do disparo de uma
+ * ação) até onde ela de fato olha com o desvio de ombro **completo**
+ * (`computeLookAtPoint` com `aimBlend: 1`) — quem chama isto
+ * (`playerActionSystem`, ao disparar um arremesso; `partySummonSystem`,
+ * ao disparar a esfera de invocar) só faz sentido enquanto a mira já vale
+ * de verdade, então usa sempre o enquadramento final, não o que a câmera
  * pode estar exibindo no meio de uma transição suave ainda em andamento
- * (essa suavização é só visual, de `cameraFollowSystem` — não deve afetar
- * pra onde o objeto de fato vai).
+ * (essa suavização de aimBlend é só visual, de `cameraFollowSystem` — não
+ * deve afetar pra onde o objeto de fato vai).
  *
  * `targetPosition` é a posição do alvo (`Position` de quem a câmera segue,
  * normalmente o jogador) — a mesma câmera pode servir pra mirar a partir de
- * qualquer entidade-alvo, não só o jogador padrão.
+ * qualquer entidade-alvo, não só o jogador padrão. `excludeColliderHandle`
+ * (opcional — a cápsula do próprio alvo) evita que a correção de colisão
+ * da câmera se autoacerte contra o próprio corpo de quem ela segue, mesmo
+ * raciocínio de `cameraFollowSystem.js`.
  */
-export function computeAimRay(targetPosition, orbit) {
-  const origin = computeCameraPosition(targetPosition, orbit)
+export function computeAimRay(targetPosition, orbit, excludeColliderHandle) {
+  const { TARGET_HEIGHT, COLLISION_MARGIN, MIN_DISTANCE_AFTER_COLLISION } =
+    GAME_CONFIG.CAMERA
+  const pivot = {
+    x: targetPosition.x,
+    y: targetPosition.y + TARGET_HEIGHT,
+    z: targetPosition.z,
+  }
+  const uncollidedOrigin = computeCameraPosition(targetPosition, orbit)
+  const origin = resolveCameraCollision(
+    pivot,
+    uncollidedOrigin,
+    excludeColliderHandle,
+    { COLLISION_MARGIN, MIN_DISTANCE_AFTER_COLLISION },
+  )
   const lookAt = computeLookAtPoint(targetPosition, orbit, 1)
 
   const toLookAt = {

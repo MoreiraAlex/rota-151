@@ -1,25 +1,18 @@
 import { getSpecies, getPlayerSpecies } from '../data/species'
-import { resolveCameraYaw } from '../aim'
-import { isPhysicsReady } from '../physics/physicsWorld'
-import { createCharacterBody, destroyCharacterBody } from '../physics/colliders'
+import { resolveAimPoint, resolveHandOrigin } from '../aim'
+import { destroyCharacterBody } from '../physics/colliders'
 import {
   ActionState,
-  AimAnchor,
-  AnimationState,
-  CharacterController,
-  HeldItem,
   InputControlled,
-  InputState,
-  Mood,
-  MovementStats,
   Party,
-  PathState,
   PhysicsBody,
   Position,
+  RecallBeam,
+  RecallPulse,
   Rotation,
+  SummonBall,
   SummonedCreature,
   Velocity,
-  vitalsFromSpecies,
 } from '../traits'
 
 // Mapeia o pulso de input (`secondaryN`, ver docs/features/011-slots-de-
@@ -39,6 +32,22 @@ export function findSummoned(world, slot) {
   return world
     .query(SummonedCreature)
     .find((entity) => entity.get(SummonedCreature).slot === slot)
+}
+
+/**
+ * Se já existe uma `SummonBall` em voo pra este slot (ver
+ * docs/features/024-esfera-de-invocar.md) — a criatura ainda não nasceu
+ * (`findSummoned` não a acharia ainda), mas já tem uma esfera resolvendo
+ * esse slot. Sem esta checagem, apertar `secondaryN` de novo assim que a
+ * ação `summon` destrava (`duration`, que termina bem antes da esfera
+ * pousar — a esfera pode levar bem mais tempo que o gesto) disparava uma
+ * SEGUNDA esfera pro mesmo slot, resultando em duas criaturas nascendo da
+ * mesma espécie/slot quando as duas pousassem.
+ */
+function hasPendingBall(world, slot) {
+  return world
+    .query(SummonBall)
+    .some((entity) => entity.get(SummonBall).slot === slot)
 }
 
 /**
@@ -67,99 +76,126 @@ function beginRecall(world, action, pos, rot, slot) {
 
 /**
  * Dispara a ação `'summon'` — mesma ideia de `beginRecall`, mas também
- * trava a DIREÇÃO da câmera no instante do disparo (`action.dirX/dirZ`,
- * vetor unitário) pra reusar no instante de efeito (`applySummon`): a
- * câmera é livre pra girar durante a ação (nada trava o mouse enquanto
- * summon/recall estão em andamento, só o movimento do corpo — ver
- * `movementSystem.js`), então se o spawn recalculasse a direção da câmera
- * de novo lá no efeito, poderia divergir de pra onde o treinador acabou
- * de virar no disparo.
+ * trava a DIREÇÃO do arremesso no instante do disparo (`action.dirX/dirY/
+ * dirZ`, vetor unitário 3D) pra reusar no instante de efeito
+ * (`spawnSummonBall`, que mira a esfera nessa direção): a câmera é livre
+ * pra girar durante a ação (nada trava o mouse enquanto summon/recall
+ * estão em andamento, só o movimento do corpo — ver `movementSystem.js`),
+ * então se a esfera recalculasse a direção de novo lá no efeito, poderia
+ * divergir de pra onde o treinador acabou de virar no disparo.
+ *
+ * Mesmo mecanismo do arremesso (`playerActionSystem.js`, ver
+ * docs/features/016-mira-e-arremesso.md) — não só o yaw da câmera, o
+ * ponto de mira de VERDADE (`resolveAimPoint`, um raycast a partir da
+ * câmera, que já respeita a inclinação/pitch, não só o giro horizontal)
+ * menos a origem da mão (`resolveHandOrigin`, `core/aim.js` — mesma
+ * aproximação de "mão" que o item arremessado usa, evita a esfera nascer
+ * no centro do corpo). `body.colliderHandle` exclui a própria cápsula do
+ * treinador do raycast de mira (mesmo motivo de `resolveAimPoint` em
+ * `playerActionSystem.js`).
  */
-function beginSummon(world, action, rot, slot) {
-  const cameraYaw = resolveCameraYaw(world)
+function beginSummon(world, action, pos, rot, body, slot) {
+  const SUMMON = getPlayerSpecies().actions.summon
+  const handOrigin = resolveHandOrigin(pos, rot.y, SUMMON)
+  const aimPoint = resolveAimPoint(world, pos, body.colliderHandle)
+
   action.current = 'summon'
   action.elapsed = 0
   action.pendingSlot = slot
-  action.dirX = Math.sin(cameraYaw)
-  action.dirZ = Math.cos(cameraYaw)
-  rot.y = cameraYaw
+
+  const dx = aimPoint.x - handOrigin.x
+  const dy = aimPoint.y - handOrigin.y
+  const dz = aimPoint.z - handOrigin.z
+  const distance = Math.hypot(dx, dy, dz)
+
+  if (distance === 0) {
+    action.dirX = 0
+    action.dirY = 0
+    action.dirZ = 1
+  } else {
+    action.dirX = dx / distance
+    action.dirY = dy / distance
+    action.dirZ = dz / distance
+  }
+
+  // Encara a direção do lançamento (só o componente horizontal — o corpo
+  // não inclina pra cima/baixo, só gira em Y), mesma convenção de
+  // `resolveThrowLaunch`/`Rotation.y` no arremesso.
+  rot.y = Math.atan2(action.dirX, action.dirZ)
 }
 
-/** Efeito de `'recall'`, no instante `effectAt` — desfaz o corpo físico e destrói a entidade. */
-function applyRecall(world, slot) {
+/**
+ * Efeito de `'recall'`, no instante `effectAt` — desfaz o corpo físico e
+ * destrói a entidade. Spawna um `RecallBeam` (ver docs/features/024-
+ * esfera-de-invocar.md — "o feixe de luz vermelha puxa a criatura de
+ * volta pra dentro da esfera") indo da MÃO do treinador até onde a
+ * criatura estava — não um ponto único; `RecallBeamView.jsx` desenha o
+ * "raio" deformado entre os dois.
+ *
+ * A ponta de saída usa `resolveHandOrigin` (`core/aim.js`), mesmo
+ * mecanismo do arremesso/da `SummonBall` — não a `Position` crua do
+ * treinador (centro da cápsula), que faria o raio sair de dentro do
+ * corpo em vez de "da mão". `rot.y` aqui já é o valor que `beginRecall`
+ * girou pra encarar a CRIATURA (não a câmera) — a mão "aponta" pra ela.
+ *
+ * Guarda `speciesId` (lido de `SummonedCreature` ANTES de destruí-la,
+ * linha abaixo) no `RecallBeam` — `RecallBeamView.jsx` usa isso pra
+ * dimensionar o "envelope" genérico que cobre a criatura quando o feixe
+ * chega nela.
+ */
+function applyRecall(world, pos, rot, slot) {
   const creature = findSummoned(world, slot)
   if (!creature) return
+
+  const creaturePos = creature.get(Position)
+  const { speciesId } = creature.get(SummonedCreature)
+  const RECALL = getPlayerSpecies().actions.recall
+  const handOrigin = resolveHandOrigin(pos, rot.y, RECALL)
+  world.spawn(
+    Position({ x: creaturePos.x, y: creaturePos.y, z: creaturePos.z }),
+    Rotation,
+    RecallBeam({
+      lifetime: RECALL.beamDuration,
+      fromX: handOrigin.x,
+      fromY: handOrigin.y,
+      fromZ: handOrigin.z,
+      speciesId,
+    }),
+  )
+
   destroyCharacterBody(creature.get(PhysicsBody).bodyHandle)
   creature.destroy()
 }
 
 /**
- * Efeito de `'summon'`, no instante `effectAt` — spawna a
- * `SummonedCreature` de verdade, com física (`createCharacterBody`, ver
- * docstring do system) e os traits que `creatureFollowSystem`/
- * `characterPhysicsSystem`/`animationStateSystem` precisam. Posição vem
- * de `pos` (o treinador não se move durante a ação — `ActionState`
- * trava o movimento, ver `movementSystem.js`) deslocada por
- * `getPlayerSpecies().party.summonOffset` na direção travada no disparo
- * (`action.dirX/dirZ`).
+ * Efeito de `'summon'`, no instante `effectAt` — não spawna mais a
+ * criatura direto (ver docs/features/024-esfera-de-invocar.md): lança uma
+ * `SummonBall` na direção travada no disparo (`dirX/dirY/dirZ`, vetor
+ * unitário 3D — mesma direção que `beginSummon` já travava, agora só
+ * reaproveitada pra mirar a esfera em vez de deslocar a criatura direto),
+ * nascendo na mesma aproximação de "mão" do arremesso (`resolveHandOrigin`,
+ * não o centro do corpo). A criatura só nasce de verdade quando a esfera
+ * resolve — por toque em algo ou por esgotar `summonOffset` — em
+ * `summonBallSystem.js` (que também aplica gravidade à esfera em voo,
+ * `GAME_CONFIG.PHYSICS.GRAVITY` — mesma constante que o resto do jogo),
+ * que é quem efetivamente monta a `SummonedCreature` (física, animação,
+ * vitals — a mesma composição de traits que existia aqui antes da
+ * esfera).
  */
-function applySummon(world, action, party, pos, slot) {
-  const speciesId = party[slot]
-  if (!speciesId) return
-  const species = getSpecies(speciesId)
-  if (!species) return
-
-  const { summonOffset } = getPlayerSpecies().party
-  const spawnPosition = {
-    x: pos.x + action.dirX * summonOffset,
-    y: pos.y,
-    z: pos.z + action.dirZ * summonOffset,
-  }
-
-  const physicsBody = isPhysicsReady()
-    ? createCharacterBody(spawnPosition, {
-        radius: species.body.capsuleRadius,
-        halfHeight: species.body.capsuleHalfHeight,
-        axis: species.body.capsuleAxis,
-      })
-    : { bodyHandle: -1, colliderHandle: -1 }
+function spawnSummonBall(world, pos, rot, dirX, dirY, dirZ, slot, speciesId) {
+  const SUMMON = getPlayerSpecies().actions.summon
+  const { summonOffset, summonBallSpeed } = getPlayerSpecies().party
+  const spawnPosition = resolveHandOrigin(pos, rot.y, SUMMON)
 
   world.spawn(
     Position(spawnPosition),
     Rotation,
-    SummonedCreature({ slot, speciesId }),
-    AnimationState, // default { id: 'idle' } — animationStateSystem assume dali
-    ActionState, // current sempre null — só pra entrar na query de animationStateSystem
-    Velocity,
-    CharacterController(species.body),
-    MovementStats(species.movement),
-    // Vitals de verdade agora (antes era `Vitals` cru, sempre default —
-    // não copiava da espécie). Passou a importar de fato: correr/pular
-    // controlando a criatura (feature 018) drena/regenera pelos números
-    // DELA, não um valor global (`vitalsFromSpecies`, ver
-    // core/traits/components/vitals.js).
-    vitalsFromSpecies(species.vitals),
-    PhysicsBody(physicsBody),
-    PathState, // default vazio — creatureFollowSystem calcula no 1º tick
-    // InputState/AimAnchor/HeldItem: sem uso real enquanto a criatura é IA —
-    // só pra ela já caber nas queries de movementSystem/playerActionSystem/
-    // aimAnchorSystem no instante em que ganhar `InputControlled` (troca de
-    // controle, ver controlSwitchSystem.js e docs/features/018-troca-de-
-    // controle-treinador-criatura.md). `HeldItem.itemId` nunca é setado pra
-    // uma criatura, então arremesso/consumo caem sozinhos no `else { return
-    // }` de playerActionSystem.js — viram no-op de graça, sem precisar
-    // excluir nada explicitamente; dash não depende de item nenhum, já
-    // funciona assim que `InputControlled` chegar. Mirar (AimAnchor.active)
-    // é bloqueado à parte, em aimAnchorSystem.js — não é um dos verbos
-    // permitidos controlando uma criatura.
-    InputState,
-    AimAnchor,
-    HeldItem,
-    // Default 'awake' — mesmo trait universal simples de AnimationState/
-    // ActionState acima. Espécie sem `eyeStates` configurado (a maioria
-    // hoje) nunca é lida por `eyeBlinkSystem.js`, sem custo (ver docs/
-    // features/023-estado-de-humor-e-piscar-de-olhos.md).
-    Mood,
+    Velocity({
+      x: dirX * summonBallSpeed,
+      y: dirY * summonBallSpeed,
+      z: dirZ * summonBallSpeed,
+    }),
+    SummonBall({ slot, speciesId, maxDistance: summonOffset, traveled: 0 }),
   )
 }
 
@@ -195,12 +231,14 @@ function applySummon(world, action, party, pos, slot) {
  * ações) — quem avança `elapsed` e aplica o efeito delas é só aqui.
  *
  * O treinador gira no disparo de ambas as ações, mas pra alvos diferentes:
- * invocar (`beginSummon`) gira pra onde a CÂMERA está apontando (pedido
- * explícito do usuário — antes nascia "onde o jogador estava apontado";
- * não existe criatura ainda pra encarar, só o lugar onde uma vai
- * aparecer); recolher (`beginRecall`) gira pra encarar a CRIATURA de
- * verdade, que já existe num lugar concreto — não faz sentido usar a
- * câmera aí, o corpo vira pro que está sendo recolhido.
+ * invocar (`beginSummon`) gira pro componente horizontal de pra onde a
+ * MIRA aponta de verdade — não só o yaw da câmera, o ponto resolvido por
+ * `resolveAimPoint` (que já respeita a inclinação/pitch, ver
+ * docs/features/024-esfera-de-invocar.md) — não existe criatura ainda pra
+ * encarar, só o lugar onde uma vai aparecer; recolher (`beginRecall`)
+ * gira pra encarar a CRIATURA de verdade, que já existe num lugar
+ * concreto — não faz sentido usar a mira aí, o corpo vira pro que está
+ * sendo recolhido.
  *
  * Duas fontes disparam `beginRecall`, a mesma função pras duas:
  * 1. **Automática**: pra toda `SummonedCreature` cujo `Party[slot]`
@@ -214,24 +252,20 @@ function applySummon(world, action, party, pos, slot) {
  *    Só um `secondaryN` processado por tick (a ação em si já impede uma
  *    segunda começar antes da primeira terminar).
  *
- * A criatura invocada ganha física de verdade — `Velocity`,
- * `CharacterController(species.body)`, `MovementStats(species.movement)`,
- * `PhysicsBody` com handles reais de `createCharacterBody` (o corpo Rapier
- * é criado NA HORA, no instante de efeito — `physicsBootstrapSystem` só
- * roda uma vez, no início do jogo, e nunca alcança uma entidade spawnada
- * depois; sem física pronta ainda, os handles ficam no default `-1`,
- * mesmo comportamento gracioso do resto do motor) — e `Vitals`/
- * `ActionState` só pra entrar nas queries de
- * `characterPhysicsSystem`/`animationStateSystem` respectivamente. Mover
- * de verdade é o `creatureFollowSystem` (produz `Velocity`/`Rotation`) +
- * o pipeline físico compartilhado; animar é `animationStateSystem` +
- * `animationSystem` (view); renderizar é `CreatureView` (view) — nenhum
- * dos três precisou de mudança pra passar a processar criaturas, já eram
- * genéricos por trait.
+ * Invocar não spawna mais a criatura direto no `effectAt` — lança uma
+ * `SummonBall` (ver docs/features/024-esfera-de-invocar.md,
+ * `spawnSummonBall`/`summonBallSystem.js`) na direção travada no disparo;
+ * a criatura só nasce de verdade quando a esfera pousa (por toque em algo
+ * ou por esgotar `party.summonOffset`, respeitado como distância MÁXIMA
+ * de voo, não posição fixa). Recolher continua instantâneo no `effectAt`,
+ * sem esfera — a criatura já existe num lugar concreto, não há "onde
+ * pousar" pra resolver.
  *
- * Headless. Fase: simulation — antes de `creatureFollowSystem` (que
- * precisa da `SummonedCreature` já existir/ter sumido neste mesmo tick) e
- * de `characterPhysicsSystem` (que precisa do corpo físico já criado).
+ * Headless. Fase: simulation — antes de `summonBallSystem` (que precisa
+ * da `SummonBall` já existir neste mesmo tick em que nasce, se o
+ * `effectAt` cair no mesmo tick do disparo) e de `creatureFollowSystem`
+ * (que precisa da `SummonedCreature` já ter sumido neste mesmo tick, no
+ * caso do recall).
  */
 export function partySummonSystem(context) {
   const { world, delta } = context
@@ -239,8 +273,8 @@ export function partySummonSystem(context) {
   const { summon: SUMMON, recall: RECALL } = getPlayerSpecies().actions
 
   world
-    .query(Party, Position, Rotation, ActionState)
-    .updateEach(([party, pos, rot, action], entity) => {
+    .query(Party, Position, Rotation, ActionState, PhysicsBody)
+    .updateEach(([party, pos, rot, action, body], entity) => {
       // Recolhimento automático — só quando o treinador está livre (não
       // interrompe uma ação já em andamento). Só uma por tick: se sobrar
       // mais de um slot órfão, os próximos são pegos nos ticks seguintes,
@@ -265,9 +299,22 @@ export function partySummonSystem(context) {
 
         if (previousElapsed < cfg.effectAt && action.elapsed >= cfg.effectAt) {
           if (action.current === 'summon') {
-            applySummon(world, action, party, pos, action.pendingSlot)
+            spawnSummonBall(
+              world,
+              pos,
+              rot,
+              action.dirX,
+              action.dirY,
+              action.dirZ,
+              action.pendingSlot,
+              party[action.pendingSlot],
+            )
+            // Sem SummonPulse aqui — a criatura (e o som que acompanha
+            // ela nascer, ver view/systems/summonAudioSystem.js) só existe
+            // de verdade quando a esfera pousa, em summonBallSystem.js.
           } else {
-            applyRecall(world, action.pendingSlot)
+            applyRecall(world, pos, rot, action.pendingSlot)
+            entity.add(RecallPulse)
           }
         }
 
@@ -295,12 +342,18 @@ export function partySummonSystem(context) {
 
         if (findSummoned(world, slot)) {
           beginRecall(world, action, pos, rot, slot)
-        } else if (party[slot] && getSpecies(party[slot])) {
+        } else if (
+          party[slot] &&
+          getSpecies(party[slot]) &&
+          !hasPendingBall(world, slot)
+        ) {
           // Confere a espécie ANTES de travar a ação — espécie inválida
           // não deve nem começar a ocupar o treinador (mesmo padrão de
           // `playerActionSystem.js`: precondições checadas antes de
           // escrever `action.current`, não só no instante de efeito).
-          beginSummon(world, action, rot, slot)
+          // `hasPendingBall` evita uma SEGUNDA esfera pro mesmo slot
+          // enquanto a primeira ainda está em voo (ver docstring dela).
+          beginSummon(world, action, pos, rot, body, slot)
         }
         break // só um secondaryN processado por tick
       }

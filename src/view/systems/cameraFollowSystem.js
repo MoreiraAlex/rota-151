@@ -3,8 +3,8 @@ import {
   computeCameraPosition,
   computeCameraRight,
   computeLookAtPoint,
+  resolveCameraCollision,
 } from '@/core/camera/orbitCamera'
-import { castRay } from '@/core/physics/raycast'
 import {
   Position,
   OrbitCamera,
@@ -48,15 +48,18 @@ import {
  * ombro, e olhar direto pro `AimAnchor` garante precisão sempre,
  * independente de onde a câmera esteja.)
  *
- * Colisão da órbita (docs/backlog.md → "Câmera orbital com colisão"): antes
- * de aplicar a posição suavizada, um raycast do alvo (`pivot`, mesmo ponto
- * base de `computeCameraPosition`) até a posição desejada da câmera
- * (já com o desvio de ombro somado, se travado) checa se algo (parede/
- * obstáculo) está no caminho — se estiver, a distância efetiva encolhe
- * pra logo antes do ponto de impacto (`COLLISION_MARGIN` de folga, nunca
- * menos que `MIN_DISTANCE_AFTER_COLLISION`), em vez de atravessar. Exclui
- * a própria cápsula do alvo (`PhysicsBody.colliderHandle`) — sem isso, o
- * raio (que nasce dentro/perto do próprio corpo) se autoacertaria sempre.
+ * Colisão da órbita (docs/backlog.md → "Câmera orbital com colisão"):
+ * `resolveCameraCollision` (`core/camera/orbitCamera.js`, compartilhada —
+ * ver docstring dela) ajusta a posição desejada da câmera (já com o
+ * desvio de ombro somado, se travado) antes de aplicar a suavização.
+ * Exclui a própria cápsula do alvo (`PhysicsBody.colliderHandle`) — sem
+ * isso, o raio (que nasce dentro/perto do próprio corpo) se autoacertaria
+ * sempre. A MESMA correção agora também entra em `computeAimRay`
+ * (`core/aim.js`'s `resolveAimPoint`) — sem isso, a mira do arremesso/da
+ * esfera de invocar (docs/features/016/024) partia da posição IDEAL
+ * (não-colidida) da câmera, que podia divergir bastante da posição
+ * renderizada de verdade em pitches extremos (câmera "afundada" no chão/
+ * parede) — bug real, relatado jogando.
  *
  * Transição suave do enquadramento de mira (`aimBlend`, restaurada — essa
  * suavização já existiu na rodada 4, foi perdida no meio das reformas de
@@ -162,47 +165,4 @@ export function cameraFollowSystem(context) {
   camera.position.z += (desired.z - camera.position.z) * t
 
   camera.lookAt(lookAt.x, lookAt.y, lookAt.z)
-}
-
-/**
- * Ajusta `uncollided` (posição desejada da câmera, sem colisão) pra logo
- * antes de qualquer coisa no caminho entre `pivot` e ela — ver docstring
- * de `cameraFollowSystem`, acima, pra contexto completo. Sem física
- * pronta ainda (`castRay` devolve `null`) ou sem nada no caminho, devolve
- * `uncollided` sem alteração.
- */
-function resolveCameraCollision(
-  pivot,
-  uncollided,
-  excludeColliderHandle,
-  { COLLISION_MARGIN, MIN_DISTANCE_AFTER_COLLISION },
-) {
-  const toDesired = {
-    x: uncollided.x - pivot.x,
-    y: uncollided.y - pivot.y,
-    z: uncollided.z - pivot.z,
-  }
-  const desiredDistance = Math.hypot(toDesired.x, toDesired.y, toDesired.z)
-  if (desiredDistance === 0) return uncollided
-
-  const direction = {
-    x: toDesired.x / desiredDistance,
-    y: toDesired.y / desiredDistance,
-    z: toDesired.z / desiredDistance,
-  }
-
-  const hit = castRay(pivot, direction, desiredDistance, {
-    excludeColliderHandle,
-  })
-  if (!hit) return uncollided
-
-  const distance = Math.max(
-    MIN_DISTANCE_AFTER_COLLISION,
-    hit.distance - COLLISION_MARGIN,
-  )
-  return {
-    x: pivot.x + direction.x * distance,
-    y: pivot.y + direction.y * distance,
-    z: pivot.z + direction.z * distance,
-  }
 }

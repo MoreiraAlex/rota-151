@@ -19,6 +19,7 @@ import {
   HeldItem,
   Party,
   Projectile,
+  SummonBall,
   SummonedCreature,
   applyDamage,
 } from '@/core/traits'
@@ -66,6 +67,7 @@ export function DebugPanel() {
   const party = useTrait(playerEntity, Party)
   const playerPath = useTrait(playerEntity, PathState)
   const projectiles = useQuery(Projectile, Position)
+  const summonBalls = useQuery(SummonBall, Position)
   const summoned = useQuery(SummonedCreature, Position)
 
   if (
@@ -210,6 +212,15 @@ export function DebugPanel() {
           <p key={entity} className="text-[10px] text-white/60">
             {hit ? 'atingiu em' : 'voando'}: {p.x.toFixed(1)}, {p.y.toFixed(1)},{' '}
             {p.z.toFixed(1)}
+          </p>
+        )
+      })}
+      <p>esferas de invocar em voo: {summonBalls.length}</p>
+      {summonBalls.map((entity) => {
+        const p = entity.get(Position)
+        return (
+          <p key={entity} className="text-[10px] text-white/60">
+            voando: {p.x.toFixed(1)}, {p.y.toFixed(1)}, {p.z.toFixed(1)}
           </p>
         )
       })}

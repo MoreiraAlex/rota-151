@@ -3,21 +3,13 @@ import { getItem } from '@/core/data/items'
 import { PLAYER_SPECIES_ID, getPlayerSpecies } from '@/core/data/species'
 import { getAnimatedBonesEntry } from '@/view/registry/animationRegistry'
 import { THROWABLE_RADIUS, THROWABLE_COLOR } from '@/view/scene/throwableVisual'
+import { HAND_BONE_BY_SPECIES } from '@/view/handBoneBySpecies'
 import {
   InputControlled,
   HeldItem,
   ActionState,
   AimAnchor,
 } from '@/core/traits'
-
-// Nome do osso da mão, por espécie — puramente visual (nomes vêm do rig
-// 3D, não faz sentido core saber disso), por isso mora aqui, não em
-// core/data/species/<id>/. Só espécies com mão (hoje só o treinador,
-// PLAYER_SPECIES_ID) entram aqui — sem entrada, o sistema não mostra nada
-// e não quebra (ex.: o Fox de teste, quadrúpede, não tem mão nenhuma).
-const HAND_BONE_BY_SPECIES = {
-  bot: 'mixamorig_RightHand',
-}
 
 // Estado do módulo (não trait) — só existe um item-na-mão renderizado por
 // vez (só o jogador arremessa hoje), mesmo raciocínio de `aimBlend` em

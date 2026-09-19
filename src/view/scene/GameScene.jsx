@@ -3,6 +3,9 @@ import { TEST_LEVEL } from '@/core/data/testLevel'
 import { AmbientAudio } from '@/view/audio/AmbientAudio'
 import { PlayerView } from './PlayerView'
 import { ProjectilesView } from './ProjectileView'
+import { SummonBallsView } from './SummonBallView'
+import { SummonFlashesView } from './SummonFlashView'
+import { RecallBeamsView } from './RecallBeamView'
 import { ConsumeEffectsView } from './ConsumeEffectView'
 import { CreaturesView, WildCreaturesView } from './CreatureView'
 
@@ -83,6 +86,9 @@ export function GameScene({ children }) {
 
       <PlayerView />
       <ProjectilesView />
+      <SummonBallsView />
+      <SummonFlashesView />
+      <RecallBeamsView />
       <ConsumeEffectsView />
       <CreaturesView />
       <WildCreaturesView />

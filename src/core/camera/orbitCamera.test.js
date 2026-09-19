@@ -1,9 +1,16 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, afterEach } from 'vitest'
 import { GAME_CONFIG } from '../gameConfig'
+import {
+  initPhysics,
+  disposePhysics,
+  stepPhysics,
+} from '../physics/physicsWorld'
+import { createStaticLevel } from '../physics/colliders'
 import {
   computeOrbitOffset,
   computeLookAtPoint,
   computeAimRay,
+  resolveCameraCollision,
 } from './orbitCamera'
 
 describe('computeOrbitOffset', () => {
@@ -167,5 +174,71 @@ describe('computeAimRay', () => {
     } finally {
       GAME_CONFIG.CAMERA.SHOULDER_OFFSET = original
     }
+  })
+})
+
+describe('resolveCameraCollision', () => {
+  it('sem física carregada (castRay sempre null), devolve a posição não-colidida sem alteração', () => {
+    const pivot = { x: 0, y: 0, z: 0 }
+    const uncollided = { x: 0, y: 0, z: 10 }
+
+    const result = resolveCameraCollision(pivot, uncollided, undefined, {
+      COLLISION_MARGIN: 0.3,
+      MIN_DISTANCE_AFTER_COLLISION: 0.5,
+    })
+
+    expect(result).toEqual(uncollided)
+  })
+
+  describe('com física real', () => {
+    afterEach(() => {
+      disposePhysics()
+    })
+
+    it('puxa a posição pra logo antes do chão em vez de atravessar', async () => {
+      await initPhysics()
+      createStaticLevel() // chão com a superfície em y=0
+      stepPhysics() // broad-phase só existe depois de um step (ver raycast.js)
+
+      const pivot = { x: 0, y: 2, z: 0 }
+      const uncollided = { x: 0, y: -5, z: 0 } // bem abaixo do chão
+
+      const result = resolveCameraCollision(pivot, uncollided, undefined, {
+        COLLISION_MARGIN: 0.3,
+        MIN_DISTANCE_AFTER_COLLISION: 0.5,
+      })
+
+      // Bateu no chão (y=0) a 2 unidades do pivô — resultado fica a
+      // (2 - COLLISION_MARGIN) = 1.7 do pivô, não nas -5 originais.
+      expect(result.y).toBeCloseTo(2 - 1.7)
+      expect(result.y).toBeGreaterThan(0) // acima do chão, não atravessou
+    })
+  })
+})
+
+describe('computeAimRay — colisão da câmera (bug real, relatado jogando)', () => {
+  afterEach(() => {
+    disposePhysics()
+  })
+
+  it('pitch extremo faria a câmera IDEAL ficar dentro do chão — a origem da mira usa a posição JÁ corrigida, não a ideal', async () => {
+    await initPhysics()
+    createStaticLevel()
+    stepPhysics()
+
+    const target = { x: 0, y: 1, z: 0 }
+    // MIN_PITCH (olhando pro céu) + distância máxima — a posição IDEAL da
+    // câmera (sem colisão) fica bem abaixo do chão (y=0) com esses
+    // valores, mesma configuração que causava o arremesso saindo em
+    // direção completamente errada (relatado jogando).
+    const orbit = {
+      yaw: 0,
+      pitch: GAME_CONFIG.CAMERA.MIN_PITCH,
+      distance: GAME_CONFIG.CAMERA.MAX_DISTANCE,
+    }
+
+    const { origin } = computeAimRay(target, orbit)
+
+    expect(origin.y).toBeGreaterThan(0) // corrigida — não afundada no chão
   })
 })

@@ -1,7 +1,7 @@
 import { GAME_CONFIG } from '../gameConfig'
 import { getItem } from '../data/items'
 import { getPlayerSpecies } from '../data/species'
-import { resolveAimPoint } from '../aim'
+import { resolveAimPoint, resolveHandOrigin } from '../aim'
 import {
   ActionState,
   Position,
@@ -30,38 +30,11 @@ import {
  * ancoragem ativa, é o ponto de mira resolvido na hora
  * (`resolveAimPoint`, que por sua vez respeita `aimRange`: sem nada no
  * caminho dentro desse alcance, mira no ponto mais distante mesmo, em vez
- * de "infinito").
+ * de "infinito"). `resolveHandOrigin` (origem da trajetória) mora em
+ * `core/aim.js` — reaproveitado por `partySummonSystem.js` (a `SummonBall`,
+ * ver docs/features/024-esfera-de-invocar.md, nasce da mesma aproximação
+ * de mão, não do centro do corpo).
  */
-/**
- * Aproxima a posição da MÃO a partir de `Position`/`Rotation.y` do
- * jogador — usada tanto pra origem da trajetória (`resolveThrowLaunch`,
- * no disparo) quanto pro ponto onde o projétil de fato nasce (na
- * liberação, `effectAt`). O motor headless não tem acesso ao osso de
- * verdade (isso vive na view, ver `view/systems/heldItemViewSystem.js`,
- * que só cuida do visual do item encaixado no osso — não afeta física nem
- * trajetória) — esta é uma aproximação geométrica: à frente do corpo
- * (`handForwardOffset`) e à direita dele (`handSideOffset`, mesma
- * convenção de forward/right de `computeCameraRight`/`movementSystem.js`),
- * numa altura fixa (`handHeightOffset`) acima de `Position` (que fica na
- * base/pés do personagem). `throwConfig` é `getPlayerSpecies().actions.
- * throw` (config exclusiva do treinador, ver docs/features/018-troca-de-
- * controle-treinador-criatura.md) — recebido como parâmetro em vez de
- * resolvido aqui dentro pra não repetir o lookup a cada chamada.
- */
-function resolveHandOrigin(pos, rotY, throwConfig) {
-  const { handForwardOffset, handSideOffset, handHeightOffset } = throwConfig
-  const forwardX = Math.sin(rotY)
-  const forwardZ = Math.cos(rotY)
-  const rightX = Math.cos(rotY)
-  const rightZ = -Math.sin(rotY)
-
-  return {
-    x: pos.x + forwardX * handForwardOffset + rightX * handSideOffset,
-    y: pos.y + handHeightOffset,
-    z: pos.z + forwardZ * handForwardOffset + rightZ * handSideOffset,
-  }
-}
-
 function resolveThrowLaunch(aimPoint, throwOrigin, throwConfig) {
   const { speed } = throwConfig
 

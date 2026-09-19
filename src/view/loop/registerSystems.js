@@ -8,11 +8,13 @@ import { vitalsRegenSystem } from '@/core/systems/vitalsRegenSystem'
 import { movementSystem } from '@/core/systems/movementSystem'
 import { playerActionSystem } from '@/core/systems/playerActionSystem'
 import { partySummonSystem } from '@/core/systems/partySummonSystem'
+import { summonBallSystem } from '@/core/systems/summonBallSystem'
 import { creatureFollowSystem } from '@/core/systems/creatureFollowSystem'
 import { wildCreatureSpawnSystem } from '@/core/systems/wildCreatureSpawnSystem'
 import { wildWanderSystem } from '@/core/systems/wildWanderSystem'
 import { projectileSystem } from '@/core/systems/projectileSystem'
 import { consumeEffectSystem } from '@/core/systems/consumeEffectSystem'
+import { summonEffectsSystem } from '@/core/systems/summonEffectsSystem'
 import { characterPhysicsSystem } from '@/core/systems/characterPhysicsSystem'
 import { physicsStepSystem } from '@/core/systems/physicsStepSystem'
 import { syncPhysicsSystem } from '@/core/systems/syncPhysicsSystem'
@@ -30,6 +32,8 @@ import { dashAudioSystem } from '@/view/systems/dashAudioSystem'
 import { jumpAudioSystem } from '@/view/systems/jumpAudioSystem'
 import { eyeBlinkSystem } from '@/view/systems/eyeBlinkSystem'
 import { mouthSyncSystem } from '@/view/systems/mouthSyncSystem'
+import { summonAudioSystem } from '@/view/systems/summonAudioSystem'
+import { recallAudioSystem } from '@/view/systems/recallAudioSystem'
 
 let registered = false
 
@@ -70,10 +74,13 @@ let registered = false
  * mesmo frame). `voiceAudioSystem` (vocalização periódica, por
  * temporizador — não pelo ciclo de andar/correr), `ambientAudioSystem`
  * (mesma ideia, mas GLOBAL — som ambiente do nível, não de uma entidade),
- * `dashAudioSystem` (borda de subida de `ActionState.current === 'dash'`)
- * e `jumpAudioSystem` (consome o pulso `Jumped`, ver core/traits/
- * components/physics.js) ficam perto dele, sem dependência real de ordem
- * entre eles. `eyeBlinkSystem`
+ * `dashAudioSystem` (borda de subida de `ActionState.current === 'dash'`),
+ * `jumpAudioSystem` (consome o pulso `Jumped`, ver core/traits/
+ * components/physics.js), `summonAudioSystem`/`recallAudioSystem`
+ * (docs/features/023-estado-de-humor-e-piscar-de-olhos.md, seção "Som de
+ * invocar/recolher" — consomem `SummonPulse`/`RecallPulse`, mesmo
+ * princípio de `Jumped`, ver core/traits/components/party.js) ficam perto
+ * dele, sem dependência real de ordem entre eles. `eyeBlinkSystem`
  * (docs/features/023-estado-de-humor-e-
  * piscar-de-olhos.md — alterna célula de atlas de olho aberto/fechado por
  * temporizador, mesma família de "efeito periódico por entidade" que
@@ -86,7 +93,11 @@ let registered = false
  * registrado por último, não só por proximidade.
  *
  * `partySummonSystem`/`creatureFollowSystem`/`projectileSystem`/
- * `consumeEffectSystem` são independentes do resto (não leem nem escrevem
+ * `consumeEffectSystem`/`summonEffectsSystem` (este último conta o
+ * `lifetime` de `SummonFlash`/`RecallBeam`, ver docs/features/024-esfera-
+ * de-invocar.md — mesma família de `consumeEffectSystem`, puramente
+ * visual, sem dependência de ordem com mais ninguém) são independentes
+ * do resto (não leem nem escrevem
  * `Velocity`/`Grounded` do treinador) — a posição exata deles na fase
  * simulation não importa, ficam perto de `playerActionSystem` (quem spawna
  * o projétil/efeito) por proximidade de leitura, não por dependência real
@@ -96,6 +107,13 @@ let registered = false
  * não-jogador que precisam existir/se mover antes de `characterPhysicsSystem`
  * integrar a `Velocity` delas), sem depender de ordem exata com eles
  * (`WildCreature` e `SummonedCreature` nunca são a mesma entidade).
+ * `summonBallSystem` (docs/features/024-esfera-de-invocar.md) É uma
+ * dependência real, ao contrário dos vizinhos acima: registrado logo
+ * DEPOIS de `partySummonSystem` (que pode spawnar uma `SummonBall` nova
+ * neste mesmo tick, no `effectAt` da ação `summon`) e ANTES de
+ * `creatureFollowSystem`/`characterPhysicsSystem` (que precisam da
+ * `SummonedCreature` já existir, se a esfera pousar neste mesmo tick em
+ * que nasceu).
  */
 export function registerGameSystems() {
   if (registered) return
@@ -112,7 +130,9 @@ export function registerGameSystems() {
   registerSystem(GAME_PHASES.SIMULATION, playerActionSystem)
   registerSystem(GAME_PHASES.SIMULATION, projectileSystem)
   registerSystem(GAME_PHASES.SIMULATION, consumeEffectSystem)
+  registerSystem(GAME_PHASES.SIMULATION, summonEffectsSystem)
   registerSystem(GAME_PHASES.SIMULATION, partySummonSystem)
+  registerSystem(GAME_PHASES.SIMULATION, summonBallSystem)
   registerSystem(GAME_PHASES.SIMULATION, creatureFollowSystem)
   registerSystem(GAME_PHASES.SIMULATION, wildCreatureSpawnSystem)
   registerSystem(GAME_PHASES.SIMULATION, wildWanderSystem)
@@ -132,6 +152,8 @@ export function registerGameSystems() {
   registerSystem(GAME_PHASES.PRESENTATION, ambientAudioSystem)
   registerSystem(GAME_PHASES.PRESENTATION, dashAudioSystem)
   registerSystem(GAME_PHASES.PRESENTATION, jumpAudioSystem)
+  registerSystem(GAME_PHASES.PRESENTATION, summonAudioSystem)
+  registerSystem(GAME_PHASES.PRESENTATION, recallAudioSystem)
   registerSystem(GAME_PHASES.PRESENTATION, eyeBlinkSystem)
   registerSystem(GAME_PHASES.PRESENTATION, mouthSyncSystem)
 }
