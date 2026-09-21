@@ -7,6 +7,7 @@ import { SummonBallsView } from './SummonBallView'
 import { SummonFlashesView } from './SummonFlashView'
 import { RecallBeamsView } from './RecallBeamView'
 import { ConsumeEffectsView } from './ConsumeEffectView'
+import { AttackEffectsView } from './AttackEffectView'
 import { CreaturesView, WildCreaturesView } from './CreatureView'
 
 function obstacleRotation(rotation) {
@@ -90,6 +91,7 @@ export function GameScene({ children }) {
       <SummonFlashesView />
       <RecallBeamsView />
       <ConsumeEffectsView />
+      <AttackEffectsView />
       <CreaturesView />
       <WildCreaturesView />
 

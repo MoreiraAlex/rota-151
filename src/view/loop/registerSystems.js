@@ -7,6 +7,8 @@ import { aimAnchorSystem } from '@/core/systems/aimAnchorSystem'
 import { vitalsRegenSystem } from '@/core/systems/vitalsRegenSystem'
 import { movementSystem } from '@/core/systems/movementSystem'
 import { playerActionSystem } from '@/core/systems/playerActionSystem'
+import { creatureAttackSystem } from '@/core/systems/creatureAttackSystem'
+import { attackEffectSystem } from '@/core/systems/attackEffectSystem'
 import { partySummonSystem } from '@/core/systems/partySummonSystem'
 import { summonBallSystem } from '@/core/systems/summonBallSystem'
 import { creatureFollowSystem } from '@/core/systems/creatureFollowSystem'
@@ -34,6 +36,7 @@ import { eyeBlinkSystem } from '@/view/systems/eyeBlinkSystem'
 import { mouthSyncSystem } from '@/view/systems/mouthSyncSystem'
 import { summonAudioSystem } from '@/view/systems/summonAudioSystem'
 import { recallAudioSystem } from '@/view/systems/recallAudioSystem'
+import { attackAudioSystem } from '@/view/systems/attackAudioSystem'
 
 let registered = false
 
@@ -79,8 +82,11 @@ let registered = false
  * components/physics.js), `summonAudioSystem`/`recallAudioSystem`
  * (docs/features/023-estado-de-humor-e-piscar-de-olhos.md, seção "Som de
  * invocar/recolher" — consomem `SummonPulse`/`RecallPulse`, mesmo
- * princípio de `Jumped`, ver core/traits/components/party.js) ficam perto
- * dele, sem dependência real de ordem entre eles. `eyeBlinkSystem`
+ * princípio de `Jumped`, ver core/traits/components/party.js) e
+ * `attackAudioSystem` (docs/features/025-ataque-comum-de-criatura.md,
+ * seção "mecanismo de som" — consome `AttackPulse`, mesmo princípio,
+ * ver core/traits/components/attackEffect.js) ficam perto dele, sem
+ * dependência real de ordem entre eles. `eyeBlinkSystem`
  * (docs/features/023-estado-de-humor-e-
  * piscar-de-olhos.md — alterna célula de atlas de olho aberto/fechado por
  * temporizador, mesma família de "efeito periódico por entidade" que
@@ -91,6 +97,16 @@ let registered = false
  * DEPOIS de `animationSystem` de verdade (senão o clipe de idle/walk/run
  * escreveria por cima do overlay de boca no mesmo frame), por isso fica
  * registrado por último, não só por proximidade.
+ *
+ * `creatureAttackSystem` (docs/features/025-ataque-comum-de-criatura.md —
+ * ataque comum de criatura controlada, botão esquerdo do mouse) fica logo
+ * depois de `playerActionSystem` por proximidade (mesma família de "ações
+ * disparadas por input", ambos escrevem `ActionState` respeitando a mesma
+ * exclusão mútua), sem dependência real de ordem entre os dois (nunca é a
+ * mesma entidade — um só processa o treinador via `HeldItem`, o outro só
+ * uma `SummonedCreature`). `attackEffectSystem` (conta o `lifetime` do
+ * `AttackEffect` que ele spawna) fica perto de `consumeEffectSystem`,
+ * mesma família visual.
  *
  * `partySummonSystem`/`creatureFollowSystem`/`projectileSystem`/
  * `consumeEffectSystem`/`summonEffectsSystem` (este último conta o
@@ -128,8 +144,10 @@ export function registerGameSystems() {
   registerSystem(GAME_PHASES.SIMULATION, vitalsRegenSystem)
   registerSystem(GAME_PHASES.SIMULATION, movementSystem)
   registerSystem(GAME_PHASES.SIMULATION, playerActionSystem)
+  registerSystem(GAME_PHASES.SIMULATION, creatureAttackSystem)
   registerSystem(GAME_PHASES.SIMULATION, projectileSystem)
   registerSystem(GAME_PHASES.SIMULATION, consumeEffectSystem)
+  registerSystem(GAME_PHASES.SIMULATION, attackEffectSystem)
   registerSystem(GAME_PHASES.SIMULATION, summonEffectsSystem)
   registerSystem(GAME_PHASES.SIMULATION, partySummonSystem)
   registerSystem(GAME_PHASES.SIMULATION, summonBallSystem)
@@ -154,6 +172,7 @@ export function registerGameSystems() {
   registerSystem(GAME_PHASES.PRESENTATION, jumpAudioSystem)
   registerSystem(GAME_PHASES.PRESENTATION, summonAudioSystem)
   registerSystem(GAME_PHASES.PRESENTATION, recallAudioSystem)
+  registerSystem(GAME_PHASES.PRESENTATION, attackAudioSystem)
   registerSystem(GAME_PHASES.PRESENTATION, eyeBlinkSystem)
   registerSystem(GAME_PHASES.PRESENTATION, mouthSyncSystem)
 }

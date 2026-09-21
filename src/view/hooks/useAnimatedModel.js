@@ -15,6 +15,7 @@ import { resolveDashSound } from '@/core/data/audio/dashSound'
 import { resolveJumpSound } from '@/core/data/audio/jumpSound'
 import { resolveSummonSound } from '@/core/data/audio/summonSound'
 import { resolveRecallSound } from '@/core/data/audio/recallSound'
+import { resolveAttackSound } from '@/core/data/audio/attackSound'
 import { createFlame } from '@/view/vfx/flameParticles'
 import { getAudioListener } from '../audio/audioListener'
 import { loadAudioBuffer } from '../audio/audioBufferCache'
@@ -67,6 +68,11 @@ import {
   unregisterRecallAudio,
   getRecallAudioEntry,
 } from '../registry/recallAudioRegistry'
+import {
+  registerAttackAudio,
+  unregisterAttackAudio,
+  getAttackAudioEntry,
+} from '../registry/attackAudioRegistry'
 
 const DEFAULT_FOOTSTEP_VOLUME = 0.6
 const DEFAULT_FOOTSTEP_REF_DISTANCE = 5
@@ -623,6 +629,27 @@ export function useAnimatedModel(entity, species) {
         register: registerRecallAudio,
         unregister: unregisterRecallAudio,
         get: getRecallAudioEntry,
+      },
+    )
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entity, species])
+
+  useEffect(() => {
+    const attack = resolveAttackSound(species)
+    if (!attack) return
+
+    return setupPositionalActionSound(
+      entity,
+      groupRef,
+      attack,
+      {
+        volume: DEFAULT_ACTION_SOUND_VOLUME,
+        refDistance: DEFAULT_ACTION_SOUND_REF_DISTANCE,
+      },
+      {
+        register: registerAttackAudio,
+        unregister: unregisterAttackAudio,
+        get: getAttackAudioEntry,
       },
     )
     // eslint-disable-next-line react-hooks/exhaustive-deps

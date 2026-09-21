@@ -113,6 +113,26 @@ export const CHARMANDER = {
       },
     },
   },
+  // Quais ataques/skills — ver docs/features/025-ataque-comum-de-
+  // criatura.md e o comentário completo em `../fox/index.js`. `range`
+  // sobrescrito pra 1 (menor que o `1.4` da definição base de
+  // `'scratch'`) — corpo pequeno do Charmander, alcance mais curto fica
+  // proporcional. Exemplo real de override por criatura, ver
+  // `core/data/attacks/_template/index.js`.
+  // `secondary1` (tecla Q, 9ª rodada) — Brasa (`core/data/attacks/ember/
+  // index.js`), sem override nenhum ainda.
+  attacks: {
+    primary: {
+      id: 'scratch',
+      overrides: {
+        range: 1,
+        visual: {
+          rotationOffset: { x: 0, y: 0, z: -15 },
+        },
+      },
+    },
+    secondary1: 'ember',
+  },
   stats: {},
   moves: [],
 }

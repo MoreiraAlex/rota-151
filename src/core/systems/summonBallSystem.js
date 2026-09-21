@@ -7,6 +7,7 @@ import {
   ActionState,
   AimAnchor,
   AnimationState,
+  AttackCooldowns,
   CharacterController,
   HeldItem,
   InputState,
@@ -45,6 +46,17 @@ function verticalClearance(body) {
  * `applySummon` fazia antes da esfera existir — física, animação,
  * vitals, traits universais) na posição onde a esfera pousou. `species`
  * já vem resolvido de `resolveBall` (evita procurar a espécie duas vezes).
+ *
+ * `AttackCooldowns` — bug real, relatado jogando ("apertando Q depois de
+ * assumir o controle... não acontece nada"): a 9ª rodada de
+ * docs/features/025-ataque-comum-de-criatura.md generalizou
+ * `creatureAttackSystem.js` pra exigir este trait na query, mas esqueceu
+ * de adicioná-lo AQUI, no único lugar que spawna uma criatura de verdade
+ * no jogo (os testes usam um helper próprio que já tinha sido
+ * atualizado, por isso passavam). Sem o trait, a query nunca casava com
+ * NENHUMA criatura real — não só a skill nova (Q), o ataque comum do
+ * mouse também parou de disparar, só que ninguém tinha testado de novo
+ * depois da mudança.
  */
 function spawnCreature(world, slot, speciesId, species, spawnPosition) {
   const physicsBody = isPhysicsReady()
@@ -61,6 +73,7 @@ function spawnCreature(world, slot, speciesId, species, spawnPosition) {
     SummonedCreature({ slot, speciesId }),
     AnimationState,
     ActionState,
+    AttackCooldowns,
     Velocity,
     CharacterController(species.body),
     MovementStats(species.movement),

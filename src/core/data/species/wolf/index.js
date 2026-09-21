@@ -15,8 +15,11 @@ export const WOLF = {
   id: 'wolf',
   dexNumber: null,
   // Placeholder de criatura selvagem, não o treinador — ver comentário
-  // acima. Sem espécie kind: 'pokemon' de verdade ainda, resolveActionSlots
-  // não tem o que resolver pra ela (ver core/data/actionSlots.js).
+  // acima. `resolveActionSlots('pokemon')` já resolve `primary` como
+  // ataque comum (ver `attacks.primary` abaixo, docs/features/025-ataque-
+  // comum-de-criatura.md) — `secondary1-3` continuam sem resolver (Q/E/R
+  // reservados pras skills futuras, ver docs/features/018-troca-de-
+  // controle-treinador-criatura.md).
   kind: 'pokemon',
   model: {
     path: '/assets/models/fox-debug.glb',
@@ -96,6 +99,13 @@ export const WOLF = {
     // core/data/audio/dashSound.js/jumpSound.js.
     dashGroup: 'default',
     jumpGroup: 'default',
+  },
+  // Quais ataques/skills — ver docs/features/025-ataque-comum-de-
+  // criatura.md e o comentário completo em `../fox/index.js`. Sem
+  // override — os valores da definição base de `'scratch'`
+  // (`core/data/attacks/scratch/index.js`) já servem.
+  attacks: {
+    primary: 'scratch',
   },
   stats: {},
   moves: [],

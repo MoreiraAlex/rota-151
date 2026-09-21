@@ -47,6 +47,15 @@ export const ANIMATION_STATES = [
   // recall.json` — o mecanismo (oneShot, resolução por ActionState.current)
   // já fica pronto, só falta o conteúdo.
   { id: 'recall', oneShot: true, when: (ctx) => ctx.action === 'recall' },
+  // Ataque comum de criatura (ver docs/features/025-ataque-comum-de-
+  // criatura.md) — mesmo mecanismo de 'recall': o `id` já existe e já é
+  // resolvido por `ActionState.current === 'attack'`, mas nenhuma espécie
+  // tem `clips.attack` autorado ainda (animação específica de cada
+  // criatura é trabalho separado, em andamento por fora desta feature).
+  // Até lá, `animationSystem.js` cai no fallback de "clipe ausente" (pose
+  // de descanso) — a arquitetura já fica pronta pra tocar o clipe de
+  // verdade assim que `clips.attack` existir, sem mudar nada aqui.
+  { id: 'attack', oneShot: true, when: (ctx) => ctx.action === 'attack' },
   { id: 'run', when: (ctx) => ctx.grounded && ctx.speed > RUN_MIN_SPEED },
   { id: 'walk', when: (ctx) => ctx.grounded && ctx.speed > WALK_MIN_SPEED },
   // Fallback: parado ou no ar (sem clipe de queda ainda).

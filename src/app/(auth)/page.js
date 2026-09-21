@@ -7,9 +7,11 @@ import { GameLoop } from '@/view/loop/GameLoop'
 import { GameScene } from '@/view/scene/GameScene'
 import { PhysicsDebugView } from '@/tools/debug/PhysicsDebugView'
 import { PathfindingDebugView } from '@/tools/debug/PathfindingDebugView'
+import { AttackRangeDebugView } from '@/tools/debug/AttackRangeDebugView'
 import { DebugPanel } from '@/tools/debug/DebugPanel'
 import { PauseMenu } from '@/tools/menu/PauseMenu'
 import { PartyHud } from '@/tools/hud/PartyHud'
+import { SkillsHud } from '@/tools/hud/SkillsHud'
 import { Crosshair } from '@/tools/hud/Crosshair'
 
 export default function GamePage() {
@@ -120,6 +122,7 @@ export default function GamePage() {
               <>
                 <PhysicsDebugView />
                 <PathfindingDebugView />
+                <AttackRangeDebugView />
               </>
             )}
           </GameScene>
@@ -127,6 +130,7 @@ export default function GamePage() {
 
         <Crosshair />
         <PartyHud />
+        <SkillsHud />
 
         {showDebug && <DebugPanel />}
 

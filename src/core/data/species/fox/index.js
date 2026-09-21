@@ -15,8 +15,11 @@ export const FOX = {
   id: 'fox',
   dexNumber: null,
   // Placeholder de criatura selvagem, não o treinador — ver comentário
-  // acima. Sem espécie kind: 'pokemon' de verdade ainda, resolveActionSlots
-  // não tem o que resolver pra ela (ver core/data/actionSlots.js).
+  // acima. `resolveActionSlots('pokemon')` já resolve `primary` como
+  // ataque comum (ver `attacks.primary` abaixo, docs/features/025-ataque-
+  // comum-de-criatura.md) — `secondary1-3` continuam sem resolver (Q/E/R
+  // reservados pras skills futuras, ver docs/features/018-troca-de-
+  // controle-treinador-criatura.md).
   kind: 'pokemon',
   model: {
     path: '/assets/models/fox-debug.glb',
@@ -95,9 +98,28 @@ export const FOX = {
       maxInterval: 32,
     },
     // Mesmo princípio de grupo de `footstepGroup` acima, ver
-    // core/data/audio/dashSound.js/jumpSound.js.
+    // core/data/audio/dashSound.js/jumpSound.js. Som de ATAQUE não fica
+    // mais aqui — mora dentro da própria definição de ataque, ver
+    // `attacks` abaixo.
     dashGroup: 'default',
     jumpGroup: 'default',
+  },
+  // Quais ataques/skills esta criatura tem — só REFERÊNCIA por id (ou
+  // `{ id, overrides }`), a definição de verdade mora em
+  // `core/data/attacks/<id>/index.js` (ver docs/features/025-ataque-
+  // comum-de-criatura.md, seção "reorganização da config" — antes, cada
+  // espécie inlinava sua própria cópia de `actions.attack`; agora é um
+  // recurso reutilizável e nomeado, mesmo princípio de `core/data/
+  // species/`/`core/data/items/`). `primary` é o botão esquerdo do mouse
+  // controlando esta criatura (ver `resolveActionSlots('pokemon')`,
+  // core/data/actionSlots.js) — exclusivo de `kind: 'pokemon'`, o
+  // treinador não ataca direto (sem arma no design, ver
+  // docs/backlog.md). Sem este bloco, a criatura simplesmente não ataca
+  // (`creatureAttackSystem.js` ignora, sem quebrar nada). `fox` usa
+  // `'scratch'` sem override nenhum — os valores da definição base já
+  // servem.
+  attacks: {
+    primary: 'scratch',
   },
   stats: {},
   moves: [],

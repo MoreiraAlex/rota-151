@@ -3,6 +3,8 @@ import { createWorld } from 'koota'
 import { makeWorld } from '@/test/makeWorld'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import {
+  ActionState,
+  AttackCooldowns,
   SummonBall,
   SummonedCreature,
   SummonFlash,
@@ -122,6 +124,18 @@ describe('summonBallSystem', () => {
     expect(creature.get(Position).x).toBeCloseTo(expected.x)
     expect(creature.get(Position).y).toBeCloseTo(expected.y)
     expect(creature.get(Position).z).toBeCloseTo(expected.z)
+
+    // Regressão real, relatada jogando (docs/features/025-ataque-comum-
+    // de-criatura.md, "9ª rodada"): `creatureAttackSystem.js` passou a
+    // exigir `AttackCooldowns` na query, mas `spawnCreature` (aqui em
+    // `summonBallSystem.js`) não tinha sido atualizado — a criatura de
+    // VERDADE nunca tinha o trait, então nem o ataque comum (mouse) nem
+    // as skills (Q/E/R) disparavam pra ninguém, mesmo com tudo
+    // configurado certo em `species.attacks`. `creatureAttackSystem.
+    // test.js` não pegava isso porque usa um helper de spawn PRÓPRIO,
+    // desacoplado deste system de verdade.
+    expect(creature.has(ActionState)).toBe(true)
+    expect(creature.has(AttackCooldowns)).toBe(true)
     expect(player.has(SummonPulse)).toBe(true)
 
     // Clarão de abertura (SummonFlash) nasce exatamente onde a criatura pousou.

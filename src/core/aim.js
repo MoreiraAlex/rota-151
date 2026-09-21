@@ -56,6 +56,31 @@ export function resolveCameraYaw(world) {
  * Sem câmera no world (não deveria acontecer no jogo real, só teoricamente
  * em teste isolado), cai num ponto "à frente" arbitrário.
  */
+/**
+ * Direção de mira pura (vetor unitário 3D, já respeitando a inclinação/
+ * pitch da câmera, não só o giro horizontal) — mesmo raio de
+ * `computeAimRay` que `resolveAimPoint` usa, mas sem o raycast contra o
+ * mundo nem `aimRange` (config exclusiva do arremesso do treinador,
+ * `getPlayerSpecies().actions.throw` — não faz sentido pra quem chama
+ * isto). Pensada pra qualquer ação que só precise SABER pra onde a câmera
+ * aponta, sem resolver um ponto de impacto contra obstáculos — hoje usada
+ * pelo ataque comum de criatura (`creatureAttackSystem.js`,
+ * docs/features/025-ataque-comum-de-criatura.md: alcance curto, sem
+ * raycast contra o mundo nesta feature), mas serve pra qualquer skill
+ * futura com a mesma necessidade (qualquer entidade, não só o treinador —
+ * ao contrário de `resolveAimPoint`).
+ *
+ * Sem câmera no world (só em teste isolado), cai numa direção "pra
+ * frente" arbitrária (+Z), mesmo fallback de `resolveAimPoint`.
+ */
+export function resolveAimDirection(world, originPos, excludeColliderHandle) {
+  const cameraRig = world.queryFirst(OrbitCamera)
+  if (!cameraRig) return { x: 0, y: 0, z: 1 }
+
+  const orbit = cameraRig.get(OrbitCamera)
+  return computeAimRay(originPos, orbit, excludeColliderHandle).direction
+}
+
 export function resolveAimPoint(world, playerPos, excludeColliderHandle) {
   const cameraRig = world.queryFirst(OrbitCamera)
   const { aimRange } = getPlayerSpecies().actions.throw

@@ -11,8 +11,13 @@ describe('resolveActionSlots', () => {
     })
   })
 
-  it("'pokemon' ainda não resolve nada (sem conteúdo de golpe definido)", () => {
-    expect(resolveActionSlots('pokemon')).toBeNull()
+  it("'pokemon' resolve primary como ataque comum e secondary1-3 como papéis genéricos de skill (Q/E/R, conteúdo real vem de species.attacks.<slot>)", () => {
+    expect(resolveActionSlots('pokemon')).toEqual({
+      primary: 'attack',
+      secondary1: 'skill1',
+      secondary2: 'skill2',
+      secondary3: 'skill3',
+    })
   })
 
   it('kind desconhecido resolve null', () => {

@@ -28,14 +28,34 @@ import { trait } from 'koota'
  * de efeito — pra calcular onde a criatura nasce (ver `partySummonSystem.js`).
  * Ações sem uso pra isso simplesmente não tocam nesses campos.
  *
- * `pendingSlot` é específico de invocar/recolher — qual slot do `Party`
- * (`'slot1' | 'slot2' | 'slot3'`) a ação em andamento diz respeito, já que
- * o efeito de verdade (spawnar ou destruir a `SummonedCreature`) só
- * acontece depois, no instante de `EFFECT_AT`, não no disparo. `null`
- * quando não há invocação/recolhimento em andamento.
+ * `pendingSlot` guarda QUAL slot a ação em andamento diz respeito, com
+ * significado diferente por ação (mesmo campo reaproveitado, não um por
+ * ação — igual a `dirX/dirY/dirZ`):
+ * - invocar/recolher (`partySummonSystem.js`): slot do `Party`
+ *   (`'slot1' | 'slot2' | 'slot3'`), já que o efeito de verdade (spawnar
+ *   ou destruir a `SummonedCreature`) só acontece depois, no instante de
+ *   `EFFECT_AT`, não no disparo.
+ * - ataque/skill de criatura (`creatureAttackSystem.js`, desde a 9ª
+ *   rodada de docs/features/025-ataque-comum-de-criatura.md): qual botão
+ *   disparou (`'primary' | 'secondary1' | 'secondary2' | 'secondary3'`,
+ *   mesmos rótulos de `species.attacks.<slot>`) — precisa disso porque
+ *   `current` some diz "attack" pras duas fontes (mouse e Q/E/R), sem
+ *   dizer QUAL ataque resolver durante o progresso (`effectAt`/
+ *   `duration`); sem o slot, `creatureAttackSystem` não saberia se deve
+ *   reler `attacks.primary` ou `attacks.secondary1` no meio do gesto.
+ *
+ * `null` quando não há ação relevante em andamento.
+ *
+ * Cooldown de ataque/skill (por slot, não um campo único aqui) mora em
+ * `AttackCooldowns` (`core/traits/components/attackEffect.js`), separado
+ * de propósito — corre em paralelo a QUALQUER ação (`current` que for),
+ * não só enquanto `current === 'attack'`, então não faz sentido dividir
+ * `ActionState` (que descreve só a ação ATUAL) com 4 campos que ficam
+ * ativos o tempo todo.
  *
  * Dono de escrita: `playerActionSystem` (dash/arremesso/uso),
- * `partySummonSystem` (invocar/recolher).
+ * `partySummonSystem` (invocar/recolher), `creatureAttackSystem`
+ * (ataque/skill).
  * Leem: `animationStateSystem` (repassa `current` pra tabela de prioridade).
  */
 export const ActionState = trait({

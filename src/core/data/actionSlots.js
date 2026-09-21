@@ -14,13 +14,25 @@ const TRAINER_ACTION_SLOTS = {
   secondary3: 'partySlot3',
 }
 
-// 'pokemon': quando existir espécie desse kind, os mesmos 4 botões passam a
-// significar golpe/ataque em vez de item/time — primary = ataque básico,
-// secondary1-3 = os 3 golpes ativos. Sem conteúdo de golpe/habilidade
-// definido ainda (`stats`/`moves` da espécie continuam vazios), não há o que
-// resolver de verdade — fica só descrito aqui até essa peça existir.
+// 'pokemon' (ver docs/features/025-ataque-comum-de-criatura.md): `primary`
+// e `secondary1-3` (Q/E/R) já resolvem de verdade
+// (`creatureAttackSystem.js` + `attacks.<slot>` por espécie, referenciando
+// `core/data/attacks/`) — desde a 9ª rodada, quando as 3 primeiras skills
+// (`vine-whip`/`ember`/`whirlpool`) ganharam conteúdo. Os rótulos aqui são
+// PAPÉIS genéricos ("1º/2º/3º slot de skill configurável"), não um id
+// fixo — cada espécie referencia o que quiser (ou nada) em
+// `attacks.secondary1-3`; `stats`/`moves` da espécie continuam vazios
+// (sem dano ainda — ver docs/features/018-troca-de-controle-treinador-
+// criatura.md).
+const CREATURE_ACTION_SLOTS = {
+  primary: 'attack',
+  secondary1: 'skill1',
+  secondary2: 'skill2',
+  secondary3: 'skill3',
+}
 
 export function resolveActionSlots(kind) {
   if (kind === 'trainer') return TRAINER_ACTION_SLOTS
+  if (kind === 'pokemon') return CREATURE_ACTION_SLOTS
   return null
 }

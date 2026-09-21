@@ -95,6 +95,18 @@ export const BULBASAUR = {
     dashGroup: 'default',
     jumpGroup: 'default',
   },
+  // Quais ataques/skills — ver docs/features/025-ataque-comum-de-
+  // criatura.md e o comentário completo em `../fox/index.js`. `range`
+  // sobrescrito pra 1.8 (maior que o `1.4` da definição base de
+  // `'punch'`) — vinhas/chicotes de Bulbasaur combinam com um alcance
+  // maior. Exemplo real de override por criatura, ver `core/data/
+  // attacks/_template/index.js`. `secondary1` (tecla Q, 9ª rodada) —
+  // Chicote de Videira (`core/data/attacks/vine-whip/index.js`), sem
+  // override nenhum ainda.
+  attacks: {
+    primary: { id: 'punch', overrides: { range: 1.8 } },
+    secondary1: 'vine-whip',
+  },
   stats: {},
   moves: [],
 }

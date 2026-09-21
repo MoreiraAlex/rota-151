@@ -121,10 +121,40 @@ export const SPECIES_TEMPLATE = {
     // Custo de stamina do pulo, descontado uma vez no disparo.
     jumpStaminaCost: 10,
   },
-  // `actions`/`party` (arremesso/consumo/invocar/recolher e distâncias de
-  // seguir o time) são exclusivos do TREINADOR — não declare aqui pra uma
-  // criatura nova. Ver `../bot/index.js` se algum dia existir uma segunda
-  // espécie `kind: 'trainer'`. `sounds.summon`/`sounds.recall` (abaixo, ver
+  // `actions.throw`/`.consume`/`.summon`/`.recall` e `party` (arremesso,
+  // consumo, invocar/recolher, distâncias de seguir o time) são exclusivos
+  // do TREINADOR — não declare isso aqui pra uma criatura nova. Ver
+  // `../bot/index.js` se algum dia existir uma segunda espécie `kind:
+  // 'trainer'`.
+  //
+  // `attacks` (opcional — ver `../fox/index.js` pro exemplo simples e
+  // `../004-charmander/index.js` pro exemplo COM override,
+  // docs/features/025-ataque-comum-de-criatura.md) é o INVERSO: exclusivo
+  // de criatura, o treinador não tem (sem arma direta no design, ver
+  // docs/backlog.md). Botão esquerdo do mouse controlando esta espécie
+  // dispara o ataque referenciado em `primary`. Só uma REFERÊNCIA por id
+  // — a definição de verdade (duração, alcance, custo, visual, áudio...)
+  // mora em `core/data/attacks/<id>/index.js` (registro reutilizável,
+  // mesmo princípio de espécie/item — ver `core/data/attacks/_template/
+  // index.js` pro que cada campo de lá significa). Sem este bloco, a
+  // criatura simplesmente não ataca (`creatureAttackSystem.js` ignora, sem
+  // quebrar nada):
+  //      attacks: { primary: 'scratch' },        // usa a definição base tal como está
+  // Precisa de um valor diferente do padrão só pra ESTA criatura (ex.:
+  // alcance maior/menor pro tamanho do corpo)? Não duplica a definição
+  // inteira — sobrescreve só o campo que precisa:
+  //      attacks: {
+  //        primary: { id: 'scratch', overrides: { range: 1, staminaCost: 4 } },
+  //      },
+  // `clips.attack` (opcional, acima em `clips`) é o clipe de animação do
+  // gesto — sem ele, a ação toca com a pose de descanso (mesmo fallback
+  // gracioso de `clips.recall`, ver core/data/animationStates.js) até
+  // alguém autorar o clipe de verdade pra esta espécie. (O ataque
+  // referenciado em `attacks.primary` também tem seu próprio
+  // `animation.clipKey`, hoje sempre `'attack'` — ver docstring em
+  // `core/data/attacks/_template/index.js`.)
+  //
+  // `sounds.summon`/`sounds.recall` (abaixo, ver
   // docs/features/023-estado-de-humor-e-piscar-de-olhos.md, seção "Som de
   // invocar/recolher") são igualmente exclusivos do treinador — uma
   // criatura nunca invoca/recolhe outra, não faz sentido configurar isso
@@ -163,7 +193,12 @@ export const SPECIES_TEMPLATE = {
   // `sounds.dashGroup`/`sounds.jumpGroup` (opcionais, mesmo princípio de
   // `footstepGroup` — grupo compartilhado, ver `core/data/audio/
   // dashSound.js`/`jumpSound.js` pros ids disponíveis) — toca no INSTANTE
-  // do dash/pulo, não por temporizador nem ciclo de passada:
+  // do dash/pulo, não por temporizador nem ciclo de passada. Som de
+  // ATAQUE não fica em `sounds` — mora dentro da própria definição do
+  // ataque (`audio.group`/`audio.clips` em `core/data/attacks/<id>/
+  // index.js`, ver `attacks` acima), já que o som é característica do
+  // ATAQUE (compartilhável entre espécies diferentes que usam o mesmo
+  // ataque), não da espécie em si:
   //      sounds: { dashGroup: 'default', jumpGroup: 'default' },
   // Som PRÓPRIO de dash/pulo, sem grupo — mesmo formato de `footstep`
   // individual acima, um array de variações cada:

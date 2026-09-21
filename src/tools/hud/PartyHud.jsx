@@ -7,9 +7,9 @@ import { HeldItem, Inventory, Party, SummonedCreature } from '@/core/traits'
 import { SlotPreview } from '../shared/SlotPreview'
 
 const PARTY_SLOTS = [
-  { key: 'slot1', label: '1' },
-  { key: 'slot2', label: '2' },
-  { key: 'slot3', label: '3' },
+  { key: 'slot1', label: 'Q', trade: '1' },
+  { key: 'slot2', label: 'E', trade: '2' },
+  { key: 'slot3', label: 'R', trade: '3' },
 ]
 
 /**
@@ -45,7 +45,7 @@ export function PartyHud() {
     : null
 
   return (
-    <div className="pointer-events-none absolute bottom-4 left-1/2 flex -translate-x-1/2 gap-2 font-mono text-xs text-white">
+    <div className="pointer-events-none absolute bottom-1/3 left-12 flex flex-col -translate-x-1/2 gap-2 font-mono text-xs text-white">
       <HudSlot
         label="clique"
         value={heldItem.itemId}
@@ -61,7 +61,7 @@ export function PartyHud() {
         }
       />
 
-      {PARTY_SLOTS.map(({ key, label }) => {
+      {PARTY_SLOTS.map(({ key, label, trade }) => {
         const speciesId = party[key]
         const species = speciesId ? getSpecies(speciesId) : null
         const isActive = activeSlots.has(key)
@@ -70,6 +70,7 @@ export function PartyHud() {
           <HudSlot
             key={key}
             label={label}
+            trade={trade}
             value={species?.id ?? null}
             preview={species && <SlotPreview kind="creature" id={species.id} />}
             active={isActive}
@@ -85,6 +86,7 @@ export function PartyHud() {
  * v0.0.18). */
 function HudSlot({
   label,
+  trade,
   value,
   emptyLabel = 'vazio',
   preview,
@@ -99,7 +101,10 @@ function HudSlot({
           : 'border-white/20 bg-black/70'
       }`}
     >
-      <span className="text-[10px] text-white/50">{label}</span>
+      <div className='w-full flex justify-between'>
+        <span className="text-[10px] text-white/50">{label}</span>
+        <span className="text-[10px] text-white/50">{active ? trade : null}</span>
+      </div>
       {preview}
       <span className="w-full truncate text-center">{value ?? emptyLabel}</span>
       {active && (

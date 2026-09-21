@@ -25,6 +25,12 @@ export { Inventory } from './components/inventory'
 export { Party, SummonPulse, RecallPulse } from './components/party'
 export { Projectile } from './components/projectile'
 export { ConsumeEffect } from './components/consumeEffect'
+export {
+  AttackEffect,
+  AttackPulse,
+  AttackCooldowns,
+  DEFAULT_ATTACK_EFFECT_GROUP,
+} from './components/attackEffect'
 export { SummonedCreature } from './components/summonedCreature'
 export { SummonBall } from './components/summonBall'
 export { SummonFlash } from './components/summonFlash'

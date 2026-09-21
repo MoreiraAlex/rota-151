@@ -73,6 +73,16 @@ export const SQUIRTLE = {
     dashGroup: 'default',
     jumpGroup: 'default',
   },
+  // Quais ataques/skills — ver docs/features/025-ataque-comum-de-
+  // criatura.md e o comentário completo em `../fox/index.js`. `range`
+  // sobrescrito pra 1 (menor que o `1.4` da definição base de `'punch'`)
+  // — corpo pequeno do Squirtle, alcance mais curto fica proporcional.
+  // `secondary1` (tecla Q, 9ª rodada) — Redemoinho (`core/data/attacks/
+  // whirlpool/index.js`), sem override nenhum ainda.
+  attacks: {
+    primary: { id: 'punch', overrides: { range: 1 } },
+    secondary1: 'whirlpool',
+  },
   stats: {},
   moves: [],
 }
