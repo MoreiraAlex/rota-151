@@ -22,7 +22,6 @@ import { BULBASAUR } from './001-bulbasaur'
 import { CHARMANDER } from './004-charmander'
 import { SQUIRTLE } from './007-squirtle'
 import { BOY } from './boy'
-import { GIRL } from './girl'
 
 export const SPECIES_REGISTRY = {
   [FOX.id]: FOX,
@@ -32,7 +31,6 @@ export const SPECIES_REGISTRY = {
   [WOLF.id]: WOLF,
   [BOT.id]: BOT,
   [BOY.id]: BOY,
-  [GIRL.id]: GIRL,
   [BULBASAUR.id]: BULBASAUR,
   [CHARMANDER.id]: CHARMANDER,
   [SQUIRTLE.id]: SQUIRTLE,
