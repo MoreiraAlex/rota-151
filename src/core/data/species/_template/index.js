@@ -68,6 +68,17 @@ export const SPECIES_TEMPLATE = {
   clips: {
     // idle: IDLE_CLIP,
     // walk: WALK_CLIP,
+    // run: RUN_CLIP,
+    // `dash`/`fall` (opcionais — mecanismo já pronto, sem clipe autorado
+    // em nenhuma espécie ainda): `core/data/animationStates.js` já
+    // resolve os dois ids sozinho (`dash` por `ActionState.current ===
+    // 'dash'`, ONE-SHOT — mesma convenção de `throw`, `speed` do JSON
+    // deveria ser `1/GAME_CONFIG.PLAYER_ACTIONS.dash.DURATION`; `fall`
+    // por `!grounded`, CÍCLICO como walk/run, não reinicia o relógio).
+    // Sem o clipe, `animationSystem.js` cai no fallback de sempre (pose
+    // de descanso) — só declarar aqui quando o JSON existir:
+    // dash: DASH_CLIP,
+    // fall: FALL_CLIP,
     // `cry` (opcional — ver `../001-bulbasaur/index.js`, docs/features/
     // 023-estado-de-humor-e-piscar-de-olhos.md, seção "Boca sincronizada
     // com o grito") — clipe de boca/cabeça/antena
@@ -102,6 +113,38 @@ export const SPECIES_TEMPLATE = {
     turnSpeed: 10,
     // Velocidade vertical inicial do pulo (m/s).
     jumpSpeed: 9,
+  },
+  // Opcional — sem isso, `cameraFollowSystem.js` usa os defaults globais
+  // (`GAME_CONFIG.CAMERA.TARGET_HEIGHT`/`.SHOULDER_OFFSET`), os mesmos
+  // que todo mundo usava antes desta espécie declarar algo próprio. Faz
+  // sentido declarar quando o corpo desta espécie é bem diferente do
+  // padrão (humanoide) — uma criatura pequena/quadrúpede com o ponto de
+  // mira/enquadramento na altura de um humano fica olhando por cima da
+  // cabeça dela, ou pro chão à frente. Pedido do usuário: "preciso que eu
+  // possa configurar o posicionamento da câmera em relação ao modelo
+  // jogável, para cada espécie, pois em tese vou poder controlar todas"
+  // (docs/features/026-preparo-do-treinador-boy.md) — qualquer espécie pode
+  // virar `InputControlled`/`CameraTarget` via troca de controle
+  // (docs/features/018-troca-de-controle-treinador-criatura.md), não só
+  // o treinador.
+  camera: {
+    // Altura (m, acima de `Position.y` — o CENTRO da cápsula física, não
+    // o chão) do ponto que a câmera mira em modo livre e do "olho" usado
+    // pro cálculo de yaw/pitch durante o lock-on (`cameraFollowSystem.js`,
+    // ver docstring lá) — o principal dos dois campos, o que realmente
+    // muda com o tamanho do corpo. Sem uma malha carregada pra medir no
+    // navegador, um ponto de partida razoável é `body.capsuleRadius +
+    // body.capsuleHalfHeight` (o topo da cápsula, em pé) mais uma folga
+    // pequena pra cabeça — ajusta olhando o resultado em jogo, mesmo
+    // espírito de todo outro "valor de partida" deste projeto.
+    targetHeight: 1.5,
+    // Deslocamento lateral (m) do enquadramento "sobre o ombro" durante a
+    // mira travada (`AimAnchor`, exclusivo do TREINADOR — ver
+    // `aimAnchorSystem.js`, criaturas nunca miram) — na prática só importa
+    // pras espécies `kind: 'trainer'`; uma criatura pode omitir isso sem
+    // problema nenhum (nunca é lido enquanto ela não mira). Opcional, cai
+    // no default global (`GAME_CONFIG.CAMERA.SHOULDER_OFFSET`) se omitido.
+    shoulderOffset: 0.4,
   },
   // Opcional — sem isso, o spawn usa os defaults do trait Vitals (100/100,
   // regen 2%/10%, delays/custos abaixo). Só declare se esta criatura

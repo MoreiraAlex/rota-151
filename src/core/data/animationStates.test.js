@@ -30,10 +30,20 @@ describe('resolveAnimationState', () => {
     ).toBe('run')
   })
 
-  it('no ar, mesmo rápido → idle (sem clipe de queda ainda)', () => {
+  it('no ar → fall, não importa a velocidade horizontal', () => {
+    expect(resolveAnimationState({ speed: 0, grounded: false })).toBe('fall')
     expect(
       resolveAnimationState({ speed: RUN_MIN_SPEED + 10, grounded: false }),
-    ).toBe('idle')
+    ).toBe('fall')
+  })
+
+  it('action "dash"/"throw" vencem "fall" mesmo no ar', () => {
+    expect(
+      resolveAnimationState({ speed: 0, grounded: false, action: 'dash' }),
+    ).toBe('dash')
+    expect(
+      resolveAnimationState({ speed: 0, grounded: false, action: 'throw' }),
+    ).toBe('throw')
   })
 
   it('action "dash" vence a locomoção, mesmo parado e no ar', () => {
@@ -88,10 +98,11 @@ describe('isOneShotAnimationState', () => {
     expect(isOneShotAnimationState('recall')).toBe(true)
   })
 
-  it('idle/walk/run não são one-shot — cíclicos, sem "fase certa" de início', () => {
+  it('idle/walk/run/fall não são one-shot — cíclicos, sem "fase certa" de início', () => {
     expect(isOneShotAnimationState('idle')).toBe(false)
     expect(isOneShotAnimationState('walk')).toBe(false)
     expect(isOneShotAnimationState('run')).toBe(false)
+    expect(isOneShotAnimationState('fall')).toBe(false)
   })
 
   it('id desconhecido não é one-shot', () => {

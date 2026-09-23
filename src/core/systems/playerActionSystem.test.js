@@ -254,7 +254,18 @@ describe('playerActionSystem — arremesso (item throwable)', () => {
     // velocidade).
     const throwOrigin = resolveHandOrigin(pos, Math.PI / 2)
     const orbit = camera.get(OrbitCamera)
-    const { origin, direction } = computeAimRay(pos, orbit)
+    // Mesma altura/desvio de ombro que `resolveAimPoint` de verdade usa
+    // (docs/features/026-preparo-do-treinador-boy.md — `getPlayerSpecies().
+    // camera`, com fallback pro default global) — não mais os globais
+    // hardcoded, que divergem sempre que a espécie configurar os
+    // próprios valores (ex.: `boy` tem `targetHeight` próprio).
+    const { origin, direction } = computeAimRay(
+      pos,
+      orbit,
+      undefined,
+      getPlayerSpecies().camera?.targetHeight,
+      getPlayerSpecies().camera?.shoulderOffset,
+    )
     const { aimRange, speed: SPEED } = THROW
     const aimPoint = {
       x: origin.x + direction.x * aimRange,

@@ -5,5 +5,5 @@
  * voo. Placeholder visual (cor/tamanho fixos) — trocar por um modelo/
  * material de verdade é trabalho futuro, sem mudança de mecanismo.
  */
-export const SUMMON_BALL_RADIUS = 0.1
+export const SUMMON_BALL_RADIUS = 0.075
 export const SUMMON_BALL_COLOR = '#e63946'

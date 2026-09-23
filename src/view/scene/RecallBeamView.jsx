@@ -209,7 +209,7 @@ function buildLightningGeometry(from, to, jitter, thickness) {
  * o feixe sozinho — como se fosse ELA puxando a criatura de volta pra
  * dentro.
  *
- * A ponta "mão" segue o OSSO DE VERDADE (`mixamorig_RightHand`,
+ * A ponta "mão" segue o OSSO DE VERDADE (`RHand`, resolvido por
  * `HAND_BONE_BY_SPECIES`, mesmo osso de `heldItemViewSystem.js`) todo
  * frame, via `bone.getWorldPosition` + `groupRef.current.worldToLocal` —
  * NÃO a aproximação geométrica congelada (`RecallBeam.fromX/Y/Z`,

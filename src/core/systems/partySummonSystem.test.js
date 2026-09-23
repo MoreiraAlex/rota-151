@@ -57,10 +57,20 @@ function resolveHandOrigin(pos, rotY, config) {
 // Sem física carregada no teste, o raycast de mira nunca acerta nada — o
 // ponto de mira esperado é sempre o limite de `aimRange` (`actions.throw`,
 // reaproveitado por qualquer ação de mira — ver `resolveAimPoint`,
-// core/aim.js), mesma fórmula de lá.
+// core/aim.js), mesma fórmula de lá. `targetHeight`/`shoulderOffset` vêm
+// de `getPlayerSpecies().camera` (docs/features/026-preparo-do-treinador-boy.md,
+// com fallback pro default global se a espécie não configurar) — não
+// mais os globais hardcoded, que divergem sempre que a espécie
+// configurar os próprios valores (ex.: `boy` tem `targetHeight` próprio).
 function resolveExpectedAimPoint(pos, orbit) {
   const { aimRange } = getPlayerSpecies().actions.throw
-  const { origin, direction } = computeAimRay(pos, orbit)
+  const { origin, direction } = computeAimRay(
+    pos,
+    orbit,
+    undefined,
+    getPlayerSpecies().camera?.targetHeight,
+    getPlayerSpecies().camera?.shoulderOffset,
+  )
   return {
     x: origin.x + direction.x * aimRange,
     y: origin.y + direction.y * aimRange,

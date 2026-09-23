@@ -72,27 +72,52 @@ export function resolveCameraYaw(world) {
  *
  * Sem câmera no world (só em teste isolado), cai numa direção "pra
  * frente" arbitrária (+Z), mesmo fallback de `resolveAimPoint`.
+ *
+ * `targetHeight` (opcional, default do global em `computeAimRay` — ver
+ * docstring lá) — pedido do usuário: "preciso que eu possa configurar o
+ * posicionamento da câmera em relação ao modelo jogável, para cada
+ * espécie" (docs/features/026-preparo-do-treinador-boy.md). Diferente de
+ * `resolveAimPoint` (sempre o treinador), quem chama esta função pode ser
+ * QUALQUER entidade controlada (`creatureAttackSystem.js`,
+ * `AttackRangeDebugView.jsx`) — cada chamador resolve a altura certa pra
+ * SUA própria espécie (`species.camera.targetHeight`) e passa aqui, já
+ * que esta função em si não sabe quem é `originPos`.
  */
-export function resolveAimDirection(world, originPos, excludeColliderHandle) {
+export function resolveAimDirection(
+  world,
+  originPos,
+  excludeColliderHandle,
+  targetHeight,
+) {
   const cameraRig = world.queryFirst(OrbitCamera)
   if (!cameraRig) return { x: 0, y: 0, z: 1 }
 
   const orbit = cameraRig.get(OrbitCamera)
-  return computeAimRay(originPos, orbit, excludeColliderHandle).direction
+  return computeAimRay(originPos, orbit, excludeColliderHandle, targetHeight)
+    .direction
 }
 
 export function resolveAimPoint(world, playerPos, excludeColliderHandle) {
   const cameraRig = world.queryFirst(OrbitCamera)
-  const { aimRange } = getPlayerSpecies().actions.throw
+  const playerSpecies = getPlayerSpecies()
+  const { aimRange } = playerSpecies.actions.throw
   if (!cameraRig) {
     return { x: playerPos.x, y: playerPos.y, z: playerPos.z + aimRange }
   }
 
   const orbit = cameraRig.get(OrbitCamera)
+  // Mira é exclusiva do treinador (ver docstring acima) — resolve a
+  // ALTURA/desvio de ombro pela espécie FIXA do jogador
+  // (`playerSpecies.camera`, com fallback pro default global em
+  // `computeAimRay` se ausente), não pela entidade controlada agora (a
+  // mira só existe enquanto o treinador está no controle mesmo, ver
+  // `aimAnchorSystem.js`).
   const { origin, direction } = computeAimRay(
     playerPos,
     orbit,
     excludeColliderHandle,
+    playerSpecies.camera?.targetHeight,
+    playerSpecies.camera?.shoulderOffset,
   )
 
   const hit = castRay(origin, direction, aimRange, { excludeColliderHandle })

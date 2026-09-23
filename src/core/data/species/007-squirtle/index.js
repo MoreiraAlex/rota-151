@@ -28,7 +28,6 @@ export const SQUIRTLE = {
       },
     },
   },
-
   clips: {
     idle: IDLE_CLIP,
     walk: WALK_CLIP,
@@ -46,6 +45,10 @@ export const SQUIRTLE = {
     runSpeed: 6,
     turnSpeed: 10,
     jumpSpeed: 9,
+  },
+  camera: {
+    targetHeight: 0.5,
+    shoulderOffset: 0,
   },
   vitals: {
     maxHp: 100,

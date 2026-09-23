@@ -8,6 +8,7 @@ import {
 import { createStaticLevel } from '../physics/colliders'
 import {
   computeOrbitOffset,
+  computeCameraPosition,
   computeLookAtPoint,
   computeAimRay,
   resolveCameraCollision,
@@ -57,6 +58,22 @@ describe('computeOrbitOffset', () => {
   })
 })
 
+describe('computeCameraPosition — targetHeight por espécie (docs/features/026-preparo-do-treinador-boy.md)', () => {
+  const target = { x: 1, y: 2, z: -3 }
+  const orbit = { yaw: 0, pitch: 0, distance: 10 }
+
+  it('sem targetHeight explícito, usa o default global (mesmo comportamento de antes)', () => {
+    const point = computeCameraPosition(target, orbit)
+    expect(point.y).toBeCloseTo(target.y + GAME_CONFIG.CAMERA.TARGET_HEIGHT)
+  })
+
+  it('targetHeight explícito substitui o default — criatura mais baixa que o padrão global', () => {
+    const point = computeCameraPosition(target, orbit, 0.4)
+    expect(point.y).toBeCloseTo(target.y + 0.4)
+    expect(point.y).not.toBeCloseTo(target.y + GAME_CONFIG.CAMERA.TARGET_HEIGHT)
+  })
+})
+
 describe('computeLookAtPoint', () => {
   const target = { x: 1, y: 2, z: -3 }
   const orbit = { yaw: 0, pitch: 0, distance: 10 }
@@ -99,6 +116,13 @@ describe('computeLookAtPoint', () => {
     )
 
     expect(a).toEqual(b)
+  })
+
+  it('targetHeight/shoulderOffset explícitos substituem os defaults globais (docs/features/026-preparo-do-treinador-boy.md)', () => {
+    const point = computeLookAtPoint(target, orbit, 1, 0.4, 0.1)
+
+    expect(point.x).toBeCloseTo(target.x + 0.1)
+    expect(point.y).toBeCloseTo(target.y + 0.4)
   })
 })
 
@@ -143,6 +167,22 @@ describe('computeAimRay', () => {
       const magnitude = Math.hypot(direction.x, direction.y, direction.z)
       expect(magnitude).toBeCloseTo(1)
     }
+  })
+
+  it('targetHeight/shoulderOffset explícitos substituem os defaults globais (docs/features/026-preparo-do-treinador-boy.md) — criatura mais baixa/sem desvio de ombro', () => {
+    const orbit = { yaw: 0, pitch: 0, distance: 10 }
+    const { origin, direction } = computeAimRay(
+      target,
+      orbit,
+      undefined,
+      0.4,
+      0,
+    )
+
+    expect(origin.y).toBeCloseTo(target.y + 0.4)
+    // shoulderOffset 0 — sem desvio, mira reto pro alvo (direção puramente
+    // no eixo Z, sem componente X).
+    expect(direction.x).toBeCloseTo(0)
   })
 
   it('quanto maior a distância da câmera, menor o efeito do desvio de ombro (converge pro paralelo à câmera)', () => {

@@ -39,14 +39,30 @@ export function computeCameraRight(yaw) {
 /**
  * Posição da câmera no mundo — o alvo (normalmente o jogador) + a altura de
  * mira + o deslocamento da órbita.
+ *
+ * `targetHeight` (opcional, default `GAME_CONFIG.CAMERA.TARGET_HEIGHT`) —
+ * pedido do usuário: "preciso que eu possa configurar o posicionamento da
+ * câmera em relação ao modelo jogável, para cada espécie, pois em tese
+ * vou poder controlar todas" (docs/features/026-preparo-do-treinador-boy.md).
+ * Recebido como PARÂMETRO em vez de lido daqui dentro — quem chama
+ * (`cameraFollowSystem.js`/`computeAimRay` abaixo) resolve o valor certo
+ * pra espécie de quem está sendo seguido/mirado (`species.camera.
+ * targetHeight`, com fallback pro default global): esta função em si é
+ * geometria pura, não sabe (nem precisa saber) QUEM está sendo
+ * posicionado — resolver a espécie certa depende de contexto que varia
+ * por chamador (câmera segue o `CameraTarget` genérico; mira é sempre do
+ * treinador), então fica fora daqui, um nível acima.
  */
-export function computeCameraPosition(targetPosition, orbit) {
+export function computeCameraPosition(
+  targetPosition,
+  orbit,
+  targetHeight = GAME_CONFIG.CAMERA.TARGET_HEIGHT,
+) {
   const offset = computeOrbitOffset(orbit)
-  const { TARGET_HEIGHT } = GAME_CONFIG.CAMERA
 
   return {
     x: targetPosition.x + offset.x,
-    y: targetPosition.y + TARGET_HEIGHT + offset.y,
+    y: targetPosition.y + targetHeight + offset.y,
     z: targetPosition.z + offset.z,
   }
 }
@@ -66,15 +82,25 @@ export function computeCameraPosition(targetPosition, orbit) {
  * não muda); só o ponto que ela mira é que sai do centro do corpo, "sobre
  * o ombro" — enquadramento padrão de jogo de ação em terceira pessoa ao
  * mirar.
+ *
+ * `targetHeight`/`shoulderOffset` (opcionais, default pros globais de
+ * `GAME_CONFIG.CAMERA`) — mesmo raciocínio de `computeCameraPosition`
+ * acima (docs/features/026-preparo-do-treinador-boy.md): recebidos como
+ * parâmetro, resolvidos por espécie por quem chama.
  */
-export function computeLookAtPoint(targetPosition, orbit, aimBlend) {
-  const { TARGET_HEIGHT, SHOULDER_OFFSET } = GAME_CONFIG.CAMERA
-  const offset = SHOULDER_OFFSET * aimBlend
+export function computeLookAtPoint(
+  targetPosition,
+  orbit,
+  aimBlend,
+  targetHeight = GAME_CONFIG.CAMERA.TARGET_HEIGHT,
+  shoulderOffset = GAME_CONFIG.CAMERA.SHOULDER_OFFSET,
+) {
+  const offset = shoulderOffset * aimBlend
   const right = computeCameraRight(orbit.yaw)
 
   return {
     x: targetPosition.x + right.x * offset,
-    y: targetPosition.y + TARGET_HEIGHT,
+    y: targetPosition.y + targetHeight,
     z: targetPosition.z + right.z * offset,
   }
 }
@@ -154,23 +180,44 @@ export function resolveCameraCollision(
  * (opcional — a cápsula do próprio alvo) evita que a correção de colisão
  * da câmera se autoacerte contra o próprio corpo de quem ela segue, mesmo
  * raciocínio de `cameraFollowSystem.js`.
+ *
+ * `targetHeight`/`shoulderOffset` (opcionais, default pros globais de
+ * `GAME_CONFIG.CAMERA`) — mesmo raciocínio de `computeCameraPosition`/
+ * `computeLookAtPoint` acima (docs/features/026-preparo-do-treinador-boy.md):
+ * repassados pros dois, resolvidos por espécie por quem chama
+ * (`resolveAimDirection`/`resolveAimPoint`, `core/aim.js`).
  */
-export function computeAimRay(targetPosition, orbit, excludeColliderHandle) {
-  const { TARGET_HEIGHT, COLLISION_MARGIN, MIN_DISTANCE_AFTER_COLLISION } =
-    GAME_CONFIG.CAMERA
+export function computeAimRay(
+  targetPosition,
+  orbit,
+  excludeColliderHandle,
+  targetHeight = GAME_CONFIG.CAMERA.TARGET_HEIGHT,
+  shoulderOffset = GAME_CONFIG.CAMERA.SHOULDER_OFFSET,
+) {
+  const { COLLISION_MARGIN, MIN_DISTANCE_AFTER_COLLISION } = GAME_CONFIG.CAMERA
   const pivot = {
     x: targetPosition.x,
-    y: targetPosition.y + TARGET_HEIGHT,
+    y: targetPosition.y + targetHeight,
     z: targetPosition.z,
   }
-  const uncollidedOrigin = computeCameraPosition(targetPosition, orbit)
+  const uncollidedOrigin = computeCameraPosition(
+    targetPosition,
+    orbit,
+    targetHeight,
+  )
   const origin = resolveCameraCollision(
     pivot,
     uncollidedOrigin,
     excludeColliderHandle,
     { COLLISION_MARGIN, MIN_DISTANCE_AFTER_COLLISION },
   )
-  const lookAt = computeLookAtPoint(targetPosition, orbit, 1)
+  const lookAt = computeLookAtPoint(
+    targetPosition,
+    orbit,
+    1,
+    targetHeight,
+    shoulderOffset,
+  )
 
   const toLookAt = {
     x: lookAt.x - origin.x,

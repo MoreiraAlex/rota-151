@@ -21,14 +21,18 @@ import { WOLF } from './wolf'
 import { BULBASAUR } from './001-bulbasaur'
 import { CHARMANDER } from './004-charmander'
 import { SQUIRTLE } from './007-squirtle'
+import { BOY } from './boy'
+import { GIRL } from './girl'
 
 export const SPECIES_REGISTRY = {
   [FOX.id]: FOX,
   [FOX_RED.id]: FOX_RED,
   [FOX_GREEN.id]: FOX_GREEN,
   [FOX_BLUE.id]: FOX_BLUE,
-  [BOT.id]: BOT,
   [WOLF.id]: WOLF,
+  [BOT.id]: BOT,
+  [BOY.id]: BOY,
+  [GIRL.id]: GIRL,
   [BULBASAUR.id]: BULBASAUR,
   [CHARMANDER.id]: CHARMANDER,
   [SQUIRTLE.id]: SQUIRTLE,
@@ -40,7 +44,7 @@ export const SPECIES_REGISTRY = {
  * movimento) e `PlayerView.jsx` (modelo + animação) leem daqui, então nunca
  * ficam apontando pra espécies diferentes um do outro.
  */
-export const PLAYER_SPECIES_ID = 'bot'
+export const PLAYER_SPECIES_ID = 'boy'
 
 export function getSpecies(id, registry = SPECIES_REGISTRY) {
   return registry[id] ?? null

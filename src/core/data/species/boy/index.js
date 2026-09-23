@@ -3,15 +3,50 @@ import WALK_CLIP from './clips/walk.json'
 import RUN_CLIP from './clips/run.json'
 import THROW_CLIP from './clips/throw.json'
 import RECALL_CLIP from './clips/recall.json'
+import FALL_CLIP from './clips/fall.json'
+import ROLL_CLIP from './clips/roll.json'
 
-
-export const BOT = {
-  id: 'bot',
+export const BOY = {
+  id: 'boy',
   dexNumber: null,
   kind: 'trainer',
   model: {
-    path: '/assets/models/bot.glb',
+    path: '/assets/models/boy.glb',
     scale: 0.015,
+    texture: {
+      0: { path: '/assets/textures/boy/default/tr0001_00_skin_col_99.png' },
+      1: { 
+        path: '/assets/textures/boy/default/tr0001_00_eye_col_99.png',
+        flipY: false,
+        center: {x: 0.5, y: 0.5},
+        repeat: {x: 1, y: 1},
+        rotation: 180,
+        eyeStates: {
+          awake: {
+            open: { x: -0.5, y: 0.25 },
+            closed: { x: -0.5, y: 0.5 },
+          },
+          angry: {
+            open: { x: -0.5, y: -0.01 },
+            closed: { x: -0.5, y: 0.5 },
+          },
+          sleep: {
+            open: { x: -0.5, y: 0.5 },
+            closed: { x: -0.5, y: 0.5 },
+          },
+          blink: { minInterval: 2, maxInterval: 6, closedDuration: 0.15 },
+        },
+      },
+      2: { path: '/assets/textures/boy/default/tr0001_00_eye_col_99.png' },
+      3: { path: '/assets/textures/boy/default/tr0001_00_hair_col_99.png' },
+      4: { path: '/assets/textures/boy/default/tr0001_00_cap_col_99.png' },
+      6: { path: '/assets/textures/boy/default/tr0001_00_skin_col_99.png' },
+      7: { path: '/assets/textures/boy/default/tr0001_00_skin_col_99.png' },
+      8: { path: '/assets/textures/boy/default/tr0001_00_tops_col_99.png' },
+      9: { path: '/assets/textures/boy/default/tr0001_00_bottoms_col_99.png' },
+      10: { path: '/assets/textures/boy/default/tr0001_00_shoes_col_99.png' },
+      11: { path: '/assets/textures/boy/default/tr0001_00_bag_col_99.png' },
+    },
   },
   clips: {
     idle: IDLE_CLIP,
@@ -19,18 +54,24 @@ export const BOT = {
     run: RUN_CLIP,
     throw: THROW_CLIP,
     recall: RECALL_CLIP,
+    fall: FALL_CLIP,
+    dash: ROLL_CLIP,
   },
   body: {
-    capsuleRadius: 0.4,
-    capsuleHalfHeight: 0.95,
+    capsuleRadius: 0.3,
+    capsuleHalfHeight: 0.7,
     capsuleAxis: 'y',
-    modelOffset: [0, -1.4, 0],
+    modelOffset: [0, -1, 0],
   },
   movement: {
     walkSpeed: 2.5,
     runSpeed: 6,
     turnSpeed: 10,
     jumpSpeed: 9,
+  },
+  camera: {
+    targetHeight: 1.2,
+    shoulderOffset: 0,
   },
   vitals: {
     maxHp: 100,
@@ -58,12 +99,12 @@ export const BOT = {
       // (mesma leitura de "ciclos/segundo" dos clipes de locomoção, mas
       // aqui vira "a ação inteira é 1 ciclo" — ver a skill
       // procedural-rig-animation, referências/animations/one-shot-
-      // actions.md). O clipe do bot tem `speed: 2.5` → 1/2.5 = 0.4s. Errar
+      // actions.md). O clipe do boy tem `speed: 2.5` → 1/2.5 = 0.4s. Errar
       // esse valor (maior que o real) faz o gesto reiniciar do início e
       // ficar visivelmente "engasgado" antes de cortar pro idle — o motor
       // não trava o clipe no fim (`loop: false` no JSON é só documentação,
       // não é lido em lugar nenhum), ele só repete o mesmo gesto fechado.
-      duration: 0.4,
+      duration: 0.3,
       // Instante (dentro da duração) em que o projétil é de fato spawnado —
       // não é keyframe de clipe, é config da própria ação (ver
       // docs/features/014-arremessar-usar-e-invocar.md). Devia coincidir
@@ -73,7 +114,7 @@ export const BOT = {
       // ajustada antes (0.45/0.5 = 90% da duração antiga), só reescalada
       // pra duração certa (0.4 × 90% = 0.36) — ainda precisa de olho no
       // jogo pra confirmar se bate com a soltura visual de verdade.
-      effectAt: 0.3,
+      effectAt: 0.2,
       // Origem do arremesso (de onde a trajetória sai e onde o projétil
       // nasce) — aproxima a posição da MÃO a partir de `Position`/
       // `Rotation.y` do jogador, já que o motor não tem acesso ao osso de
@@ -84,9 +125,9 @@ export const BOT = {
       // direita dele (`handSideOffset`) — mesma convenção de forward/right
       // usada em todo o resto (`computeCameraRight`, `movementSystem.js`).
       // `handHeightOffset` substitui o antigo "+1" fixo.
-      handForwardOffset: 0.15,
-      handSideOffset: -0.25,
-      handHeightOffset: 1.25,
+      handForwardOffset: 0.1,
+      handSideOffset: 0.05,
+      handHeightOffset: -0.02,
       // Velocidade do projétil (m/s). Ainda global por item — só existe um
       // throwable de teste hoje; migra pra config por item quando um
       // segundo precisar de velocidade diferente.
@@ -119,11 +160,11 @@ export const BOT = {
     summon: {
       // Duração total da ação (segundos) — trava movimento e qualquer
       // outra ação até terminar.
-      duration: 0.4,
+      duration: 0.3,
       // Instante em que a `SummonBall` é lançada (ver docs/features/024-
       // esfera-de-invocar.md) — a `SummonedCreature` só nasce de verdade
       // depois, quando a esfera pousa.
-      effectAt: 0.3,
+      effectAt: 0.2,
       // Origem do lançamento da esfera (de onde a trajetória sai e onde
       // ela de fato nasce) — mesmo mecanismo de `actions.throw`
       // (`resolveHandOrigin`, `core/aim.js`): aproxima a posição da MÃO a
@@ -131,9 +172,9 @@ export const BOT = {
       // corpo. Valores próprios (não os de `throw`) — podem divergir se um
       // dia a pose de segurar a esfera parecer diferente da de arremessar
       // um item.
-      handForwardOffset: 0.15,
-      handSideOffset: -0.25,
-      handHeightOffset: 1.25,
+      handForwardOffset: 0.1,
+      handSideOffset: 0.05,
+      handHeightOffset: -0.02,
       // Quanto tempo o clarão de abertura (`SummonFlash`) fica na cena
       // depois da criatura nascer — independente da duração da ação em
       // si (a esfera normalmente ainda está pousando bem depois da ação
@@ -152,8 +193,8 @@ export const BOT = {
       //    sempre que o osso de verdade da mão (`RHand`, ver
       //    `view/handBoneBySpecies.js`) ainda não foi resolvido: aproxima a
       //    posição da MÃO a partir de `Position`/`Rotation.y` do treinador,
-      //    em vez de nascer no
-      //    centro do corpo. Nesse papel, precisa exceder `capsuleRadius`
+      //    em vez de nascer no centro do corpo. Nesse papel, precisa exceder
+      //    `capsuleRadius`
       //    (0.4, ver `body` acima) com folga pra não ficar afundado na
       //    cápsula — valores bem maiores que uma AJUSTE fino, ver item 2.
       // 2) AJUSTE FINO por cima do osso resolvido (`RecallBeamView.jsx`,
@@ -165,9 +206,9 @@ export const BOT = {
       //    verdade, não posicioná-los do zero.
       // Valores próprios (não os de `throw`/`summon`) — podem divergir se
       // um dia o gesto de recolher parecer diferente dos outros dois.
-      handForwardOffset: 0.15,
-      handSideOffset: 0.0,
-      handHeightOffset: -0.05,
+      handForwardOffset: 0.1,
+      handSideOffset: 0.05,
+      handHeightOffset: -0.02,
       // Quanto tempo o feixe vermelho (`RecallBeam`) fica na cena depois
       // de disparado.
       beamDuration: 0.35,

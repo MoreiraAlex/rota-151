@@ -279,10 +279,18 @@ export function creatureAttackSystem(context) {
             vitals.staminaRegenDelay = vitals.staminaRegenDelayAfterUse
             cooldowns[slot] = CANDIDATE.cooldown
 
+            // Altura do "olho" pra esta ESPÉCIE (docs/features/026-camera-
+            // por-especie.md) — sem isso, a direção do golpe seria
+            // calculada como se toda criatura tivesse a altura do
+            // treinador (default global), errado pra corpo pequeno/
+            // quadrúpede.
+            const targetHeight = getSpecies(creature.speciesId)?.camera
+              ?.targetHeight
             const direction = resolveAimDirection(
               world,
               pos,
               physicsBody.colliderHandle,
+              targetHeight,
             )
             action.dirX = direction.x
             action.dirY = direction.y

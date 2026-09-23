@@ -34,11 +34,11 @@ export const GAME_CONFIG = {
   PLAYER_ACTIONS: {
     dash: {
       // Duração do impulso (segundos).
-      DURATION: 0.25,
+      DURATION: 0.4,
       // Unidades por segundo — maior que o runSpeed de qualquer espécie hoje.
-      SPEED: 15,
+      SPEED: 12,
       // Custo de stamina, descontado uma vez no disparo (não por segundo).
-      STAMINA_COST: 8,
+      STAMINA_COST: 5,
     },
   },
   // Grade de navegação usada por `core/pathfinding.js` pra contornar
@@ -115,7 +115,7 @@ export const GAME_CONFIG = {
   },
   PHYSICS: {
     // Aceleração da gravidade (m/s²). Mais forte que 9.81 dá um "peso" de jogo.
-    GRAVITY: -45,
+    GRAVITY: -30,
     // Parâmetros do algoritmo do character controller — compartilhados por
     // todo mundo (existe um único KinematicCharacterController do Rapier no
     // world inteiro, ver physicsWorld.js). Tamanho de cápsula e velocidades
@@ -167,7 +167,7 @@ export const GAME_CONFIG = {
     MIN_PITCH: -0.5,
     MAX_PITCH: 1.35,
     // Limites do zoom, em unidades.
-    MIN_DISTANCE: 5,
+    MIN_DISTANCE: 2.5,
     MAX_DISTANCE: 25,
     // Radianos por pixel de movimento do mouse (pointer lock).
     MOUSE_SENSITIVITY: 0.0025,

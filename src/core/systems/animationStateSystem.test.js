@@ -32,11 +32,11 @@ describe('animationStateSystem', () => {
     expect(resolve(world, player)).toBe('run')
   })
 
-  it('no ar (sem Grounded) → idle, mesmo se rápido', () => {
+  it('no ar (sem Grounded) → fall, mesmo se rápido', () => {
     const { world, player } = makeWorld()
     player.set(Velocity, { x: 7, z: 0 })
 
-    expect(resolve(world, player)).toBe('idle')
+    expect(resolve(world, player)).toBe('fall')
   })
 
   it('ação "dash" em andamento vence a locomoção, mesmo parado e no ar', () => {

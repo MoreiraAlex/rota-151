@@ -1,0 +1,870 @@
+{
+  "name": "boy-idle",
+  "loop": true,
+  "speed": 0.2,
+  "bones": {
+    "Waist": {
+      "rotation": {
+        "x": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": -0.0928
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.00469,
+              "frequencyScale": 1,
+              "phaseTurns": 0.80477
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.00428,
+              "frequencyScale": 2,
+              "phaseTurns": 0.54331
+            }
+          ]
+        },
+        "y": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": 0.06717
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.0047,
+              "frequencyScale": 1,
+              "phaseTurns": 0.70989
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.0047,
+              "frequencyScale": 2,
+              "phaseTurns": 0.55433
+            }
+          ]
+        }
+      },
+      "position": {
+        "x": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "sine",
+              "amplitude": 0.19224,
+              "frequencyScale": 1,
+              "phaseTurns": 0.2409
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.11656,
+              "frequencyScale": 2,
+              "phaseTurns": 0.2303
+            }
+          ]
+        },
+        "y": {
+          "type": "constant",
+          "value": -0.50003
+        },
+        "z": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "sine",
+              "amplitude": 0.24236,
+              "frequencyScale": 1,
+              "phaseTurns": 0.7445
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.13447,
+              "frequencyScale": 2,
+              "phaseTurns": 0.8396
+            }
+          ]
+        }
+      }
+    },
+    "Spine1": {
+      "rotation": {
+        "y": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": -0.0674
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.0091,
+              "frequencyScale": 2,
+              "phaseTurns": 0.2096
+            }
+          ]
+        }
+      }
+    },
+    "Spine2": {
+      "rotation": {
+        "y": {
+          "type": "constant",
+          "value": 0.0524
+        }
+      }
+    },
+    "Neck": {
+      "rotation": {
+        "y": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": -0.1143
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.0068,
+              "frequencyScale": 2,
+              "phaseTurns": 0.2062
+            }
+          ]
+        }
+      }
+    },
+    "Head": {
+      "rotation": {
+        "y": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": 0.1621
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.0118,
+              "frequencyScale": 2,
+              "phaseTurns": 0.7262
+            }
+          ]
+        }
+      }
+    },
+    "LShoulder": {
+      "rotation": {
+        "x": {
+          "type": "constant",
+          "value": 0.10312
+        },
+        "y": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": -0.08791
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.00663,
+              "frequencyScale": 2,
+              "phaseTurns": 0.18499
+            }
+          ]
+        },
+        "z": {
+          "type": "constant",
+          "value": -0.04615
+        }
+      }
+    },
+    "LArm": {
+      "rotation": {
+        "x": {
+          "type": "constant",
+          "value": -0.02514
+        },
+        "y": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": -0.22505
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.00561,
+              "frequencyScale": 1,
+              "phaseTurns": 0.8057
+            }
+          ]
+        },
+        "z": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": -1.20879
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.00437,
+              "frequencyScale": 1,
+              "phaseTurns": 0.24544
+            }
+          ]
+        }
+      }
+    },
+    "LForeArm": {
+      "rotation": {
+        "y": {
+          "type": "constant",
+          "value": -0.08666
+        },
+        "z": {
+          "type": "constant",
+          "value": -0.26212
+        }
+      }
+    },
+    "LHand": {
+      "rotation": {
+        "x": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": -0.31017
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.00502,
+              "frequencyScale": 1,
+              "phaseTurns": 0.82004
+            }
+          ]
+        },
+        "y": {
+          "type": "constant",
+          "value": 0.02556
+        },
+        "z": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": 0.23091
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.0041,
+              "frequencyScale": 2,
+              "phaseTurns": 0.75174
+            }
+          ]
+        }
+      }
+    },
+    "LFingerA1": {
+      "rotation": {
+        "x": {
+          "type": "constant",
+          "value": -0.01335
+        },
+        "z": {
+          "type": "constant",
+          "value": -0.06816
+        }
+      }
+    },
+    "LFingerA2": {
+      "rotation": {
+        "x": {
+          "type": "constant",
+          "value": -0.2167
+        },
+        "y": {
+          "type": "constant",
+          "value": 0.54813
+        },
+        "z": {
+          "type": "constant",
+          "value": 0.53626
+        }
+      }
+    },
+    "LFingerA3": {
+      "rotation": {
+        "x": {
+          "type": "constant",
+          "value": -0.18336
+        },
+        "y": {
+          "type": "constant",
+          "value": -0.12799
+        },
+        "z": {
+          "type": "constant",
+          "value": 0.25586
+        }
+      }
+    },
+    "LFingerB1": {
+      "rotation": {
+        "y": {
+          "type": "constant",
+          "value": -0.01255
+        },
+        "z": {
+          "type": "constant",
+          "value": -0.22836
+        }
+      }
+    },
+    "LFingerB2": {
+      "rotation": {
+        "z": {
+          "type": "constant",
+          "value": -0.36602
+        }
+      }
+    },
+    "LFingerB3": {
+      "rotation": {
+        "z": {
+          "type": "constant",
+          "value": -0.16931
+        }
+      }
+    },
+    "LFingerC1": {
+      "rotation": {
+        "y": {
+          "type": "constant",
+          "value": -0.01279
+        },
+        "z": {
+          "type": "constant",
+          "value": -0.39936
+        }
+      }
+    },
+    "LFingerC2": {
+      "rotation": {
+        "z": {
+          "type": "constant",
+          "value": -0.36664
+        }
+      }
+    },
+    "LFingerC3": {
+      "rotation": {
+        "z": {
+          "type": "constant",
+          "value": -0.38782
+        }
+      }
+    },
+    "LFingerD1": {
+      "rotation": {
+        "y": {
+          "type": "constant",
+          "value": -0.01293
+        },
+        "z": {
+          "type": "constant",
+          "value": -0.51379
+        }
+      }
+    },
+    "LFingerD2": {
+      "rotation": {
+        "z": {
+          "type": "constant",
+          "value": -0.44042
+        }
+      }
+    },
+    "LFingerD3": {
+      "rotation": {
+        "z": {
+          "type": "constant",
+          "value": -0.37626
+        }
+      }
+    },
+    "LFingerE1": {
+      "rotation": {
+        "x": {
+          "type": "constant",
+          "value": 0.06617
+        },
+        "y": {
+          "type": "constant",
+          "value": 0.08528
+        },
+        "z": {
+          "type": "constant",
+          "value": -0.64194
+        }
+      }
+    },
+    "LFingerE2": {
+      "rotation": {
+        "z": {
+          "type": "constant",
+          "value": -0.36663
+        }
+      }
+    },
+    "LFingerE3": {
+      "rotation": {
+        "z": {
+          "type": "constant",
+          "value": -0.3476
+        }
+      }
+    },
+    "RShoulder": {
+      "rotation": {
+        "x": {
+          "type": "constant",
+          "value": -0.12692
+        },
+        "y": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": -0.16192
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.00417,
+              "frequencyScale": 1,
+              "phaseTurns": 0.80671
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.00583,
+              "frequencyScale": 2,
+              "phaseTurns": 0.27622
+            }
+          ]
+        },
+        "z": {
+          "type": "constant",
+          "value": 0.06842
+        }
+      }
+    },
+    "RArm": {
+      "rotation": {
+        "x": {
+          "type": "constant",
+          "value": 0.03237
+        },
+        "y": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": -0.11685
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.0063,
+              "frequencyScale": 2,
+              "phaseTurns": 0.14977
+            }
+          ]
+        },
+        "z": {
+          "type": "constant",
+          "value": 1.08636
+        }
+      }
+    },
+    "RForeArm": {
+      "rotation": {
+        "x": {
+          "type": "constant",
+          "value": 0.02791
+        },
+        "y": {
+          "type": "constant",
+          "value": -0.10732
+        },
+        "z": {
+          "type": "constant",
+          "value": 0.24524
+        }
+      }
+    },
+    "RHand": {
+      "rotation": {
+        "x": {
+          "type": "constant",
+          "value": 0.16835
+        },
+        "y": {
+          "type": "constant",
+          "value": 0.02637
+        },
+        "z": {
+          "type": "constant",
+          "value": -0.20054
+        }
+      }
+    },
+    "RFingerA1": {
+      "rotation": {
+        "x": {
+          "type": "constant",
+          "value": 0.01765
+        },
+        "z": {
+          "type": "constant",
+          "value": 0.0622
+        }
+      }
+    },
+    "RFingerA2": {
+      "rotation": {
+        "x": {
+          "type": "constant",
+          "value": 0.31056
+        },
+        "y": {
+          "type": "constant",
+          "value": 0.60182
+        },
+        "z": {
+          "type": "constant",
+          "value": -0.58642
+        }
+      }
+    },
+    "RFingerA3": {
+      "rotation": {
+        "x": {
+          "type": "constant",
+          "value": 0.19393
+        },
+        "y": {
+          "type": "constant",
+          "value": -0.16242
+        },
+        "z": {
+          "type": "constant",
+          "value": -0.33863
+        }
+      }
+    },
+    "RFingerB1": {
+      "rotation": {
+        "z": {
+          "type": "constant",
+          "value": 0.20792
+        }
+      }
+    },
+    "RFingerB2": {
+      "rotation": {
+        "z": {
+          "type": "constant",
+          "value": 0.36678
+        }
+      }
+    },
+    "RFingerB3": {
+      "rotation": {
+        "z": {
+          "type": "constant",
+          "value": 0.16974
+        }
+      }
+    },
+    "RFingerC1": {
+      "rotation": {
+        "z": {
+          "type": "constant",
+          "value": 0.38041
+        }
+      }
+    },
+    "RFingerC2": {
+      "rotation": {
+        "z": {
+          "type": "constant",
+          "value": 0.3673
+        }
+      }
+    },
+    "RFingerC3": {
+      "rotation": {
+        "z": {
+          "type": "constant",
+          "value": 0.3886
+        }
+      }
+    },
+    "RFingerD1": {
+      "rotation": {
+        "z": {
+          "type": "constant",
+          "value": 0.49515
+        }
+      }
+    },
+    "RFingerD2": {
+      "rotation": {
+        "z": {
+          "type": "constant",
+          "value": 0.4412
+        }
+      }
+    },
+    "RFingerD3": {
+      "rotation": {
+        "z": {
+          "type": "constant",
+          "value": 0.37694
+        }
+      }
+    },
+    "RFingerE1": {
+      "rotation": {
+        "x": {
+          "type": "constant",
+          "value": -0.0489
+        },
+        "y": {
+          "type": "constant",
+          "value": 0.07947
+        },
+        "z": {
+          "type": "constant",
+          "value": 0.62343
+        }
+      }
+    },
+    "RFingerE2": {
+      "rotation": {
+        "z": {
+          "type": "constant",
+          "value": 0.36734
+        }
+      }
+    },
+    "RFingerE3": {
+      "rotation": {
+        "z": {
+          "type": "constant",
+          "value": 0.34844
+        }
+      }
+    },
+    "LThigh": {
+      "rotation": {
+        "x": {
+          "type": "constant",
+          "value": -0.22274
+        },
+        "y": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": -0.11781
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.00996,
+              "frequencyScale": 1,
+              "phaseTurns": 0.72238
+            }
+          ]
+        },
+        "z": {
+          "type": "constant",
+          "value": 0.09654
+        }
+      }
+    },
+    "LLeg": {
+      "rotation": {
+        "x": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": -0.02794
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.00442,
+              "frequencyScale": 1,
+              "phaseTurns": 0.78616
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.00753,
+              "frequencyScale": 2,
+              "phaseTurns": 0.65578
+            }
+          ]
+        },
+        "y": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": 0.19703
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.00658,
+              "frequencyScale": 1,
+              "phaseTurns": 0.23315
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.00533,
+              "frequencyScale": 2,
+              "phaseTurns": 0.74495
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.00511,
+              "frequencyScale": 3,
+              "phaseTurns": 0.13582
+            }
+          ]
+        }
+      }
+    },
+    "LFoot": {
+      "rotation": {
+        "x": {
+          "type": "constant",
+          "value": -0.08143
+        },
+        "y": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": 0.01942
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.00413,
+              "frequencyScale": 2,
+              "phaseTurns": 0.28914
+            }
+          ]
+        },
+        "z": {
+          "type": "constant",
+          "value": 0.06813
+        }
+      }
+    },
+    "LToe": {
+      "rotation": {
+        "y": {
+          "type": "constant",
+          "value": -0.0858
+        }
+      }
+    },
+    "RThigh": {
+      "rotation": {
+        "x": {
+          "type": "constant",
+          "value": 0.14811
+        },
+        "y": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": 0.01067
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.00663,
+              "frequencyScale": 1,
+              "phaseTurns": 0.75
+            }
+          ]
+        }
+      }
+    },
+    "RLeg": {
+      "rotation": {
+        "x": {
+          "type": "constant",
+          "value": 0.16391
+        },
+        "y": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": 0.13084
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.01046,
+              "frequencyScale": 2,
+              "phaseTurns": 0.62365
+            }
+          ]
+        },
+        "z": {
+          "type": "constant",
+          "value": -0.01913
+        }
+      }
+    },
+    "RFoot": {
+      "rotation": {
+        "y": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": -0.0752
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.0083,
+              "frequencyScale": 1,
+              "phaseTurns": 0.2225
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.0079,
+              "frequencyScale": 2,
+              "phaseTurns": 0.1801
+            }
+          ]
+        }
+      }
+    },
+    "RToe": {
+      "rotation": {
+        "y": {
+          "type": "constant",
+          "value": -0.1243
+        }
+      }
+    }
+  }
+}

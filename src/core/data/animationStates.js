@@ -58,7 +58,18 @@ export const ANIMATION_STATES = [
   { id: 'attack', oneShot: true, when: (ctx) => ctx.action === 'attack' },
   { id: 'run', when: (ctx) => ctx.grounded && ctx.speed > RUN_MIN_SPEED },
   { id: 'walk', when: (ctx) => ctx.grounded && ctx.speed > WALK_MIN_SPEED },
-  // Fallback: parado ou no ar (sem clipe de queda ainda).
+  // No ar (subindo OU descendo — pulo inteiro, um clipe só, sem separar
+  // "início do pulo" de "caindo") — pedido do usuário ("vou implementar
+  // as animações de dash e falling no boy"). CÍCLICO, não `oneShot`
+  // (mesmo grupo de walk/run/idle): fica no ar por tempo variável
+  // (depende da altura/física, não uma duração fixa como um gesto de
+  // ação), então não existe "fase certa" de início — sample contínuo do
+  // relógio compartilhado, sem reiniciar ao entrar no estado. `grounded`
+  // já vem certo de `characterPhysicsSystem.js` (trait `Grounded`, tag de
+  // presença) — nenhum dado novo precisou ser calculado aqui, só faltava
+  // esta entrada na tabela.
+  { id: 'fall', when: (ctx) => !ctx.grounded },
+  // Fallback: parado no chão.
   { id: 'idle', when: () => true },
 ]
 

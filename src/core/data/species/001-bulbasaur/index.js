@@ -70,6 +70,10 @@ export const BULBASAUR = {
     turnSpeed: 10,
     jumpSpeed: 9,
   },
+  camera: {
+    targetHeight: 0.5,
+    shoulderOffset: 0,
+  },
   vitals: {
     maxHp: 100,
     hpRegenPercent: 2,

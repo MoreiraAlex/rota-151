@@ -124,6 +124,7 @@ export function AttackRangeDebugView() {
       world,
       pos,
       physicsBody.colliderHandle,
+      species?.camera?.targetHeight,
     )
     const impactOrigin = {
       x: pos.x,
