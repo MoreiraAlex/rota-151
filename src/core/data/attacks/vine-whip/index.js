@@ -34,8 +34,8 @@ export const VINE_WHIP_ATTACK = {
   effectAt: 0.25,
   range: 2.2,
   radius: 0.35,
-  staminaCost: 6,
-  cooldown: 2,
+  staminaCost: 1,
+  cooldown: 0,
   visual: {
     effectGroup: 'vine-whip',
     effectVisualDuration: 0.35,
@@ -43,13 +43,17 @@ export const VINE_WHIP_ATTACK = {
     revealDuration: 0,
     rotationOffset: { x: 0, y: 0, z: 0 },
   },
+  sprite: {
+    path: '/assets/sprites/abilities/vine-whip.png',
+    scale: 1,
+  },
   // Som ainda não definido — usuário vai atrás dos arquivos depois de
   // confirmar a skill (ver docs/features/025). `null` = sem som nenhum
   // por enquanto, não "compartilha com outro grupo" (evita tocar um som
   // errado emprestado até ter o de verdade) — ver `resolveAttackSound`/
   // `ATTACK_SOUND_GROUPS`, `core/data/audio/attackSound.js`.
   audio: {
-    group: null,
+    group: 'scratch',
   },
   animation: {
     clipKey: 'attack',

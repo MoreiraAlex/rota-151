@@ -9,6 +9,7 @@ import { RecallBeamsView } from './RecallBeamView'
 import { ConsumeEffectsView } from './ConsumeEffectView'
 import { AttackEffectsView } from './AttackEffectView'
 import { CreaturesView, WildCreaturesView } from './CreatureView'
+import { NameplatesView } from './NameplateView'
 
 function obstacleRotation(rotation) {
   if (!rotation) return [0, 0, 0]
@@ -94,6 +95,7 @@ export function GameScene({ children }) {
       <AttackEffectsView />
       <CreaturesView />
       <WildCreaturesView />
+      <NameplatesView />
 
       {children}
     </>

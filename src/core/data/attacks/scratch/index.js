@@ -36,6 +36,10 @@ export const SCRATCH_ATTACK = {
     // mexer em código.
     rotationOffset: { x: 0, y: 0, z: 0 },
   },
+  sprite: {
+    path: '/assets/sprites/abilities/scratch.png',
+    scale: 1,
+  },
   audio: {
     group: 'scratch',
   },

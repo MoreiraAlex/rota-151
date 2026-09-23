@@ -128,6 +128,16 @@ export const ATTACK_TEMPLATE = {
   // _template/index.js) — o formato de dano ainda não foi desenhado.
   // `null` por enquanto, mesmo espírito de placeholder.
   damage: null,
+
+  // === Visual do HUD (view/shared/statusDisplay.jsx, `AttackIcon`) ===
+  // Opcional — sem isto, o ícone do slot (SkillsHud.jsx Q/E/R e
+  // ActionSlotHud.jsx clique, quando é a criatura no controle) cai no
+  // quadrado colorido de sempre (`ATTACK_COLORS`, view/attackColors.js).
+  // Mesmo formato/raciocínio de `species.sprite` (core/data/species/
+  // _template/index.js): `path` é a imagem de verdade; `scale` (opcional,
+  // default 1) compensa margem/padding inconsistente dentro do próprio
+  // arquivo de origem — cada ataque ajusta o valor olhando o resultado.
+  // sprite: { path: '/assets/sprites/attacks/<id>.png', scale: 1 },
 }
 
 // === Override por criatura ===

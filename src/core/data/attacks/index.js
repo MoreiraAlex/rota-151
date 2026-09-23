@@ -18,6 +18,7 @@ import { PUNCH_ATTACK } from './punch'
 import { VINE_WHIP_ATTACK } from './vine-whip'
 import { EMBER_ATTACK } from './ember'
 import { WHIRLPOOL_ATTACK } from './whirlpool'
+import { RAZOR_LEAF_ATTACK } from './razor-leaf'
 
 export const ATTACK_REGISTRY = {
   [SCRATCH_ATTACK.id]: SCRATCH_ATTACK,
@@ -25,6 +26,7 @@ export const ATTACK_REGISTRY = {
   [VINE_WHIP_ATTACK.id]: VINE_WHIP_ATTACK,
   [EMBER_ATTACK.id]: EMBER_ATTACK,
   [WHIRLPOOL_ATTACK.id]: WHIRLPOOL_ATTACK,
+  [RAZOR_LEAF_ATTACK.id]: RAZOR_LEAF_ATTACK,
 }
 
 export function getAttack(id, registry = ATTACK_REGISTRY) {

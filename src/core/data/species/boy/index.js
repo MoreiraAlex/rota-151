@@ -9,7 +9,15 @@ import ROLL_CLIP from './clips/roll.json'
 export const BOY = {
   id: 'boy',
   dexNumber: null,
+  // Sem `level` de propósito — a etiqueta acima da cabeça
+  // (`view/scene/NameplateView.jsx`, docs/features/027-hud-de-status-e-habilidades.md) mostra nome/nível/vida/stamina pra QUALQUER entidade,
+  // incluindo o treinador, mas "nível" não faz sentido nenhum pra um
+  // humano — o campo é opcional, `level` ausente simplesmente não
+  // aparece na etiqueta (mesmo fallback gracioso de sempre).
   kind: 'trainer',
+  sprite: { path: 'https://play.pokemonshowdown.com/sprites/trainers/red.png' },
+  level: 1,
+  xp: { current: 50, max: 100 },
   model: {
     path: '/assets/models/boy.glb',
     scale: 0.015,

@@ -10,8 +10,10 @@ import { PathfindingDebugView } from '@/tools/debug/PathfindingDebugView'
 import { AttackRangeDebugView } from '@/tools/debug/AttackRangeDebugView'
 import { DebugPanel } from '@/tools/debug/DebugPanel'
 import { PauseMenu } from '@/tools/menu/PauseMenu'
+import { ActionSlotHud } from '@/tools/hud/ActionSlotHud'
 import { PartyHud } from '@/tools/hud/PartyHud'
 import { SkillsHud } from '@/tools/hud/SkillsHud'
+import { StatusHud } from '@/tools/hud/StatusHud'
 import { Crosshair } from '@/tools/hud/Crosshair'
 
 export default function GamePage() {
@@ -131,6 +133,8 @@ export default function GamePage() {
         <Crosshair />
         <PartyHud />
         <SkillsHud />
+        <StatusHud />
+        <ActionSlotHud />
 
         {showDebug && <DebugPanel />}
 

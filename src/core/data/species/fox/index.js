@@ -14,6 +14,11 @@ import RUN_CLIP from './clips/run.json'
 export const FOX = {
   id: 'fox',
   dexNumber: null,
+  // Nível fixo por ESPÉCIE (não por indivíduo — sem XP/progressão ainda,
+  // ver docs/features/027-hud-de-status-e-habilidades.md) — mostrado na
+  // etiqueta acima da cabeça (`view/scene/NameplateView.jsx`). Valor de
+  // PARTIDA, sem sistema de balanceamento nenhum por trás ainda.
+  level: 3,
   // Placeholder de criatura selvagem, não o treinador — ver comentário
   // acima. `resolveActionSlots('pokemon')` já resolve `primary` como
   // ataque comum (ver `attacks.primary` abaixo, docs/features/025-ataque-

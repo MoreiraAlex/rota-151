@@ -15,6 +15,37 @@
 export const SPECIES_TEMPLATE = {
   id: 'nome-em-minusculo',
   dexNumber: 0,
+  // Opcional — nível fixo por ESPÉCIE (não por indivíduo; sem XP/
+  // progressão nenhuma por trás), mostrado na etiqueta acima da cabeça
+  // (`view/scene/NameplateView.jsx`, docs/features/027-hud-de-status-e-habilidades.md). Ausente = campo simplesmente não aparece na etiqueta
+  // (ex.: `../boy/index.js`, treinador — "nível" não faz sentido pra um
+  // humano). Valor de PARTIDA quando declarado, sem balanceamento.
+  // level: 5,
+  // Opcional — retrato/sprite REDONDO (`view/shared/statusDisplay.jsx`,
+  // `SpritePortrait`) usado por `tools/hud/StatusHud.jsx`/`PartyHud.jsx`
+  // (docs/features/027-hud-de-status-e-habilidades.md, "3ª/4ª rodada").
+  // Ausente = cai no placeholder colorido de sempre (`CREATURE_TINTS`,
+  // mesma paleta do inventário) — mesmo fallback gracioso de qualquer
+  // outro asset opcional deste projeto. `path` aceita URL externa
+  // também (não só `/assets/...` local — precisa constar em
+  // `images.remotePatterns`, `next.config.js`, senão o `next/image`
+  // recusa carregar).
+  // sprite: {
+  //   path: '/assets/sprites/nome.png',
+  //   // Opcional, default 1 — sprites de fontes diferentes variam MUITO
+  //   // de quanta margem vazia têm dentro do próprio arquivo (`object-
+  //   // cover` sozinho não resolve isso — a margem é pixel de verdade
+  //   // da imagem, não espaço "cortável" pelo CSS). Amplia a imagem
+  //   // DENTRO do círculo já cortado — ajusta olhando o resultado,
+  //   // mesmo "valor de partida" de toda outra config visual sem
+  //   // medida exata disponível.
+  //   scale: 1,
+  // },
+  // Opcional — fração de XP (0 a 1, via `current`/`max`) mostrada no
+  // anel ao redor do retrato (`SpritePortrait`) — mesmo espírito de
+  // `level`: só um NÚMERO de exibição, sem sistema de progressão
+  // nenhum por trás ainda. Ausente = anel nasce vazio (0%).
+  // xp: { current: 0, max: 100 },
   // 'trainer' | 'pokemon' — que tipo de entidade jogável esta espécie
   // representa (ver docs/features/011-slots-de-acao.md). Opcional — sem
   // isso, resolveSpeciesKind() assume 'trainer'.

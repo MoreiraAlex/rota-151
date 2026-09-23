@@ -6,7 +6,10 @@ import CRY_CLIP from './clips/cry.json'
 export const CHARMANDER = {
   id: 'charmander',
   dexNumber: 4,
+  // Nível fixo por ESPÉCIE — ver comentário completo em `../fox/index.js`.
+  level: 5,
   kind: 'pokemon',
+  sprite: { path: 'https://play.pokemonshowdown.com/sprites/ani/charmander.gif' },
   model: {
     path: '/assets/models/004-charmander.glb',
     scale: 0.015,
@@ -135,7 +138,7 @@ export const CHARMANDER = {
         },
       },
     },
-    secondary1: 'ember',
+    secondary1: 'ember'
   },
   stats: {},
   moves: [],

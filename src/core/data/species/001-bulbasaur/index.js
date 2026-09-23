@@ -6,7 +6,11 @@ import CRY_CLIP from './clips/cry.json'
 export const BULBASAUR = {
   id: 'bulbasaur',
   dexNumber: 1,
+  // Nível fixo por ESPÉCIE — ver comentário completo em `../fox/index.js`.
+  // 5 = nível clássico de inicial em Pokémon de verdade.
+  level: 5,
   kind: 'pokemon',
+  sprite: { path: 'https://play.pokemonshowdown.com/sprites/ani/bulbasaur.gif' },
   model: {
     path: '/assets/models/001-bulbasaur.glb',
     scale: 0.012,
@@ -108,8 +112,8 @@ export const BULBASAUR = {
   // Chicote de Videira (`core/data/attacks/vine-whip/index.js`), sem
   // override nenhum ainda.
   attacks: {
-    primary: { id: 'punch', overrides: { range: 1.8 } },
-    secondary1: 'vine-whip',
+    primary: { id: 'vine-whip', overrides: { range: 1.8 } },
+    secondary1: 'razor-leaf',
   },
   stats: {},
   moves: [],

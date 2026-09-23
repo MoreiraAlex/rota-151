@@ -33,6 +33,10 @@ export const EMBER_ATTACK = {
     revealDuration: 0,
     rotationOffset: { x: 0, y: 0, z: 0 },
   },
+  sprite: {
+    path: '/assets/sprites/abilities/ember.png',
+    scale: 1,
+  },
   // Som ainda não definido — ver comentário completo em
   // `../vine-whip/index.js`.
   audio: {

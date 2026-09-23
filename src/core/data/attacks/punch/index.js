@@ -27,6 +27,10 @@ export const PUNCH_ATTACK = {
     revealDuration: 0,
     rotationOffset: { x: 0, y: 0, z: 0 },
   },
+  sprite: {
+    path: '/assets/sprites/abilities/punch.png',
+    scale: 1,
+  },
   audio: {
     group: 'punch',
   },

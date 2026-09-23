@@ -2,7 +2,7 @@ import { GAME_CONFIG } from '../gameConfig'
 import { castRay } from '../physics/raycast'
 import { getSpecies, getPlayerSpecies } from '../data/species'
 import { isPhysicsReady } from '../physics/physicsWorld'
-import { createCharacterBody } from '../physics/colliders'
+import { createCharacterBody, verticalClearance } from '../physics/colliders'
 import {
   ActionState,
   AimAnchor,
@@ -25,21 +25,6 @@ import {
   Velocity,
   vitalsFromSpecies,
 } from '../traits'
-
-/**
- * Distância vertical do CENTRO da cápsula (`Position`/`PhysicsBody`, ver
- * `createCharacterBody`) até a base dela — pra cápsula em pé (`axis:
- * 'y'`), a base fica `radius + halfHeight` abaixo do centro; deitada
- * (`'x'`/`'z'`), só o `radius` conta na vertical (o `halfHeight` é
- * horizontal, ao longo do eixo deitado). Usado por `resolveBall` pra
- * pousar a criatura EM CIMA de uma superfície tocada, não com o centro
- * DA CÁPSULA exatamente nela (ver docstring de `resolveBall`).
- */
-function verticalClearance(body) {
-  return body.capsuleAxis === 'y'
-    ? body.capsuleRadius + body.capsuleHalfHeight
-    : body.capsuleRadius
-}
 
 /**
  * Spawna a `SummonedCreature` de verdade (mesma composição de traits que

@@ -6,7 +6,10 @@ import CRY_CLIP from './clips/cry.json'
 export const SQUIRTLE = {
   id: 'squirtle',
   dexNumber: 7,
+  // Nível fixo por ESPÉCIE — ver comentário completo em `../fox/index.js`.
+  level: 5,
   kind: 'pokemon',
+  sprite: { path: 'https://play.pokemonshowdown.com/sprites/ani/squirtle.gif' },
   model: {
     path: '/assets/models/007-squirtle.glb',
     scale: 0.020,

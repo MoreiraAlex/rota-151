@@ -16,15 +16,23 @@ import {
 } from '@/core/traits'
 
 /**
- * Espécie de quem está sendo seguido/mirado agora — `target` é genérico
- * (`CameraTarget`, movido entre treinador e criatura por
- * `controlSwitchSystem.js`, ver docs/features/018-troca-de-controle-
- * treinador-criatura.md), então resolve por presença de
+ * Espécie de quem está sendo seguido/mirado/CONTROLADO agora — `entity`
+ * é genérico (`CameraTarget`/`InputControlled`, movido entre treinador e
+ * criatura por `controlSwitchSystem.js`, ver docs/features/018-troca-de-
+ * controle-treinador-criatura.md), então resolve por presença de
  * `SummonedCreature` (só criatura tem) em vez de assumir sempre o
  * treinador — mesmo critério que `creatureAttackSystem.js`/
- * `aimAnchorSystem.js` já usam pra distinguir os dois.
+ * `aimAnchorSystem.js` já usam pra distinguir os dois. Só DUAS fontes
+ * aqui (não três como `resolveEntitySpecies` em
+ * `view/scene/NameplateView.jsx`) — `WildCreature` nunca é
+ * `InputControlled`/`CameraTarget` (nunca pilotada), então não entra
+ * nessa conta.
+ *
+ * Exportada — segundo consumidor (`tools/hud/StatusHud.jsx`,
+ * docs/features/027-hud-de-status-e-habilidades.md, "2ª rodada") precisa da
+ * MESMA resolução (a entidade CONTROLADA, não qualquer uma).
  */
-function resolveControlledSpecies(entity) {
+export function resolveControlledSpecies(entity) {
   const creature = entity.get(SummonedCreature)
   return creature ? getSpecies(creature.speciesId) : getPlayerSpecies()
 }

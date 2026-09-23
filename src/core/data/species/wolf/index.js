@@ -14,6 +14,8 @@ import RUN_CLIP from './clips/run.json'
 export const WOLF = {
   id: 'wolf',
   dexNumber: null,
+  // Nível fixo por ESPÉCIE — ver comentário completo em `../fox/index.js`.
+  level: 4,
   // Placeholder de criatura selvagem, não o treinador — ver comentário
   // acima. `resolveActionSlots('pokemon')` já resolve `primary` como
   // ataque comum (ver `attacks.primary` abaixo, docs/features/025-ataque-
