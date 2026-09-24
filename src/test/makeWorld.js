@@ -33,7 +33,7 @@ import {
 // — ver docs/features/018-troca-de-controle-treinador-criatura.md.
 const PLAYER_SPECIES = getSpecies('fox')
 
-const vitals = vitalsFromSpecies(PLAYER_SPECIES.vitals)
+const vitals = vitalsFromSpecies(PLAYER_SPECIES)
 
 /**
  * Cria um world koota isolado para testes, com um player e uma câmera compostos

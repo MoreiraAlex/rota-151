@@ -163,6 +163,10 @@ export function playerActionSystem(context) {
           if (canDash) {
             action.current = 'dash'
             action.elapsed = 0
+            // Ver docstring de `ActionState.animationSpeed` — o clipe
+            // de dash toca nesta velocidade em vez de um `speed` fixo
+            // no JSON do clipe.
+            action.animationSpeed = DASH.DURATION > 0 ? 1 / DASH.DURATION : 1
             action.dirX = Math.sin(rot.y)
             action.dirZ = Math.cos(rot.y)
             vitals.stamina -= DASH.STAMINA_COST
@@ -176,6 +180,11 @@ export function playerActionSystem(context) {
             ) {
               action.current = 'throw'
               action.elapsed = 0
+              // Ver docstring de `ActionState.animationSpeed` — o
+              // clipe de arremesso toca nesta velocidade em vez de um
+              // `speed` fixo no JSON do clipe.
+              action.animationSpeed =
+                THROW.duration > 0 ? 1 / THROW.duration : 1
               const throwOrigin = resolveHandOrigin(pos, rot.y, THROW)
               // Com a mira travada (AimAnchor), o arremesso vai pro mesmo
               // ponto que a câmera já está mostrando — não recalcula via
@@ -197,6 +206,11 @@ export function playerActionSystem(context) {
             } else if (item?.category === 'consumable') {
               action.current = 'consume'
               action.elapsed = 0
+              // Ver docstring de `ActionState.animationSpeed` — o
+              // clipe de consumo toca nesta velocidade em vez de um
+              // `speed` fixo no JSON do clipe.
+              action.animationSpeed =
+                CONSUME.duration > 0 ? 1 / CONSUME.duration : 1
             } else {
               return
             }

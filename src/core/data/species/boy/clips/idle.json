@@ -1,7 +1,6 @@
 {
   "name": "boy-idle",
   "loop": true,
-  "speed": 0.2,
   "bones": {
     "Waist": {
       "rotation": {

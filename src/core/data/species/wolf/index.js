@@ -76,7 +76,7 @@ export const WOLF = {
     // Stamina gasta por segundo enquanto realmente correndo.
     runStaminaDrainPerSecond: 2,
     // Custo de stamina do pulo, descontado uma vez no disparo.
-    jumpStaminaCost: 10,
+    jumpStaminaCost: 3,
   },
   // Ver core/data/audio/footstepGroups.js — `footstepGroup` compartilha
   // som/volume/alcance com qualquer outra espécie do mesmo grupo (aqui,

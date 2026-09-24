@@ -28,7 +28,7 @@ export const WHIRLPOOL_ATTACK = {
   effectAt: 0.3,
   range: 1.6,
   radius: 0.5,
-  staminaCost: 7,
+  staminaCost: 4,
   cooldown: 2,
   visual: {
     effectGroup: 'whirlpool',

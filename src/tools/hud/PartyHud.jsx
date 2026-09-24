@@ -5,7 +5,14 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { ArrowLeftRight } from 'lucide-react'
 import { playerEntity } from '@/core/world/world'
 import { getSpecies } from '@/core/data/species'
-import { InputControlled, Party, SummonedCreature, Vitals } from '@/core/traits'
+import {
+  InputControlled,
+  Party,
+  resolveMaxHp,
+  resolveMaxStamina,
+  SummonedCreature,
+  Vitals,
+} from '@/core/traits'
 import {
   formatSpeciesName,
   KeyHint,
@@ -213,10 +220,14 @@ export function PartyHud() {
  * `activeEntity`, a barra sumia por falta de `Vitals` de verdade pra
  * ler). Sem entidade viva (criatura só equipada, nunca invocada — não
  * existe corpo físico, logo não existe trait `Vitals` pra ler), cai no
- * máximo ESTÁTICO configurado na espécie (`species.vitals.maxHp`/
- * `.maxStamina`, `_template/index.js`; `100`/`100` se a espécie nem
- * declarou `vitals`, mesmo default do trait `Vitals`) mostrado CHEIO —
- * não há combate acontecendo fora de campo que justifique outro valor.
+ * máximo ESTÁTICO da espécie via `resolveMaxHp`/`resolveMaxStamina`
+ * (`core/traits/components/vitals.js`) mostrado CHEIO — não há combate
+ * acontecendo fora de campo que justifique outro valor. MESMA função
+ * que `vitalsFromSpecies` usa pra decidir o máximo de verdade no spawn
+ * (`species.stats.hp`/`.energy` nas espécies migradas, senão
+ * `species.vitals.maxHp`/`.maxStamina`, senão `100`/`100`) — ler daqui
+ * em vez de reimplementar a mesma conta evita esta tela mostrar um
+ * número diferente do que a criatura de verdade nasce tendo.
  */
 function PartySlotCard({
   slot,
@@ -235,8 +246,8 @@ function PartySlotCard({
     return <HudSlot label={label} value={null} dimInvoke={dimInvoke} />
   }
 
-  const maxHp = species.vitals?.maxHp ?? 100
-  const maxStamina = species.vitals?.maxStamina ?? 100
+  const maxHp = resolveMaxHp(species)
+  const maxStamina = resolveMaxStamina(species)
   const hp = liveVitals?.hp ?? maxHp
   const stamina = liveVitals?.stamina ?? maxStamina
 

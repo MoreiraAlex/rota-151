@@ -89,7 +89,7 @@ export function wildCreatureSpawnSystem(context) {
       Velocity,
       CharacterController(species.body),
       MovementStats(species.movement),
-      vitalsFromSpecies(species.vitals),
+      vitalsFromSpecies(species),
       PhysicsBody(physicsBody),
       PathState,
       WanderState({

@@ -11,7 +11,7 @@ export const PUNCH_ATTACK = {
   effectAt: 0.25,
   range: 1.4,
   radius: 0.3,
-  staminaCost: 2,
+  staminaCost: 0.5,
   cooldown: 0,
   visual: {
     effectGroup: 'punch',

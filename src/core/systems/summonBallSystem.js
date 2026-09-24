@@ -62,7 +62,7 @@ function spawnCreature(world, slot, speciesId, species, spawnPosition) {
     Velocity,
     CharacterController(species.body),
     MovementStats(species.movement),
-    vitalsFromSpecies(species.vitals),
+    vitalsFromSpecies(species),
     PhysicsBody(physicsBody),
     PathState,
     InputState,

@@ -111,6 +111,29 @@ export default function GamePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [menuOpen, menuView])
 
+  useEffect(() => {
+    // `P` abre direto na subtela de Status (`StatsPanel.jsx`, pedido do
+    // usuário: "quero uma janela que exiba os status do pokemon... e
+    // para eu abrir ela, pode colocar a tecla P") — mesma técnica de `I`
+    // pro Inventário acima (mesmo motivo: sem efeito nativo do browser
+    // sobre o Pointer Lock, solta o mouse na mão; apertar de novo com a
+    // subtela já aberta fecha, mesma simetria do Esc/I).
+    const onKeyDown = (event) => {
+      if (event.code !== 'KeyP') return
+      event.preventDefault()
+      if (menuOpen && menuView === 'stats') {
+        closeMenu()
+        return
+      }
+      if (document.pointerLockElement) document.exitPointerLock()
+      setMenuView('stats')
+      setMenuOpen(true)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [menuOpen, menuView])
+
   return (
     <WorldProvider>
       <div

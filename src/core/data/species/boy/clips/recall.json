@@ -1,7 +1,6 @@
 {
   "name": "boy-recall",
   "loop": false,
-  "speed": 1.66667,
   "bones": {
     "Waist": {
       "rotation": {

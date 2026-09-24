@@ -3,6 +3,7 @@
 import { GAME_CONFIG } from '@/core/gameConfig'
 import { ConfigPanel } from './ConfigEditor'
 import { InventoryPanel } from './InventoryPanel'
+import { StatsPanel } from './StatsPanel'
 
 // Largura da caixa por subtela — Inventário precisa de mais espaço (grade +
 // preview de equipamento lado a lado, ver InventoryPanel.jsx); as outras
@@ -11,6 +12,7 @@ const BOX_WIDTH = {
   main: 'w-80',
   settings: 'w-80',
   inventory: 'w-[34rem]',
+  stats: 'w-96',
 }
 
 /**
@@ -20,10 +22,12 @@ const BOX_WIDTH = {
  * fecha o menu (o próprio `pointerlockchange` já dirige o estado em
  * `page.js`).
  *
- * Duas opções por hora: Inventário (grade 5x5 com tudo que o jogador tem +
+ * Três opções por hora: Inventário (grade 5x5 com tudo que o jogador tem +
  * preview de equipamento — `InventoryPanel.jsx`; é onde se equipa mão
  * principal/time, único lugar com essa responsabilidade — ver
- * docs/features/018-preview-de-equipamento-no-inventario.md) e
+ * docs/features/018-preview-de-equipamento-no-inventario.md), Status
+ * (`StatsPanel.jsx` — uma aba por criatura equipada no time, com os seis
+ * status de batalha calculados em `core/data/species/stats.js`) e
  * Configurações (edita `GAME_CONFIG` ao vivo). Sem pausar a simulação em
  * si: o jogo continua rodando atrás do menu.
  *
@@ -33,8 +37,8 @@ const BOX_WIDTH = {
  * o menu aberto ao mesmo tempo.
  *
  * `view`/`onViewChange` vêm de fora (`page.js`) em vez de estado interno —
- * a tecla `I` precisa abrir direto na subtela de Inventário, sem passar
- * pela principal primeiro.
+ * as teclas `I`/`P` precisam abrir direto nas subtelas de Inventário/
+ * Status, sem passar pela principal primeiro.
  */
 export function PauseMenu({ onResume, view, onViewChange }) {
   const setView = onViewChange
@@ -52,6 +56,7 @@ export function PauseMenu({ onResume, view, onViewChange }) {
             <MenuButton onClick={() => setView('inventory')}>
               Inventário
             </MenuButton>
+            <MenuButton onClick={() => setView('stats')}>Status</MenuButton>
             <MenuButton onClick={() => setView('settings')}>
               Configurações
             </MenuButton>
@@ -62,6 +67,12 @@ export function PauseMenu({ onResume, view, onViewChange }) {
         {view === 'inventory' && (
           <MenuView title="Inventário" onBack={() => setView('main')}>
             <InventoryPanel />
+          </MenuView>
+        )}
+
+        {view === 'stats' && (
+          <MenuView title="Status" onBack={() => setView('main')}>
+            <StatsPanel />
           </MenuView>
         )}
 

@@ -1,7 +1,6 @@
 {
   "name": "boy-fall",
   "loop": true,
-  "speed": 1.42857,
   "bones": {
     "Waist": {
       "rotation": {

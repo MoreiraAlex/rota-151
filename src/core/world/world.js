@@ -32,7 +32,7 @@ export const world = createWorld()
 // espécies diferentes um do outro.
 const PLAYER_SPECIES = getSpecies(PLAYER_SPECIES_ID)
 
-const vitals = vitalsFromSpecies(PLAYER_SPECIES.vitals)
+const vitals = vitalsFromSpecies(PLAYER_SPECIES)
 
 export const playerEntity = world.spawn(
   Position({ x: 0, y: 2, z: 0 }),

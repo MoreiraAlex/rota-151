@@ -68,17 +68,24 @@ describe('world (singleton)', () => {
     )
   })
 
-  it('vitals do player vêm da espécie configurada, ou do default do trait se a espécie não tiver', () => {
+  it('vitals do player vêm de species.stats.hp/.energy (espécie migrada) ou species.vitals (espécie antiga), ou do default do trait se não tiver nenhum dos dois', () => {
+    // Mesma ordem de resolução de `vitalsFromSpecies` (core/traits/
+    // components/vitals.js) — `stats.hp`/`.energy` ganha quando existe
+    // (espécies novas, ex.: `boy`/`bulbasaur`/`charmander`), senão cai
+    // pro formato antigo (`vitals.maxHp`/`.maxStamina`, ex.: `fox`/
+    // `wolf`), senão pro default do próprio trait (100/100).
     const vitals = playerEntity.get(Vitals)
-    if (PLAYER_SPECIES.vitals) {
-      expect(vitals.maxHp).toBe(PLAYER_SPECIES.vitals.maxHp)
-      expect(vitals.hp).toBe(PLAYER_SPECIES.vitals.maxHp) // começa cheio
-      expect(vitals.maxStamina).toBe(PLAYER_SPECIES.vitals.maxStamina)
-      expect(vitals.stamina).toBe(PLAYER_SPECIES.vitals.maxStamina)
-    } else {
-      expect(vitals.hp).toBe(vitals.maxHp)
-      expect(vitals.stamina).toBe(vitals.maxStamina)
-    }
+    const expectedMaxHp =
+      PLAYER_SPECIES.stats?.hp?.stat ?? PLAYER_SPECIES.vitals?.maxHp ?? 100
+    const expectedMaxStamina =
+      PLAYER_SPECIES.stats?.energy?.stat ??
+      PLAYER_SPECIES.vitals?.maxStamina ??
+      100
+
+    expect(vitals.maxHp).toBe(expectedMaxHp)
+    expect(vitals.hp).toBe(expectedMaxHp) // começa cheio
+    expect(vitals.maxStamina).toBe(expectedMaxStamina)
+    expect(vitals.stamina).toBe(expectedMaxStamina)
   })
 
   it('o player já começa com a rock equipada na mão', () => {

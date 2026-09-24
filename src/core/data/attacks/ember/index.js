@@ -24,7 +24,7 @@ export const EMBER_ATTACK = {
   effectAt: 0.25,
   range: 3,
   radius: 0.4,
-  staminaCost: 8,
+  staminaCost: 4,
   cooldown: 2,
   visual: {
     effectGroup: 'ember',

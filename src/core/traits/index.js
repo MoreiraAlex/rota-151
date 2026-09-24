@@ -19,6 +19,8 @@ export {
   applyDamage,
   applyHeal,
   vitalsFromSpecies,
+  resolveMaxHp,
+  resolveMaxStamina,
 } from './components/vitals'
 export { HeldItem } from './components/heldItem'
 export { Inventory } from './components/inventory'

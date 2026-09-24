@@ -2,8 +2,10 @@ import { trait } from 'koota'
 
 /**
  * Vida (HP) e fôlego (stamina) da entidade — vem de `core/data/species/<id>/
- * index.js` (`vitals`), copiado no spawn via `vitalsFromSpecies` (ver
- * abaixo); cada entidade pode ter seus próprios máximos/taxas/custos.
+ * index.js` (`vitals`, ou `stats.hp`/`.energy` nas espécies já migradas
+ * — ver docstring de `vitalsFromSpecies` abaixo), copiado no spawn via
+ * `vitalsFromSpecies`; cada entidade pode ter seus próprios
+ * máximos/taxas/custos.
  * Current e máximo ficam juntos no mesmo trait (diferente de
  * `MovementStats`, que é só config): toda operação que mexe num lê o
  * outro (regenerar, drenar, exibir), então separar só adicionaria
@@ -41,33 +43,80 @@ export const Vitals = trait({
   staminaRegenDelay: 0,
   staminaRegenDelayAfterUse: 3,
   runStaminaDrainPerSecond: 2,
-  jumpStaminaCost: 10,
+  jumpStaminaCost: 3,
 })
 
 /**
- * Monta o valor inicial de `Vitals` a partir do bloco `vitals` de uma
- * espécie (`core/data/species/<id>/index.js`) — usado no spawn do
- * treinador (`core/world/world.js`/`test/makeWorld.js`) e de toda
- * `SummonedCreature` (`partySummonSystem.js`), centraliza uma lógica que
- * estava duplicada nos dois primeiros e nem existia no terceiro (a
- * criatura invocada usava `Vitals` cru, sempre default, nunca copiava da
- * espécie de verdade). `vitals` é opcional na espécie (ver
- * `_template/index.js`) — sem ele, usa os defaults do próprio trait.
+ * **Duas fontes possíveis pro máximo/regen de HP e stamina** — pedido
+ * do usuário: "agora tenho energy no stats tb que vai substituir a
+ * stamina... adeque o sistema de hp e stamina para ler esse stats".
+ * Espécies NOVAS (`boy`/`004-charmander`/`001-bulbasaur`, por
+ * enquanto) guardam isso em `species.stats.hp`/`.energy` (`{ stat,
+ * regenPercent, regenDelay }` — mesmo formato agora usado por TODO
+ * status de batalha, ver `core/data/species/stats.js`); espécies que
+ * ainda NÃO migraram (`fox`/`wolf`) continuam com o formato antigo,
+ * `species.vitals.maxHp`/`.maxStamina`/etc. `stats.hp`/`.energy` GANHA
+ * quando os dois existem; sem NENHUM dos dois (espécie sem nada
+ * configurado), cai nos mesmos defaults do trait `Vitals` (`100`/`100`,
+ * ver acima).
+ *
+ * Exportadas (não só usadas dentro de `vitalsFromSpecies`) porque
+ * `tools/hud/PartyHud.jsx` precisa do MESMO cálculo pra mostrar o
+ * máximo ESTÁTICO de uma criatura equipada mas não invocada (sem
+ * `Vitals` ao vivo pra ler, só a espécie) — duplicar esta conta em dois
+ * lugares arriscava os dois discordarem entre si (o card do time
+ * mostrando um número, a criatura de verdade nascendo com outro).
  */
-export function vitalsFromSpecies(speciesVitals) {
-  if (!speciesVitals) return Vitals
+export function resolveMaxHp(species) {
+  return species?.stats?.hp?.stat ?? species?.vitals?.maxHp ?? 100
+}
+
+export function resolveMaxStamina(species) {
+  return species?.stats?.energy?.stat ?? species?.vitals?.maxStamina ?? 100
+}
+
+/**
+ * Monta o valor inicial de `Vitals` a partir de uma espécie
+ * (`core/data/species/<id>/index.js`) — usado no spawn do treinador
+ * (`core/world/world.js`/`test/makeWorld.js`) e de toda
+ * `SummonedCreature` (`partySummonSystem.js`)/`WildCreature`
+ * (`wildCreatureSpawnSystem.js`), centraliza uma lógica que estava
+ * duplicada nos dois primeiros e nem existia no terceiro (a criatura
+ * invocada usava `Vitals` cru, sempre default, nunca copiava da
+ * espécie de verdade).
+ *
+ * Um campo ausente aqui NUNCA deve virar `undefined` dentro do
+ * `Vitals({...})` (o `set` do koota escreve o valor exatamente como
+ * vier — um `undefined` explícito sobrescreveria o default do trait
+ * com `undefined` de verdade, não "usa o default") — por isso todo
+ * campo abaixo tem um `?? <default literal do trait>` no final da
+ * cadeia, nunca fica em aberto.
+ *
+ * `runStaminaDrainPerSecond`/`jumpStaminaCost` (custo, não
+ * máximo/regen) continuam SEMPRE em `species.vitals` — não fazem parte
+ * do conceito de "status de batalha" que migrou pra `stats`.
+ */
+export function vitalsFromSpecies(species) {
+  const vitals = species?.vitals
+  const hpStat = species?.stats?.hp
+  const energyStat = species?.stats?.energy
+  const maxHp = resolveMaxHp(species)
+  const maxStamina = resolveMaxStamina(species)
 
   return Vitals({
-    hp: speciesVitals.maxHp,
-    maxHp: speciesVitals.maxHp,
-    hpRegenPercent: speciesVitals.hpRegenPercent,
-    hpRegenDelayAfterDamage: speciesVitals.hpRegenDelayAfterDamage,
-    stamina: speciesVitals.maxStamina,
-    maxStamina: speciesVitals.maxStamina,
-    staminaRegenPercent: speciesVitals.staminaRegenPercent,
-    staminaRegenDelayAfterUse: speciesVitals.staminaRegenDelayAfterUse,
-    runStaminaDrainPerSecond: speciesVitals.runStaminaDrainPerSecond,
-    jumpStaminaCost: speciesVitals.jumpStaminaCost,
+    hp: maxHp,
+    maxHp,
+    hpRegenPercent: hpStat?.regenPercent ?? vitals?.hpRegenPercent ?? 2,
+    hpRegenDelayAfterDamage:
+      hpStat?.regenDelay ?? vitals?.hpRegenDelayAfterDamage ?? 5,
+    stamina: maxStamina,
+    maxStamina,
+    staminaRegenPercent:
+      energyStat?.regenPercent ?? vitals?.staminaRegenPercent ?? 10,
+    staminaRegenDelayAfterUse:
+      energyStat?.regenDelay ?? vitals?.staminaRegenDelayAfterUse ?? 3,
+    runStaminaDrainPerSecond: vitals?.runStaminaDrainPerSecond ?? 2,
+    jumpStaminaCost: vitals?.jumpStaminaCost ?? 10,
   })
 }
 

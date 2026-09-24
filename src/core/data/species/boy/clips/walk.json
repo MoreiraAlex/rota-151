@@ -1,7 +1,6 @@
 {
   "name": "boy-walk",
   "loop": true,
-  "speed": 1,
   "bones": {
     "Waist": {
       "rotation": {

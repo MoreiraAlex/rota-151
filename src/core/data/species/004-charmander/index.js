@@ -2,12 +2,36 @@ import IDLE_CLIP from './clips/idle.json'
 import WALK_CLIP from './clips/walk.json'
 import RUN_CLIP from './clips/run.json'
 import CRY_CLIP from './clips/cry.json'
+import { calculateAttackInterval, calculateCP, calculateEnergyStat, calculateHpStat, calculateStat } from '../stats'
+
+const LEVEL = 5
+
+const HP = 39
+const ATTACK = 52
+const DEFENSE = 43
+const SP_ATK = 60
+const SP_DEF = 50
+const SPEED = 65
+
+const HP_IV = 24
+const ATTACK_IV = 24
+const DEFENSE_IV = 24
+const SP_ATK_IV = 22
+const SP_DEF_IV = 20
+const SPEED_IV = 20
+
+const HP_EV = 0
+const ATTACK_EV = 0
+const DEFENSE_EV = 0
+const SP_ATK_EV = 0
+const SP_DEF_EV = 0
+const SPEED_EV = 0
 
 export const CHARMANDER = {
   id: 'charmander',
   dexNumber: 4,
   // Nível fixo por ESPÉCIE — ver comentário completo em `../fox/index.js`.
-  level: 5,
+  level: LEVEL,
   kind: 'pokemon',
   sprite: { path: 'https://play.pokemonshowdown.com/sprites/ani/charmander.gif' },
   model: {
@@ -55,14 +79,8 @@ export const CHARMANDER = {
     shoulderOffset: 0,
   },
   vitals: {
-    maxHp: 100,
-    hpRegenPercent: 2,
-    hpRegenDelayAfterDamage: 5,
-    maxStamina: 100,
-    staminaRegenPercent: 10,
-    staminaRegenDelayAfterUse: 3,
-    runStaminaDrainPerSecond: 2,
-    jumpStaminaCost: 10,
+    runStaminaDrainPerSecond: 1,
+    jumpStaminaCost: 3,
   },
   sounds: {
     footstepGroup: 'medium',
@@ -133,6 +151,8 @@ export const CHARMANDER = {
       id: 'scratch',
       overrides: {
         range: 1,
+        duration: calculateAttackInterval(calculateStat({ base: SPEED, iv: SPEED_IV, ev: SPEED_EV, level: LEVEL })),
+        effectAt: calculateAttackInterval(calculateStat({ base: SPEED, iv: SPEED_IV, ev: SPEED_EV, level: LEVEL })) * 0.4,
         visual: {
           rotationOffset: { x: 0, y: 0, z: -15 },
         },
@@ -140,6 +160,66 @@ export const CHARMANDER = {
     },
     secondary1: 'ember'
   },
-  stats: {},
+  stats: {
+    cp: calculateCP({
+      SomaStatus: 
+        calculateHpStat({ base: HP, iv: HP_IV, ev: HP_EV, level: LEVEL }) +
+        calculateStat({ base: ATTACK, iv: ATTACK_IV, ev: ATTACK_EV, level: LEVEL }) +
+        calculateStat({ base: DEFENSE, iv: DEFENSE_IV, ev: DEFENSE_EV, level: LEVEL }) +
+        calculateStat({ base: SP_ATK, iv: SP_ATK_IV, ev: SP_ATK_EV, level: LEVEL }) +
+        calculateStat({ base: SP_DEF, iv: SP_DEF_IV, ev: SP_DEF_EV, level: LEVEL }) +
+        calculateStat({ base: SPEED, iv: SPEED_IV, ev: SPEED_EV, level: LEVEL }),
+      SomaIV: HP_IV + ATTACK_IV + DEFENSE_IV + SP_ATK_IV + SP_DEF_IV + SPEED_IV, 
+      SomaEV: HP_EV + ATTACK_EV + DEFENSE_EV + SP_ATK_EV + SP_DEF_EV + SPEED_EV,  
+      level: LEVEL
+    }),
+    hp: {
+      base: HP,
+      iv: HP_IV,
+      ev: HP_EV,
+      stat: calculateHpStat({ base: HP, iv: HP_IV, ev: HP_EV, level: LEVEL }),
+      regenPercent: 2,
+      regenDelay: 5,
+    },
+    energy: {
+      stat: calculateEnergyStat({
+        hp: calculateHpStat({ base: HP, iv: HP_IV, ev: HP_EV, level: LEVEL }),
+        defense: calculateStat({ base: DEFENSE, iv: DEFENSE_IV, ev: DEFENSE_EV, level: LEVEL }),
+        sp_def: calculateStat({ base: SP_DEF, iv: SP_DEF_IV, ev: SP_DEF_EV, level: LEVEL })
+      }),
+      regenPercent: 10,
+      regenDelay: 3,
+    },
+    attack: {
+      base: ATTACK,
+      iv: ATTACK_IV,
+      ev: ATTACK_EV,
+      stat: calculateStat({ base: ATTACK, iv: ATTACK_IV, ev: ATTACK_EV, level: LEVEL }),
+    },
+    defense: {
+      base: DEFENSE,
+      iv: DEFENSE_IV,
+      ev: DEFENSE_EV,
+      stat: calculateStat({ base: DEFENSE, iv: DEFENSE_IV, ev: DEFENSE_EV, level: LEVEL }),
+    },
+    sp_atk: {
+      base: SP_ATK,
+      iv: SP_ATK_IV,
+      ev: SP_ATK_EV,
+      stat: calculateStat({ base: SP_ATK, iv: SP_ATK_IV, ev: SP_ATK_EV, level: LEVEL }),
+    },
+    sp_def: {
+      base: SP_DEF,
+      iv: SP_DEF_IV,
+      ev: SP_DEF_EV,
+      stat: calculateStat({ base: SP_DEF, iv: SP_DEF_IV, ev: SP_DEF_EV, level: LEVEL }),
+    },
+    speed: {
+      base: SPEED,
+      iv: SPEED_IV,
+      ev: SPEED_EV,
+      stat: calculateStat({ base: SPEED, iv: SPEED_IV, ev: SPEED_EV, level: LEVEL }),
+    },
+  },
   moves: [],
 }

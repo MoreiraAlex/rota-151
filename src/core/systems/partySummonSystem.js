@@ -62,10 +62,13 @@ function hasPendingBall(world, slot) {
  * existe, num lugar concreto, então faz sentido virar pra ELA, não pra
  * onde o mouse estava apontando.
  */
-function beginRecall(world, action, pos, rot, slot) {
+function beginRecall(world, action, pos, rot, slot, duration) {
   action.current = 'recall'
   action.elapsed = 0
   action.pendingSlot = slot
+  // Ver docstring de `ActionState.animationSpeed` — o clipe de recolher
+  // toca nesta velocidade em vez de um `speed` fixo no JSON do clipe.
+  action.animationSpeed = duration > 0 ? 1 / duration : 1
 
   const creature = findSummoned(world, slot)
   if (creature) {
@@ -102,6 +105,9 @@ function beginSummon(world, action, pos, rot, body, slot) {
   action.current = 'summon'
   action.elapsed = 0
   action.pendingSlot = slot
+  // Ver docstring de `ActionState.animationSpeed` — o clipe de invocar
+  // toca nesta velocidade em vez de um `speed` fixo no JSON do clipe.
+  action.animationSpeed = SUMMON.duration > 0 ? 1 / SUMMON.duration : 1
 
   const dx = aimPoint.x - handOrigin.x
   const dy = aimPoint.y - handOrigin.y
@@ -282,7 +288,7 @@ export function partySummonSystem(context) {
       if (action.current === null) {
         for (const slot of ['slot1', 'slot2', 'slot3']) {
           if (!party[slot] && findSummoned(world, slot)) {
-            beginRecall(world, action, pos, rot, slot)
+            beginRecall(world, action, pos, rot, slot, RECALL.duration)
             break
           }
         }
@@ -341,7 +347,7 @@ export function partySummonSystem(context) {
         if (!input[inputKey]) continue
 
         if (findSummoned(world, slot)) {
-          beginRecall(world, action, pos, rot, slot)
+          beginRecall(world, action, pos, rot, slot, RECALL.duration)
         } else if (
           party[slot] &&
           getSpecies(party[slot]) &&

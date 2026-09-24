@@ -30,11 +30,11 @@
  */
 export const VINE_WHIP_ATTACK = {
   id: 'vine-whip',
-  duration: 0.5,
-  effectAt: 0.25,
+  duration: 0.2,
+  effectAt: 0.1,
   range: 2.2,
   radius: 0.35,
-  staminaCost: 1,
+  staminaCost: 0.5,
   cooldown: 0,
   visual: {
     effectGroup: 'vine-whip',

@@ -82,18 +82,10 @@ export const BOY = {
     shoulderOffset: 0,
   },
   vitals: {
-    maxHp: 100,
-    hpRegenPercent: 0.15,
-    // Segundos sem regenerar HP depois de tomar dano.
-    hpRegenDelayAfterDamage: 5,
-    maxStamina: 100,
-    staminaRegenPercent: 5,
-    // Segundos sem regenerar stamina depois do último uso (correr/dash/pulo).
-    staminaRegenDelayAfterUse: 3,
     // Stamina gasta por segundo enquanto realmente correndo.
     runStaminaDrainPerSecond: 2,
     // Custo de stamina do pulo, descontado uma vez no disparo.
-    jumpStaminaCost: 5,
+    jumpStaminaCost: 4,
   },
   // Exclusivo do treinador (`getPlayerSpecies()`, ver
   // core/data/species/index.js) — arremesso/consumo/invocar/recolher só
@@ -168,11 +160,11 @@ export const BOY = {
     summon: {
       // Duração total da ação (segundos) — trava movimento e qualquer
       // outra ação até terminar.
-      duration: 0.3,
+      duration: 0.5,
       // Instante em que a `SummonBall` é lançada (ver docs/features/024-
       // esfera-de-invocar.md) — a `SummonedCreature` só nasce de verdade
       // depois, quando a esfera pousa.
-      effectAt: 0.2,
+      effectAt: 0.35,
       // Origem do lançamento da esfera (de onde a trajetória sai e onde
       // ela de fato nasce) — mesmo mecanismo de `actions.throw`
       // (`resolveHandOrigin`, `core/aim.js`): aproxima a posição da MÃO a
@@ -310,6 +302,17 @@ export const BOY = {
       refDistance: 1,
     },
   },
-  stats: {},
+  stats: {
+    hp: {
+      stat: 100,
+      regenPercent: 2,
+      regenDelay: 5,
+    },
+    energy: {
+      stat: 80,
+      regenPercent: 10,
+      regenDelay: 3,
+    },
+  },
   moves: [],
 }

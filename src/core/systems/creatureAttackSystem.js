@@ -275,6 +275,12 @@ export function creatureAttackSystem(context) {
             action.current = 'attack'
             action.pendingSlot = slot
             action.elapsed = 0
+            // Ver docstring de `ActionState.animationSpeed` —
+            // `animationSystem.js` toca o clipe de ataque nesta
+            // velocidade em vez de um `speed` fixo no JSON, então o
+            // gesto sempre cabe exatamente em `CANDIDATE.duration`.
+            action.animationSpeed =
+              CANDIDATE.duration > 0 ? 1 / CANDIDATE.duration : 1
             vitals.stamina -= CANDIDATE.staminaCost
             vitals.staminaRegenDelay = vitals.staminaRegenDelayAfterUse
             cooldowns[slot] = CANDIDATE.cooldown

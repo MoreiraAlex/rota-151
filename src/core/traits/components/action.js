@@ -28,6 +28,29 @@ import { trait } from 'koota'
  * de efeito — pra calcular onde a criatura nasce (ver `partySummonSystem.js`).
  * Ações sem uso pra isso simplesmente não tocam nesses campos.
  *
+ * `animationSpeed` — pedido do usuário: "antes de colocar o sistema de
+ * speed [stat], a gente não consegue vincular as ações direto ao tempo
+ * da animação?". Antes, cada clipe de AÇÃO (não cíclico —
+ * `isOneShotAnimationState`, `core/data/animationStates.js`) tinha um
+ * `speed` PRÓPRIO, autorado à mão no JSON do clipe (`clips/<id>.json`),
+ * que precisava bater com `1/duration` — dois números independentes,
+ * fácil de desalinhar (achado um caso real: `boy`/`clips/throw.json`
+ * tinha `speed: 1.8`, mas `actions.throw.duration` era `0.3` — pediria
+ * `speed: 3.33` — e nem o COMENTÁRIO ao lado do `duration` batia com
+ * nenhum dos dois, `2.5`). Agora `duration` (já a única fonte de
+ * verdade de "quanto tempo a ação trava a entidade", configurada em
+ * `attacks.<slot>`/`actions.<id>`) é também a ÚNICA fonte da
+ * velocidade de playback: quem DISPARA a ação (`playerActionSystem`/
+ * `partySummonSystem`/`creatureAttackSystem`, os mesmos donos de
+ * escrita de `current`/`elapsed` abaixo) grava `1 / duration` aqui, no
+ * mesmo instante em que já resolve a config daquela ação — sem
+ * recalcular nada, sem editar um segundo arquivo. `animationSystem.js`
+ * (view) lê daqui pra estados `oneShot`, em vez do `speed` do clipe —
+ * o gesto inteiro sempre toca por completo (a curva é periódica, um
+ * ciclo = o gesto todo), só comprimido/esticado pra caber exatamente
+ * em `duration` segundos, não importa o valor. Default `1` (nenhuma
+ * ação em andamento, ou ação sem `duration` configurada).
+ *
  * `pendingSlot` guarda QUAL slot a ação em andamento diz respeito, com
  * significado diferente por ação (mesmo campo reaproveitado, não um por
  * ação — igual a `dirX/dirY/dirZ`):
@@ -61,6 +84,7 @@ import { trait } from 'koota'
 export const ActionState = trait({
   current: null,
   elapsed: 0,
+  animationSpeed: 1,
   dirX: 0,
   dirY: 0,
   dirZ: 0,

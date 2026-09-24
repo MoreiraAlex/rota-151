@@ -1,7 +1,6 @@
 {
   "name": "boy-roll",
   "loop": false,
-  "speed": 2,
   "bones": {
     "Waist": {
       "rotation": {

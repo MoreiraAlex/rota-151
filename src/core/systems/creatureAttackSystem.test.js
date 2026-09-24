@@ -60,7 +60,7 @@ function spawnControlledCreature(world, { speciesId = 'fox', position } = {}) {
     AttackCooldowns,
     CharacterController(getSpecies(speciesId).body),
     PhysicsBody,
-    vitalsFromSpecies(getSpecies(speciesId).vitals),
+    vitalsFromSpecies(getSpecies(speciesId)),
     SummonedCreature({ slot: 'slot1', speciesId }),
     InputControlled,
   )
@@ -137,7 +137,7 @@ describe('creatureAttackSystem', () => {
       AttackCooldowns,
       CharacterController(FOX_BODY),
       PhysicsBody,
-      vitalsFromSpecies(getSpecies('fox').vitals),
+      vitalsFromSpecies(getSpecies('fox')),
       SummonedCreature({ slot: 'slot1', speciesId: 'fox' }),
     )
 
@@ -155,7 +155,7 @@ describe('creatureAttackSystem', () => {
       AttackCooldowns,
       CharacterController(FOX_BODY),
       PhysicsBody,
-      vitalsFromSpecies(getSpecies('fox').vitals),
+      vitalsFromSpecies(getSpecies('fox')),
       SummonedCreature({ slot: 'slot1', speciesId: 'nao-existe' }),
       InputControlled,
     )
@@ -357,7 +357,7 @@ describe('creatureAttackSystem', () => {
     expect(creature.get(ActionState).current).toBe('attack')
     expect(creature.get(ActionState).pendingSlot).toBe('secondary1')
     expect(creature.get(Vitals).stamina).toBeCloseTo(
-      getSpecies('bulbasaur').vitals.maxStamina - vineWhip.staminaCost,
+      getSpecies('bulbasaur').stats.energy.stat - vineWhip.staminaCost,
     )
   })
 
