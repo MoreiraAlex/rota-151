@@ -6,12 +6,11 @@ import { trait } from 'koota'
  * registro de espécie da entidade (core/data/species).
  *
  * `direction` (1 ou -1) diz se o clipe deve tocar pra frente ou de trás pra
- * frente — usado quando a entidade se move "para trás" em relação pra onde
- * olha (ex.: Rotation.y travada num alvo, ver AimAnchor/lock-on estilo
- * Zelda, docs/features/016-mira-e-arremesso.md), caso em que a direção do
- * movimento se descola da direção que o corpo encara. Sem clipe dedicado de
- * "andar de costas", tocar o mesmo clipe de "walk"/"run" de trás pra frente
- * é a aproximação usada — evita o efeito "moonwalk" (andar pra trás com a
+ * frente — usado sempre que a `Velocity` da entidade se descola de pra
+ * onde o corpo encara (`Rotation.y`), como o dot product entre as duas
+ * indica (`animationStateSystem.js`). Sem clipe dedicado de "andar de
+ * costas", tocar o mesmo clipe de "walk"/"run" de trás pra frente é a
+ * aproximação usada — evita o efeito "moonwalk" (andar pra trás com a
  * perna animando como se fosse pra frente).
  *
  * Dono de escrita: animationStateSystem.

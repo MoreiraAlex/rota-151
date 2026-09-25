@@ -55,5 +55,12 @@ export function castRay(origin, direction, maxDistance, options = {}) {
       y: origin.y + direction.y * hit.timeOfImpact,
       z: origin.z + direction.z * hit.timeOfImpact,
     },
+    // Handle do collider atingido (`hit.collider.handle`, Rapier) — quem
+    // chama pode achar A ENTIDADE dona dele comparando contra
+    // `PhysicsBody.colliderHandle` (ex.: `scannerModeSystem.js`, achar
+    // qual criatura está embaixo do retículo). Sem uso até esta rodada —
+    // `playerActionSystem`/`projectileSystem` só precisavam do ponto de
+    // impacto, nunca de QUEM foi atingido.
+    colliderHandle: hit.collider.handle,
   }
 }

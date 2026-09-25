@@ -14,12 +14,15 @@ import {
   CharacterController,
   AnimationState,
   ActionState,
-  AimAnchor,
   vitalsFromSpecies,
   HeldItem,
   Inventory,
   Party,
+  PartyIndividualValues,
   PathState,
+  ScanMode,
+  PokedexEntries,
+  ScanHistory,
 } from '@/core/traits'
 
 // Fixado em 'fox' de propósito, não em PLAYER_SPECIES_ID — os testes usam
@@ -57,12 +60,19 @@ export function makeWorld({ playerPosition = { x: 0, y: 2, z: 0 } } = {}) {
     CharacterController(PLAYER_SPECIES.body),
     AnimationState,
     ActionState,
-    AimAnchor,
     vitals,
     HeldItem,
     Inventory,
     Party,
+    // Party de teste nasce vazia (sem starters) — trait ainda entra
+    // junto, mesma composição de `core/world/world.js`, pra
+    // `equiparCriatura` (`core/actions/party.js`) poder ser chamada num
+    // player de teste sem precisar de `.add()` antes de `.set()`.
+    PartyIndividualValues,
     PathState,
+    ScanMode,
+    PokedexEntries,
+    ScanHistory,
   )
 
   const camera = world.spawn(

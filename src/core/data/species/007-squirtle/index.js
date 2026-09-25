@@ -2,10 +2,14 @@ import IDLE_CLIP from './clips/idle.json'
 import WALK_CLIP from './clips/walk.json'
 import RUN_CLIP from './clips/run.json'
 import CRY_CLIP from './clips/cry.json'
-import { calculateAttackInterval, calculateCP, calculateEnergyStat, calculateHpStat, calculateStat } from '../stats'
 
 const LEVEL = 5
 
+// BASE — único valor de `stats` fixo por ESPÉCIE (pedido do usuário:
+// "BASE é o único que vai ser fixo por espécie"). IV não mora mais
+// aqui — é sempre sorteado por INDIVÍDUO (`IndividualValues`/
+// `PartyIndividualValues`), nunca um literal fixo — ver
+// docs/features/029-*.md.
 const HP = 44
 const ATTACK = 48
 const DEFENSE = 65
@@ -13,13 +17,9 @@ const SP_ATK = 50
 const SP_DEF = 64
 const SPEED = 43
 
-const HP_IV = 24
-const ATTACK_IV = 24
-const DEFENSE_IV = 24
-const SP_ATK_IV = 22
-const SP_DEF_IV = 20
-const SPEED_IV = 20
-
+// EV — 0 pra todo status por enquanto (sistema de treino ainda não
+// existe; pedido do usuário: "EVs 0 para todos, no futuro vou
+// modificando o EV de cada atributo para os meus pokemons").
 const HP_EV = 0
 const ATTACK_EV = 0
 const DEFENSE_EV = 0
@@ -103,77 +103,26 @@ export const SQUIRTLE = {
   // — corpo pequeno do Squirtle, alcance mais curto fica proporcional.
   // `secondary1` (tecla Q, 9ª rodada) — Redemoinho (`core/data/attacks/
   // whirlpool/index.js`), sem override nenhum ainda.
+  // SEM `duration`/`effectAt` no `primary` — calculados por INDIVÍDUO
+  // a partir do `speed` de cada criatura (`creatureAttackSystem.js`,
+  // `resolvePrimaryDurationOverride`), não mais um literal fixo desta
+  // espécie (ver docs/features/029-*.md).
   attacks: {
-    primary: { 
-      id: 'punch', 
-      overrides: { 
-        range: 1,
-        duration: calculateAttackInterval(calculateStat({ base: SPEED, iv: SPEED_IV, ev: SPEED_EV, level: LEVEL })),
-        effectAt: calculateAttackInterval(calculateStat({ base: SPEED, iv: SPEED_IV, ev: SPEED_EV, level: LEVEL })) * 0.4
-      }
-    },
+    primary: { id: 'punch', overrides: { range: 1 } },
     secondary1: 'whirlpool',
   },
+  // `base`/`ev` daqui + o IV sorteado por indivíduo (congelado no
+  // spawn/equipar, ver docs/features/029-*.md) é o que forma o status
+  // de VERDADE de cada criatura, sempre calculado na hora por
+  // `resolveCreatureStats` (`../stats.js`) — nada pré-calculado aqui.
   stats: {
-    cp: calculateCP({
-      SomaStatus: 
-        calculateHpStat({ base: HP, iv: HP_IV, ev: HP_EV, level: LEVEL }) +
-        calculateStat({ base: ATTACK, iv: ATTACK_IV, ev: ATTACK_EV, level: LEVEL }) +
-        calculateStat({ base: DEFENSE, iv: DEFENSE_IV, ev: DEFENSE_EV, level: LEVEL }) +
-        calculateStat({ base: SP_ATK, iv: SP_ATK_IV, ev: SP_ATK_EV, level: LEVEL }) +
-        calculateStat({ base: SP_DEF, iv: SP_DEF_IV, ev: SP_DEF_EV, level: LEVEL }) +
-        calculateStat({ base: SPEED, iv: SPEED_IV, ev: SPEED_EV, level: LEVEL }),
-      SomaIV: HP_IV + ATTACK_IV + DEFENSE_IV + SP_ATK_IV + SP_DEF_IV + SPEED_IV, 
-      SomaEV: HP_EV + ATTACK_EV + DEFENSE_EV + SP_ATK_EV + SP_DEF_EV + SPEED_EV,  
-      level: LEVEL
-    }),
-    hp: {
-      base: HP,
-      iv: HP_IV,
-      ev: HP_EV,
-      stat: calculateHpStat({ base: HP, iv: HP_IV, ev: HP_EV, level: LEVEL }),
-      regenPercent: 2,
-      regenDelay: 5,
-    },
-    energy: {
-      stat: calculateEnergyStat({
-        hp: calculateHpStat({ base: HP, iv: HP_IV, ev: HP_EV, level: LEVEL }),
-        defense: calculateStat({ base: DEFENSE, iv: DEFENSE_IV, ev: DEFENSE_EV, level: LEVEL }),
-        sp_def: calculateStat({ base: SP_DEF, iv: SP_DEF_IV, ev: SP_DEF_EV, level: LEVEL })
-      }),
-      regenPercent: 10,
-      regenDelay: 3,
-    },
-    attack: {
-      base: ATTACK,
-      iv: ATTACK_IV,
-      ev: ATTACK_EV,
-      stat: calculateStat({ base: ATTACK, iv: ATTACK_IV, ev: ATTACK_EV, level: LEVEL }),
-    },
-    defense: {
-      base: DEFENSE,
-      iv: DEFENSE_IV,
-      ev: DEFENSE_EV,
-      stat: calculateStat({ base: DEFENSE, iv: DEFENSE_IV, ev: DEFENSE_EV, level: LEVEL }),
-    },
-    sp_atk: {
-      base: SP_ATK,
-      iv: SP_ATK_IV,
-      ev: SP_ATK_EV,
-      stat: calculateStat({ base: SP_ATK, iv: SP_ATK_IV, ev: SP_ATK_EV, level: LEVEL }),
-    },
-    sp_def: {
-      base: SP_DEF,
-      iv: SP_DEF_IV,
-      ev: SP_DEF_EV,
-      stat: calculateStat({ base: SP_DEF, iv: SP_DEF_IV, ev: SP_DEF_EV, level: LEVEL }),
-    },
-    speed: {
-      base: SPEED,
-      iv: SPEED_IV,
-      ev: SPEED_EV,
-      stat: calculateStat({ base: SPEED, iv: SPEED_IV, ev: SPEED_EV, level: LEVEL }),
-    },
+    hp: { base: HP, ev: HP_EV, regenPercent: 2, regenDelay: 5 },
+    energy: { regenPercent: 10, regenDelay: 3 },
+    attack: { base: ATTACK, ev: ATTACK_EV },
+    defense: { base: DEFENSE, ev: DEFENSE_EV },
+    sp_atk: { base: SP_ATK, ev: SP_ATK_EV },
+    sp_def: { base: SP_DEF, ev: SP_DEF_EV },
+    speed: { base: SPEED, ev: SPEED_EV },
   },
   moves: [],
 }

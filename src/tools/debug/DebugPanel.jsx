@@ -4,6 +4,8 @@ import { useTrait, useTag, useQuery, useQueryFirst } from 'koota/react'
 import { playerEntity, cameraEntity } from '@/core/world/world'
 import { getItem, listItems } from '@/core/data/items'
 import { listSpecies, resolveSpeciesKind } from '@/core/data/species'
+import { equiparCriatura } from '@/core/actions'
+import { GAME_CONFIG } from '@/core/gameConfig'
 import {
   Position,
   Velocity,
@@ -182,6 +184,16 @@ export function DebugPanel() {
       </button>
       <hr className="border-white/20" />
       <p>item em mãos: {item ? `${item.id} (${item.category})` : 'nenhum'}</p>
+      {/* Alcance de scan (docs/features/033-*.md) — pedido do usuário:
+          "colocar essa linha de alcance no debug, pra eu poder
+          analisar". Mesma cadeia de fallback que `scannerModeSystem.js`
+          usa de verdade (`item.scanner?.range ?? GAME_CONFIG.SCANNER.
+          RANGE`), só pra EXIBIR — item de categoria `scanner` só. */}
+      {item?.category === 'scanner' && (
+        <p className="text-[10px] text-white/60">
+          alcance do scan: {item.scanner?.range ?? GAME_CONFIG.SCANNER.RANGE}m
+        </p>
+      )}
       <select
         className="pointer-events-auto rounded bg-black/60 px-1 py-0.5 text-[10px] text-white"
         value={heldItem.itemId ?? ''}
@@ -271,14 +283,17 @@ function PathStatusRow({ label, pathState }) {
 }
 
 /** Seletor de uma criatura (id de espécie `kind: 'pokemon'`) pra um slot do
- * time — escreve em `Party`, mesmo padrão do seletor de item acima. */
+ * time — via `equiparCriatura` (`core/actions/party.js`), não
+ * `playerEntity.set(Party, ...)` direto: a action também sorteia/congela
+ * o IV daquele slot (`PartyIndividualValues`), mesmo padrão do seletor
+ * de item acima (que não precisa disso — item não tem IV). */
 function PartySlotSelect({ slot, value }) {
   return (
     <select
       className="pointer-events-auto rounded bg-black/60 px-1 py-0.5 text-[10px] text-white"
       value={value ?? ''}
       onChange={(event) => {
-        playerEntity.set(Party, { [slot]: event.target.value || null })
+        equiparCriatura(playerEntity, slot, event.target.value || null)
       }}
     >
       <option value="">{slot}: nenhuma</option>

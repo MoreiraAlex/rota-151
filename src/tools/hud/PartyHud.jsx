@@ -8,6 +8,7 @@ import { getSpecies } from '@/core/data/species'
 import {
   InputControlled,
   Party,
+  PartyIndividualValues,
   resolveMaxHp,
   resolveMaxStamina,
   SummonedCreature,
@@ -161,6 +162,7 @@ const POKEBALL_OPEN = '/assets/sprites/pokebola/default/poke_aberta.png'
  */
 export function PartyHud() {
   const party = useTrait(playerEntity, Party)
+  const partyIndividualValues = useTrait(playerEntity, PartyIndividualValues)
   const summoned = useQuery(SummonedCreature)
   const controlled = useQueryFirst(InputControlled)
   const controllingCreature = !!controlled && controlled !== playerEntity
@@ -197,6 +199,7 @@ export function PartyHud() {
               trade={trade}
               speciesId={speciesId}
               activeEntity={activeEntity}
+              individualValues={partyIndividualValues?.[slot]}
               dimInvoke={controllingCreature}
             />
           )
@@ -220,14 +223,14 @@ export function PartyHud() {
  * `activeEntity`, a barra sumia por falta de `Vitals` de verdade pra
  * ler). Sem entidade viva (criatura só equipada, nunca invocada — não
  * existe corpo físico, logo não existe trait `Vitals` pra ler), cai no
- * máximo ESTÁTICO da espécie via `resolveMaxHp`/`resolveMaxStamina`
- * (`core/traits/components/vitals.js`) mostrado CHEIO — não há combate
- * acontecendo fora de campo que justifique outro valor. MESMA função
- * que `vitalsFromSpecies` usa pra decidir o máximo de verdade no spawn
- * (`species.stats.hp`/`.energy` nas espécies migradas, senão
- * `species.vitals.maxHp`/`.maxStamina`, senão `100`/`100`) — ler daqui
- * em vez de reimplementar a mesma conta evita esta tela mostrar um
- * número diferente do que a criatura de verdade nasce tendo.
+ * máximo via `resolveMaxHp`/`resolveMaxStamina` (`core/traits/
+ * components/vitals.js`) mostrado CHEIO — não há combate acontecendo
+ * fora de campo que justifique outro valor. Recebe `individualValues`
+ * (o IV congelado deste slot, `PartyIndividualValues` — ver `PartyHud`
+ * acima) pra essa conta bater com o IV de VERDADE desta criatura —
+ * MESMA função e mesmo `individualValues` que `summonBallSystem.js`
+ * usa pra decidir o máximo de verdade no spawn, evita esta tela
+ * mostrar um número diferente do que a criatura nasce tendo.
  */
 function PartySlotCard({
   slot,
@@ -235,6 +238,7 @@ function PartySlotCard({
   trade,
   speciesId,
   activeEntity,
+  individualValues,
   dimInvoke,
 }) {
   const liveVitals = useTrait(activeEntity, Vitals)
@@ -246,8 +250,8 @@ function PartySlotCard({
     return <HudSlot label={label} value={null} dimInvoke={dimInvoke} />
   }
 
-  const maxHp = resolveMaxHp(species)
-  const maxStamina = resolveMaxStamina(species)
+  const maxHp = resolveMaxHp(species, individualValues)
+  const maxStamina = resolveMaxStamina(species, individualValues)
   const hp = liveVitals?.hp ?? maxHp
   const stamina = liveVitals?.stamina ?? maxStamina
 

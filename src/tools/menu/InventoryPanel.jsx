@@ -6,6 +6,7 @@ import { playerEntity } from '@/core/world/world'
 import { getItem } from '@/core/data/items'
 import { listSpecies, resolveSpeciesKind } from '@/core/data/species'
 import { HeldItem, Inventory, Party } from '@/core/traits'
+import { equiparCriatura } from '@/core/actions'
 import { SlotPreview, getSlotColor } from '../shared/SlotPreview'
 import { PlayerPreview } from './PlayerPreview'
 
@@ -162,7 +163,7 @@ export function InventoryPanel() {
     if (originId === 'hand') {
       playerEntity.set(HeldItem, { itemId: null })
     } else {
-      playerEntity.set(Party, { [originId]: null })
+      equiparCriatura(playerEntity, originId, null)
     }
   }
 
@@ -271,7 +272,7 @@ function EquipmentPreview({ heldItem, party }) {
             originId={slot}
             label={slot.replace('slot', '')}
             onEquip={(speciesId) =>
-              playerEntity.set(Party, { [slot]: speciesId })
+              equiparCriatura(playerEntity, slot, speciesId)
             }
           />
         ))}

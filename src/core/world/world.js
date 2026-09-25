@@ -1,6 +1,8 @@
 import { createWorld } from 'koota'
 import { GAME_CONFIG } from '../gameConfig'
 import { getSpecies, PLAYER_SPECIES_ID } from '../data/species'
+import { rollIndividualValues } from '../data/species/stats'
+import { gameplayRng } from '../rng'
 import {
   Position,
   Rotation,
@@ -14,13 +16,16 @@ import {
   CharacterController,
   AnimationState,
   ActionState,
-  AimAnchor,
   vitalsFromSpecies,
   HeldItem,
   Inventory,
   Party,
+  PartyIndividualValues,
   PathState,
   Mood,
+  ScanMode,
+  PokedexEntries,
+  ScanHistory,
 } from '../traits'
 
 export const world = createWorld()
@@ -34,6 +39,28 @@ const PLAYER_SPECIES = getSpecies(PLAYER_SPECIES_ID)
 
 const vitals = vitalsFromSpecies(PLAYER_SPECIES)
 
+// Time inicial — sorteia o IV de cada um dos 3 iniciais aqui (não via
+// `equiparCriatura`, `core/actions/party.js`: aquela action escreve num
+// `trainer` que já existe, e o treinador ainda está sendo montado
+// nesta chamada de `world.spawn`) e congela em `PartyIndividualValues`,
+// mesmo mecanismo/range (`GAME_CONFIG.BATTLE.IV_MIN/MAX`) que
+// `equiparCriatura` usa depois pra qualquer troca em tempo de jogo —
+// "IV é aleatório pra todo mundo", pedido do usuário.
+const STARTER_PARTY = {
+  slot1: 'bulbasaur',
+  slot2: 'charmander',
+  slot3: 'squirtle',
+}
+const STARTER_INDIVIDUAL_VALUES = Object.fromEntries(
+  Object.keys(STARTER_PARTY).map((slot) => [
+    slot,
+    rollIndividualValues(gameplayRng, {
+      min: GAME_CONFIG.BATTLE.IV_MIN,
+      max: GAME_CONFIG.BATTLE.IV_MAX,
+    }),
+  ]),
+)
+
 export const playerEntity = world.spawn(
   Position({ x: 0, y: 2, z: 0 }),
   Rotation,
@@ -46,7 +73,6 @@ export const playerEntity = world.spawn(
   CharacterController(PLAYER_SPECIES.body),
   AnimationState,
   ActionState,
-  AimAnchor,
   vitals,
   // Começa com a mão e o time já equipados — sem isso o jogo abre sem
   // nada pra arremessar/invocar, mesmo já tendo itens/criaturas
@@ -55,9 +81,16 @@ export const playerEntity = world.spawn(
   // inicial; `fox` é a primeira criatura `kind: 'pokemon'` do registro
   // (core/data/species/index.js) — nenhum dos dois é conteúdo de jogo de
   // verdade ainda, só o ponto de partida mais conveniente pra testar.
-  HeldItem({ itemId: 'rock' }),
+  HeldItem({ itemId: 'pokedex' }),
   Inventory,
-  Party({ slot1: 'bulbasaur', slot2: 'charmander', slot3: 'squirtle' }),
+  Party(STARTER_PARTY),
+  PartyIndividualValues(STARTER_INDIVIDUAL_VALUES),
+  ScanMode,
+  // Coleção de espécies já escaneadas (aba "Pokémons") e histórico dos
+  // últimos scans (aba "Histórico") — ambas vivem só no treinador, quem
+  // de fato escaneia (ver core/actions/scanning.js). Default vazio.
+  PokedexEntries,
+  ScanHistory,
   // Default vazio — só passa a ter uso se o treinador virar "o bot",
   // seguindo uma criatura sob controle do jogador (ver
   // creatureFollowSystem.js e docs/features/018-troca-de-controle-

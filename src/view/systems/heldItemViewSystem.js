@@ -4,17 +4,11 @@ import { PLAYER_SPECIES_ID, getPlayerSpecies } from '@/core/data/species'
 import { getAnimatedBonesEntry } from '@/view/registry/animationRegistry'
 import { THROWABLE_RADIUS, THROWABLE_COLOR } from '@/view/scene/throwableVisual'
 import { HAND_BONE_BY_SPECIES } from '@/view/handBoneBySpecies'
-import {
-  InputControlled,
-  HeldItem,
-  ActionState,
-  AimAnchor,
-} from '@/core/traits'
+import { InputControlled, HeldItem, ActionState } from '@/core/traits'
 
 // Estado do módulo (não trait) — só existe um item-na-mão renderizado por
-// vez (só o jogador arremessa hoje), mesmo raciocínio de `aimBlend` em
-// cameraFollowSystem.js: é estado de TELA, recriado só quando o osso muda
-// (ex.: hot-reload do modelo), não a cada frame.
+// vez (só o jogador arremessa hoje): é estado de TELA, recriado só quando
+// o osso muda (ex.: hot-reload do modelo), não a cada frame.
 let mesh = null
 let attachedBone = null
 // Vetor reaproveitado pra não alocar um THREE.Vector3 novo a cada tick só
@@ -22,12 +16,11 @@ let attachedBone = null
 const worldScale = new THREE.Vector3()
 
 /**
- * Mostra o item equipado (`HeldItem`) encaixado na mão do jogador enquanto
- * mira — sem isso, o objeto "aparece do nada" só no instante do arremesso.
- * Sem modelo 3D próprio por item ainda (ver core/data/items/pebble/
- * index.js), então é a mesma esfera cinza do projétil em voo
- * (`throwableVisual.js`) — muda de "na mão" pra "voando" sem trocar de
- * aparência.
+ * Mostra o item equipado (`HeldItem`) encaixado na mão do jogador sempre
+ * que for `throwable` — sem modelo 3D próprio por item ainda (ver
+ * core/data/items/pebble/index.js), então é a mesma esfera cinza do
+ * projétil em voo (`throwableVisual.js`) — muda de "na mão" pra "voando"
+ * sem trocar de aparência.
  *
  * A esfera é filha de verdade do osso (`bone.add(mesh)`, Three.js puro) —
  * uma vez encaixada, acompanha a mão sozinha em qualquer pose (inclusive
@@ -35,11 +28,13 @@ const worldScale = new THREE.Vector3()
  * recalcular posição nenhuma quadro a quadro; só liga/desliga
  * `mesh.visible`.
  *
- * Visível enquanto: item equipado é `throwable` E a mira está travada
- * (`AimAnchor.active`) E ainda não passou do instante de liberação
- * (`PLAYER_ACTIONS.throw.EFFECT_AT` — o mesmo instante em que
- * `playerActionSystem.js` spawna o `Projectile` de verdade). Depois da
- * liberação, some daqui — o objeto "virou" o projétil voando.
+ * Visível enquanto: item equipado é `throwable` E ainda não passou do
+ * instante de liberação (`PLAYER_ACTIONS.throw.EFFECT_AT` — o mesmo
+ * instante em que `playerActionSystem.js` spawna o `Projectile` de
+ * verdade). Depois da liberação, some daqui — o objeto "virou" o
+ * projétil voando. Antes só aparecia com a mira travada (`AimAnchor`,
+ * removida — ver docs/features/029-*.md); sem ela, o item throwable fica
+ * visível na mão sempre que equipado.
  *
  * Fase: presentation, sem ordem específica com `animationSystem`/
  * `cameraFollowSystem` (o encaixe no osso é responsabilidade do próprio
@@ -50,25 +45,18 @@ export function heldItemViewSystem(context) {
   const handBoneName = HAND_BONE_BY_SPECIES[PLAYER_SPECIES_ID]
   if (!handBoneName) return hide()
 
-  const entity = world.queryFirst(
-    InputControlled,
-    HeldItem,
-    ActionState,
-    AimAnchor,
-  )
+  const entity = world.queryFirst(InputControlled, HeldItem, ActionState)
   if (!entity) return hide()
 
   const heldItem = entity.get(HeldItem)
   const item = heldItem.itemId ? getItem(heldItem.itemId) : null
-  const anchor = entity.get(AimAnchor)
   const action = entity.get(ActionState)
 
   const alreadyReleased =
     action.current === 'throw' &&
     action.elapsed >= getPlayerSpecies().actions.throw.effectAt
 
-  const shouldShow =
-    item?.category === 'throwable' && !!anchor.active && !alreadyReleased
+  const shouldShow = item?.category === 'throwable' && !alreadyReleased
   if (!shouldShow) return hide()
 
   const bone = getAnimatedBonesEntry(entity)?.bones[handBoneName]?.bone

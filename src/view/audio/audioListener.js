@@ -1,9 +1,9 @@
 import * as THREE from 'three'
 
-// Estado de TELA, não de jogo (mesmo raciocínio de `aimBlend` em
-// cameraFollowSystem.js/`mesh` em heldItemViewSystem.js) — só existe uma
-// câmera de verdade no jogo (`GameScene.jsx`, nunca troca), então um
-// `AudioListener` por processo basta.
+// Estado de TELA, não de jogo (mesmo raciocínio de `mesh` em
+// heldItemViewSystem.js) — só existe uma câmera de verdade no jogo
+// (`GameScene.jsx`, nunca troca), então um `AudioListener` por processo
+// basta.
 let listener = null
 
 /**

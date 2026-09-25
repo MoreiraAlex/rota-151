@@ -1,4 +1,5 @@
 import { trait } from 'koota'
+import { resolveCreatureStats } from '../../data/species/stats'
 
 /**
  * Vida (HP) e fôlego (stamina) da entidade — vem de `core/data/species/<id>/
@@ -50,29 +51,55 @@ export const Vitals = trait({
  * **Duas fontes possíveis pro máximo/regen de HP e stamina** — pedido
  * do usuário: "agora tenho energy no stats tb que vai substituir a
  * stamina... adeque o sistema de hp e stamina para ler esse stats".
- * Espécies NOVAS (`boy`/`004-charmander`/`001-bulbasaur`, por
- * enquanto) guardam isso em `species.stats.hp`/`.energy` (`{ stat,
- * regenPercent, regenDelay }` — mesmo formato agora usado por TODO
- * status de batalha, ver `core/data/species/stats.js`); espécies que
+ * Espécies migradas (`boy`/`001-bulbasaur`/`004-charmander`/
+ * `007-squirtle`) guardam isso em `species.stats.hp`/`.energy`; as que
  * ainda NÃO migraram (`fox`/`wolf`) continuam com o formato antigo,
  * `species.vitals.maxHp`/`.maxStamina`/etc. `stats.hp`/`.energy` GANHA
- * quando os dois existem; sem NENHUM dos dois (espécie sem nada
- * configurado), cai nos mesmos defaults do trait `Vitals` (`100`/`100`,
- * ver acima).
+ * quando os dois existem; sem NENHUM dos dois, cai nos defaults do
+ * trait `Vitals` (`100`/`100`, ver acima).
  *
  * Exportadas (não só usadas dentro de `vitalsFromSpecies`) porque
  * `tools/hud/PartyHud.jsx` precisa do MESMO cálculo pra mostrar o
- * máximo ESTÁTICO de uma criatura equipada mas não invocada (sem
- * `Vitals` ao vivo pra ler, só a espécie) — duplicar esta conta em dois
- * lugares arriscava os dois discordarem entre si (o card do time
- * mostrando um número, a criatura de verdade nascendo com outro).
+ * máximo de uma criatura equipada mas não invocada (sem `Vitals` ao
+ * vivo pra ler) — duplicar esta conta em dois lugares arriscava os
+ * dois discordarem entre si.
+ *
+ * `individualValues` (opcional, `IndividualValues`/
+ * `PartyIndividualValues` — ver docstring dos traits, `core/traits/
+ * components/individualValues.js`/`partyIndividualValues.js`)
+ * recalcula o `hp`/`energy` de verdade DESTA criatura via
+ * `resolveCreatureStats`. Desde que IV virou sempre sorteado por
+ * indivíduo — inclusive pro time do jogador, não só selvagem (ver
+ * docs/features/029-*.md) — `species.stats.<key>` de `boy`/
+ * `bulbasaur`/`charmander`/`squirtle` NÃO guarda mais `iv`/`stat`
+ * nenhum (só `base`/`ev`); passar `individualValues` deixou de ser
+ * opcional NA PRÁTICA pra essas espécies — sem ele, `resolved` fica
+ * `null` e a conta cai pro próximo elo da cadeia
+ * (`species?.stats?.hp?.stat`), que pra elas também é `undefined`
+ * agora (campo removido) — só continua certo pro trainer `boy`
+ * (`species.stats.hp.stat` fixo, sem IV — trainer não é Pokémon),
+ * chamado sem segundo argumento.
  */
-export function resolveMaxHp(species) {
-  return species?.stats?.hp?.stat ?? species?.vitals?.maxHp ?? 100
+export function resolveMaxHp(species, individualValues = null) {
+  const resolved =
+    individualValues && resolveCreatureStats(species, individualValues)
+  return (
+    resolved?.hp?.stat ??
+    species?.stats?.hp?.stat ??
+    species?.vitals?.maxHp ??
+    100
+  )
 }
 
-export function resolveMaxStamina(species) {
-  return species?.stats?.energy?.stat ?? species?.vitals?.maxStamina ?? 100
+export function resolveMaxStamina(species, individualValues = null) {
+  const resolved =
+    individualValues && resolveCreatureStats(species, individualValues)
+  return (
+    resolved?.energy?.stat ??
+    species?.stats?.energy?.stat ??
+    species?.vitals?.maxStamina ??
+    100
+  )
 }
 
 /**
@@ -95,13 +122,20 @@ export function resolveMaxStamina(species) {
  * `runStaminaDrainPerSecond`/`jumpStaminaCost` (custo, não
  * máximo/regen) continuam SEMPRE em `species.vitals` — não fazem parte
  * do conceito de "status de batalha" que migrou pra `stats`.
+ *
+ * `individualValues` (opcional) — mesmo parâmetro de `resolveMaxHp`/
+ * `resolveMaxStamina` acima, repassado adiante. `regenPercent`/
+ * `regenDelay` não dependem de IV (só `base`/`ev`/`level` fariam, e
+ * hoje nem isso — são taxas fixas por espécie), por isso continuam
+ * lidos direto de `species.stats.hp`/`.energy`, sem passar por
+ * `resolveCreatureStats`.
  */
-export function vitalsFromSpecies(species) {
+export function vitalsFromSpecies(species, individualValues = null) {
   const vitals = species?.vitals
   const hpStat = species?.stats?.hp
   const energyStat = species?.stats?.energy
-  const maxHp = resolveMaxHp(species)
-  const maxStamina = resolveMaxStamina(species)
+  const maxHp = resolveMaxHp(species, individualValues)
+  const maxStamina = resolveMaxStamina(species, individualValues)
 
   return Vitals({
     hp: maxHp,

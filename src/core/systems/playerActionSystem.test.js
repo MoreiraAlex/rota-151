@@ -11,7 +11,6 @@ import {
   Inventory,
   Projectile,
   ConsumeEffect,
-  AimAnchor,
   Grounded,
 } from '@/core/traits'
 import { GAME_CONFIG } from '@/core/gameConfig'
@@ -213,7 +212,7 @@ describe('playerActionSystem — arremesso (item throwable)', () => {
       if (entity === player) changed = true
     })
 
-    tick(world, { primary: true, aiming: true })
+    tick(world, { primary: true })
     const ticksUntilRelease = Math.ceil(THROW.effectAt / (1 / 60))
     for (let i = 0; i < ticksUntilRelease; i++) tick(world, {})
 
@@ -224,18 +223,18 @@ describe('playerActionSystem — arremesso (item throwable)', () => {
   it('não dispara sem item em mãos', () => {
     const { world, player } = spawnWorld()
 
-    tick(world, { primary: true, aiming: true })
+    tick(world, { primary: true })
 
     expect(player.get(ActionState).current).toBe(null)
   })
 
-  it('dispara com item throwable equipado E mirando, trava a velocidade de lançamento (reta até o ponto de mira, sem arco) no instante do disparo, e vira o corpo pra encarar o arremesso', () => {
+  it('dispara com item throwable equipado, trava a velocidade de lançamento (reta até o ponto de mira, sem arco) no instante do disparo, e vira o corpo pra encarar o arremesso', () => {
     const { world, player, camera } = spawnWorld()
     player.set(HeldItem, { itemId: 'pebble' })
     player.set(Rotation, { y: Math.PI / 2 }) // deve ser sobrescrito
     camera.set(OrbitCamera, { yaw: Math.PI / 3, pitch: 0.4, distance: 8 })
 
-    tick(world, { primary: true, aiming: true })
+    tick(world, { primary: true })
 
     const action = player.get(ActionState)
     expect(action.current).toBe('throw')
@@ -291,20 +290,11 @@ describe('playerActionSystem — arremesso (item throwable)', () => {
     )
   })
 
-  it('sem segurar o botão direito (mirar), clicar não dispara nada — botão esquerdo só funciona enquanto o direito está ativo', () => {
-    const { world, player } = spawnWorld()
-    player.set(HeldItem, { itemId: 'pebble' })
-
-    tick(world, { primary: true, aiming: false })
-
-    expect(player.get(ActionState).current).toBe(null)
-  })
-
   it('desconta o custo de stamina do arremesso uma única vez, no disparo, e reseta o delay de regeneração', () => {
     const { world, player } = spawnWorld()
     player.set(HeldItem, { itemId: 'pebble' })
 
-    tick(world, { primary: true, aiming: true })
+    tick(world, { primary: true })
     expect(player.get(Vitals).stamina).toBeCloseTo(100 - THROW.staminaCost)
     expect(player.get(Vitals).staminaRegenDelay).toBeCloseTo(
       PLAYER_VITALS.staminaRegenDelayAfterUse,
@@ -320,7 +310,7 @@ describe('playerActionSystem — arremesso (item throwable)', () => {
     player.set(HeldItem, { itemId: 'pebble' })
     player.set(Vitals, { stamina: THROW.staminaCost - 1 })
 
-    tick(world, { primary: true, aiming: true })
+    tick(world, { primary: true })
 
     expect(player.get(ActionState).current).toBe(null)
     expect(player.get(Vitals).stamina).toBe(THROW.staminaCost - 1) // não descontou
@@ -335,7 +325,7 @@ describe('playerActionSystem — arremesso (item throwable)', () => {
 
     try {
       throwConfig.aimRange = 5
-      tick(world, { primary: true, aiming: true })
+      tick(world, { primary: true })
       const shortRangeAction = { ...player.get(ActionState) }
 
       for (let i = 0; i < Math.ceil(THROW.duration / (1 / 60)) + 1; i++) {
@@ -344,7 +334,7 @@ describe('playerActionSystem — arremesso (item throwable)', () => {
       player.set(HeldItem, { itemId: 'pebble' })
 
       throwConfig.aimRange = 300
-      tick(world, { primary: true, aiming: true })
+      tick(world, { primary: true })
       const longRangeAction = player.get(ActionState)
 
       // Módulo sempre SPEED (reto, sem arco) nos dois casos...
@@ -371,35 +361,12 @@ describe('playerActionSystem — arremesso (item throwable)', () => {
     }
   })
 
-  it('com AimAnchor travado, o arremesso mira direto no ponto travado — ignora a câmera/AIM_RANGE atuais', () => {
-    const { world, player, camera } = spawnWorld()
-    player.set(HeldItem, { itemId: 'pebble' })
-    // Câmera/AIM_RANGE deliberadamente "erradas" — se o disparo as
-    // usasse, a direção resolvida não bateria com o ponto travado abaixo.
-    camera.set(OrbitCamera, { yaw: 1.9, pitch: -0.3, distance: 25 })
-    player.set(AimAnchor, { active: true, x: 3, y: 2, z: -4 })
-
-    tick(world, { primary: true, aiming: true })
-
-    const pos = player.get(Position)
-    const throwOrigin = resolveHandOrigin(pos, 0) // Rotation.y default (não setada aqui)
-    const dx = 3 - throwOrigin.x
-    const dy = 2 - throwOrigin.y
-    const dz = -4 - throwOrigin.z
-    const distance = Math.hypot(dx, dy, dz)
-
-    const action = player.get(ActionState)
-    expect(action.dirX).toBeCloseTo((dx / distance) * THROW.speed)
-    expect(action.dirY).toBeCloseTo((dy / distance) * THROW.speed)
-    expect(action.dirZ).toBeCloseTo((dz / distance) * THROW.speed)
-  })
-
   it('só spawna o projétil ao cruzar o instante de liberação, uma vez só', () => {
     const { world, player } = spawnWorld()
     player.set(HeldItem, { itemId: 'pebble' })
     player.set(Rotation, { y: 0 })
 
-    tick(world, { primary: true, aiming: true })
+    tick(world, { primary: true })
 
     // Tickar até bem depois do fim da ação, contando transições de "sem
     // projétil" pra "com projétil" — em vez de calcular o tick exato de
@@ -427,7 +394,7 @@ describe('playerActionSystem — arremesso (item throwable)', () => {
     const { world, player } = spawnWorld()
     player.set(HeldItem, { itemId: 'pebble' })
 
-    tick(world, { primary: true, aiming: true })
+    tick(world, { primary: true })
     const action = { ...player.get(ActionState) }
     const ticksUntilRelease = Math.ceil(THROW.effectAt / (1 / 60))
     for (let i = 0; i < ticksUntilRelease; i++) tick(world, {})
@@ -454,7 +421,7 @@ describe('playerActionSystem — arremesso (item throwable)', () => {
     const { world, player } = spawnWorld()
     player.set(HeldItem, { itemId: 'pebble' })
 
-    tick(world, { primary: true, aiming: true })
+    tick(world, { primary: true })
     const steps = Math.ceil(THROW.duration / (1 / 60)) + 1
     for (let i = 0; i < steps; i++) tick(world, {})
 
@@ -466,7 +433,7 @@ describe('playerActionSystem — arremesso (item throwable)', () => {
     player.set(HeldItem, { itemId: 'pebble' })
     player.set(Inventory, { itemIds: ['pebble'] })
 
-    tick(world, { primary: true, aiming: true })
+    tick(world, { primary: true })
     const ticksUntilRelease = Math.ceil(THROW.effectAt / (1 / 60))
     for (let i = 0; i < ticksUntilRelease; i++) tick(world, {})
 
@@ -479,7 +446,7 @@ describe('playerActionSystem — arremesso (item throwable)', () => {
     player.set(HeldItem, { itemId: 'pebble' })
     player.set(Inventory, { itemIds: ['pebble', 'pebble'] })
 
-    tick(world, { primary: true, aiming: true })
+    tick(world, { primary: true })
     const ticksUntilRelease = Math.ceil(THROW.effectAt / (1 / 60))
     for (let i = 0; i < ticksUntilRelease; i++) tick(world, {})
 
@@ -492,7 +459,7 @@ describe('playerActionSystem — arremesso (item throwable)', () => {
     player.set(HeldItem, { itemId: 'pebble' })
     player.set(Inventory, { itemIds: ['pebble', 'pebble'] })
 
-    tick(world, { primary: true, aiming: true })
+    tick(world, { primary: true })
     const ticksUntilRelease = Math.ceil(THROW.effectAt / (1 / 60))
     for (let i = 0; i < ticksUntilRelease; i++) tick(world, {})
     const remainingTicks = Math.ceil(
@@ -501,7 +468,7 @@ describe('playerActionSystem — arremesso (item throwable)', () => {
     for (let i = 0; i < remainingTicks + 1; i++) tick(world, {})
 
     // segundo arremesso, sem reequipar — a mão já continuava com o item
-    tick(world, { primary: true, aiming: true })
+    tick(world, { primary: true })
     for (let i = 0; i < ticksUntilRelease; i++) tick(world, {})
 
     expect(player.get(Inventory).itemIds).toEqual([])
@@ -514,7 +481,7 @@ describe('playerActionSystem — uso (item consumable)', () => {
   it('não dispara sem item em mãos', () => {
     const { world, player } = spawnWorld()
 
-    tick(world, { primary: true, aiming: true })
+    tick(world, { primary: true })
 
     expect(player.get(ActionState).current).toBe(null)
   })
@@ -523,7 +490,7 @@ describe('playerActionSystem — uso (item consumable)', () => {
     const { world, player } = spawnWorld()
     player.set(HeldItem, { itemId: 'potion' })
 
-    tick(world, { primary: true, aiming: true })
+    tick(world, { primary: true })
 
     expect(player.get(ActionState).current).toBe('consume')
   })
@@ -533,7 +500,7 @@ describe('playerActionSystem — uso (item consumable)', () => {
     player.set(Vitals, { hp: 50, maxHp: 100 })
     player.set(HeldItem, { itemId: 'potion' })
 
-    tick(world, { primary: true, aiming: true })
+    tick(world, { primary: true })
 
     const ticksUntilEffect = Math.ceil(CONSUME.effectAt / (1 / 60))
     for (let i = 0; i < ticksUntilEffect - 1; i++) {
@@ -554,7 +521,7 @@ describe('playerActionSystem — uso (item consumable)', () => {
     const { world, player } = spawnWorld()
     player.set(HeldItem, { itemId: 'potion' })
 
-    tick(world, { primary: true, aiming: true })
+    tick(world, { primary: true })
     const steps = Math.ceil(CONSUME.duration / (1 / 60)) + 1
     for (let i = 0; i < steps; i++) tick(world, {})
 
@@ -566,7 +533,7 @@ describe('playerActionSystem — uso (item consumable)', () => {
     player.set(HeldItem, { itemId: 'potion' })
     player.set(Inventory, { itemIds: ['potion'] })
 
-    tick(world, { primary: true, aiming: true })
+    tick(world, { primary: true })
     const ticksUntilEffect = Math.ceil(CONSUME.effectAt / (1 / 60))
     for (let i = 0; i < ticksUntilEffect; i++) tick(world, {})
 
@@ -578,7 +545,7 @@ describe('playerActionSystem — uso (item consumable)', () => {
     const { world, player } = spawnWorld()
     player.set(HeldItem, { itemId: 'potion' })
 
-    tick(world, { primary: true, aiming: true })
+    tick(world, { primary: true })
     const ticksUntilEffect = Math.ceil(CONSUME.effectAt / (1 / 60))
     for (let i = 0; i < ticksUntilEffect - 1; i++) {
       tick(world, {})
@@ -594,7 +561,7 @@ describe('playerActionSystem — uso (item consumable)', () => {
     player.set(HeldItem, { itemId: 'potion' })
     player.set(Inventory, { itemIds: ['potion', 'potion'] })
 
-    tick(world, { primary: true, aiming: true })
+    tick(world, { primary: true })
     const ticksUntilEffect = Math.ceil(CONSUME.effectAt / (1 / 60))
     for (let i = 0; i < ticksUntilEffect; i++) tick(world, {})
 

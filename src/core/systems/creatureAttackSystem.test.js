@@ -15,10 +15,12 @@ import {
   AttackEffect,
   AttackPulse,
   CharacterController,
+  IndividualValues,
   InputControlled,
   OrbitCamera,
   PhysicsBody,
   Position,
+  resolveMaxStamina,
   Rotation,
   SummonedCreature,
   Vitals,
@@ -52,7 +54,10 @@ afterEach(() => {
   while (spawnedWorlds.length) spawnedWorlds.pop().destroy()
 })
 
-function spawnControlledCreature(world, { speciesId = 'fox', position } = {}) {
+function spawnControlledCreature(
+  world,
+  { speciesId = 'fox', position, individualValues = null } = {},
+) {
   return world.spawn(
     Position(position ?? { x: 0, y: 1, z: 0 }),
     Rotation,
@@ -60,9 +65,10 @@ function spawnControlledCreature(world, { speciesId = 'fox', position } = {}) {
     AttackCooldowns,
     CharacterController(getSpecies(speciesId).body),
     PhysicsBody,
-    vitalsFromSpecies(getSpecies(speciesId)),
+    vitalsFromSpecies(getSpecies(speciesId), individualValues),
     SummonedCreature({ slot: 'slot1', speciesId }),
     InputControlled,
+    IndividualValues(individualValues ?? {}),
   )
 }
 
@@ -158,6 +164,7 @@ describe('creatureAttackSystem', () => {
       vitalsFromSpecies(getSpecies('fox')),
       SummonedCreature({ slot: 'slot1', speciesId: 'nao-existe' }),
       InputControlled,
+      IndividualValues,
     )
 
     tick(world, { primary: true })
@@ -347,9 +354,28 @@ describe('creatureAttackSystem', () => {
 
   it('secondary1 (tecla Q) dispara a skill própria da espécie (ex.: bulbasaur → vine-whip), independente do mouse', () => {
     const world = spawnWorld()
-    const creature = spawnControlledCreature(world, { speciesId: 'bulbasaur' })
+    // IV explícito (não `null`) — bulbasaur tem `stats` migrado (base/ev,
+    // sem `iv`/`stat` fixo na espécie, ver docs/features/029-*.md), então
+    // o stamina máximo de verdade depende do IV desta entidade, não de
+    // um literal na espécie.
+    const individualValues = {
+      hp: 20,
+      attack: 20,
+      defense: 20,
+      sp_atk: 20,
+      sp_def: 20,
+      speed: 20,
+    }
+    const creature = spawnControlledCreature(world, {
+      speciesId: 'bulbasaur',
+      individualValues,
+    })
     const vineWhip = resolveCreatureAttack(
       getSpecies('bulbasaur').attacks.secondary1,
+    )
+    const maxStamina = resolveMaxStamina(
+      getSpecies('bulbasaur'),
+      individualValues,
     )
 
     tick(world, { secondary1: true })
@@ -357,7 +383,7 @@ describe('creatureAttackSystem', () => {
     expect(creature.get(ActionState).current).toBe('attack')
     expect(creature.get(ActionState).pendingSlot).toBe('secondary1')
     expect(creature.get(Vitals).stamina).toBeCloseTo(
-      getSpecies('bulbasaur').stats.energy.stat - vineWhip.staminaCost,
+      maxStamina - vineWhip.staminaCost,
     )
   })
 

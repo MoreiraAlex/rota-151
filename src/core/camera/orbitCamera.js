@@ -37,6 +37,25 @@ export function computeCameraRight(yaw) {
 }
 
 /**
+ * Vetor "pra onde a câmera olha" (unitário, 3D completo — já com o
+ * pitch), a partir só de `orbit.yaw`/`pitch`: o oposto do deslocamento
+ * ALVO→CÂMERA (`computeOrbitOffset`, que tem módulo `orbit.distance` —
+ * câmera fica atrás do alvo nessa direção, então olhar pra frente é o
+ * inverso dela, normalizado). Usado pra câmera em PRIMEIRA pessoa
+ * (`view/systems/cameraFollowSystem.js`, modo scanner — ver
+ * docs/features/031-*.md): sem `orbit.distance`/desvio de ombro
+ * nenhum, só "de onde estão os olhos, pra onde eles olham".
+ */
+export function computeOrbitForward(orbit) {
+  const cosPitch = Math.cos(orbit.pitch)
+  return {
+    x: -Math.sin(orbit.yaw) * cosPitch,
+    y: -Math.sin(orbit.pitch),
+    z: -Math.cos(orbit.yaw) * cosPitch,
+  }
+}
+
+/**
  * Posição da câmera no mundo — o alvo (normalmente o jogador) + a altura de
  * mira + o deslocamento da órbita.
  *

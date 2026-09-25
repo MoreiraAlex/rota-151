@@ -9,7 +9,6 @@ import {
   Vitals,
   OrbitCamera,
   ActionState,
-  AimAnchor,
 } from '@/core/traits'
 import { movementSystem } from './movementSystem'
 
@@ -162,27 +161,6 @@ describe('movementSystem', () => {
     expect(player.get(Rotation).y).toBe(rotBefore) // também não gira
   })
 
-  it('mirando (input.aiming), corrida não vale — cai pra WALK_SPEED mesmo com run: true e stamina de sobra', () => {
-    const { player, tick } = setup(0)
-    tick({ x: 0, z: -1, run: true }, { aiming: true })
-    expect(player.get(Velocity).z).toBeCloseTo(-WALK_SPEED)
-  })
-
-  it('mirando, não drena stamina (não chega nem a tentar correr)', () => {
-    const { player, tick } = setup(0, 1)
-    tick({ x: 0, z: -1, run: true }, { aiming: true })
-    expect(player.get(Vitals).stamina).toBe(100)
-  })
-
-  it('parar de mirar (aiming: false) volta a permitir correr', () => {
-    const { player, tick } = setup(0)
-    tick({ x: 0, z: -1, run: true }, { aiming: true })
-    expect(player.get(Velocity).z).toBeCloseTo(-WALK_SPEED)
-
-    tick({ x: 0, z: -1, run: true }, { aiming: false })
-    expect(player.get(Velocity).z).toBeCloseTo(-RUN_SPEED)
-  })
-
   it('sem ação em andamento (current: null), volta a mover normalmente', () => {
     const { player, tick } = setup(0)
     player.set(ActionState, { current: null })
@@ -190,63 +168,5 @@ describe('movementSystem', () => {
     tick({ x: 0, z: -1 })
 
     expect(player.get(Velocity).z).toBeCloseTo(-WALK_SPEED)
-  })
-
-  describe('com AimAnchor travado (lock-on estilo Zelda)', () => {
-    // Jogador em (0,2,0) (default do makeWorld), ponto travado 5 unidades
-    // à frente (-Z) dele.
-    const ANCHOR = { active: true, x: 0, y: 2, z: -5 }
-
-    it('"frente" anda em direção ao ponto travado (radial), não na direção da câmera', () => {
-      const { player, tick } = setup(Math.PI / 2) // câmera olhando pra outro lado
-      player.set(AimAnchor, ANCHOR)
-
-      tick({ x: 0, z: -1 })
-
-      const vel = player.get(Velocity)
-      expect(vel.z).toBeCloseTo(-WALK_SPEED)
-      expect(vel.x).toBeCloseTo(0)
-    })
-
-    it('"direita"/"esquerda" viram tangencial — circula ao redor do ponto travado', () => {
-      const { player, tick } = setup(0)
-      player.set(AimAnchor, ANCHOR)
-
-      tick({ x: 1, z: 0 })
-
-      const vel = player.get(Velocity)
-      expect(vel.x).toBeCloseTo(WALK_SPEED)
-      expect(vel.z).toBeCloseTo(0)
-    })
-
-    it('gira na direção do próprio movimento (WASD), não do ponto travado — parado não gira', () => {
-      const { player, tick } = setup(0)
-      player.set(AimAnchor, ANCHOR)
-      const before = player.get(Rotation).y
-
-      // Parado (sem intenção de movimento): não gira, mesmo travado.
-      for (let i = 0; i < 120; i++) tick({ x: 0, z: 0 })
-      expect(player.get(Rotation).y).toBe(before)
-    })
-
-    it('andando de lado (tangencial) gira pra encarar o próprio movimento, não o ponto travado', () => {
-      const { player, tick } = setup(0)
-      player.set(AimAnchor, ANCHOR)
-
-      // Tangencial puro (x=1,z=0) vira velocidade mundo +x — facing
-      // esperado é atan2(worldX, worldZ) = atan2(+, 0) = π/2, não o ponto
-      // travado (que ficaria em π, atrás do jogador na direção -Z).
-      for (let i = 0; i < 120; i++) tick({ x: 1, z: 0 })
-      expect(player.get(Rotation).y).toBeCloseTo(Math.PI / 2, 1)
-    })
-
-    it('sem AimAnchor ativo, ignora o campo (mesmo com x/y/z preenchidos) — comportamento normal', () => {
-      const { player, tick } = setup(0)
-      player.set(AimAnchor, { active: false, x: 0, y: 2, z: -5 })
-
-      tick({ x: 0, z: -1 })
-
-      expect(player.get(Velocity).z).toBeCloseTo(-WALK_SPEED)
-    })
   })
 })

@@ -6,4 +6,5 @@
 export const ITEM_COLORS = {
   throwable: '#d97706',
   consumable: '#0d9488',
+  scanner: '#dc2626',
 }

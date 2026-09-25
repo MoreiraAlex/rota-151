@@ -87,7 +87,7 @@ describe('pointerInput', () => {
     expect(pointer.snapshot().primary).toBe(false)
   })
 
-  it('clique direito não dispara a ação primária', () => {
+  it('clique direito não dispara a ação primária — só a secundária', () => {
     const pointer = createPointerInput()
     pointer.start(element)
     lock()
@@ -97,78 +97,70 @@ describe('pointerInput', () => {
     expect(pointer.snapshot().primary).toBe(false)
   })
 
-  it('botão direito não solta mais o pointer lock (virou mirar, não liberar o cursor)', () => {
+  it('segurar o botão direito mantém secondaryHeld true em vários snapshots, até soltar', () => {
     const pointer = createPointerInput()
     pointer.start(element)
     lock()
 
     element.dispatch('mousedown', { button: 2 })
 
-    expect(doc.exitPointerLock).not.toHaveBeenCalled()
+    // diferente de `primary` (pulso, dreno no snapshot) — `secondaryHeld`
+    // continua true em quantos snapshots forem, enquanto o botão
+    // continuar fisicamente pressionado (sem novo mousedown).
+    expect(pointer.snapshot().secondaryHeld).toBe(true)
+    expect(pointer.snapshot().secondaryHeld).toBe(true)
+    expect(pointer.snapshot().secondaryHeld).toBe(true)
   })
 
-  it('segurar o botão direito ativa aiming (mirar), refletido no snapshot', () => {
+  it('soltar o botão direito pulsa secondaryReleased por um snapshot só, e desliga secondaryHeld', () => {
     const pointer = createPointerInput()
     pointer.start(element)
     lock()
 
     element.dispatch('mousedown', { button: 2 })
+    pointer.snapshot()
 
-    expect(pointer.snapshot().aiming).toBe(true)
+    element.dispatch('mouseup', { button: 2 })
+
+    const released = pointer.snapshot()
+    expect(released.secondaryHeld).toBe(false)
+    expect(released.secondaryReleased).toBe(true)
+
+    // pulso — não repete no snapshot seguinte sem soltar de novo
+    expect(pointer.snapshot().secondaryReleased).toBe(false)
   })
 
-  it('soltar o botão direito desativa aiming', () => {
+  it('clique esquerdo não dispara a ação secundária', () => {
+    const pointer = createPointerInput()
+    pointer.start(element)
+    lock()
+
+    element.dispatch('mousedown', { button: 0 })
+
+    expect(pointer.snapshot().secondaryHeld).toBe(false)
+  })
+
+  it('sem o ponteiro travado, clique direito não dispara a ação secundária', () => {
+    const pointer = createPointerInput()
+    pointer.start(element)
+
+    element.dispatch('mousedown', { button: 2 })
+
+    expect(pointer.snapshot().secondaryHeld).toBe(false)
+  })
+
+  it('perder o pointer lock enquanto segura o botão direito desliga secondaryHeld', () => {
     const pointer = createPointerInput()
     pointer.start(element)
     lock()
 
     element.dispatch('mousedown', { button: 2 })
-    win.dispatch('mouseup', { button: 2 })
-
-    expect(pointer.snapshot().aiming).toBe(false)
-  })
-
-  it('soltar o botão esquerdo não afeta aiming', () => {
-    const pointer = createPointerInput()
-    pointer.start(element)
-    lock()
-
-    element.dispatch('mousedown', { button: 2 })
-    win.dispatch('mouseup', { button: 0 })
-
-    expect(pointer.snapshot().aiming).toBe(true)
-  })
-
-  it('botão direito sem estar travado não ativa aiming', () => {
-    const pointer = createPointerInput()
-    pointer.start(element)
-
-    element.dispatch('mousedown', { button: 2 })
-
-    expect(pointer.snapshot().aiming).toBe(false)
-  })
-
-  it('perder o pointer lock desativa aiming', () => {
-    const pointer = createPointerInput()
-    pointer.start(element)
-    lock()
-    element.dispatch('mousedown', { button: 2 })
+    expect(pointer.snapshot().secondaryHeld).toBe(true)
 
     doc.pointerLockElement = null
     doc.dispatch('pointerlockchange')
 
-    expect(pointer.snapshot().aiming).toBe(false)
-  })
-
-  it('perder o foco da janela desativa aiming', () => {
-    const pointer = createPointerInput()
-    pointer.start(element)
-    lock()
-    element.dispatch('mousedown', { button: 2 })
-
-    win.dispatch('blur')
-
-    expect(pointer.snapshot().aiming).toBe(false)
+    expect(pointer.snapshot().secondaryHeld).toBe(false)
   })
 
   it('suprime o menu de contexto nativo do botão direito', () => {
@@ -181,6 +173,26 @@ describe('pointerInput', () => {
     expect(event.preventDefault).toHaveBeenCalled()
   })
 
+  it('suprime o menu de contexto também se o evento nascer no document', () => {
+    const pointer = createPointerInput()
+    pointer.start(element)
+
+    const event = { preventDefault: vi.fn() }
+    doc.dispatch('contextmenu', event)
+
+    expect(event.preventDefault).toHaveBeenCalled()
+  })
+
+  it('mousedown do botão direito já suprime o menu de contexto (não espera o contextmenu)', () => {
+    const pointer = createPointerInput()
+    pointer.start(element)
+
+    const event = { button: 2, preventDefault: vi.fn() }
+    element.dispatch('mousedown', event)
+
+    expect(event.preventDefault).toHaveBeenCalled()
+  })
+
   it('stop remove os listeners', () => {
     const pointer = createPointerInput()
     pointer.start(element)
@@ -188,21 +200,8 @@ describe('pointerInput', () => {
 
     expect(element.count('click')).toBe(0)
     expect(element.count('contextmenu')).toBe(0)
+    expect(doc.count('contextmenu')).toBe(0)
     expect(doc.count('mousemove')).toBe(0)
     expect(win.count('blur')).toBe(0)
-    expect(win.count('mouseup')).toBe(0)
-  })
-
-  it('isAiming() reflete o mesmo estado do snapshot, sem drenar nada', () => {
-    const pointer = createPointerInput()
-    pointer.start(element)
-    lock()
-    element.dispatch('mousedown', { button: 2 })
-
-    expect(pointer.isAiming()).toBe(true)
-    // não é um delta — chamar de novo (ou tirar um snapshot) não muda nada
-    expect(pointer.isAiming()).toBe(true)
-    expect(pointer.snapshot().aiming).toBe(true)
-    expect(pointer.isAiming()).toBe(true)
   })
 })

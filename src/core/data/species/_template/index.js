@@ -169,12 +169,11 @@ export const SPECIES_TEMPLATE = {
     // pequena pra cabeça — ajusta olhando o resultado em jogo, mesmo
     // espírito de todo outro "valor de partida" deste projeto.
     targetHeight: 1.5,
-    // Deslocamento lateral (m) do enquadramento "sobre o ombro" durante a
-    // mira travada (`AimAnchor`, exclusivo do TREINADOR — ver
-    // `aimAnchorSystem.js`, criaturas nunca miram) — na prática só importa
-    // pras espécies `kind: 'trainer'`; uma criatura pode omitir isso sem
-    // problema nenhum (nunca é lido enquanto ela não mira). Opcional, cai
-    // no default global (`GAME_CONFIG.CAMERA.SHOULDER_OFFSET`) se omitido.
+    // Deslocamento lateral (m) do enquadramento "sobre o ombro" —
+    // `cameraFollowSystem.js`, sempre ativo (não depende de nenhum estado
+    // de input), pra quem estiver sendo controlado agora (treinador ou
+    // criatura, ver `controlSwitchSystem.js`). Opcional, cai no default
+    // global (`GAME_CONFIG.CAMERA.SHOULDER_OFFSET`) se omitido.
     shoulderOffset: 0.4,
   },
   // Opcional — sem isso, o spawn usa os defaults do trait Vitals (100/100,

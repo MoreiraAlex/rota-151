@@ -2,27 +2,95 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
+import { Stats } from '@react-three/drei'
+import { useTrait } from 'koota/react'
 import { WorldProvider } from '@/core/world/WorldProvider'
+import { playerEntity } from '@/core/world/world'
+import { ScanHistory, ScanMode } from '@/core/traits'
 import { GameLoop } from '@/view/loop/GameLoop'
 import { GameScene } from '@/view/scene/GameScene'
 import { PhysicsDebugView } from '@/tools/debug/PhysicsDebugView'
 import { PathfindingDebugView } from '@/tools/debug/PathfindingDebugView'
 import { AttackRangeDebugView } from '@/tools/debug/AttackRangeDebugView'
+import { ScanRangeDebugView } from '@/tools/debug/ScanRangeDebugView'
 import { DebugPanel } from '@/tools/debug/DebugPanel'
 import { PauseMenu } from '@/tools/menu/PauseMenu'
 import { ActionSlotHud } from '@/tools/hud/ActionSlotHud'
 import { PartyHud } from '@/tools/hud/PartyHud'
 import { SkillsHud } from '@/tools/hud/SkillsHud'
 import { StatusHud } from '@/tools/hud/StatusHud'
-import { Crosshair } from '@/tools/hud/Crosshair'
+import { PokedexVisorHud } from '@/tools/hud/PokedexVisorHud'
+
+/**
+ * HUD de jogo (normal ou visor da Pokédex) — extraído do corpo de
+ * `GamePage` porque `useTrait` precisa de `WorldProvider`
+ * como ANCESTRAL de verdade na árvore React (`Error: Koota: useWorld
+ * must be used within a WorldProvider`); `GamePage` é quem RENDERIZA o
+ * `<WorldProvider>` (linha mais abaixo), não um descendente dele — ler
+ * um trait ali dentro, antes do provider "existir" de verdade pra essa
+ * árvore, quebra. Todo outro consumidor de `useTrait` neste arquivo já
+ * era um componente próprio por esse mesmo motivo (`PartyHud`/
+ * `StatusHud`/etc.) — este só juntou a decisão (normal vs. visor) no
+ * mesmo lugar em vez de espalhar o `if` em cada um deles.
+ *
+ * `onScanned`/`onMenuOpenRequested` (docs/features/033-*.md) — pedido
+ * do usuário, seção 4: "ao concluir o scan, abrir automaticamente o
+ * menu principal, selecionar automaticamente a aba histórico e exibir
+ * o pokémon recém-escaneado". `ScanHistory` (`core/traits/components/
+ * scanHistory.js`) é escrita por `registrarScan`
+ * (`core/actions/scanning.js`, chamado de `scannerModeSystem.js` na
+ * confirmação do scan) — o registro mais recente é SEMPRE
+ * `entries[0]` (`pushScanHistoryEntry` insere no topo, ver docstring
+ * do trait), então basta reagir à MUDANÇA da lista (`useTrait` +
+ * `useEffect` no array) pra saber "acabou de escanear algo" sem
+ * precisar de um pulso à parte. `onMenuOpenRequested` reage do mesmo
+ * jeito a `ScanMode.menuOpenRequests` — pedido do usuário, seção 1:
+ * clique esquerdo (fora do modo scanner, com a Pokédex equipada) abre
+ * o menu principal na aba padrão.
+ */
+function GameHud({ onScanned, onMenuOpenRequested }) {
+  // Modo scanner (Pokédex equipada, botão direito — `scannerModeSystem.js`,
+  // docs/features/031-*.md) troca a HUD inteira pelo visor.
+  const scanMode = useTrait(playerEntity, ScanMode)
+  const scanning = !!scanMode?.active
+  const history = useTrait(playerEntity, ScanHistory)
+
+  useEffect(() => {
+    if (history?.entries?.length) onScanned(history.entries[0].id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [history?.entries])
+
+  useEffect(() => {
+    if (scanMode?.menuOpenRequests) onMenuOpenRequested()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scanMode?.menuOpenRequests])
+
+  if (scanning) return <PokedexVisorHud />
+
+  return (
+    <>
+      <PartyHud />
+      <SkillsHud />
+      <StatusHud />
+      <ActionSlotHud />
+    </>
+  )
+}
 
 export default function GamePage() {
   const [showDebug, setShowDebug] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [menuView, setMenuView] = useState('main')
+  const [pokedexInitialTab, setPokedexInitialTab] = useState('pokemons')
+  const [pokedexHistoryEntryId, setPokedexHistoryEntryId] = useState(null)
   const containerRef = useRef(null)
 
   useEffect(() => {
+    // F2 liga/desliga o modo debug inteiro — colliders/pathfinding/range de
+    // ataque (dentro do Canvas), o DebugPanel de texto e o monitor de
+    // desempenho (`<Stats/>` do drei, painel FPS/MS/MB do stats.js no canto
+    // superior esquerdo, clicável pra alternar entre os três). Mesmo toggle
+    // pros quatro, ferramenta de debug nunca ligada por padrão.
     const onKeyDown = (event) => {
       if (event.code !== 'F2') return
       event.preventDefault()
@@ -57,9 +125,9 @@ export default function GamePage() {
     // Travar de novo (clique esquerdo no canvas) sempre fecha o menu, se
     // estiver aberto — rede de segurança pra além do botão "Continuar"/Esc.
     // NÃO abre o menu sozinho quando o lock se perde — só o Esc abre (ver
-    // o outro useEffect abaixo). O botão direito não solta mais o Pointer
-    // Lock (virou mirar, ver docs/features/016-mira-e-arremesso.md/
-    // pointerInput.js), então nem chega a disparar isso.
+    // o outro useEffect abaixo). O botão direito nunca soltou o Pointer
+    // Lock (hoje dispara `secondary`, ver `pointerInput.js`/
+    // `scannerModeSystem.js`), então nem chega a disparar isso.
     const onLockChange = () => {
       if (document.pointerLockElement) setMenuOpen(false)
     }
@@ -111,28 +179,32 @@ export default function GamePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [menuOpen, menuView])
 
-  useEffect(() => {
-    // `P` abre direto na subtela de Status (`StatsPanel.jsx`, pedido do
-    // usuário: "quero uma janela que exiba os status do pokemon... e
-    // para eu abrir ela, pode colocar a tecla P") — mesma técnica de `I`
-    // pro Inventário acima (mesmo motivo: sem efeito nativo do browser
-    // sobre o Pointer Lock, solta o mouse na mão; apertar de novo com a
-    // subtela já aberta fecha, mesma simetria do Esc/I).
-    const onKeyDown = (event) => {
-      if (event.code !== 'KeyP') return
-      event.preventDefault()
-      if (menuOpen && menuView === 'stats') {
-        closeMenu()
-        return
-      }
-      if (document.pointerLockElement) document.exitPointerLock()
-      setMenuView('stats')
-      setMenuOpen(true)
-    }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [menuOpen, menuView])
+  // Abre o menu direto na aba Histórico da Pokédex, com o registro
+  // recém-escaneado já selecionado — pedido do usuário, seção 4:
+  // "escanear e ver a informação da criatura imediatamente na terceira
+  // aba, sem a necessidade de navegar manualmente" (docs/features/033-
+  // *.md). Chamado por `GameHud` quando `ScanHistory` muda (escaneou
+  // algo de verdade), mesma técnica de soltar o mouse que `I` já usava.
+  const openScanHistory = (entryId) => {
+    if (document.pointerLockElement) document.exitPointerLock()
+    setPokedexInitialTab('historico')
+    setPokedexHistoryEntryId(entryId)
+    setMenuView('pokedex')
+    setMenuOpen(true)
+  }
+
+  // Abre o menu direto na aba Pokémons (aba padrão) — pedido do
+  // usuário, seção 1: "botão esquerdo: abrir o menu principal da
+  // Pokédex" (docs/features/033-*.md). Chamado por `GameHud` quando
+  // `ScanMode.menuOpenRequests` muda (clique esquerdo fora do modo
+  // scanner, com a Pokédex equipada — ver `scannerModeSystem.js`).
+  const openPokedexMenu = () => {
+    if (document.pointerLockElement) document.exitPointerLock()
+    setPokedexInitialTab('pokemons')
+    setPokedexHistoryEntryId(null)
+    setMenuView('pokedex')
+    setMenuOpen(true)
+  }
 
   return (
     <WorldProvider>
@@ -141,6 +213,7 @@ export default function GamePage() {
         className="relative h-screen w-screen overflow-hidden"
       >
         <Canvas shadows>
+          {showDebug && <Stats />}
           <GameLoop />
           <GameScene>
             {showDebug && (
@@ -148,26 +221,40 @@ export default function GamePage() {
                 <PhysicsDebugView />
                 <PathfindingDebugView />
                 <AttackRangeDebugView />
+                <ScanRangeDebugView />
               </>
             )}
           </GameScene>
         </Canvas>
 
-        <Crosshair />
-        <PartyHud />
-        <SkillsHud />
-        <StatusHud />
-        <ActionSlotHud />
-
-        {showDebug && <DebugPanel />}
-
-        {menuOpen && (
-          <PauseMenu
-            onResume={closeMenu}
-            view={menuView}
-            onViewChange={setMenuView}
+        {/* z-10 — bug relatado: "o Nameplate está ficando sobre o menu e
+            outras coisas, isso é controlado por z-index?". É, sim:
+            `NameplateView.jsx` usa `<Html>` do drei, que é injetado como
+            filho do MESMO container que este `<div>` (`gl.domElement.
+            parentNode`, ou seja, `containerRef` aqui), com um z-index
+            gigante por padrão (~16 milhões, pensado pra oclusão 3D) —
+            sempre por cima de qualquer overlay sem z-index explícito,
+            não importa a ordem no DOM. `NameplateView.jsx` agora fixa
+            um z-index baixo (`zIndexRange={[1, 1]}`); este wrapper
+            garante que HUD/debug/menu ficam por cima dele. */}
+        <div className="pointer-events-none absolute inset-0 z-10">
+          <GameHud
+            onScanned={openScanHistory}
+            onMenuOpenRequested={openPokedexMenu}
           />
-        )}
+
+          {showDebug && <DebugPanel />}
+
+          {menuOpen && (
+            <PauseMenu
+              onResume={closeMenu}
+              view={menuView}
+              onViewChange={setMenuView}
+              pokedexInitialTab={pokedexInitialTab}
+              pokedexInitialHistoryEntryId={pokedexHistoryEntryId}
+            />
+          )}
+        </div>
       </div>
     </WorldProvider>
   )

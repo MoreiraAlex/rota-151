@@ -3,10 +3,10 @@ import { inputSystem } from '@/core/systems/inputSystem'
 import { physicsBootstrapSystem } from '@/core/systems/physicsBootstrapSystem'
 import { controlSwitchSystem } from '@/core/systems/controlSwitchSystem'
 import { cameraControlSystem } from '@/core/systems/cameraControlSystem'
-import { aimAnchorSystem } from '@/core/systems/aimAnchorSystem'
 import { vitalsRegenSystem } from '@/core/systems/vitalsRegenSystem'
 import { movementSystem } from '@/core/systems/movementSystem'
 import { playerActionSystem } from '@/core/systems/playerActionSystem'
+import { scannerModeSystem } from '@/core/systems/scannerModeSystem'
 import { creatureAttackSystem } from '@/core/systems/creatureAttackSystem'
 import { attackEffectSystem } from '@/core/systems/attackEffectSystem'
 import { partySummonSystem } from '@/core/systems/partySummonSystem'
@@ -48,12 +48,9 @@ let registered = false
  *   bootstrap → troca de controle treinador/criatura (`controlSwitchSystem`,
  *   ver docs/features/018-troca-de-controle-treinador-criatura.md — precisa
  *   mover `InputControlled`/`CameraTarget` ANTES de qualquer system que leia
- *   essas tags neste mesmo tick) → controle de câmera → captura/libera o
- *   ponto de mira
- *   travado (`aimAnchorSystem`, precisa do yaw/pitch já atualizados pelo
- *   controle de câmera deste tick) → regeneração de HP/stamina → movimento
- *   (lê o `AimAnchor` já resolvido neste mesmo tick pra decidir orbitar ou
- *   não; Velocity, que drena stamina se estiver correndo) → ações do jogador
+ *   essas tags neste mesmo tick) → controle de câmera → regeneração de
+ *   HP/stamina → movimento (Velocity, que drena stamina se estiver
+ *   correndo) → ações do jogador
  *   (dash, que sobrescreve a Velocity enquanto ativo e também drena
  *   stamina) → character controller (KCC, que drena stamina no pulo) →
  *   step do Rapier → sync de volta para Position → resolve o estado de
@@ -98,6 +95,13 @@ let registered = false
  * escreveria por cima do overlay de boca no mesmo frame), por isso fica
  * registrado por último, não só por proximidade.
  *
+ * `scannerModeSystem` (docs/features/031-*.md — liga/desliga o modo
+ * scanner com um item `scanner` equipado, botão direito do mouse) fica
+ * logo depois de `playerActionSystem` por proximidade (mesma família de
+ * "ações disparadas por input"), e ANTES de `cameraFollowSystem`
+ * (presentation) — que precisa do `ScanMode` já atualizado neste mesmo
+ * tick pra decidir câmera normal/primeira pessoa.
+ *
  * `creatureAttackSystem` (docs/features/025-ataque-comum-de-criatura.md —
  * ataque comum de criatura controlada, botão esquerdo do mouse) fica logo
  * depois de `playerActionSystem` por proximidade (mesma família de "ações
@@ -140,10 +144,10 @@ export function registerGameSystems() {
   registerSystem(GAME_PHASES.SIMULATION, physicsBootstrapSystem)
   registerSystem(GAME_PHASES.SIMULATION, controlSwitchSystem)
   registerSystem(GAME_PHASES.SIMULATION, cameraControlSystem)
-  registerSystem(GAME_PHASES.SIMULATION, aimAnchorSystem)
   registerSystem(GAME_PHASES.SIMULATION, vitalsRegenSystem)
   registerSystem(GAME_PHASES.SIMULATION, movementSystem)
   registerSystem(GAME_PHASES.SIMULATION, playerActionSystem)
+  registerSystem(GAME_PHASES.SIMULATION, scannerModeSystem)
   registerSystem(GAME_PHASES.SIMULATION, creatureAttackSystem)
   registerSystem(GAME_PHASES.SIMULATION, projectileSystem)
   registerSystem(GAME_PHASES.SIMULATION, consumeEffectSystem)

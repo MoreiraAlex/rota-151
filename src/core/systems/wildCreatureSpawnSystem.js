@@ -1,12 +1,15 @@
 import { TEST_LEVEL } from '../data/testLevel'
 import { getSpecies } from '../data/species'
+import { rollIndividualValues } from '../data/species/stats'
 import { GAME_CONFIG } from '../gameConfig'
+import { gameplayRng } from '../rng'
 import { isPhysicsReady } from '../physics/physicsWorld'
 import { createCharacterBody } from '../physics/colliders'
 import {
   ActionState,
   AnimationState,
   CharacterController,
+  IndividualValues,
   Mood,
   MovementStats,
   PathState,
@@ -45,13 +48,24 @@ import {
  *
  * Mesmo conjunto de traits que `applySummon` (`partySummonSystem.js`) dá a
  * uma `SummonedCreature`, MENOS o que só faz sentido pra quem pode ser
- * controlado (`InputState`/`AimAnchor`/`HeldItem` — criatura selvagem nunca
- * ganha `InputControlled`) e trocando `SummonedCreature`/`PathState` sozinho
+ * controlado (`InputState`/`HeldItem` — criatura selvagem nunca ganha
+ * `InputControlled`) e trocando `SummonedCreature`/`PathState` sozinho
  * por `WildCreature` + `PathState` + `WanderState` (ver `wildWanderSystem.js`).
  * `Vitals` (via `vitalsFromSpecies`) é exigido mesmo sem combate ainda —
  * `characterPhysicsSystem.js` inclui `Vitals` na query que integra
  * `Velocity` contra o mundo físico, sem ele a criatura nunca se moveria de
  * verdade.
+ *
+ * `IndividualValues` — cada selvagem sorteia o PRÓPRIO IV aqui
+ * (`rollIndividualValues`, `core/data/species/stats.js`, via
+ * `gameplayRng`, `core/rng.js` — nunca `Math.random()` direto, regra
+ * 3.5 de `docs/rules/README.md`), dentro de
+ * `GAME_CONFIG.BATTLE.WILD_IV_MIN/MAX`. Antes, TODO `bulbasaur`
+ * (selvagem ou do time) compartilhava o mesmo `iv` fixo do arquivo da
+ * espécie. Sorteado uma vez aqui e nunca mais re-sorteado ("congelado",
+ * pedido do usuário) — passado tanto pro trait quanto pra
+ * `vitalsFromSpecies`, que usa pra calcular o HP/energy REAL desta
+ * criatura (diferente do `stat` de referência da espécie).
  *
  * Headless. Fase: simulation, junto de `partySummonSystem`/
  * `creatureFollowSystem` — antes de `characterPhysicsSystem` (que precisa
@@ -80,16 +94,22 @@ export function wildCreatureSpawnSystem(context) {
         )
       : { bodyHandle: -1, colliderHandle: -1 }
 
+    const individualValues = rollIndividualValues(gameplayRng, {
+      min: GAME_CONFIG.BATTLE.IV_MIN,
+      max: GAME_CONFIG.BATTLE.IV_MAX,
+    })
+
     world.spawn(
       Position({ x, y, z }),
       Rotation,
       WildCreature({ speciesId: entry.speciesId }),
+      IndividualValues(individualValues),
       AnimationState,
       ActionState,
       Velocity,
       CharacterController(species.body),
       MovementStats(species.movement),
-      vitalsFromSpecies(species),
+      vitalsFromSpecies(species, individualValues),
       PhysicsBody(physicsBody),
       PathState,
       WanderState({

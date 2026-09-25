@@ -16,12 +16,14 @@ import { PEBBLE } from './pebble'
 import { ROCK } from './rock'
 import { POTION } from './potion'
 import { ELIXIR } from './elixir'
+import { POKEDEX } from './pokedex'
 
 export const ITEM_REGISTRY = {
   [PEBBLE.id]: PEBBLE,
   [ROCK.id]: ROCK,
   [POTION.id]: POTION,
   [ELIXIR.id]: ELIXIR,
+  [POKEDEX.id]: POKEDEX,
 }
 
 export function getItem(id, registry = ITEM_REGISTRY) {

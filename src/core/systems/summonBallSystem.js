@@ -5,19 +5,21 @@ import { isPhysicsReady } from '../physics/physicsWorld'
 import { createCharacterBody, verticalClearance } from '../physics/colliders'
 import {
   ActionState,
-  AimAnchor,
   AnimationState,
   AttackCooldowns,
   CharacterController,
   HeldItem,
+  IndividualValues,
   InputState,
   Mood,
   MovementStats,
   Party,
+  PartyIndividualValues,
   PathState,
   PhysicsBody,
   Position,
   Rotation,
+  ScanMode,
   SummonBall,
   SummonedCreature,
   SummonFlash,
@@ -42,8 +44,26 @@ import {
  * NENHUMA criatura real — não só a skill nova (Q), o ataque comum do
  * mouse também parou de disparar, só que ninguém tinha testado de novo
  * depois da mudança.
+ *
+ * `IndividualValues` — lê o IV já sorteado e CONGELADO pra este slot em
+ * `trainer.get(PartyIndividualValues)` (`core/traits/components/
+ * partyIndividualValues.js`), sorteado uma vez por `equiparCriatura`
+ * (`core/actions/party.js`) quando a espécie entrou naquele slot — não
+ * sorteia aqui, de novo, a cada invocação: a MESMA criatura do jogador
+ * precisa ter o MESMO IV toda vez que sai da bola (pedido do usuário:
+ * "congelado por criatura"), diferente da selvagem, que sorteia o
+ * próprio no spawn (`wildCreatureSpawnSystem.js`). `vitalsFromSpecies`
+ * recebe o mesmo `individualValues` — sem isso o HP/energy de spawn
+ * ignoraria o IV de verdade desta criatura.
  */
-function spawnCreature(world, slot, speciesId, species, spawnPosition) {
+function spawnCreature(
+  world,
+  trainer,
+  slot,
+  speciesId,
+  species,
+  spawnPosition,
+) {
   const physicsBody = isPhysicsReady()
     ? createCharacterBody(spawnPosition, {
         radius: species.body.capsuleRadius,
@@ -52,23 +72,26 @@ function spawnCreature(world, slot, speciesId, species, spawnPosition) {
       })
     : { bodyHandle: -1, colliderHandle: -1 }
 
+  const individualValues = trainer?.get(PartyIndividualValues)?.[slot] ?? null
+
   world.spawn(
     Position(spawnPosition),
     Rotation,
     SummonedCreature({ slot, speciesId }),
+    IndividualValues(individualValues ?? {}),
     AnimationState,
     ActionState,
     AttackCooldowns,
     Velocity,
     CharacterController(species.body),
     MovementStats(species.movement),
-    vitalsFromSpecies(species),
+    vitalsFromSpecies(species, individualValues),
     PhysicsBody(physicsBody),
     PathState,
     InputState,
-    AimAnchor,
     HeldItem,
     Mood,
+    ScanMode,
   )
 }
 
@@ -108,7 +131,14 @@ function resolveBall(world, trainer, ball, pos, touchedSurface) {
     spawnPosition.y += verticalClearance(species.body)
   }
 
-  spawnCreature(world, ball.slot, ball.speciesId, species, spawnPosition)
+  spawnCreature(
+    world,
+    trainer,
+    ball.slot,
+    ball.speciesId,
+    species,
+    spawnPosition,
+  )
   const { flashDuration } = getPlayerSpecies().actions.summon
   world.spawn(
     Position(spawnPosition),

@@ -1,8 +1,16 @@
 import { describe, it, expect, afterEach } from 'vitest'
 import { createWorld } from 'koota'
 import { TEST_LEVEL } from '@/core/data/testLevel'
-import { PhysicsBody, WanderState, WildCreature } from '@/core/traits'
+import { GAME_CONFIG } from '@/core/gameConfig'
+import {
+  IndividualValues,
+  PhysicsBody,
+  WanderState,
+  WildCreature,
+} from '@/core/traits'
 import { wildCreatureSpawnSystem } from './wildCreatureSpawnSystem'
+
+const STAT_KEYS = ['hp', 'attack', 'defense', 'sp_atk', 'sp_def', 'speed']
 
 const spawnedWorlds = []
 function spawnWorld() {
@@ -73,5 +81,36 @@ describe('wildCreatureSpawnSystem', () => {
     expect(wander.targetX).toBeCloseTo(entry.position[0])
     expect(wander.targetZ).toBeCloseTo(entry.position[2])
     expect(wander.pauseTimer).toBeGreaterThan(0)
+  })
+
+  it('cada WildCreature nasce com seus próprios IVs, dentro do range configurado', () => {
+    const world = spawnWorld()
+
+    tick(world)
+
+    const { IV_MIN, IV_MAX } = GAME_CONFIG.BATTLE
+    for (const entity of world.query(WildCreature, IndividualValues)) {
+      const iv = entity.get(IndividualValues)
+      for (const key of STAT_KEYS) {
+        expect(iv[key]).toBeGreaterThanOrEqual(IV_MIN)
+        expect(iv[key]).toBeLessThanOrEqual(IV_MAX)
+      }
+    }
+  })
+
+  it('duas WildCreature da mesma espécie não têm necessariamente o mesmo IV', () => {
+    const world = spawnWorld()
+
+    tick(world)
+
+    const ivSets = world
+      .query(WildCreature, IndividualValues)
+      .map((entity) => JSON.stringify(entity.get(IndividualValues)))
+
+    // Sorteio independente por criatura — com várias criaturas spawnadas,
+    // pelo menos um par deveria divergir (não é garantido matematicamente,
+    // mas a chance de todas baterem exatamente é desprezível com o range
+    // configurado e a quantidade de criaturas do nível de teste).
+    expect(new Set(ivSets).size).toBeGreaterThan(1)
   })
 })

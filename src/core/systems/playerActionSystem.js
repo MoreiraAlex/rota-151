@@ -15,7 +15,6 @@ import {
   Projectile,
   ConsumeEffect,
   PhysicsBody,
-  AimAnchor,
   applyHeal,
 } from '../traits'
 
@@ -24,16 +23,14 @@ import {
  * módulo fixo em `THROW.SPEED` — sem arco/parábola (o projétil não sofre
  * gravidade em voo, ver `projectileSystem.js`).
  *
- * `aimPoint` já vem resolvido por quem chama — com um `AimAnchor` travado
- * (botão direito segurado, ver `aimAnchorSystem.js`), é o ponto travado
- * (o mesmo que a câmera está mostrando, `cameraFollowSystem.js`); sem
- * ancoragem ativa, é o ponto de mira resolvido na hora
- * (`resolveAimPoint`, que por sua vez respeita `aimRange`: sem nada no
- * caminho dentro desse alcance, mira no ponto mais distante mesmo, em vez
- * de "infinito"). `resolveHandOrigin` (origem da trajetória) mora em
- * `core/aim.js` — reaproveitado por `partySummonSystem.js` (a `SummonBall`,
- * ver docs/features/024-esfera-de-invocar.md, nasce da mesma aproximação
- * de mão, não do centro do corpo).
+ * `aimPoint` já vem resolvido por quem chama (`resolveAimPoint`, sempre —
+ * sem mira travada/botão direito, ver docs/features/029-*.md) — respeita
+ * `aimRange`: sem nada no caminho dentro desse alcance, mira no ponto
+ * mais distante mesmo, em vez de "infinito". `resolveHandOrigin` (origem
+ * da trajetória) mora em `core/aim.js` — reaproveitado por
+ * `partySummonSystem.js` (a `SummonBall`, ver docs/features/024-esfera-
+ * de-invocar.md, nasce da mesma aproximação de mão, não do centro do
+ * corpo).
  */
 function resolveThrowLaunch(aimPoint, throwOrigin, throwConfig) {
   const { speed } = throwConfig
@@ -98,10 +95,9 @@ function removeOneFromInventory(entity, itemId) {
  * precondição de `Grounded` já bloqueia o dash). Uso de consumível não
  * custa stamina. Quem decide se `primary` dispara algo é a categoria do
  * item em `HeldItem` (`throwable` → arremesso, `consumable` → uso, sem
- * item ou `weapon` → nada). `primary` só é considerado enquanto
- * `input.aiming` também está (botão direito segurado, ver
- * `platform/input/pointerInput.js` e docs/features/016-mira-e-arremesso.md)
- * — clicar sem mirar não faz nada.
+ * item ou `weapon` → nada). `primary` (clique esquerdo) dispara sozinho —
+ * não precisa mais segurar o botão direito antes (mira removida, ver
+ * docs/features/029-*.md).
  *
  * Cada ação com efeito no meio da duração (arremesso spawna o projétil, uso
  * aplica a cura) detecta o instante comparando o `elapsed` antes/depois do
@@ -150,150 +146,141 @@ export function playerActionSystem(context) {
       Velocity,
       Rotation,
       PhysicsBody,
-      AimAnchor,
     )
-    .updateEach(
-      ([action, vitals, heldItem, pos, vel, rot, body, anchor], entity) => {
-        if (action.current === null) {
-          const canDash =
-            input.dash &&
-            entity.has(Grounded) &&
-            vitals.stamina >= DASH.STAMINA_COST
+    .updateEach(([action, vitals, heldItem, pos, vel, rot, body], entity) => {
+      if (action.current === null) {
+        const canDash =
+          input.dash &&
+          entity.has(Grounded) &&
+          vitals.stamina >= DASH.STAMINA_COST
 
-          if (canDash) {
-            action.current = 'dash'
+        if (canDash) {
+          action.current = 'dash'
+          action.elapsed = 0
+          // Ver docstring de `ActionState.animationSpeed` — o clipe
+          // de dash toca nesta velocidade em vez de um `speed` fixo
+          // no JSON do clipe.
+          action.animationSpeed = DASH.DURATION > 0 ? 1 / DASH.DURATION : 1
+          action.dirX = Math.sin(rot.y)
+          action.dirZ = Math.cos(rot.y)
+          vitals.stamina -= DASH.STAMINA_COST
+          vitals.staminaRegenDelay = vitals.staminaRegenDelayAfterUse
+        } else if (input.primary) {
+          const item = heldItem.itemId ? getItem(heldItem.itemId) : null
+
+          if (
+            item?.category === 'throwable' &&
+            vitals.stamina >= THROW.staminaCost
+          ) {
+            action.current = 'throw'
             action.elapsed = 0
-            // Ver docstring de `ActionState.animationSpeed` — o clipe
-            // de dash toca nesta velocidade em vez de um `speed` fixo
-            // no JSON do clipe.
-            action.animationSpeed = DASH.DURATION > 0 ? 1 / DASH.DURATION : 1
-            action.dirX = Math.sin(rot.y)
-            action.dirZ = Math.cos(rot.y)
-            vitals.stamina -= DASH.STAMINA_COST
+            // Ver docstring de `ActionState.animationSpeed` — o
+            // clipe de arremesso toca nesta velocidade em vez de um
+            // `speed` fixo no JSON do clipe.
+            action.animationSpeed = THROW.duration > 0 ? 1 / THROW.duration : 1
+            const throwOrigin = resolveHandOrigin(pos, rot.y, THROW)
+            const aimPoint = resolveAimPoint(world, pos, body.colliderHandle)
+            const velocity = resolveThrowLaunch(aimPoint, throwOrigin, THROW)
+            action.dirX = velocity.x
+            action.dirY = velocity.y
+            action.dirZ = velocity.z
+            // Encara a direção do arremesso (só o componente horizontal —
+            // o corpo não inclina pra cima/baixo, só gira em Y) — antes o
+            // corpo continuava olhando pra onde já estava andando, mesmo
+            // arremessando pra outro lado.
+            rot.y = Math.atan2(velocity.x, velocity.z)
+            vitals.stamina -= THROW.staminaCost
             vitals.staminaRegenDelay = vitals.staminaRegenDelayAfterUse
-          } else if (input.primary && input.aiming) {
-            const item = heldItem.itemId ? getItem(heldItem.itemId) : null
-
-            if (
-              item?.category === 'throwable' &&
-              vitals.stamina >= THROW.staminaCost
-            ) {
-              action.current = 'throw'
-              action.elapsed = 0
-              // Ver docstring de `ActionState.animationSpeed` — o
-              // clipe de arremesso toca nesta velocidade em vez de um
-              // `speed` fixo no JSON do clipe.
-              action.animationSpeed =
-                THROW.duration > 0 ? 1 / THROW.duration : 1
-              const throwOrigin = resolveHandOrigin(pos, rot.y, THROW)
-              // Com a mira travada (AimAnchor), o arremesso vai pro mesmo
-              // ponto que a câmera já está mostrando — não recalcula via
-              // raycast de novo no instante do disparo.
-              const aimPoint = anchor.active
-                ? { x: anchor.x, y: anchor.y, z: anchor.z }
-                : resolveAimPoint(world, pos, body.colliderHandle)
-              const velocity = resolveThrowLaunch(aimPoint, throwOrigin, THROW)
-              action.dirX = velocity.x
-              action.dirY = velocity.y
-              action.dirZ = velocity.z
-              // Encara a direção do arremesso (só o componente horizontal —
-              // o corpo não inclina pra cima/baixo, só gira em Y) — antes o
-              // corpo continuava olhando pra onde já estava andando, mesmo
-              // arremessando pra outro lado.
-              rot.y = Math.atan2(velocity.x, velocity.z)
-              vitals.stamina -= THROW.staminaCost
-              vitals.staminaRegenDelay = vitals.staminaRegenDelayAfterUse
-            } else if (item?.category === 'consumable') {
-              action.current = 'consume'
-              action.elapsed = 0
-              // Ver docstring de `ActionState.animationSpeed` — o
-              // clipe de consumo toca nesta velocidade em vez de um
-              // `speed` fixo no JSON do clipe.
-              action.animationSpeed =
-                CONSUME.duration > 0 ? 1 / CONSUME.duration : 1
-            } else {
-              return
-            }
+          } else if (item?.category === 'consumable') {
+            action.current = 'consume'
+            action.elapsed = 0
+            // Ver docstring de `ActionState.animationSpeed` — o
+            // clipe de consumo toca nesta velocidade em vez de um
+            // `speed` fixo no JSON do clipe.
+            action.animationSpeed =
+              CONSUME.duration > 0 ? 1 / CONSUME.duration : 1
           } else {
             return
           }
+        } else {
+          return
+        }
+      }
+
+      // `action.current` pode ser uma ação que este system não conhece —
+      // 'summon'/'recall' (ver `partySummonSystem.js`), que progride e
+      // encerra a própria ação sozinho. Sem esse corte, o incremento de
+      // `elapsed` abaixo (incondicional) rodaria em cima de uma ação que
+      // já está sendo avançada por outro system, dobrando a velocidade
+      // com que ela progride.
+      if (
+        action.current !== 'dash' &&
+        action.current !== 'throw' &&
+        action.current !== 'consume'
+      ) {
+        return
+      }
+
+      const previousElapsed = action.elapsed
+      action.elapsed += delta
+
+      if (action.current === 'dash') {
+        if (action.elapsed >= DASH.DURATION) {
+          action.current = null
+          return
         }
 
-        // `action.current` pode ser uma ação que este system não conhece —
-        // 'summon'/'recall' (ver `partySummonSystem.js`), que progride e
-        // encerra a própria ação sozinho. Sem esse corte, o incremento de
-        // `elapsed` abaixo (incondicional) rodaria em cima de uma ação que
-        // já está sendo avançada por outro system, dobrando a velocidade
-        // com que ela progride.
+        vel.x = action.dirX * DASH.SPEED
+        vel.z = action.dirZ * DASH.SPEED
+        return
+      }
+
+      if (action.current === 'throw') {
         if (
-          action.current !== 'dash' &&
-          action.current !== 'throw' &&
-          action.current !== 'consume'
+          previousElapsed < THROW.effectAt &&
+          action.elapsed >= THROW.effectAt
         ) {
-          return
+          world.spawn(
+            Position(resolveHandOrigin(pos, rot.y, THROW)),
+            Rotation, // exigido por syncTransformSystem — sem uso real (esfera)
+            // dirX/dirY/dirZ já são a velocidade de lançamento resolvida
+            // no disparo (ver resolveThrowLaunch) — não uma direção
+            // unitária pra multiplicar por `speed` aqui (`speed` já
+            // entrou no cálculo lá).
+            Velocity({ x: action.dirX, y: action.dirY, z: action.dirZ }),
+            Projectile({ lifetime: THROW.lifetime }),
+          )
+          const newItemIds = removeOneFromInventory(entity, heldItem.itemId)
+          if (!newItemIds.includes(heldItem.itemId)) heldItem.itemId = null
         }
 
-        const previousElapsed = action.elapsed
-        action.elapsed += delta
+        if (action.elapsed >= THROW.duration) {
+          action.current = null
+        }
+        return
+      }
 
-        if (action.current === 'dash') {
-          if (action.elapsed >= DASH.DURATION) {
-            action.current = null
-            return
+      if (action.current === 'consume') {
+        if (
+          previousElapsed < CONSUME.effectAt &&
+          action.elapsed >= CONSUME.effectAt
+        ) {
+          const item = heldItem.itemId ? getItem(heldItem.itemId) : null
+          if (item?.consumable) {
+            vitals.hp = applyHeal(vitals, item.consumable.healAmount).hp
           }
-
-          vel.x = action.dirX * DASH.SPEED
-          vel.z = action.dirZ * DASH.SPEED
-          return
+          world.spawn(
+            Position({ x: pos.x, y: pos.y + 1, z: pos.z }),
+            Rotation, // exigido por syncTransformSystem — sem uso real (partículas)
+            ConsumeEffect({ lifetime: CONSUME.effectVisualDuration }),
+          )
+          const newItemIds = removeOneFromInventory(entity, heldItem.itemId)
+          if (!newItemIds.includes(heldItem.itemId)) heldItem.itemId = null
         }
 
-        if (action.current === 'throw') {
-          if (
-            previousElapsed < THROW.effectAt &&
-            action.elapsed >= THROW.effectAt
-          ) {
-            world.spawn(
-              Position(resolveHandOrigin(pos, rot.y, THROW)),
-              Rotation, // exigido por syncTransformSystem — sem uso real (esfera)
-              // dirX/dirY/dirZ já são a velocidade de lançamento resolvida
-              // no disparo (ver resolveThrowLaunch) — não uma direção
-              // unitária pra multiplicar por `speed` aqui (`speed` já
-              // entrou no cálculo lá).
-              Velocity({ x: action.dirX, y: action.dirY, z: action.dirZ }),
-              Projectile({ lifetime: THROW.lifetime }),
-            )
-            const newItemIds = removeOneFromInventory(entity, heldItem.itemId)
-            if (!newItemIds.includes(heldItem.itemId)) heldItem.itemId = null
-          }
-
-          if (action.elapsed >= THROW.duration) {
-            action.current = null
-          }
-          return
+        if (action.elapsed >= CONSUME.duration) {
+          action.current = null
         }
-
-        if (action.current === 'consume') {
-          if (
-            previousElapsed < CONSUME.effectAt &&
-            action.elapsed >= CONSUME.effectAt
-          ) {
-            const item = heldItem.itemId ? getItem(heldItem.itemId) : null
-            if (item?.consumable) {
-              vitals.hp = applyHeal(vitals, item.consumable.healAmount).hp
-            }
-            world.spawn(
-              Position({ x: pos.x, y: pos.y + 1, z: pos.z }),
-              Rotation, // exigido por syncTransformSystem — sem uso real (partículas)
-              ConsumeEffect({ lifetime: CONSUME.effectVisualDuration }),
-            )
-            const newItemIds = removeOneFromInventory(entity, heldItem.itemId)
-            if (!newItemIds.includes(heldItem.itemId)) heldItem.itemId = null
-          }
-
-          if (action.elapsed >= CONSUME.duration) {
-            action.current = null
-          }
-        }
-      },
-    )
+      }
+    })
 }

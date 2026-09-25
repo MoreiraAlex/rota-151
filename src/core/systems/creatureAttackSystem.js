@@ -1,6 +1,7 @@
 import { resolveAimDirection } from '../aim'
 import { getSpecies } from '../data/species'
 import { resolveCreatureAttack } from '../data/attacks'
+import { calculateAttackInterval, calculateStat } from '../data/species/stats'
 import { castRay } from '../physics/raycast'
 import {
   ActionState,
@@ -9,6 +10,7 @@ import {
   AttackPulse,
   CharacterController,
   DEFAULT_ATTACK_EFFECT_GROUP,
+  IndividualValues,
   InputControlled,
   PhysicsBody,
   Position,
@@ -18,6 +20,62 @@ import {
 } from '../traits'
 
 const DEG_TO_RAD = Math.PI / 180
+
+// Fração de `duration` em que o efeito de fato acontece — mesma
+// proporção (0.4) que já era usada quando cada espécie calculava isto
+// à mão em `attacks.primary.overrides.effectAt` (ver docs/features/029-
+// *.md). Só pro ataque BÁSICO (`primary`) — skills (secondary1-3) têm
+// `effectAt` PRÓPRIO na definição do ataque (`core/data/attacks/`), não
+// derivado de `speed`.
+const PRIMARY_EFFECT_AT_RATIO = 0.4
+
+/**
+ * Recalcula `duration`/`effectAt` do ataque BÁSICO (`primary`) a partir
+ * do status `speed` da PRÓPRIA entidade — pedido original do usuário:
+ * "preciso que o status speed influencie na velocidade de ataque
+ * básico da criatura". Antes, cada espécie calculava isso uma vez, no
+ * module load, com o `iv` fixo do arquivo (`attacks.primary.overrides
+ * .duration`); agora que IV é sorteado por INDIVÍDUO e nunca mais um
+ * literal na espécie (ver `core/data/species/stats.js`,
+ * `resolveCreatureStats`), esse cálculo só pode acontecer aqui, por
+ * entidade, na hora do ataque.
+ *
+ * Retorna `null` pra espécie sem `stats.speed.base` (`fox`/`wolf`
+ * ainda não migrados) — `CANDIDATE` fica com o `duration`/`effectAt`
+ * PRÓPRIO da definição do ataque (`core/data/attacks/<id>/index.js`),
+ * sem overrides, mesmo fallback gracioso de sempre.
+ */
+function resolvePrimaryDurationOverride(species, individualValues) {
+  const speedStat = species?.stats?.speed
+  if (!speedStat || speedStat.base == null) return null
+
+  const speed = calculateStat({
+    base: speedStat.base,
+    iv: individualValues?.speed ?? 0,
+    ev: speedStat.ev ?? 0,
+    level: species.level ?? 1,
+  })
+  const duration = calculateAttackInterval(speed)
+  return { duration, effectAt: duration * PRIMARY_EFFECT_AT_RATIO }
+}
+
+/**
+ * Resolve a definição de ataque de verdade pro `slot` desta entidade —
+ * `resolveCreatureAttack` (config estática, `core/data/attacks/`) +,
+ * só pra `primary`, o `duration`/`effectAt` dinâmico calculado acima.
+ * Chamada duas vezes por ataque em andamento (disparo e cada tick de
+ * progresso, ver `creatureAttackSystem` abaixo) — sempre com o MESMO
+ * resultado pra um dado slot/entidade, já que `IndividualValues` está
+ * congelado pra aquela entidade (nunca muda entre as duas chamadas).
+ */
+function resolveAttackForEntity(species, slot, individualValues) {
+  const attack = resolveCreatureAttack(species?.attacks?.[slot])
+  if (!attack) return null
+  if (slot !== 'primary') return attack
+
+  const override = resolvePrimaryDurationOverride(species, individualValues)
+  return override ? { ...attack, ...override } : attack
+}
 
 /**
  * Resolve o ponto de impacto de verdade — `origin + direction * range`, OU
@@ -113,11 +171,10 @@ const ATTACK_SLOTS = [
  * Dispara e avança o ataque/skill de uma criatura controlada — botão
  * ESQUERDO do mouse (`primary`, ataque comum) OU Q/E/R (`secondary1-3`,
  * skills — a partir da 9ª rodada de docs/features/025-ataque-comum-de-
- * criatura.md: "pode fazer as habilidades agora?"), sem precisar segurar
- * o botão direito (`input.aiming`) — diferente do arremesso do
- * treinador, a criatura não mira com âncora (`aimAnchorSystem.js`
- * continua ignorando `SummonedCreature`), mas o golpe em si respeita pra
- * onde a CÂMERA aponta (`resolveAimDirection`, `core/aim.js` — já com a
+ * criatura.md: "pode fazer as habilidades agora?"), sem precisar de
+ * nenhum gatilho extra — diferente do arremesso do treinador, a
+ * criatura não mira, mas o golpe em si respeita pra onde a CÂMERA
+ * aponta (`resolveAimDirection`, `core/aim.js` — já com a
  * inclinação/pitch, não só o giro horizontal). Trava o corpo (`rot.y`, só
  * o componente horizontal — o corpo não inclina) e o centro da área
  * efetiva (3D completo, incluindo altura) — resolvida uma vez no disparo
@@ -159,6 +216,16 @@ const ATTACK_SLOTS = [
  * sempre (hoje só `primary` é universal; `secondary1` só as 3 espécies
  * iniciais configuram, `secondary2`/`secondary3` nenhuma ainda).
  *
+ * **`duration`/`effectAt` do `primary` são dinâmicos, por ENTIDADE**
+ * (`resolveAttackForEntity`, acima — ver docs/features/029-*.md):
+ * antes, cada espécie calculava isso uma vez, no module load, com um
+ * `iv` de `speed` fixo; agora que IV é sorteado por indivíduo
+ * (`IndividualValues`, nunca mais um literal na espécie), esse cálculo
+ * só pode acontecer aqui — duas criaturas da MESMA espécie, com
+ * `speed` diferente, atacam em ritmos diferentes. Só pra `primary`;
+ * skills (`secondary1-3`) mantêm `duration`/`effectAt` PRÓPRIOS da
+ * definição do ataque.
+ *
  * Mesmo mecanismo genérico de `ActionState` que dash/arremesso/uso/summon/
  * recall já usam: trava `current` no disparo, o efeito de verdade só
  * acontece no instante `effectAt`, e `current` volta a `null` em
@@ -171,8 +238,8 @@ const ATTACK_SLOTS = [
  * exclusão mútua que dash/ataque já tinham entre si.
  *
  * `SummonedCreature` na query (não `resolveSpeciesKind`) — mesmo critério
- * que `aimAnchorSystem.js` já usa pra "isto é uma criatura, não o
- * treinador": só uma `SummonedCreature` de verdade chega a ter
+ * já usado alhures pra "isto é uma criatura, não o treinador": só uma
+ * `SummonedCreature` de verdade chega a ter
  * `InputControlled`+`ActionState`+`Position`+`Rotation` juntos por essa
  * via (o treinador nunca tem `SummonedCreature`). `attacks.<slot>` é
  * exclusivo de espécie `kind: 'pokemon'` (o treinador não tem — sem arma
@@ -236,6 +303,7 @@ export function creatureAttackSystem(context) {
       Vitals,
       Position,
       Rotation,
+      IndividualValues,
     )
     .updateEach(
       (
@@ -248,6 +316,7 @@ export function creatureAttackSystem(context) {
           vitals,
           pos,
           rot,
+          individualValues,
         ],
         entity,
       ) => {
@@ -265,8 +334,11 @@ export function creatureAttackSystem(context) {
           for (const { input: inputKey, slot } of ATTACK_SLOTS) {
             if (!input[inputKey]) continue
 
-            const CANDIDATE = resolveCreatureAttack(
-              getSpecies(creature.speciesId)?.attacks?.[slot],
+            const species = getSpecies(creature.speciesId)
+            const CANDIDATE = resolveAttackForEntity(
+              species,
+              slot,
+              individualValues,
             )
             if (!CANDIDATE) continue
             if (vitals.stamina < CANDIDATE.staminaCost) continue
@@ -290,8 +362,7 @@ export function creatureAttackSystem(context) {
             // calculada como se toda criatura tivesse a altura do
             // treinador (default global), errado pra corpo pequeno/
             // quadrúpede.
-            const targetHeight = getSpecies(creature.speciesId)?.camera
-              ?.targetHeight
+            const targetHeight = species?.camera?.targetHeight
             const direction = resolveAimDirection(
               world,
               pos,
@@ -311,8 +382,10 @@ export function creatureAttackSystem(context) {
 
         if (action.current !== 'attack') return
 
-        const ATTACK = resolveCreatureAttack(
-          getSpecies(creature.speciesId)?.attacks?.[action.pendingSlot],
+        const ATTACK = resolveAttackForEntity(
+          getSpecies(creature.speciesId),
+          action.pendingSlot,
+          individualValues,
         )
         const previousElapsed = action.elapsed
         action.elapsed += delta

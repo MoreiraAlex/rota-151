@@ -62,11 +62,7 @@ export function GameLoop() {
       accumulator.current = 0
     }
 
-    // aiming vem de `pointer.isAiming()` (estado contínuo, não drenado) —
-    // não de um snapshot(), que já foi consumido pela fase de simulação
-    // acima e chamar de novo duplicaria/perderia deltas. `cameraFollowSystem`
-    // (presentation) usa pra decidir se aplica o enquadramento de mira.
-    runRenderPipeline({ world, delta, camera, aiming: pointer.isAiming() })
+    runRenderPipeline({ world, delta, camera })
   })
 
   return null

@@ -30,9 +30,9 @@ function switchControlTo(world, target) {
  * docs/features/018-troca-de-controle-treinador-criatura.md) — o resto do
  * motor já é genérico por trait, não por identidade fixa
  * (`characterPhysicsSystem`/`movementSystem`/`playerActionSystem`/
- * `aimAnchorSystem`/`creatureFollowSystem` todos agem sobre quem tem
- * `InputControlled` agora, seja quem for), então este system só precisa
- * decidir QUANDO mover a tag.
+ * `creatureFollowSystem` todos agem sobre quem tem `InputControlled`
+ * agora, seja quem for), então este system só precisa decidir QUANDO
+ * mover a tag.
  *
  * Acha "o treinador" por `Party` (trait exclusivo dele, nenhuma criatura
  * tem) — não importa `playerEntity` de `core/world/world.js` de propósito,
@@ -47,7 +47,7 @@ function switchControlTo(world, target) {
  * criatura, é no-op (`switchControlTo` já filtra `current === target`).
  *
  * Headless. Fase: simulation, ANTES de todo o resto (cameraControlSystem,
- * movementSystem, aimAnchorSystem, partySummonSystem, playerActionSystem,
+ * movementSystem, partySummonSystem, playerActionSystem,
  * creatureFollowSystem, characterPhysicsSystem) — todos precisam ver a
  * troca já aplicada no mesmo tick em que ela acontece.
  */

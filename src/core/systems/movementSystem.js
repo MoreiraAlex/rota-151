@@ -9,7 +9,6 @@ import {
   Vitals,
   OrbitCamera,
   ActionState,
-  AimAnchor,
 } from '../traits'
 
 /**
@@ -22,26 +21,12 @@ import {
  * Velocidades vêm de MovementStats — dado por entidade (de
  * core/data/species/<id>/index.js, copiado no spawn), não config global.
  *
- * Mirando com um ponto travado (`AimAnchor.active` — ver
- * `aimAnchorSystem.js`), só o REFERENCIAL de movimento muda: em vez do
- * yaw da câmera, "frente"/"trás" (radial) aproxima/afasta do ponto
- * travado, "esquerda"/"direita" (tangencial) circula ao redor dele. A
- * ROTAÇÃO do personagem não muda de regra — continua girando na direção
- * do próprio movimento (WASD), igual ao modo normal, mesmo travado; ele
- * não passa a encarar o ponto de mira (isso foi tentado e revertido —
- * ver rodada 13 em docs/features/016-mira-e-arremesso.md). A câmera
- * (`cameraFollowSystem.js`) é quem de fato gira sozinha pra manter o
- * ponto em vista — o personagem em si só gira conforme se move.
- *
  * Correr só vale com stamina disponível — sem isso, cai pra andar sozinho
  * (sem travar o jogador em nenhum estado quebrado) e drena
  * `Vitals.runStaminaDrainPerSecond` (por espécie, ver
  * docs/features/018-troca-de-controle-treinador-criatura.md) enquanto
  * realmente em movimento (segurar o modificador de corrida parado não
- * gasta nada). Mirando (`input.aiming`,
- * botão direito segurado — ver `platform/input/pointerInput.js`), correr
- * também não vale, mesma lógica: cai pra andar em vez de travar — não dá
- * pra atirar correndo, só andando ou parado.
+ * gasta nada).
  *
  * Com uma ação em andamento (`ActionState.current` não-nulo — arremesso,
  * uso, dash), o movimento horizontal fica congelado (`vel.x/z = 0`, sem
@@ -56,7 +41,6 @@ import {
  */
 export function movementSystem(context) {
   const { world, delta } = context
-  const aiming = !!context.input?.aiming
 
   const rig = world.queryFirst(OrbitCamera)
   const cameraYaw = rig ? rig.get(OrbitCamera).yaw : 0
@@ -71,35 +55,26 @@ export function movementSystem(context) {
       Rotation,
       Position,
       ActionState,
-      AimAnchor,
     )
-    .updateEach(([input, stats, vitals, vel, rot, pos, action, anchor]) => {
+    .updateEach(([input, stats, vitals, vel, rot, , action]) => {
       if (action.current !== null) {
         vel.x = 0
         vel.z = 0
         return
       }
 
-      // Travado, o referencial do input vira o ângulo DO PONTO PRO
-      // JOGADOR (`atan2(pos - anchor)`, não o inverso) — mover "frente"
-      // (input.z = -1) precisa resultar numa direção que aponta PRA o
-      // alvo, não pra longe dele; sem inverter o sinal, "frente" andaria
-      // pro lado errado.
-      const moveYaw = anchor.active
-        ? Math.atan2(pos.x - anchor.x, pos.z - anchor.z)
-        : cameraYaw
+      const moveYaw = cameraYaw
       const sinYaw = Math.sin(moveYaw)
       const cosYaw = Math.cos(moveYaw)
 
-      // Rotaciona a intenção (espaço da câmera, ou do alvo travado) para
-      // o espaço do mundo. x = direita, z = frente (InputState: frente = -z).
+      // Rotaciona a intenção (espaço da câmera) para o espaço do mundo.
+      // x = direita, z = frente (InputState: frente = -z).
       const worldX = input.x * cosYaw + input.z * sinYaw
       const worldZ = -input.x * sinYaw + input.z * cosYaw
 
       const hasMoveIntent = worldX !== 0 || worldZ !== 0
       const runCost = vitals.runStaminaDrainPerSecond * delta
-      const isRunning =
-        input.run && !aiming && hasMoveIntent && vitals.stamina >= runCost
+      const isRunning = input.run && hasMoveIntent && vitals.stamina >= runCost
       const speed = isRunning ? stats.runSpeed : stats.walkSpeed
 
       if (isRunning) {

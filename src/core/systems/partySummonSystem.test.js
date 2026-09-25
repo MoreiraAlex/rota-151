@@ -124,9 +124,9 @@ function simulateBallLanding(start, dir, speed, maxDistance, delta = DELTA) {
 // Koota limita a 16 worlds vivos por processo — este arquivo cria um por
 // teste e nunca os destruía, o que batia exatamente nesse teto (achado ao
 // adicionar mais testes, ver docs/features/018-troca-de-controle-
-// treinador-criatura.md). Mesmo padrão já usado em aimAnchorSystem.test.js/
-// movementSystem.test.js/playerActionSystem.test.js: acumula os worlds
-// criados e destrói todos depois de cada teste.
+// treinador-criatura.md). Mesmo padrão já usado em movementSystem.test.js/
+// playerActionSystem.test.js: acumula os worlds criados e destrói todos
+// depois de cada teste.
 const spawnedWorlds = []
 function spawnWorld(...args) {
   const created = makeWorld(...args)

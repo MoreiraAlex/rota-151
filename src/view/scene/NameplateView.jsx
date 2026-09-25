@@ -184,6 +184,16 @@ function NameplateView({ entity, species }) {
         transform={false}
         position={[0, headHeight, 0]}
         className="pointer-events-none"
+        // z-index BAIXO e fixo (não o range gigante default do drei,
+        // ~16 milhões — pensado pra oclusão 3D) — bug relatado: "o
+        // Nameplate está ficando sobre o menu e outras coisas". `<Html>`
+        // é injetado como filho do MESMO container (`gl.domElement.
+        // parentNode`) que `GameHud`/`DebugPanel`/`PauseMenu`
+        // (`src/app/(auth)/page.js`) — sem isso, o z-index default do
+        // drei sempre vence, não importa a ordem no DOM. `z-10` no
+        // wrapper desses três em `page.js` garante que ficam por cima
+        // (ver docstring lá).
+        zIndexRange={[1, 1]}
       >
         <div
           ref={contentRef}

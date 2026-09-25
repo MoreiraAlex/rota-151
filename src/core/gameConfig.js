@@ -23,6 +23,27 @@ export const GAME_CONFIG = {
   WORLD: {
     SEED: 151,
   },
+  // Ver docs/rules/README.md, 3.5 — sem `Math.random()` em lógica de
+  // jogo, PRNG seedado e nomeado. `core/rng.js` (`gameplayRng`) usa
+  // `WORLD.SEED` acima como seed.
+  BATTLE: {
+    // Faixa de IV (individual value, convenção clássica de Pokémon)
+    // sorteada pra QUALQUER criatura — selvagem, no spawn
+    // (`wildCreatureSpawnSystem.js`), ou do time do jogador, ao
+    // equipar (`core/actions/party.js`, `equiparCriatura`) — mesmo
+    // range pros dois, IV é aleatório pra todo mundo (pedido do
+    // usuário). Ver `rollIndividualValues`, `core/data/species/stats.js`.
+    IV_MIN: 0,
+    IV_MAX: 31,
+  },
+  // Modo scanner (item categoria `scanner`, ex.: Pokédex) —
+  // `scannerModeSystem.js`, docs/features/031-*.md/032-*.md. Genérico
+  // (não por espécie de item) porque só o treinador escaneia, mesmo
+  // raciocínio de `PLAYER_ACTIONS.dash` abaixo.
+  SCANNER: {
+    // Alcance (m) do raycast que acha a criatura embaixo do retículo.
+    RANGE: 5,
+  },
   // Só `dash` continua aqui — funciona igual pra qualquer entidade
   // controlada (treinador ou criatura, ver docs/features/018-troca-de-
   // controle-treinador-criatura.md), sem variar por espécie. Arremesso,
@@ -175,22 +196,15 @@ export const GAME_CONFIG = {
     ZOOM_SPEED: 1.5,
     // Fator de suavização do acompanhamento (maior = mais rígido).
     SMOOTHING: 12,
-    // Fator de suavização da transição do ENQUADRAMENTO de mira (o
-    // `aimBlend` que interpola entre olhar pro jogador e olhar pro
-    // `AimAnchor` travado, em `cameraFollowSystem.js`) — mesmo formato de
-    // `SMOOTHING`, mas com seu próprio ritmo, pra poder ajustar a
-    // suavidade da mira independente da suavidade do acompanhamento geral.
-    AIM_BLEND_SMOOTHING: 15,
     // Altura do ponto de mira acima da origem do alvo.
     TARGET_HEIGHT: 1.5,
     // Deslocamento lateral (m) do ponto que a câmera mira, em relação ao
-    // alvo — usado tanto na resolução do ponto de mira (`computeAimRay`, o
-    // raio que decide onde travar o `AimAnchor` ao começar a mirar) quanto
-    // no enquadramento renderizado de fato (`cameraFollowSystem.js`, que
-    // aplica o desvio completo enquanto travado — ver docstring lá): o
-    // retículo (fixo no centro da tela) não se move, mas o personagem sai
-    // do centro, dando o enquadramento "sobre o ombro" de verdade. 0
-    // desativa o efeito por completo (personagem sempre centralizado).
+    // alvo — usado tanto na resolução do ponto de mira (`computeAimRay`,
+    // arremesso/esfera de invocar) quanto no enquadramento renderizado de
+    // fato (`cameraFollowSystem.js`, sempre ativo): o retículo (fixo no
+    // centro da tela) não se move, mas o personagem sai do centro, dando
+    // o enquadramento "sobre o ombro" de verdade. 0 desativa o efeito por
+    // completo (personagem sempre centralizado).
     SHOULDER_OFFSET: 0.4,
     // Colisão da câmera orbital (docs/backlog.md → "Câmera orbital com
     // colisão"): raycast do alvo até a posição desejada da câmera; batendo
@@ -203,6 +217,37 @@ export const GAME_CONFIG = {
     // precisa poder chegar bem mais perto do que o zoom mínimo normal.
     COLLISION_MARGIN: 0.3,
     MIN_DISTANCE_AFTER_COLLISION: 0.5,
+    // Câmera do modo Scan (item categoria `scanner`, botão direito
+    // SEGURADO — ver `view/systems/cameraFollowSystem.js`,
+    // `core/systems/scannerModeSystem.js`, docs/features/033-*.md) —
+    // seção própria, separada da câmera orbital de terceira pessoa
+    // acima (nada aqui afeta o comportamento fora do modo Scan). Sem
+    // zoom (removido — o usuário testou e não gostou do comportamento,
+    // pediu de volta só o essencial): dois parâmetros, um offset fixo
+    // e os limites de pitch.
+    SCAN: {
+      // Deslocamento FIXO da câmera pra FRENTE (na direção que ela
+      // olha, `computeOrbitForward`) — único posicionamento que este
+      // modo tem. Pedido do usuário: "o problema atual é que, quando o
+      // personagem se movimenta... partes da própria malha acabam
+      // aparecendo/vazando na câmera... uma solução simples é
+      // posicionar a câmera um pouco à frente da posição atual dela...
+      // não quero uma solução baseada em esconder partes do model, a
+      // ideia é resolver isso pelo posicionamento da câmera". `0` =
+      // sem deslocamento (câmera na posição "olho" pura — bem
+      // provável que veja o próprio pescoço/cabelo do model);
+      // positivo empurra pra frente do modelo. Valor de partida — sem
+      // navegador neste sandbox, ajustar ao vivo (menu de pausa →
+      // Configurações) até nenhuma parte do model aparecer, inclusive
+      // nos extremos de PITCH_MIN/PITCH_MAX abaixo.
+      CAMERA_OFFSET_FORWARD: 1.2,
+      // Limites do pitch (ângulo vertical) só neste modo — independente
+      // de MIN_PITCH/MAX_PITCH acima (terceira pessoa continua com o
+      // range de sempre). Mesma convenção de sinal de MIN_PITCH/
+      // MAX_PITCH (ver comentário acima).
+      PITCH_MIN: -0.5,
+      PITCH_MAX: 1,
+    },
   },
   // Sem seção AUDIO aqui de propósito — volume/alcance/intervalo de som
   // (passo, voz, ambiente) moram todos junto do PRÓPRIO som que

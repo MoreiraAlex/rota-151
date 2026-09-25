@@ -21,7 +21,7 @@
  *   cena-e-texturas.md.
  */
 
-const WILD_CREATURE_COUNT = 0
+const WILD_CREATURE_COUNT = 5
 
 const WILD_CREATURE_SPECIES = [
   'bulbasaur',

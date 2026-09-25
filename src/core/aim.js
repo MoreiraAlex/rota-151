@@ -41,17 +41,11 @@ export function resolveCameraYaw(world) {
  * mirando) evita que o raio acerte a própria entidade — ele passa bem na
  * frente do próprio corpo, já que a câmera olha mais ou menos pra lá, e
  * também é usado na PRÓPRIA correção de colisão da câmera, pelo mesmo
- * motivo. `aimRange` vem de `getPlayerSpecies().
- * actions.throw` — mirar só existe pro treinador (`aimAnchorSystem.js`
- * bloqueia explicitamente pra qualquer `SummonedCreature`, mesmo
- * controlada — ver docs/features/018-troca-de-controle-treinador-
- * criatura.md), então resolver pela espécie fixa do jogador é seguro
- * aqui, não pela entidade que chamou.
- *
- * Compartilhado entre `playerActionSystem` (mira do arremesso) e
- * `aimAnchorSystem` (ponto de referência pra orbitar ao mirar — ver
- * docs/features/016-mira-e-arremesso.md) — os dois precisam exatamente do
- * mesmo ponto, então é uma função só, não duas contas que podem divergir.
+ * motivo. `aimRange` vem de `getPlayerSpecies().actions.throw` — só o
+ * treinador arremessa/invoca de verdade (`playerActionSystem.js`/
+ * `partySummonSystem.js`, os únicos chamadores; uma `SummonedCreature`
+ * nunca chega a usar isto), então resolver pela espécie fixa do jogador é
+ * seguro aqui, não pela entidade que chamou.
  *
  * Sem câmera no world (não deveria acontecer no jogo real, só teoricamente
  * em teste isolado), cai num ponto "à frente" arbitrário.
@@ -109,9 +103,7 @@ export function resolveAimPoint(world, playerPos, excludeColliderHandle) {
   // Mira é exclusiva do treinador (ver docstring acima) — resolve a
   // ALTURA/desvio de ombro pela espécie FIXA do jogador
   // (`playerSpecies.camera`, com fallback pro default global em
-  // `computeAimRay` se ausente), não pela entidade controlada agora (a
-  // mira só existe enquanto o treinador está no controle mesmo, ver
-  // `aimAnchorSystem.js`).
+  // `computeAimRay` se ausente), não pela entidade controlada agora.
   const { origin, direction } = computeAimRay(
     playerPos,
     orbit,
