@@ -10,8 +10,10 @@ export const SCRATCH_ATTACK = {
   duration: 0.5,
   effectAt: 0.25,
   range: 1.4,
+  aim: 'melee',
+  castMode: 'instant',
   radius: 0.3,
-  staminaCost: 0.5,
+  staminaCost: 0.25,
   cooldown: 0,
   visual: {
     effectGroup: 'scratch',
@@ -49,7 +51,9 @@ export const SCRATCH_ATTACK = {
     // não por ataque específico ainda). Ver `../_template/index.js`.
     clipKey: 'attack',
   },
-  // Sistema de batalha ainda não desenhado (ver `stats`/`moves` vazios em
-  // `core/data/species/*/index.js`) — placeholder, mesmo espírito.
-  damage: null,
+  // Físico, poder 40 — mesmo valor do "Arranhão" (Scratch) de verdade nos
+  // jogos originais. Sem tipo definido ainda (nenhuma espécie declara
+  // `types`, ver `core/data/species/_template/index.js`) — estrutura
+  // pronta pro STAB quando tipo existir, sem efeito nenhum por enquanto.
+  damage: { power: 5, category: 'physical', type: null },
 }

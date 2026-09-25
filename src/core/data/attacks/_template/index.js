@@ -41,15 +41,32 @@ export const ATTACK_TEMPLATE = {
   // (VFX nasce, som toca) — não é keyframe de clipe, é config do próprio
   // ataque.
   effectAt: 0.25,
-  // Alcance (m): distância até o CENTRO da área efetiva, na direção que
-  // a câmera aponta (3D completo, com inclinação — `resolveAimDirection`,
-  // core/aim.js). Respeitando o TRAJETO — um obstáculo no meio do caminho
-  // encurta isso de verdade (`resolveAttackImpactPoint`,
-  // creatureAttackSystem.js), não "teleporta" através dele.
+  // Alcance (m) da trajetória, medido na HORIZONTAL (combate 2.5D): o
+  // golpe anda isso mantendo a mesma altura acima do terreno, e para antes
+  // se encontrar parede ou desnível (`resolveAttackImpactPoint`,
+  // creatureAttackSystem.js) — não "teleporta" através de nada.
   range: 1.4,
-  // Raio (m) da área efetiva — uma esfera centrada no ponto `range` na
-  // direção do golpe. Sem detecção de acerto ainda (ver `damage` abaixo)
-  // — só dimensiona VFX/guia de debug (AttackRangeDebugView.jsx).
+  // Como o golpe mira (`resolveAttackDirection`, core/battle/attackAim.js)
+  // — sempre na horizontal, sem mira vertical:
+  // - 'melee': giro horizontal da câmera, puxado pro alvo dentro do cone
+  //   de `GAME_CONFIG.BATTLE.MELEE_AIM_HALF_ANGLE` quando houver.
+  // - 'ranged' (ou ausente): giro horizontal da câmera, sem assistência.
+  aim: 'melee',
+  // Como o botão lança o golpe (`creatureAttackSystem.js`):
+  // - 'confirm': o 1º aperto só mostra o indicador de alcance (leque azul,
+  //   `AttackIndicatorView.jsx`); clique ou a mesma tecla de novo lança,
+  //   botão direito cancela.
+  // - 'instant' (ou ausente): lança assim que aperta.
+  // O modo debug (F2) força 'confirm' em todo ataque. Uma criatura pode
+  // trocar só pra ela: `attacks.secondary1: { id, overrides: { castMode:
+  // 'instant' } }`.
+  castMode: 'confirm',
+  // Raio (m) da área efetiva — a "grossura" da trajetória inteira do
+  // golpe (uma cápsula da origem até o fim do `range`), não só da ponta.
+  // Dimensiona o VFX, o indicador de alcance (AttackIndicatorView.jsx) E a
+  // detecção de acerto de verdade (`resolveAttackTarget`,
+  // creatureAttackSystem.js — geométrica, soma este raio ao
+  // `capsuleRadius` do alvo, sem shape-query do Rapier).
   radius: 0.3,
   // Custo de stamina, descontado uma vez no disparo (não por segundo) —
   // mesmo padrão de GAME_CONFIG.PLAYER_ACTIONS.dash.STAMINA_COST/
@@ -123,11 +140,26 @@ export const ATTACK_TEMPLATE = {
     clipKey: 'attack',
   },
 
-  // === Futuro: dano e outros atributos do sistema de batalha ===
-  // `stats`/`moves` de espécie continuam vazios (core/data/species/
-  // _template/index.js) — o formato de dano ainda não foi desenhado.
-  // `null` por enquanto, mesmo espírito de placeholder.
-  damage: null,
+  // === Dano (core/battle/calculateDamage.js) ===
+  // `null` = ataque sem dano configurado ainda — `creatureAttackSystem.js`
+  // detecta o alvo dentro da área efetiva mas não aplica nada (mesmo
+  // fallback gracioso de sempre). Preenchendo:
+  damage: {
+    // Poder do golpe — entra direto na fórmula de dano. Ataques SEM poder
+    // definido usam `1` (default do parâmetro em `calculateDamage`).
+    power: 40,
+    // 'physical' (usa `attack`/`defense` da criatura) ou 'special' (usa
+    // `sp_atk`/`sp_def`) — decide qual par de status a fórmula usa. Sem
+    // este campo, `resolveDamageAmount` assume 'physical'.
+    category: 'physical',
+    // Tipo elemental do golpe (string livre, ex.: 'fire') — usado pro
+    // STAB (`resolveStab`) e, quando existir, efetividade de tipo
+    // (`resolveTypeEffectivenessMultiplier`). `null` = sem tipo definido
+    // ainda; como NENHUMA espécie declara `types` ainda (ver
+    // `core/data/species/_template/index.js`), isso hoje não muda nada
+    // na prática — estrutura pronta, sem inventar dado agora.
+    type: null,
+  },
 
   // === Visual do HUD (view/shared/statusDisplay.jsx, `AttackIcon`) ===
   // Opcional — sem isto, o ícone do slot (SkillsHud.jsx Q/E/R e

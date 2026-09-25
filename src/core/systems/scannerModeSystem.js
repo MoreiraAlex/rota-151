@@ -52,7 +52,7 @@ function resolveCreatureAt(world, colliderHandle) {
  * exatamente o mesmo valor utilizado pela lógica real de alcance do
  * Scan", docs/features/033-*.md) — mesmo padrão de
  * `resolveAttackImpactPoint` (`creatureAttackSystem.js`), já reusada
- * por `AttackRangeDebugView.jsx` pelo mesmo motivo. `item` pode ser
+ * por `AttackIndicatorView.jsx` pelo mesmo motivo. `item` pode ser
  * `null` (sem item scanner válido) — cai no alcance global
  * (`GAME_CONFIG.SCANNER.RANGE`), mesmo fallback de sempre.
  */

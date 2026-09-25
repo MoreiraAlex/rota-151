@@ -135,6 +135,12 @@ export const SPECIES_TEMPLATE = {
     // local, em unidades de mundo — não escala com `model.scale`). Ajusta
     // junto toda vez que capsuleRadius/capsuleHalfHeight/capsuleAxis mudam.
     modelOffset: [0, 0, 0],
+    // Opcional — de onde os ataques desta espécie saem, em metros ACIMA do
+    // centro da cápsula (`Position` é o centro, não o pé). Ausente = golpe
+    // sai do centro do corpo (`resolveAttackOrigin`,
+    // `core/battle/attackGeometry.js`). Útil quando o golpe devia sair da
+    // boca/mãos, bem acima do centro.
+    // attackOriginHeight: 0,
   },
   movement: {
     // Unidades por segundo (1 unidade = 1 metro).
@@ -345,4 +351,14 @@ export const SPECIES_TEMPLATE = {
   //      },
   stats: {},
   moves: [],
+  // Opcional — tipo(s) elemental(is) da espécie (1 ou 2, ex.:
+  // `['grass', 'poison']`), usado hoje só pro STAB (`resolveStab`,
+  // `core/battle/calculateDamage.js`) — `1.5` de dano quando o
+  // `damage.type` do ataque (`core/data/attacks/<id>/index.js`) bate com
+  // um destes. Ausente = sem STAB pra esta espécie (cai em `1`, mesmo
+  // fallback gracioso de sempre) — NENHUMA espécie declara isto ainda,
+  // já que nenhum ataque tem `damage.type` definido de verdade. Também
+  // fica pronto pra alimentar `resolveTypeEffectivenessMultiplier`
+  // (fraqueza/resistência/imunidade) quando essa tabela existir.
+  // types: ['grass', 'poison'],
 }

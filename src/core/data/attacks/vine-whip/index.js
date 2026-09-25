@@ -33,8 +33,10 @@ export const VINE_WHIP_ATTACK = {
   duration: 0.2,
   effectAt: 0.1,
   range: 2.2,
+  aim: 'melee',
+  castMode: 'confirm',
   radius: 0.35,
-  staminaCost: 0.5,
+  staminaCost: 0.25,
   cooldown: 0,
   visual: {
     effectGroup: 'vine-whip',
@@ -58,5 +60,8 @@ export const VINE_WHIP_ATTACK = {
   animation: {
     clipKey: 'attack',
   },
-  damage: null,
+  // Físico, poder 45 — mesmo valor de "Vine Whip" nos jogos originais
+  // (golpe físico apesar do tipo Grass). Ver comentário sobre `type:
+  // null` em `../scratch/index.js`.
+  damage: { power: 5, category: 'physical', type: null },
 }

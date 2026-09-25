@@ -6,6 +6,7 @@ import { createCharacterBody, verticalClearance } from '../physics/colliders'
 import {
   ActionState,
   AnimationState,
+  AttackAim,
   AttackCooldowns,
   CharacterController,
   HeldItem,
@@ -82,6 +83,7 @@ function spawnCreature(
     AnimationState,
     ActionState,
     AttackCooldowns,
+    AttackAim,
     Velocity,
     CharacterController(species.body),
     MovementStats(species.movement),

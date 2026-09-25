@@ -23,6 +23,8 @@ export const EMBER_ATTACK = {
   duration: 0.5,
   effectAt: 0.25,
   range: 3,
+  aim: 'ranged',
+  castMode: 'confirm',
   radius: 0.4,
   staminaCost: 4,
   cooldown: 2,
@@ -45,5 +47,7 @@ export const EMBER_ATTACK = {
   animation: {
     clipKey: 'attack',
   },
-  damage: null,
+  // Especial, poder 40 — mesmo valor de "Ember" nos jogos originais.
+  // Ver comentário sobre `type: null` em `../scratch/index.js`.
+  damage: { power: 40, category: 'special', type: null },
 }

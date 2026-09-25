@@ -10,8 +10,10 @@ export const PUNCH_ATTACK = {
   duration: 0.5,
   effectAt: 0.25,
   range: 1.4,
+  aim: 'melee',
+  castMode: 'confirm',
   radius: 0.3,
-  staminaCost: 0.5,
+  staminaCost: 0.25,
   cooldown: 0,
   visual: {
     effectGroup: 'punch',
@@ -37,5 +39,9 @@ export const PUNCH_ATTACK = {
   animation: {
     clipKey: 'attack',
   },
-  damage: null,
+  // Físico, poder 40 — mesma faixa de um soco básico nos jogos originais
+  // (ex.: "Comet Punch"/"Fire Punch" ficam entre 18 e 75; 40 como valor
+  // neutro de partida pro ataque comum genérico). Ver comentário sobre
+  // `type: null` em `../scratch/index.js`.
+  damage: { power: 5, category: 'physical', type: null },
 }

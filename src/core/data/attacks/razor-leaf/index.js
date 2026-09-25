@@ -3,8 +3,10 @@ export const RAZOR_LEAF_ATTACK = {
   duration: 0.5,
   effectAt: 0.25,
   range: 3,
+  aim: 'ranged',
+  castMode: 'confirm',
   radius: 0.4,
-  staminaCost: 4,
+  staminaCost: 2,
   cooldown: 2,
   visual: {
     effectGroup: 'punch',
@@ -25,5 +27,8 @@ export const RAZOR_LEAF_ATTACK = {
   animation: {
     clipKey: 'attack',
   },
-  damage: null,
+  // Físico, poder 55 — mesmo valor de "Razor Leaf" nos jogos originais
+  // (golpe físico apesar do tipo Grass). Ver comentário sobre `type:
+  // null` em `../scratch/index.js`.
+  damage: { power: 55, category: 'physical', type: null },
 }

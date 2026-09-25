@@ -28,11 +28,8 @@ export const DEFAULT_ATTACK_EFFECT_GROUP = 'punch'
  * override da criatura, ver docstring de `core/data/attacks/index.js`),
  * congelados no spawn:
  * - `radius` dimensiona o efeito, proporcional à área efetiva de
- *   verdade, sem herdar nenhum mecanismo de detecção de acerto/dano —
- *   esta feature é só o VFX + a visualização de debug do alcance/área
- *   (`AttackRangeDebugView.jsx`); aplicar dano de fato é trabalho futuro,
- *   quando o sistema de batalha (`stats`/`moves`, ainda vazios em toda
- *   espécie) for desenhado.
+ *   verdade — só visual; a detecção de acerto mora em
+ *   `resolveAttackTarget` (`creatureAttackSystem.js`).
  * - `effectGroup` diz QUAL visual usar (`attack.visual.effectGroup`) —
  *   vários ataques podem apontar pro mesmo grupo (`'punch'`/`'scratch'`,
  *   os dois que existem hoje), e a VIEW (`view/scene/AttackEffectView.jsx`,
@@ -115,4 +112,17 @@ export const AttackCooldowns = trait({
   secondary1: 0,
   secondary2: 0,
   secondary3: 0,
+})
+
+/**
+ * Slot cujo ataque está com o INDICADOR aberto, esperando confirmação
+ * (`'primary' | 'secondary1-3'`, ou `null` sem indicador). Só existe pra
+ * ataque com `castMode: 'confirm'` (`core/data/attacks/<id>/index.js`):
+ * apertar o botão abre o indicador; apertar de novo (ou clicar) lança.
+ *
+ * Dono de escrita: `creatureAttackSystem.js`. Leitor:
+ * `view/scene/AttackIndicatorView.jsx` (desenha o indicador).
+ */
+export const AttackAim = trait({
+  slot: null,
 })

@@ -13,6 +13,7 @@ export {
 export { AnimationState } from './components/animation'
 export { ActionState } from './components/action'
 export { Mood } from './components/mood'
+export { CombatMode } from './components/combatMode'
 export {
   Vitals,
   applyDamage,
@@ -36,6 +37,7 @@ export {
   AttackEffect,
   AttackPulse,
   AttackCooldowns,
+  AttackAim,
   DEFAULT_ATTACK_EFFECT_GROUP,
 } from './components/attackEffect'
 export { SummonedCreature } from './components/summonedCreature'

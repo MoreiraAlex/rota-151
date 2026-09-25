@@ -261,6 +261,9 @@ export function useAnimatedModel(entity, species) {
       : [['0', { path: texture }]]
 
     let cancelled = false
+    // Cópias de textura criadas por ESTA entidade (olho animado, abaixo) —
+    // dona do `dispose()` no cleanup.
+    const ownedTextures = []
     const materialIndexByMesh = new Map()
     let nextMaterialIndex = 0
     cloned.traverse((child) => {
@@ -269,13 +272,24 @@ export function useAnimatedModel(entity, species) {
 
     Promise.all(
       entries.map(([materialIndex, obj]) =>
-        loadTexture(obj.path).then((loaded) => {
+        loadTexture(obj.path).then((cached) => {
           // `loadTexture` já resolve `null` (em vez de rejeitar) numa carga
           // que falhou — precisa sair ANTES de mexer em propriedade de
           // textura, senão o `.then()` lança em cima de `null` e derruba o
           // `Promise.all` inteiro (nenhum material de NENHUM índice seria
           // aplicado, não só o que falhou).
-          if (!loaded) return [Number(materialIndex), null]
+          if (!cached || cancelled) return [Number(materialIndex), null]
+
+          // Olho animado (`eyeStates`): cópia PRÓPRIA da entidade. O cache
+          // (`textureCache.js`) devolve a MESMA textura pra toda criatura
+          // que carrega o arquivo, e o piscar mexe em `offset` a cada
+          // frame — compartilhada, cada criatura escrevia a sua célula por
+          // cima das outras (bug: olho alternando entre bravo e normal nas
+          // piscadas quando duas criaturas da espécie tinham humores
+          // diferentes). `clone()` reusa a imagem (não recarrega nem
+          // duplica na GPU); só o recorte (`offset`/`repeat`) fica próprio.
+          const loaded = obj.eyeStates ? cached.clone() : cached
+          if (loaded !== cached) ownedTextures.push(loaded)
 
           // `colorSpace`/`wrapS`/`wrapT`/`flipY` (default `true`) já vêm
           // setados por `loadTexture` (`textureCache.js`) — genéricos pra
@@ -367,9 +381,9 @@ export function useAnimatedModel(entity, species) {
 
       // Unidades de piscar — uma por textura carregada com `eyeStates`
       // (normalmente só o olho, mas sem travar em 1). `loaded` é a MESMA
-      // referência de textura atribuída como `.map` acima (textura não é
-      // clonada, só o material) — mutar `.offset` nela no `eyeBlinkSystem.js`
-      // já reflete direto, sem precisar re-consultar material nenhum.
+      // referência atribuída como `.map` acima — a cópia própria desta
+      // entidade (ver `ownedTextures`), então mutar `.offset` nela no
+      // `eyeBlinkSystem.js` reflete só nesta criatura.
       const eyeBlinkUnits = []
       for (const { loaded, obj } of textureByIndex.values()) {
         if (!obj.eyeStates) continue
@@ -396,6 +410,7 @@ export function useAnimatedModel(entity, species) {
     return () => {
       cancelled = true
       unregisterEyeBlink(entity)
+      for (const texture of ownedTextures) texture.dispose()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cloned, entity, species])

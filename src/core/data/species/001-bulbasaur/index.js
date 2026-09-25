@@ -106,8 +106,8 @@ export const BULBASAUR = {
     shoulderOffset: 0,
   },
   vitals: {
-    runStaminaDrainPerSecond: 1,
-    jumpStaminaCost: 3,
+    runStaminaDrainPerSecond: 0.25,
+    jumpStaminaCost: 1,
   },
   sounds: {
     footstepGroup: 'medium',
@@ -148,7 +148,7 @@ export const BULBASAUR = {
   // mais (sem `iv`/`stat`/`cp`, diferente de antes).
   stats: {
     hp: { base: HP, ev: HP_EV, regenPercent: 2, regenDelay: 5 },
-    energy: { regenPercent: 10, regenDelay: 3 },
+    energy: { regenPercent: 45, regenDelay: 2 },
     attack: { base: ATTACK, ev: ATTACK_EV },
     defense: { base: DEFENSE, ev: DEFENSE_EV },
     sp_atk: { base: SP_ATK, ev: SP_ATK_EV },

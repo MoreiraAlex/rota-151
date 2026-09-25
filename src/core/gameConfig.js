@@ -35,6 +35,85 @@ export const GAME_CONFIG = {
     // usuário). Ver `rollIndividualValues`, `core/data/species/stats.js`.
     IV_MIN: 0,
     IV_MAX: 31,
+    // Chance (0-1) de um ataque ser crítico (`critical = 2` na fórmula de
+    // dano, ver `core/battle/calculateDamage.js`) — 1/16, mesma taxa
+    // clássica das primeiras gerações de Pokémon. Decisão separada do
+    // cálculo de dano em si (pedido do usuário), sorteada com
+    // `gameplayRng` (`core/rng.js`) — regra 3.5, sem `Math.random()`.
+    CRITICAL_HIT_CHANCE: 1 / 16,
+    // Faixa do multiplicador aleatório de dano (`random` na fórmula),
+    // mesma convenção clássica (85%-100%). Ver `rollDamageRandomFactor`.
+    DAMAGE_RANDOM_MIN: 0.85,
+    DAMAGE_RANDOM_MAX: 1,
+    // Status ofensivo/defensivo usado no cálculo de dano quando a
+    // espécie ainda não migrou pro formato `stats.<key>.base`
+    // (`fox`/`wolf`/seus clones `fox-red/green/blue` — ver
+    // `resolveCreatureStats`, `core/data/species/stats.js`). Sem isso,
+    // um ataque dessas criaturas não causaria dano nenhum; com o
+    // fallback, causa um dano neutro/mediano — mesmo "fallback
+    // gracioso" que `resolveMaxHp`/`resolveMaxStamina` já usam pra essas
+    // mesmas espécies.
+    FALLBACK_COMBAT_STAT: 50,
+    // Assistência de mira dos golpes corpo a corpo (`attack.aim:
+    // 'melee'`, ver `core/battle/attackAim.js`): meio-ângulo (radianos)
+    // do cone horizontal, em volta de pra onde a câmera aponta, onde um
+    // alvo ao alcance e no mesmo plano de combate "puxa" o giro do golpe.
+    // 45° = cone de 90° no total. Valor de partida, ajustar jogando.
+    MELEE_AIM_HALF_ANGLE: Math.PI / 4,
+    // Segundos sem lançar ataque até a criatura sair do modo combate
+    // (`CombatMode`, `combatModeSystem.js`) — cada ataque reinicia a conta.
+    COMBAT_MODE_TIMEOUT: 10,
+    // Combate 2.5D (`core/battle/attackGeometry.js`): diferença máxima
+    // (m) entre as elevações dos pés de atacante e alvo, cada uma medida
+    // em relação ao terreno logo abaixo dela. Acima disso, o alvo está
+    // fora do plano de combate (ex.: pulando alto).
+    MAX_COMBAT_HEIGHT_DIFF: 1.0,
+    // Até onde (m) procurar o chão abaixo de uma criatura pra medir a
+    // elevação dos pés — sem chão nesse alcance, conta como no chão.
+    GROUND_PROBE_DISTANCE: 20,
+    // Espaçamento (m) das amostras de terreno ao longo da trajetória do
+    // golpe (`resolveAttackImpactPoint`, creatureAttackSystem.js) — o
+    // golpe acompanha rampas e para em desnível/parede entre amostras.
+    ATTACK_PATH_SAMPLE_STEP: 0.25,
+  },
+  // Retorno visual de combate (view — consome eventos de `core/events/`).
+  FEEDBACK: {
+    // Brilho rápido no modelo de quem toma dano (`hitFlashSystem.js`):
+    // acende na cor/intensidade abaixo e apaga ao longo de DURATION (s).
+    HIT_FLASH: {
+      DURATION: 0.15,
+      COLOR: '#ffffff',
+      INTENSITY: 0.8,
+    },
+    // Número de dano subindo acima de quem apanhou (`damageNumberSystem.js`
+    // + `DamageNumbersView.jsx`). Crítico fica mais tempo, maior e com
+    // rótulo próprio (visual na view).
+    DAMAGE_NUMBER: {
+      // Quantos números podem estar na tela ao mesmo tempo — pool de
+      // tamanho fixo (regra de efeito visual frequente); cheio, o mais
+      // antigo é reaproveitado.
+      POOL_SIZE: 24,
+      // Segundos na tela (normal / crítico).
+      LIFETIME: 0.9,
+      CRIT_LIFETIME: 1.2,
+      // Quanto (m) o número sobe ao longo da vida.
+      RISE: 0.9,
+      // Folga (m) acima do topo do corpo do alvo onde o número nasce.
+      HEAD_MARGIN: 0.2,
+      // Afastamento lateral (m) entre números seguidos no mesmo alvo, pra
+      // golpes rápidos não empilharem um em cima do outro.
+      SPREAD: 0.25,
+    },
+    // Indicador de alcance antes de lançar (`castMode: 'confirm'`,
+    // `AttackIndicatorView.jsx`): leque azulado no chão, estilo LoL.
+    ATTACK_INDICATOR: {
+      FILL_COLOR: '#3fa9ff',
+      FILL_OPACITY: 0.28,
+      EDGE_COLOR: '#a6dcff',
+      EDGE_OPACITY: 0.9,
+      // Altura (m) acima do chão — evita o leque "piscar" dentro do chão.
+      GROUND_LIFT: 0.03,
+    },
   },
   // Modo scanner (item categoria `scanner`, ex.: Pokédex) —
   // `scannerModeSystem.js`, docs/features/031-*.md/032-*.md. Genérico
@@ -197,7 +276,7 @@ export const GAME_CONFIG = {
     // Fator de suavização do acompanhamento (maior = mais rígido).
     SMOOTHING: 12,
     // Altura do ponto de mira acima da origem do alvo.
-    TARGET_HEIGHT: 1.5,
+    // TARGET_HEIGHT: 1.5,
     // Deslocamento lateral (m) do ponto que a câmera mira, em relação ao
     // alvo — usado tanto na resolução do ponto de mira (`computeAimRay`,
     // arremesso/esfera de invocar) quanto no enquadramento renderizado de
@@ -205,7 +284,7 @@ export const GAME_CONFIG = {
     // centro da tela) não se move, mas o personagem sai do centro, dando
     // o enquadramento "sobre o ombro" de verdade. 0 desativa o efeito por
     // completo (personagem sempre centralizado).
-    SHOULDER_OFFSET: 0.4,
+    // SHOULDER_OFFSET: 0.4,
     // Colisão da câmera orbital (docs/backlog.md → "Câmera orbital com
     // colisão"): raycast do alvo até a posição desejada da câmera; batendo
     // em algo antes de `orbit.distance`, a câmera aproxima pra logo antes

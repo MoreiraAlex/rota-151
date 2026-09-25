@@ -4,6 +4,7 @@ import { makeWorld } from '@/test/makeWorld'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import {
   ActionState,
+  AttackAim,
   AttackCooldowns,
   SummonBall,
   SummonedCreature,
@@ -136,6 +137,7 @@ describe('summonBallSystem', () => {
     // desacoplado deste system de verdade.
     expect(creature.has(ActionState)).toBe(true)
     expect(creature.has(AttackCooldowns)).toBe(true)
+    expect(creature.has(AttackAim)).toBe(true)
     expect(player.has(SummonPulse)).toBe(true)
 
     // Clarão de abertura (SummonFlash) nasce exatamente onde a criatura pousou.

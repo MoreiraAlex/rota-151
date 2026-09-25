@@ -11,7 +11,6 @@ import { GameLoop } from '@/view/loop/GameLoop'
 import { GameScene } from '@/view/scene/GameScene'
 import { PhysicsDebugView } from '@/tools/debug/PhysicsDebugView'
 import { PathfindingDebugView } from '@/tools/debug/PathfindingDebugView'
-import { AttackRangeDebugView } from '@/tools/debug/AttackRangeDebugView'
 import { ScanRangeDebugView } from '@/tools/debug/ScanRangeDebugView'
 import { DebugPanel } from '@/tools/debug/DebugPanel'
 import { PauseMenu } from '@/tools/menu/PauseMenu'
@@ -214,13 +213,13 @@ export default function GamePage() {
       >
         <Canvas shadows>
           {showDebug && <Stats />}
-          <GameLoop />
+          {/* Modo debug força o indicador antes de todo ataque. */}
+          <GameLoop castModeOverride={showDebug ? 'confirm' : null} />
           <GameScene>
             {showDebug && (
               <>
                 <PhysicsDebugView />
                 <PathfindingDebugView />
-                <AttackRangeDebugView />
                 <ScanRangeDebugView />
               </>
             )}

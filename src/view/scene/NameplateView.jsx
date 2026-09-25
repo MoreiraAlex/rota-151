@@ -131,8 +131,8 @@ function resolveEntitySpecies(entity) {
  * quebrando o `syncTransformSystem` pra ele. Em vez disso, `useFrame`
  * próprio lê `entity.get(Position)` direto e escreve na posição do
  * grupo — mesma técnica (e mesmo motivo: overlay cosmético que só
- * ACOMPANHA a posição, nunca a escreve) que `AttackRangeDebugView.jsx`
- * já usa. A etiqueta fica um pouco ACIMA do topo da cápsula
+ * ACOMPANHA a posição, nunca a escreve) que `AttackIndicatorView.jsx`
+ * também usa. A etiqueta fica um pouco ACIMA do topo da cápsula
  * (`verticalClearance`, `core/physics/colliders.js`) + `HEAD_MARGIN`.
  *
  * Vida/stamina lidas via `useTrait` — `vitalsRegenSystem.js` MUTA os
@@ -207,13 +207,13 @@ function NameplateView({ entity, species }) {
             )}
           </div>
           <VitalBar
-            height={2}
+            height={0.75}
             value={vitals.hp}
             max={vitals.maxHp}
             colorClass="bg-emerald-500"
           />
           <VitalBar
-            height={1}
+            height={0.25}
             value={vitals.stamina}
             max={vitals.maxStamina}
             colorClass="bg-sky-400"

@@ -8,6 +8,7 @@ import { movementSystem } from '@/core/systems/movementSystem'
 import { playerActionSystem } from '@/core/systems/playerActionSystem'
 import { scannerModeSystem } from '@/core/systems/scannerModeSystem'
 import { creatureAttackSystem } from '@/core/systems/creatureAttackSystem'
+import { combatModeSystem } from '@/core/systems/combatModeSystem'
 import { attackEffectSystem } from '@/core/systems/attackEffectSystem'
 import { partySummonSystem } from '@/core/systems/partySummonSystem'
 import { summonBallSystem } from '@/core/systems/summonBallSystem'
@@ -37,6 +38,8 @@ import { mouthSyncSystem } from '@/view/systems/mouthSyncSystem'
 import { summonAudioSystem } from '@/view/systems/summonAudioSystem'
 import { recallAudioSystem } from '@/view/systems/recallAudioSystem'
 import { attackAudioSystem } from '@/view/systems/attackAudioSystem'
+import { hitFlashSystem } from '@/view/systems/hitFlashSystem'
+import { damageNumberSystem } from '@/view/systems/damageNumberSystem'
 
 let registered = false
 
@@ -149,6 +152,8 @@ export function registerGameSystems() {
   registerSystem(GAME_PHASES.SIMULATION, playerActionSystem)
   registerSystem(GAME_PHASES.SIMULATION, scannerModeSystem)
   registerSystem(GAME_PHASES.SIMULATION, creatureAttackSystem)
+  // Depois do ataque: um golpe neste tick renova o combate antes de contar.
+  registerSystem(GAME_PHASES.SIMULATION, combatModeSystem)
   registerSystem(GAME_PHASES.SIMULATION, projectileSystem)
   registerSystem(GAME_PHASES.SIMULATION, consumeEffectSystem)
   registerSystem(GAME_PHASES.SIMULATION, attackEffectSystem)
@@ -177,6 +182,11 @@ export function registerGameSystems() {
   registerSystem(GAME_PHASES.PRESENTATION, summonAudioSystem)
   registerSystem(GAME_PHASES.PRESENTATION, recallAudioSystem)
   registerSystem(GAME_PHASES.PRESENTATION, attackAudioSystem)
+  // Brilho em quem tomou dano — consome `attackResolved` de
+  // `context.frameEvents` (ver `GameLoop.jsx`).
+  registerSystem(GAME_PHASES.PRESENTATION, hitFlashSystem)
+  // Número de dano acima de quem apanhou — mesmo evento.
+  registerSystem(GAME_PHASES.PRESENTATION, damageNumberSystem)
   registerSystem(GAME_PHASES.PRESENTATION, eyeBlinkSystem)
   registerSystem(GAME_PHASES.PRESENTATION, mouthSyncSystem)
 }

@@ -72,23 +72,32 @@ export function resolveCameraYaw(world) {
  * posicionamento da câmera em relação ao modelo jogável, para cada
  * espécie" (docs/features/026-preparo-do-treinador-boy.md). Diferente de
  * `resolveAimPoint` (sempre o treinador), quem chama esta função pode ser
- * QUALQUER entidade controlada (`creatureAttackSystem.js`,
- * `AttackRangeDebugView.jsx`) — cada chamador resolve a altura certa pra
+ * QUALQUER entidade controlada (`resolveAttackDirection`,
+ * `core/battle/attackAim.js`) — cada chamador resolve a altura certa pra
  * SUA própria espécie (`species.camera.targetHeight`) e passa aqui, já
- * que esta função em si não sabe quem é `originPos`.
+ * que esta função em si não sabe quem é `originPos`. `shoulderOffset`
+ * segue a mesma regra (`species.camera.shoulderOffset`) — a mira tem que
+ * usar o MESMO enquadramento que a câmera renderiza pra essa espécie
+ * (`cameraFollowSystem.js`), senão a direção sai deslocada do que se vê.
  */
 export function resolveAimDirection(
   world,
   originPos,
   excludeColliderHandle,
   targetHeight,
+  shoulderOffset,
 ) {
   const cameraRig = world.queryFirst(OrbitCamera)
   if (!cameraRig) return { x: 0, y: 0, z: 1 }
 
   const orbit = cameraRig.get(OrbitCamera)
-  return computeAimRay(originPos, orbit, excludeColliderHandle, targetHeight)
-    .direction
+  return computeAimRay(
+    originPos,
+    orbit,
+    excludeColliderHandle,
+    targetHeight,
+    shoulderOffset,
+  ).direction
 }
 
 export function resolveAimPoint(world, playerPos, excludeColliderHandle) {

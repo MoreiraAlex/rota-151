@@ -50,6 +50,10 @@ export const SQUIRTLE = {
             open: { x: -0.5, y: 0 },
             closed: { x: -0.5, y: 0.5 },
           },
+          angry: {
+            open: { x: 0, y: 0 },
+            closed: { x: 0.5, y: 0.75 },
+          },
         },
         blink: { minInterval: 2, maxInterval: 6, closedDuration: 0.15 },
       },
@@ -78,8 +82,8 @@ export const SQUIRTLE = {
     shoulderOffset: 0,
   },
   vitals: {
-    runStaminaDrainPerSecond: 1,
-    jumpStaminaCost: 3,
+    runStaminaDrainPerSecond: 0.25,
+    jumpStaminaCost: 1,
   },
   sounds: {
     footstepGroup: 'medium',
@@ -117,7 +121,7 @@ export const SQUIRTLE = {
   // `resolveCreatureStats` (`../stats.js`) — nada pré-calculado aqui.
   stats: {
     hp: { base: HP, ev: HP_EV, regenPercent: 2, regenDelay: 5 },
-    energy: { regenPercent: 10, regenDelay: 3 },
+    energy: { regenPercent: 45, regenDelay: 2 },
     attack: { base: ATTACK, ev: ATTACK_EV },
     defense: { base: DEFENSE, ev: DEFENSE_EV },
     sp_atk: { base: SP_ATK, ev: SP_ATK_EV },

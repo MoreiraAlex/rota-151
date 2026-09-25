@@ -27,6 +27,8 @@ export const WHIRLPOOL_ATTACK = {
   duration: 0.6,
   effectAt: 0.3,
   range: 1.6,
+  aim: 'ranged',
+  castMode: 'confirm',
   radius: 0.5,
   staminaCost: 4,
   cooldown: 2,
@@ -49,5 +51,7 @@ export const WHIRLPOOL_ATTACK = {
   animation: {
     clipKey: 'attack',
   },
-  damage: null,
+  // Especial, poder 35 — mesmo valor clássico de "Whirlpool" nos jogos
+  // originais. Ver comentário sobre `type: null` em `../scratch/index.js`.
+  damage: { power: 35, category: 'special', type: null },
 }

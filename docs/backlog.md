@@ -121,10 +121,11 @@ de puxar ela pra frente.
       (`actions.attack`) por espécie, mesmo padrão de `actions.throw`/
       `.consume` do treinador — hoje com valores idênticos em toda
       espécie, já preparado pra divergir de verdade quando golpes próprios
-      existirem. Sem dano/detecção de acerto (espera o sistema de batalha)
-      e sem animação específica por criatura ainda (arquitetura pronta pra
-      receber `clips.attack` quando existir — trabalho em paralelo). Q/E/R
-      continuam reservados, sem comportamento.
+      existirem. Sem animação específica por criatura ainda (arquitetura
+      pronta pra receber `clips.attack` quando existir — trabalho em
+      paralelo). Q/E/R continuam reservados, sem comportamento. Dano e
+      detecção de acerto entregues depois, em
+      `docs/features/030-sistema-de-dano-de-ataques.md` (v0.0.30).
 
 ## Dados por espécie
 

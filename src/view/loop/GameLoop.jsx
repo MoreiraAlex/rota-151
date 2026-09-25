@@ -8,6 +8,7 @@ import { world } from '@/core/world/world'
 import { initPhysics, disposePhysics } from '@/core/physics/physicsWorld'
 import { createKeyboardInput } from '@/platform/input/keyboardInput'
 import { createPointerInput } from '@/platform/input/pointerInput'
+import { createEventQueue } from '@/core/events'
 import { registerGameSystems } from './registerSystems'
 
 const { FIXED_TIMESTEP, MAX_FRAME_TIME, MAX_STEPS_PER_FRAME } = GAME_CONFIG.LOOP
@@ -17,11 +18,23 @@ const { FIXED_TIMESTEP, MAX_FRAME_TIME, MAX_STEPS_PER_FRAME } = GAME_CONFIG.LOOP
  *
  * Passo fixo: input → simulation → events, com clamp contra "spiral of death".
  * Passo variável: presentation (sincronização visual e câmera).
+ *
+ * Eventos (`core/events/`): systems do passo fixo emitem em
+ * `context.events`; a fila é drenada UMA vez por frame, logo antes da
+ * apresentação, e a lista vai pra ela como `context.frameEvents` — assim
+ * um evento emitido em qualquer um dos passos fixos do frame é visto
+ * exatamente uma vez pelos efeitos visuais/sonoros. A fase `events` do
+ * passo fixo continua sem system (fica pra consumidor de GAMEPLAY).
+ *
+ * `castModeOverride` (prop, vira `context.settings.castModeOverride`):
+ * força o modo de lançamento de todo ataque (`creatureAttackSystem.js`) —
+ * a página passa `'confirm'` no modo debug (F2), `null` fora dele.
  */
-export function GameLoop() {
+export function GameLoop({ castModeOverride = null }) {
   const accumulator = useRef(0)
   const keyboard = useMemo(() => createKeyboardInput(), [])
   const pointer = useMemo(() => createPointerInput(), [])
+  const events = useMemo(() => createEventQueue(), [])
   const { camera, gl } = useThree()
 
   useEffect(() => {
@@ -52,6 +65,8 @@ export function GameLoop() {
         world,
         delta: FIXED_TIMESTEP,
         input: { ...keyboard.snapshot(), ...pointer.snapshot() },
+        events,
+        settings: { castModeOverride },
       })
       accumulator.current -= FIXED_TIMESTEP
       steps += 1
@@ -62,7 +77,7 @@ export function GameLoop() {
       accumulator.current = 0
     }
 
-    runRenderPipeline({ world, delta, camera })
+    runRenderPipeline({ world, delta, camera, frameEvents: events.drain() })
   })
 
   return null

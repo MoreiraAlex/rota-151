@@ -31,18 +31,25 @@ export function castRay(origin, direction, maxDistance, options = {}) {
   const world = getRapierWorld()
   if (!RAPIER || !world || maxDistance <= 0) return null
 
-  const { excludeColliderHandle } = options
+  const { excludeColliderHandle, terrainOnly = false } = options
   const excludeCollider =
     excludeColliderHandle != null && excludeColliderHandle >= 0
       ? world.getCollider(excludeColliderHandle)
       : undefined
+  // `terrainOnly`: só a geometria FIXA do nível (chão/obstáculos) — todo
+  // personagem é corpo cinemático (`createCharacterBody`), então fica de
+  // fora. Pra consultar a altura do terreno sem bater em criatura nenhuma.
+  const filterFlags = terrainOnly
+    ? RAPIER.QueryFilterFlags.EXCLUDE_KINEMATIC |
+      RAPIER.QueryFilterFlags.EXCLUDE_DYNAMIC
+    : undefined
 
   const ray = new RAPIER.Ray(origin, direction)
   const hit = world.castRay(
     ray,
     maxDistance,
     true,
-    undefined,
+    filterFlags,
     undefined,
     excludeCollider,
   )

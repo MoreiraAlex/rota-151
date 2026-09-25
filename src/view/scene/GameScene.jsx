@@ -8,8 +8,10 @@ import { SummonFlashesView } from './SummonFlashView'
 import { RecallBeamsView } from './RecallBeamView'
 import { ConsumeEffectsView } from './ConsumeEffectView'
 import { AttackEffectsView } from './AttackEffectView'
+import { AttackIndicatorView } from './AttackIndicatorView'
 import { CreaturesView, WildCreaturesView } from './CreatureView'
 import { NameplatesView } from './NameplateView'
+import { DamageNumbersView } from './DamageNumbersView'
 
 function obstacleRotation(rotation) {
   if (!rotation) return [0, 0, 0]
@@ -93,9 +95,11 @@ export function GameScene({ children }) {
       <RecallBeamsView />
       <ConsumeEffectsView />
       <AttackEffectsView />
+      <AttackIndicatorView />
       <CreaturesView />
       <WildCreaturesView />
       <NameplatesView />
+      <DamageNumbersView />
 
       {children}
     </>

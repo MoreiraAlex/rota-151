@@ -16,9 +16,7 @@ import {
 } from '@/core/traits'
 
 // Pequeno, fixo — só marca visualmente ONDE o alcance termina, não
-// escala com `range` (o comprimento da linha já é o alcance em si) —
-// mesma ideia de `RING_INNER/OUTER_RADIUS` em `AttackRangeDebugView.jsx`,
-// só que aqui o anel não precisa mudar de tamanho.
+// escala com `range` (o comprimento da linha já é o alcance em si).
 const MARKER_RADIUS = 0.15
 const MARKER_SEGMENTS = 16
 
@@ -27,7 +25,7 @@ const MARKER_SEGMENTS = 16
  * do Scan — pedido do usuário: "quando o modo Debug estiver ativo e o
  * jogador entrar no modo Scan, quero visualizar... o alcance máximo do
  * Scan" (ver docs/features/033-*.md). Mesmo padrão de
- * `AttackRangeDebugView.jsx`/`PathfindingDebugView.jsx` — só montada
+ * `PathfindingDebugView.jsx` — só montada
  * quando `showDebug` está ligado (`src/app/(auth)/page.js`), e mesmo
  * assim só VISÍVEL enquanto `ScanMode.active` for `true` (o group fica
  * `visible=false` o resto do tempo) — as duas condições do pedido
@@ -49,7 +47,7 @@ const MARKER_SEGMENTS = 16
  * real de alcance do Scan". `resolveScanRay` (`scannerModeSystem.js`)
  * é a MESMA função que o system de verdade chama pra montar o raio do
  * `castRay` — reaproveitada aqui, não recalculada, mesmo princípio de
- * `resolveAttackImpactPoint`/`AttackRangeDebugView.jsx`.
+ * `resolveAttackImpactPoint`/`AttackIndicatorView.jsx`.
  */
 export function ScanRangeDebugView() {
   const lineGeometryRef = useRef()
