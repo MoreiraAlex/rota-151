@@ -1,4 +1,4 @@
-import { InputControlled, CameraTarget, Party } from '../traits'
+import { InputControlled, CameraTarget, Fainted, Party } from '../traits'
 import { findSummoned } from './partySummonSystem'
 
 // Correspondência de slot pro pulso de input de troca (ver
@@ -65,7 +65,8 @@ export function controlSwitchSystem(context) {
   for (const { input: key, slot } of SLOT_SWITCH) {
     if (!input[key]) continue
     const creature = findSummoned(world, slot)
-    if (creature) switchControlTo(world, creature)
+    // Desmaiada não pode ser pilotada (`Fainted`).
+    if (creature && !creature.has(Fainted)) switchControlTo(world, creature)
     break // só um switchSlotN processado por tick
   }
 }

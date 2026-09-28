@@ -6,6 +6,41 @@ import RECALL_CLIP from './clips/recall.json'
 import FALL_CLIP from './clips/fall.json'
 import ROLL_CLIP from './clips/roll.json'
 
+// Olho do treinador — atlas `tr0001_00_eye_col_99.png`: o rosto inteiro
+// (os dois olhos) numa célula de 1/2 x 1/4, uma variação por linha na
+// metade esquerda (bravo, aberto, fechado); o resto é só pele. Os UVs dos
+// dois olhos no `.glb` caem no quarto de baixo; `rotation: 180` + o
+// `offset` de cada estado levam o recorte pra linha certa. Usado nos DOIS
+// materiais de olho (senão só um pisca).
+const EYE_TEXTURE = {
+  path: '/assets/textures/boy/default/tr0001_00_eye_col_99.png',
+  flipY: false,
+  center: { x: 0.5, y: 0.5 },
+  repeat: { x: 1, y: 1 },
+  rotation: 180,
+  eyeStates: {
+    awake: {
+      open: { x: -0.5, y: 0.25 },
+      closed: { x: -0.5, y: 0.5 },
+    },
+    angry: {
+      open: { x: -0.5, y: -0.01 },
+      closed: { x: -0.5, y: 0.5 },
+    },
+    // `sleeping` — o nome do humor em `Mood` (estava `sleep`, nunca batia).
+    sleeping: {
+      open: { x: -0.5, y: 0.5 },
+      closed: { x: -0.5, y: 0.5 },
+    },
+    faint: {
+      open: { x: -0.5, y: 0.5 },
+      closed: { x: -0.5, y: 0.5 },
+    },
+  },
+  // Irmão de `eyeStates` (dentro dele virava um "humor" e era ignorado).
+  blink: { minInterval: 2, maxInterval: 6, closedDuration: 0.15 },
+}
+
 export const BOY = {
   id: 'boy',
   dexNumber: null,
@@ -23,29 +58,10 @@ export const BOY = {
     scale: 0.015,
     texture: {
       0: { path: '/assets/textures/boy/default/tr0001_00_skin_col_99.png' },
-      1: { 
-        path: '/assets/textures/boy/default/tr0001_00_eye_col_99.png',
-        flipY: false,
-        center: {x: 0.5, y: 0.5},
-        repeat: {x: 1, y: 1},
-        rotation: 180,
-        eyeStates: {
-          awake: {
-            open: { x: -0.5, y: 0.25 },
-            closed: { x: -0.5, y: 0.5 },
-          },
-          angry: {
-            open: { x: -0.5, y: -0.01 },
-            closed: { x: -0.5, y: 0.5 },
-          },
-          sleep: {
-            open: { x: -0.5, y: 0.5 },
-            closed: { x: -0.5, y: 0.5 },
-          },
-          blink: { minInterval: 2, maxInterval: 6, closedDuration: 0.15 },
-        },
-      },
-      2: { path: '/assets/textures/boy/default/tr0001_00_eye_col_99.png' },
+      // Os dois olhos: material 1 = olho esquerdo (`Leye`), 2 = direito
+      // (`Reye`) — mesma textura e a mesma config (ver `EYE_TEXTURE`).
+      1: EYE_TEXTURE,
+      2: EYE_TEXTURE,
       3: { path: '/assets/textures/boy/default/tr0001_00_hair_col_99.png' },
       4: { path: '/assets/textures/boy/default/tr0001_00_cap_col_99.png' },
       6: { path: '/assets/textures/boy/default/tr0001_00_skin_col_99.png' },

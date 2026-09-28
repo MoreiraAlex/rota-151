@@ -11,6 +11,7 @@ import {
   Rotation,
   Velocity,
   WanderState,
+  WildBehavior,
   WildCreature,
 } from '@/core/traits'
 import { GAME_CONFIG } from '@/core/gameConfig'
@@ -38,6 +39,7 @@ function spawnWild(world, { position, wander }) {
     Rotation,
     Velocity,
     WildCreature({ speciesId: 'fox' }),
+    WildBehavior,
     MovementStats(getSpecies('fox').movement),
     PathState,
     PhysicsBody,
@@ -164,5 +166,19 @@ describe('wildWanderSystem', () => {
     tick(world)
 
     expect(creature.get(Velocity).z).not.toBeCloseTo(0)
+  })
+
+  it('não mexe em quem está perseguindo ou fugindo (movimento é do wildBehaviorSystem)', () => {
+    const world = spawnWorld()
+    const wild = spawnWild(world, {
+      position: { x: 0, y: 1, z: 0 },
+      wander: { targetX: 10, targetZ: 0, pauseTimer: 0 },
+    })
+    wild.set(WildBehavior, { state: 'chase' })
+    wild.set(Velocity, { x: 1.23, z: 4.56 })
+
+    tick(world)
+
+    expect(wild.get(Velocity)).toMatchObject({ x: 1.23, z: 4.56 })
   })
 })

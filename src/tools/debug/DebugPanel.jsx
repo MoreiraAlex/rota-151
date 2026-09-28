@@ -26,7 +26,7 @@ import {
   applyDamage,
 } from '@/core/traits'
 
-const MOOD_OPTIONS = ['awake', 'sleeping', 'angry']
+const MOOD_OPTIONS = ['awake', 'sleeping', 'angry', 'faint']
 
 const CREATURE_SPECIES = listSpecies().filter(
   (species) => resolveSpeciesKind(species) === 'pokemon',

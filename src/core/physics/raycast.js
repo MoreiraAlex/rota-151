@@ -1,4 +1,8 @@
-import { getRapier, getRapierWorld } from './physicsWorld'
+import {
+  getRapier,
+  getRapierWorld,
+  terrainOnlyFilterFlags,
+} from './physicsWorld'
 
 /**
  * Raycast contra o mundo físico (chão/obstáculos/cápsulas) — usado tanto
@@ -36,13 +40,9 @@ export function castRay(origin, direction, maxDistance, options = {}) {
     excludeColliderHandle != null && excludeColliderHandle >= 0
       ? world.getCollider(excludeColliderHandle)
       : undefined
-  // `terrainOnly`: só a geometria FIXA do nível (chão/obstáculos) — todo
-  // personagem é corpo cinemático (`createCharacterBody`), então fica de
-  // fora. Pra consultar a altura do terreno sem bater em criatura nenhuma.
-  const filterFlags = terrainOnly
-    ? RAPIER.QueryFilterFlags.EXCLUDE_KINEMATIC |
-      RAPIER.QueryFilterFlags.EXCLUDE_DYNAMIC
-    : undefined
+  // `terrainOnly`: só a geometria FIXA do nível (chão/obstáculos), sem
+  // bater em criatura nenhuma — pra consultar a altura do terreno.
+  const filterFlags = terrainOnly ? terrainOnlyFilterFlags() : undefined
 
   const ray = new RAPIER.Ray(origin, direction)
   const hit = world.castRay(

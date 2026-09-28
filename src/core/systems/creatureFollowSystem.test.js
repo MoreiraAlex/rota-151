@@ -13,6 +13,7 @@ import {
   Rotation,
   SummonedCreature,
   Velocity,
+  Vitals,
   WildCreature,
 } from '@/core/traits'
 import { GAME_CONFIG } from '@/core/gameConfig'
@@ -40,6 +41,7 @@ function spawnCreature(world, position) {
     // docs/features/018-troca-de-controle-treinador-criatura.md) — toda
     // SummonedCreature real também tem (partySummonSystem.js).
     CharacterController,
+    Vitals, // toda criatura real tem — correr gasta stamina dela
   )
 }
 
@@ -92,6 +94,29 @@ describe('creatureFollowSystem', () => {
     const vel = creature.get(Velocity)
     expect(vel.x).toBeCloseTo(-RUN_SPEED)
     expect(vel.z).toBeCloseTo(0)
+  })
+
+  it('correndo pra alcançar, gasta stamina (igual ao jogador)', () => {
+    const { world } = makeWorld({ playerPosition: { x: 0, y: 1, z: 0 } })
+    const creature = spawnCreature(world, { x: RUN_DISTANCE + 5, y: 1, z: 0 })
+    const before = creature.get(Vitals).stamina
+
+    for (let i = 0; i < 30; i++) tick(world)
+
+    expect(creature.get(Vitals).stamina).toBeLessThan(before)
+  })
+
+  it('sem stamina, anda (walkSpeed) mesmo longe — não corre de graça', () => {
+    const { world } = makeWorld({ playerPosition: { x: 0, y: 1, z: 0 } })
+    const creature = spawnCreature(world, { x: RUN_DISTANCE + 5, y: 1, z: 0 })
+    creature.set(Vitals, { stamina: 0, staminaRegenPercent: 0 })
+
+    for (let i = 0; i < 120; i++) tick(world)
+
+    const vel = creature.get(Velocity)
+    expect(Math.hypot(vel.x, vel.z)).toBeCloseTo(
+      getSpecies('fox').movement.walkSpeed,
+    )
   })
 
   it('gira em direção ao próprio movimento (suavizado por turnSpeed)', () => {
@@ -296,6 +321,7 @@ describe('creatureFollowSystem', () => {
       PathState,
       PhysicsBody,
       CharacterController,
+      Vitals,
     )
 
     tick(world)

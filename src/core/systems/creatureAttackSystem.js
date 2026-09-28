@@ -1,5 +1,5 @@
 import { resolveAttackDirection } from '../battle/attackAim'
-import { getSpecies } from '../data/species'
+import { getPlayerSpecies, getSpecies } from '../data/species'
 import { resolveCreatureAttack } from '../data/attacks'
 import { calculateAttackInterval, calculateStat } from '../data/species/stats'
 import { castRay } from '../physics/raycast'
@@ -16,6 +16,7 @@ import {
 import { GAME_CONFIG } from '../gameConfig'
 import { attackResolved } from '../events'
 import { entrarEmCombate } from '../actions/combat'
+import { isActiveCombatant } from '../battle/combatTargets'
 import { gameplayRng } from '../rng'
 import {
   ActionState,
@@ -25,15 +26,19 @@ import {
   AttackPulse,
   CharacterController,
   DEFAULT_ATTACK_EFFECT_GROUP,
+  Fainted,
   IndividualValues,
   InputControlled,
+  Party,
   PhysicsBody,
   Position,
   Rotation,
   SummonedCreature,
   Vitals,
+  WantsToAttack,
   WildCreature,
   applyDamage,
+  resolveCreatureSpeciesId,
 } from '../traits'
 
 const DEG_TO_RAD = Math.PI / 180
@@ -201,6 +206,30 @@ export function resolveAttackImpactPoint(
 }
 
 /**
+ * Percorre quem pode ser atingido, por lado: `'wild'` = selvagens (alvo
+ * do golpe das criaturas do time); `'player'` = lado do jogador —
+ * criaturas do time e o treinador (quem tem `Party`), alvo do golpe das
+ * selvagens. Nunca o próprio lado: sem fogo amigo.
+ */
+function forEachTargetCandidate(world, targetSide, visit) {
+  const sides =
+    targetSide === 'wild' ? [WildCreature] : [SummonedCreature, Party]
+  for (const side of sides) {
+    world
+      .query(side, Position, Rotation, CharacterController, Vitals)
+      .readEach(([, pos, rot, controller, vitals], entity) =>
+        visit(entity, pos, rot, controller, vitals),
+      )
+  }
+}
+
+/** Espécie de quem luta: a da criatura, ou a do treinador. */
+function resolveCombatantSpecies(entity) {
+  const speciesId = resolveCreatureSpeciesId(entity)
+  return speciesId ? getSpecies(speciesId) : getPlayerSpecies()
+}
+
+/**
  * Detecção de acerto ao longo da TRAJETÓRIA inteira do golpe (pedido do
  * usuário: "trajetória inteira"), não só na esfera da ponta — a área
  * efetiva vai de `origin` até `impactPoint` com raio `radius`.
@@ -235,62 +264,59 @@ export function resolveAttackTarget(
   impactPoint,
   radius,
   attackerElevation,
+  targetSide,
 ) {
   let best = null
 
-  world
-    .query(
-      WildCreature,
-      Position,
-      Rotation,
-      CharacterController,
-      Vitals,
-      IndividualValues,
-    )
-    .readEach(
-      ([creature, pos, rot, controller, vitals, individualValues], entity) => {
-        if (vitals.hp <= 0) return
-        if (
-          !isWithinCombatHeight(
-            attackerElevation,
-            resolveFootElevation(pos, controller),
-          )
+  forEachTargetCandidate(
+    world,
+    targetSide,
+    (entity, pos, rot, controller, vitals) => {
+      // Sem HP ou desmaiada (`Fainted`): não é mais alvo.
+      if (vitals.hp <= 0 || entity.has(Fainted)) return
+      if (
+        !isWithinCombatHeight(
+          attackerElevation,
+          resolveFootElevation(pos, controller),
         )
-          return
+      )
+        return
 
-        const capsule = resolveCapsuleSegment(pos, rot.y, controller)
-        const closest = closestPointsOnGroundPlane(
-          origin,
-          impactPoint,
-          capsule.a,
-          capsule.b,
-        )
-        if (closest.distance > radius + controller.capsuleRadius) return
+      const capsule = resolveCapsuleSegment(pos, rot.y, controller)
+      const closest = closestPointsOnGroundPlane(
+        origin,
+        impactPoint,
+        capsule.a,
+        capsule.b,
+      )
+      if (closest.distance > radius + controller.capsuleRadius) return
 
-        const isEarlier =
-          !best ||
-          closest.s < best.s ||
-          (closest.s === best.s && closest.distance < best.distance)
-        if (!isEarlier) return
+      const isEarlier =
+        !best ||
+        closest.s < best.s ||
+        (closest.s === best.s && closest.distance < best.distance)
+      if (!isEarlier) return
 
-        // Contato na altura da trajetória naquele ponto (não no Y zerado
-        // da conta no plano) — é onde um VFX de acerto deve nascer.
-        const pathY = origin.y + (impactPoint.y - origin.y) * closest.s
-        best = {
-          s: closest.s,
-          distance: closest.distance,
-          entity,
-          species: getSpecies(creature.speciesId),
-          vitals,
-          individualValues,
-          contactPoint: resolveContactPoint(
-            { ...closest.pointOnSecond, y: pathY },
-            { ...closest.pointOnFirst, y: pathY },
-            controller.capsuleRadius,
-          ),
-        }
-      },
-    )
+      // Contato na altura da trajetória naquele ponto (não no Y zerado da
+      // conta no plano) — é onde um VFX de acerto deve nascer.
+      const pathY = origin.y + (impactPoint.y - origin.y) * closest.s
+      best = {
+        s: closest.s,
+        distance: closest.distance,
+        entity,
+        species: resolveCombatantSpecies(entity),
+        vitals,
+        individualValues: entity.has(IndividualValues)
+          ? entity.get(IndividualValues)
+          : null,
+        contactPoint: resolveContactPoint(
+          { ...closest.pointOnSecond, y: pathY },
+          { ...closest.pointOnFirst, y: pathY },
+          controller.capsuleRadius,
+        ),
+      }
+    },
+  )
 
   if (!best) return null
   const { entity, species, vitals, individualValues, contactPoint } = best
@@ -368,11 +394,24 @@ function resolveCastableAttack(castContext, slot) {
 }
 
 /**
- * Lança o ataque do `slot` se der (`resolveCastableAttack`): trava a
- * ação, desconta stamina, trava cooldown e resolve a direção do golpe.
- * Devolve se lançou.
+ * Direção horizontal (unitária) de `from` até `to` — a mira da IA. Alvo em
+ * cima (distância ~0): mantém pra onde o corpo já está virado.
  */
-function tryStartAttack(castContext, slot) {
+function resolveDirectionTo(from, to, rot) {
+  const dx = to.x - from.x
+  const dz = to.z - from.z
+  const length = Math.hypot(dx, dz)
+  if (length < 1e-6) return { x: Math.sin(rot.y), y: 0, z: Math.cos(rot.y) }
+  return { x: dx / length, y: 0, z: dz / length }
+}
+
+/**
+ * Lança o ataque do `slot` se der (`resolveCastableAttack`): trava a
+ * ação, desconta stamina, trava cooldown e trava a direção do golpe.
+ * Devolve se lançou. `direction` (horizontal, unitária) é a mira pronta
+ * da IA; sem ela, mira pela câmera (`resolveAttackDirection` — jogador).
+ */
+function tryStartAttack(castContext, slot, direction = null) {
   const attack = resolveCastableAttack(castContext, slot)
   if (!attack) return false
 
@@ -391,18 +430,20 @@ function tryStartAttack(castContext, slot) {
 
   // Horizontal, com assistência no corpo a corpo — ver
   // `resolveAttackDirection` (`core/battle/attackAim.js`).
-  const direction = resolveAttackDirection(
-    world,
-    pos,
-    physicsBody.colliderHandle,
-    species,
-    attack,
-  )
-  action.dirX = direction.x
-  action.dirY = direction.y
-  action.dirZ = direction.z
+  const aim =
+    direction ??
+    resolveAttackDirection(
+      world,
+      pos,
+      physicsBody.colliderHandle,
+      species,
+      attack,
+    )
+  action.dirX = aim.x
+  action.dirY = aim.y
+  action.dirZ = aim.z
   // O corpo encara a direção do golpe (só gira em Y).
-  rot.y = Math.atan2(direction.x, direction.z)
+  rot.y = Math.atan2(aim.x, aim.z)
 
   // Todo ataque lançado põe (ou mantém) a criatura em modo combate.
   entrarEmCombate(castContext.entity)
@@ -450,7 +491,18 @@ function handleAttackPress(castContext, aim, input, castModeOverride) {
 }
 
 /**
- * Dispara e avança o ataque/skill de uma criatura controlada — botão
+ * Ataques de criatura — do time E selvagens — num system só, em quatro
+ * passadas por tick: (1) cooldowns de todo atacante; (2) disparo pelo
+ * input da criatura controlada; (3) disparo da IA — selvagem ou criatura
+ * do time fora do controle com `WantsToAttack` (posto pelo
+ * `wildBehaviorSystem.js`/`partyBehaviorSystem.js`) lança o ataque básico
+ * mirando no alvo do pedido (`tryStartAttack` com direção pronta — mesmo
+ * caminho, stamina/cooldown/modo combate iguais); (4)
+ * avanço do golpe de todo atacante. O golpe de criatura do time acerta
+ * selvagens; o de selvagem acerta o lado do jogador (criaturas do time e
+ * treinador) — `resolveAttackTarget`, `targetSide`.
+ *
+ * Disparo pelo input: dispara e avança o ataque/skill de uma criatura controlada — botão
  * ESQUERDO do mouse (`primary`, ataque comum) OU Q/E/R (`secondary1-3`,
  * skills — a partir da 9ª rodada de docs/features/025-ataque-comum-de-
  * criatura.md: "pode fazer as habilidades agora?"), sem precisar de
@@ -591,6 +643,17 @@ export function creatureAttackSystem(context) {
   const input = context.input ?? {}
   const castModeOverride = context.settings?.castModeOverride ?? null
 
+  // 1. Cooldowns de TODO atacante (criatura do time ou selvagem) — correm
+  // independente de qual ação está em andamento, antes de qualquer disparo.
+  world.query(AttackCooldowns).updateEach(([cooldowns]) => {
+    for (const { slot } of ATTACK_SLOTS) {
+      if (cooldowns[slot] > 0) {
+        cooldowns[slot] = Math.max(0, cooldowns[slot] - delta)
+      }
+    }
+  })
+
+  // 2. Disparo pelo input: a criatura que o jogador controla.
   world
     .query(
       InputControlled,
@@ -598,7 +661,6 @@ export function creatureAttackSystem(context) {
       ActionState,
       AttackCooldowns,
       AttackAim,
-      CharacterController,
       PhysicsBody,
       Vitals,
       Position,
@@ -612,7 +674,6 @@ export function creatureAttackSystem(context) {
           action,
           cooldowns,
           aim,
-          controller,
           physicsBody,
           vitals,
           pos,
@@ -621,16 +682,6 @@ export function creatureAttackSystem(context) {
         ],
         entity,
       ) => {
-        // Cooldown de cada slot corre INDEPENDENTE de qual ação está em
-        // andamento (ou se nenhuma está), e independente um do outro —
-        // por isso decrementados aqui, antes de qualquer guard clause
-        // abaixo, um de cada vez.
-        for (const { slot } of ATTACK_SLOTS) {
-          if (cooldowns[slot] > 0) {
-            cooldowns[slot] = Math.max(0, cooldowns[slot] - delta)
-          }
-        }
-
         const castContext = {
           entity,
           world,
@@ -659,10 +710,86 @@ export function creatureAttackSystem(context) {
         } else {
           handleAttackPress(castContext, aim, input, castModeOverride)
         }
+      },
+    )
 
+  // 3. Disparo da IA: criatura (selvagem, ou do time fora do controle)
+  // que pediu golpe (`WantsToAttack`, posto pelo `wildBehaviorSystem.js`/
+  // `partyBehaviorSystem.js`) lança o ataque básico mirando no alvo do
+  // pedido. Pedido que não dá pra atender agora (ocupada/stamina/
+  // cooldown, alvo fora da luta) é descartado — o comportamento pede de
+  // novo depois.
+  const requested = []
+  world
+    .query(
+      WantsToAttack,
+      ActionState,
+      AttackCooldowns,
+      PhysicsBody,
+      Vitals,
+      Position,
+      Rotation,
+      IndividualValues,
+    )
+    .updateEach(
+      (
+        [
+          request,
+          action,
+          cooldowns,
+          physicsBody,
+          vitals,
+          pos,
+          rot,
+          individualValues,
+        ],
+        entity,
+      ) => {
+        requested.push(entity)
+        const target = request.target
+        if (!isActiveCombatant(target)) return
+        const speciesId = resolveCreatureSpeciesId(entity)
+        if (!speciesId) return
+
+        const castContext = {
+          entity,
+          world,
+          species: getSpecies(speciesId),
+          individualValues,
+          action,
+          cooldowns,
+          vitals,
+          pos,
+          rot,
+          physicsBody,
+        }
+        tryStartAttack(
+          castContext,
+          'primary',
+          resolveDirectionTo(pos, target.get(Position), rot),
+        )
+      },
+    )
+  // Fora do `updateEach`: remover trait muda a query iterada.
+  for (const entity of requested) entity.remove(WantsToAttack)
+
+  // 4. Avanço do golpe de TODO atacante: impacto no `effectAt`, fim em
+  // `duration`. O golpe de uma criatura do time acerta selvagens; o de
+  // uma selvagem acerta o lado do jogador (criaturas do time e treinador).
+  world
+    .query(
+      ActionState,
+      CharacterController,
+      PhysicsBody,
+      Position,
+      IndividualValues,
+    )
+    .updateEach(
+      ([action, controller, physicsBody, pos, individualValues], entity) => {
         if (action.current !== 'attack') return
 
-        const species = getSpecies(creature.speciesId)
+        const species = getSpecies(resolveCreatureSpeciesId(entity))
+        const targetSide = entity.has(WildCreature) ? 'player' : 'wild'
         const ATTACK = resolveAttackForEntity(
           species,
           action.pendingSlot,
@@ -721,6 +848,7 @@ export function creatureAttackSystem(context) {
               impactPoint,
               ATTACK.radius,
               resolveFootElevation(pos, controller),
+              targetSide,
             )
             let amount = 0
             let critical = false

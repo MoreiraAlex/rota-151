@@ -5,8 +5,9 @@ const { WALK_MIN_SPEED, RUN_MIN_SPEED } = GAME_CONFIG.ANIMATION
 /**
  * Tabela de resolução de estado de animação — uma lista ordenada de
  * `{ id, when, oneShot? }`; a primeira cuja condição bate, vence. `ctx` é
- * `{ speed, grounded, action }` — `action` é o `ActionState.current` da
- * entidade (`null` quando livre).
+ * `{ speed, grounded, action, fainted }` — `action` é o
+ * `ActionState.current` da entidade (`null` quando livre); `fainted`, se
+ * ela tem `Fainted` (desmaiada).
  *
  * Cresce depois (mais estados, condições novas) sem trocar o formato. Ações
  * disparadas (dash, arremesso, invocar/recolher criatura, e no futuro uso/
@@ -26,6 +27,14 @@ const { WALK_MIN_SPEED, RUN_MIN_SPEED } = GAME_CONFIG.ANIMATION
  * início pra um ciclo de passada) e mantém a passada mais orgânica.
  */
 export const ANIMATION_STATES = [
+  // Desmaiada (`Fainted`, docs/features/031-ia-de-combate-e-desmaio.md)
+  // — antes de tudo: enquanto dura, nada mais decide a animação. Nenhuma
+  // espécie tem `clips.faint` ainda (animação a criar); até lá cai no
+  // fallback de "clipe ausente" (pose de descanso), igual 'recall'/'attack'.
+  // Cíclico (sem `oneShot`): fica deitada por tempo variável, sem
+  // `duration` de ação por trás — o clipe toca no `speed` do próprio JSON;
+  // a entrada é suavizada pelo crossfade (`BLEND_DURATION`).
+  { id: 'faint', when: (ctx) => ctx.fainted === true },
   { id: 'dash', oneShot: true, when: (ctx) => ctx.action === 'dash' },
   // 'summon' (invocar criatura, ver docs/features/017-locomocao-e-
   // recolhimento-de-criaturas.md) reusa o MESMO clipe/id do arremesso —

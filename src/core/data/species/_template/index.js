@@ -361,4 +361,10 @@ export const SPECIES_TEMPLATE = {
   // fica pronto pra alimentar `resolveTypeEffectivenessMultiplier`
   // (fraqueza/resistência/imunidade) quando essa tabela existir.
   // types: ['grass', 'poison'],
+  // Opcional — comportamento desta espécie quando nasce SELVAGEM
+  // (`WildBehavior`, `wildBehaviorSystem.js`). `hostileChance` (0-1) é a
+  // chance de cada indivíduo nascer hostil (persegue quem chega perto);
+  // senão nasce pacífico (só vaga; apanhando, revida ou foge). Ausente =
+  // `GAME_CONFIG.WILD_BEHAVIOR.DEFAULT_HOSTILE_CHANCE`.
+  // wild: { hostileChance: 0.5 },
 }

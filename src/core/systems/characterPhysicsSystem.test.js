@@ -25,6 +25,7 @@ import {
 import { quaternionFromAxisAngle } from '@/core/math'
 import { createCharacterBody } from '@/core/physics/colliders'
 import { getSpecies } from '@/core/data/species'
+import { desmaiar } from '@/core/actions/faint'
 import { inputSystem } from './inputSystem'
 import { physicsBootstrapSystem } from './physicsBootstrapSystem'
 import { cameraControlSystem } from './cameraControlSystem'
@@ -316,6 +317,11 @@ describe('characterPhysicsSystem + integração Rapier', () => {
     const { world, player } = makeWorld({
       playerPosition: { x: 0, y: 1, z: 0 },
     })
+    // Nível montado antes de criar o corpo da criatura na mão — criada
+    // antes do 1º tick, o `physicsBootstrapSystem` dava a ela um SEGUNDO
+    // corpo, e o primeiro ficava órfão no lugar (era ele que barrava o
+    // jogador, enquanto o corpo de verdade era empurrado).
+    run(world, 1)
     const creature = world.spawn(
       Position({ x: 3, y: 1, z: 0 }),
       Rotation,
@@ -340,5 +346,81 @@ describe('characterPhysicsSystem + integração Rapier', () => {
     // A criatura continua exatamente onde foi colocada — corpo cinemático
     // não é empurrado por colisão, só quem escreve a Velocity dele move.
     expect(creature.get(Position).x).toBeCloseTo(3, 1)
+  })
+
+  describe('criatura desmaiada no caminho', () => {
+    // Nível montado ANTES de criar o corpo dela na mão: o
+    // `physicsBootstrapSystem` cria um corpo pra todo `CharacterController`
+    // no 1º tick — criada antes, ela ficaria com dois (o da mão, órfão,
+    // viraria uma parede que o desmaio não desliga).
+    function spawnCreatureAhead(world) {
+      run(world, 1)
+      const creature = world.spawn(
+        Position({ x: 3, y: 1, z: 0 }),
+        Rotation,
+        Velocity,
+        MovementStats(FOX.movement),
+        Vitals,
+        PhysicsBody,
+        CharacterController(FOX.body),
+      )
+      creature.set(
+        PhysicsBody,
+        createCharacterBody(creature.get(Position), {
+          radius: FOX.body.capsuleRadius,
+          halfHeight: FOX.body.capsuleHalfHeight,
+          axis: FOX.body.capsuleAxis,
+        }),
+      )
+      return creature
+    }
+
+    it('o jogador passa por cima e ela não sai do lugar (não é empurrada)', () => {
+      const { world, player } = makeWorld({
+        playerPosition: { x: 0, y: 1, z: 0 },
+      })
+      const creature = spawnCreatureAhead(world)
+      run(world, 30) // assenta no chão
+      const resting = { ...creature.get(Position) }
+      desmaiar(world, creature)
+
+      run(world, 200, { right: true }) // reta contra ela, e além
+
+      expect(player.get(Position).x).toBeGreaterThan(4)
+      // Tolerância de 5cm: a cápsula deitada ainda assenta ~1cm no chão
+      // sozinha (acordada ou não). Empurrada, ia metros pra frente.
+      expect(creature.get(Position).x).toBeCloseTo(resting.x, 1)
+      expect(creature.get(Position).z).toBeCloseTo(resting.z, 1)
+    })
+
+    it('continua caindo e pisando no chão (só o terreno vale pra ela)', () => {
+      const { world } = makeWorld({ playerPosition: { x: -10, y: 1, z: 0 } })
+      run(world, 1)
+      const creature = world.spawn(
+        Position({ x: 3, y: 3, z: 0 }),
+        Rotation,
+        Velocity,
+        MovementStats(FOX.movement),
+        Vitals,
+        PhysicsBody,
+        CharacterController(FOX.body),
+      )
+      creature.set(
+        PhysicsBody,
+        createCharacterBody(creature.get(Position), {
+          radius: FOX.body.capsuleRadius,
+          halfHeight: FOX.body.capsuleHalfHeight,
+          axis: FOX.body.capsuleAxis,
+        }),
+      )
+      desmaiar(world, creature)
+
+      run(world, 180)
+
+      expect(creature.get(Position).y).toBeCloseTo(
+        restingHeightFor(FOX.body),
+        1,
+      )
+    })
   })
 })

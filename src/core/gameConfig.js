@@ -113,6 +113,11 @@ export const GAME_CONFIG = {
       EDGE_OPACITY: 0.9,
       // Altura (m) acima do chão — evita o leque "piscar" dentro do chão.
       GROUND_LIFT: 0.03,
+      // Desenha o leque por cima de tudo (sem teste de profundidade) — a
+      // criatura não tampa mais a parte embaixo dela. Efeito colateral:
+      // também aparece através de parede/obstáculo/terraço. `false` volta
+      // ao normal (tampado por quem estiver na frente).
+      ALWAYS_ON_TOP: true,
     },
   },
   // Modo scanner (item categoria `scanner`, ex.: Pokédex) —
@@ -202,6 +207,64 @@ export const GAME_CONFIG = {
     // sortear outro — trava de segurança contra destino praticamente
     // inalcançável (ver docstring de `WanderState.chaseTimer`).
     MAX_CHASE_TIME: 15,
+  },
+  // Comportamento das selvagens em relação ao lado do jogador
+  // (`wildBehaviorSystem.js`, `WildBehavior`). Distâncias no plano
+  // horizontal, entre a selvagem e o alvo dela (treinador ou criatura do
+  // time). Valores de partida.
+  WILD_BEHAVIOR: {
+    // Chance (0-1) de uma selvagem nascer hostil, pra espécie sem
+    // `wild.hostileChance` própria.
+    DEFAULT_HOSTILE_CHANCE: 0.5,
+    // Hostil começa a perseguir quem chegar a esta distância (m)...
+    AGGRO_RADIUS: 8,
+    // ...e só desiste passando dela + esta folga — sem a folga, parado bem
+    // na borda ela ficaria alternando entre perseguir e desistir.
+    AGGRO_EXIT_MARGIN: 1,
+    // Perseguindo, uma selvagem COM ataque básico para quando o alvo
+    // estiver a esta fração do alcance do golpe (range + radius + raio do
+    // corpo do alvo) — perto o bastante pra acertar com folga.
+    ATTACK_REACH_FRACTION: 0.8,
+    // Sem ataque básico configurado, para quando sobrar este vão (m) entre
+    // os corpos (bordas das cápsulas).
+    CHASE_STOP_GAP: 0.8,
+    // Segundos entre um pedido de golpe e o próximo, perseguindo.
+    ATTACK_INTERVAL: 1.2,
+    // Pacífica que apanha: chance (0-1) de revidar; senão, foge.
+    RETALIATE_CHANCE: 0.5,
+    // Quem persegue porque APANHOU (pacífica revidando, ou hostil atacada
+    // de longe) só desiste além desta distância (m).
+    RETALIATE_LEASH_RADIUS: 14,
+    // Fugindo: corre pra um ponto este tanto (m) à frente, na direção
+    // oposta ao jogador (recalculado sempre)...
+    FLEE_STEP: 6,
+    // ...até ficar a esta distância (m); aí volta a vagar dali.
+    FLEE_SAFE_DISTANCE: 14,
+  },
+  // IA das criaturas do time fora do controle do jogador — sempre
+  // defensiva (`partyBehaviorSystem.js`, `PartyBehavior`): entra na luta
+  // contra a selvagem que acertou alguém do grupo, só com o ataque básico.
+  PARTY_BEHAVIOR: {
+    // Segundos entre um pedido de golpe e o próximo. Mais lento que o
+    // jogador de propósito: a IA ajuda, quem decide a luta é quem joga.
+    ATTACK_INTERVAL: 1.5,
+    // Para quando o alvo estiver a esta fração do alcance do próprio
+    // ataque básico (mesma regra das selvagens, `WILD_BEHAVIOR`).
+    ATTACK_REACH_FRACTION: 0.8,
+    // Se afastou mais que isto (m, no plano) de quem segue (quem está no
+    // controle), larga a luta e volta a seguir.
+    LEASH_RADIUS: 15,
+  },
+  // Desmaio (`faintSystem.js`, `Fainted`): criatura (selvagem ou do time)
+  // que chega a 0 de HP.
+  FAINT: {
+    // Minutos desmaiada (intangível, sem regenerar) até acordar. Vale pra
+    // selvagem e pra do time (que conta mesmo depois de recolhida).
+    DURATION_MINUTES: 15,
+    // Fração (0-1) do HP máximo com que acorda.
+    REVIVE_HP_FRACTION: 0.15,
+    // Segundos desmaiada no chão antes do treinador recolher a do time.
+    PARTY_RECALL_DELAY: 2,
   },
   ANIMATION: {
     // Abaixo disso, considera parado (idle).

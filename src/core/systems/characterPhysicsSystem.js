@@ -10,13 +10,20 @@ import {
   MovementBlocked,
   Jumped,
   InputControlled,
+  Fainted,
 } from '../traits'
 import {
   isPhysicsReady,
   getRapierWorld,
   getCharacterController,
+  terrainOnlyFilterFlags,
 } from '../physics/physicsWorld'
 import { quaternionFromAxisAngle } from '../math'
+
+// Deslocamento horizontal pedido (m, no tick) abaixo do qual o personagem
+// conta como parado — `Velocity` zerada por quem controla, com folga pra
+// resto numérico.
+const STILL_REQUEST_EPSILON = 1e-6
 
 /**
  * Aplica gravidade e pulo à Velocity vertical, resolve o movimento do
@@ -71,12 +78,21 @@ import { quaternionFromAxisAngle } from '../math'
  * (evita razão instável perto de zero quando a entidade já está quase
  * parada).
  *
- * `computeColliderMovement` NÃO filtra outros personagens — colide contra
- * qualquer collider no caminho, jogador/criatura incluídos (pedido
- * explícito do usuário: personagens não podem se atravessar). Não esbarrar
- * feio nem empurrar em grupo é responsabilidade de EVASÃO PROATIVA
- * (`creatureFollowSystem.js` desvia de outros personagens próximos antes
- * de precisar colidir de verdade), não de fingir que a colisão não existe.
+ * Quem ANDA colide contra qualquer collider no caminho, jogador/criatura
+ * incluídos (pedido explícito do usuário: personagens não podem se
+ * atravessar). Não esbarrar feio nem empurrar em grupo é responsabilidade
+ * de EVASÃO PROATIVA (`creatureFollowSystem.js` desvia de outros
+ * personagens próximos antes de precisar colidir de verdade), não de
+ * fingir que a colisão não existe.
+ *
+ * Quem está PARADO no chão (sem deslocamento horizontal pedido,
+ * `STILL_REQUEST_EPSILON`) resolve o próprio movimento só contra o
+ * terreno (`terrainOnlyFilterFlags`) — sem isso, o controlador dele o
+ * tirava "de dentro" de quem encostasse, e correr contra uma criatura
+ * parada ficava empurrando ela (pedido do usuário: não pode empurrar).
+ * Quem anda contra ele continua barrado — a colisão é do lado de quem se
+ * move. Desmaiada (`Fainted`) é sempre assim (e intangível pros outros,
+ * collider desligado): só pisa no chão.
  *
  * Headless (Rapier-compat roda em Node). Fase: simulation, depois do
  * movementSystem/creatureFollowSystem e antes do physicsStepSystem.
@@ -132,11 +148,18 @@ export function characterPhysicsSystem(context) {
       const requestedX = vel.x * delta
       const requestedZ = vel.z * delta
 
-      controller.computeColliderMovement(collider, {
-        x: requestedX,
-        y: vel.y * delta,
-        z: requestedZ,
-      })
+      const requestedDistance = Math.hypot(requestedX, requestedZ)
+
+      // Parado no chão, ou desmaiada: só o terreno — não é empurrado por
+      // quem encosta/passa por cima (ver docstring).
+      const standingStill =
+        wasGrounded && requestedDistance < STILL_REQUEST_EPSILON
+      const terrainOnly = entity.has(Fainted) || standingStill
+      controller.computeColliderMovement(
+        collider,
+        { x: requestedX, y: vel.y * delta, z: requestedZ },
+        terrainOnly ? terrainOnlyFilterFlags() : undefined,
+      )
       const movement = controller.computedMovement()
       const translation = rigidBody.translation()
       rigidBody.setNextKinematicTranslation({
@@ -151,7 +174,6 @@ export function characterPhysicsSystem(context) {
       if (!isGrounded && wasGrounded) entity.remove(Grounded)
       if (isGrounded && vel.y < 0) vel.y = 0
 
-      const requestedDistance = Math.hypot(requestedX, requestedZ)
       const isBlocked =
         requestedDistance > cfg.CHARACTER.MIN_BLOCKED_CHECK_DISTANCE &&
         Math.hypot(movement.x, movement.z) / requestedDistance <

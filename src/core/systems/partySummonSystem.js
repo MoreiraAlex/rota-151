@@ -1,10 +1,15 @@
 import { getSpecies, getPlayerSpecies } from '../data/species'
 import { resolveAimPoint, resolveHandOrigin } from '../aim'
+import { GAME_CONFIG } from '../gameConfig'
 import { destroyCharacterBody } from '../physics/colliders'
+import { isPartySlotFainted } from './faintSystem'
 import {
   ActionState,
+  Fainted,
   InputControlled,
   Party,
+  PartyFaint,
+  PartyVitals,
   PhysicsBody,
   Position,
   RecallBeam,
@@ -13,6 +18,7 @@ import {
   SummonBall,
   SummonedCreature,
   Velocity,
+  Vitals,
 } from '../traits'
 
 // Mapeia o pulso de input (`secondaryN`, ver docs/features/011-slots-de-
@@ -48,6 +54,18 @@ function hasPendingBall(world, slot) {
   return world
     .query(SummonBall)
     .some((entity) => entity.get(SummonBall).slot === slot)
+}
+
+/**
+ * Se a criatura deste slot tem que ser recolhida sozinha: o slot foi
+ * esvaziado (desequipada), ou ela está desmaiada no chão há pelo menos
+ * `FAINT.PARTY_RECALL_DELAY` (docs/features/031-ia-de-combate-e-
+ * desmaio.md — "pouco tempo depois tem que ser recolhida pelo trainer").
+ */
+function needsAutoRecall(party, slot, creature) {
+  if (!party[slot]) return true
+  const fainted = creature.get(Fainted)
+  return !!fainted && fainted.elapsed >= GAME_CONFIG.FAINT.PARTY_RECALL_DELAY
 }
 
 /**
@@ -130,6 +148,12 @@ function beginSummon(world, action, pos, rot, body, slot) {
   rot.y = Math.atan2(action.dirX, action.dirZ)
 }
 
+/** Escreve um slot de um trait por-slot do treinador (adiciona se faltar). */
+function setTrainerSlot(trainer, slotTrait, slot, value) {
+  if (trainer.has(slotTrait)) trainer.set(slotTrait, { [slot]: value })
+  else trainer.add(slotTrait({ [slot]: value }))
+}
+
 /**
  * Efeito de `'recall'`, no instante `effectAt` — desfaz o corpo físico e
  * destrói a entidade. Spawna um `RecallBeam` (ver docs/features/024-
@@ -148,8 +172,16 @@ function beginSummon(world, action, pos, rot, body, slot) {
  * linha abaixo) no `RecallBeam` — `RecallBeamView.jsx` usa isso pra
  * dimensionar o "envelope" genérico que cobre a criatura quando o feixe
  * chega nela.
+ *
+ * A vida/energia dela vai pro treinador (`PartyVitals[slot]`) — a
+ * entidade some, mas a próxima invocação sai do jeito que entrou (e
+ * regenerando na bola enquanto isso, `vitalsRegenSystem.js`), não cheia.
+ *
+ * Criatura desmaiada (`Fainted`): o que falta pra reanimar passa pro
+ * treinador (`PartyFaint[slot]`) — a entidade some, a contagem continua
+ * (`faintSystem.js`), e o slot fica bloqueado pra invocar até lá.
  */
-function applyRecall(world, pos, rot, slot) {
+function applyRecall(world, trainer, pos, rot, slot) {
   const creature = findSummoned(world, slot)
   if (!creature) return
 
@@ -168,6 +200,16 @@ function applyRecall(world, pos, rot, slot) {
       speciesId,
     }),
   )
+
+  const vitals = creature.get(Vitals)
+  if (vitals) setTrainerSlot(trainer, PartyVitals, slot, { ...vitals })
+
+  const fainted = creature.get(Fainted)
+  if (fainted) {
+    setTrainerSlot(trainer, PartyFaint, slot, {
+      timeLeft: Math.max(0, fainted.timeLeft),
+    })
+  }
 
   destroyCharacterBody(creature.get(PhysicsBody).bodyHandle)
   creature.destroy()
@@ -250,11 +292,12 @@ function spawnSummonBall(world, pos, rot, dirX, dirY, dirZ, slot, speciesId) {
  * 1. **Automática**: pra toda `SummonedCreature` cujo `Party[slot]`
  *    esteja vazio agora (desequipado em qualquer lugar — hoje só o
  *    `InventoryPanel`, arrastar a criatura pra fora do slot) — invariante
- *    "nenhuma criatura invocada de um slot vazio", verificada só quando o
- *    treinador está livre (`current === null`, não interrompe uma ação
- *    já em andamento).
+ *    "nenhuma criatura invocada de um slot vazio" — ou que esteja
+ *    desmaiada há `FAINT.PARTY_RECALL_DELAY` (`needsAutoRecall`),
+ *    verificada só quando o treinador está livre (`current === null`, não
+ *    interrompe uma ação já em andamento).
  * 2. **Manual, por `secondaryN`**: se já existe uma `SummonedCreature`
- *    daquele slot, recolhe. Senão, com uma espécie equipada, invoca.
+ *    daquele slot, recolhe. Senão, com uma espécie equipada (e não desmaiada), invoca.
  *    Só um `secondaryN` processado por tick (a ação em si já impede uma
  *    segunda começar antes da primeira terminar).
  *
@@ -287,7 +330,8 @@ export function partySummonSystem(context) {
       // um de cada vez (mesma trava de "uma ação por vez" do resto).
       if (action.current === null) {
         for (const slot of ['slot1', 'slot2', 'slot3']) {
-          if (!party[slot] && findSummoned(world, slot)) {
+          const creature = findSummoned(world, slot)
+          if (creature && needsAutoRecall(party, slot, creature)) {
             beginRecall(world, action, pos, rot, slot, RECALL.duration)
             break
           }
@@ -319,7 +363,7 @@ export function partySummonSystem(context) {
             // ela nascer, ver view/systems/summonAudioSystem.js) só existe
             // de verdade quando a esfera pousa, em summonBallSystem.js.
           } else {
-            applyRecall(world, pos, rot, action.pendingSlot)
+            applyRecall(world, entity, pos, rot, action.pendingSlot)
             entity.add(RecallPulse)
           }
         }
@@ -351,7 +395,8 @@ export function partySummonSystem(context) {
         } else if (
           party[slot] &&
           getSpecies(party[slot]) &&
-          !hasPendingBall(world, slot)
+          !hasPendingBall(world, slot) &&
+          !isPartySlotFainted(entity, slot)
         ) {
           // Confere a espécie ANTES de travar a ação — espécie inválida
           // não deve nem começar a ocupar o treinador (mesmo padrão de
@@ -359,6 +404,7 @@ export function partySummonSystem(context) {
           // escrever `action.current`, não só no instante de efeito).
           // `hasPendingBall` evita uma SEGUNDA esfera pro mesmo slot
           // enquanto a primeira ainda está em voo (ver docstring dela).
+          // Desmaiada (`PartyFaint`) não sai da bola até reanimar.
           beginSummon(world, action, pos, rot, body, slot)
         }
         break // só um secondaryN processado por tick

@@ -1,18 +1,22 @@
 import { GAME_CONFIG } from '../gameConfig'
+import { tentarCorrer } from '../actions/stamina'
 import { lerpAngle } from '../math'
 import { findPath } from '../pathfinding'
 import { castRay } from '../physics/raycast'
 import { getPlayerSpecies } from '../data/species'
 import {
   CharacterController,
+  Fainted,
   InputControlled,
   MovementBlocked,
   MovementStats,
+  PartyBehavior,
   PathState,
   PhysicsBody,
   Position,
   Rotation,
   Velocity,
+  Vitals,
   WildCreature,
 } from '../traits'
 
@@ -179,11 +183,20 @@ export function creatureFollowSystem(context) {
   // docstring de `PathState` mais abaixo).
   const others = world
     .query(CharacterController, Position)
+    // Desmaiada é intangível (collider desligado): não precisa desviar.
+    .filter((e) => !e.has(Fainted))
     .map((e) => ({ entity: e, pos: e.get(Position) }))
 
   world
-    .query(CharacterController, MovementStats, Velocity, Rotation, Position)
-    .updateEach(([, stats, vel, rot, pos], entity) => {
+    .query(
+      CharacterController,
+      MovementStats,
+      Velocity,
+      Rotation,
+      Position,
+      Vitals,
+    )
+    .updateEach(([, stats, vel, rot, pos, vitals], entity) => {
       if (entity.has(InputControlled)) return // é quem está sendo pilotado — não segue ninguém
       // `WildCreature` também tem `CharacterController` (mesmo pipeline
       // físico) mas vaga sozinha (`wildWanderSystem.js`, docs/features/020-
@@ -195,6 +208,10 @@ export function creatureFollowSystem(context) {
       // relatado jogando como "a criatura selvagem fica trocando de rota
       // toda hora".
       if (entity.has(WildCreature)) return
+      // Desmaiada: largada no chão até o treinador recolher.
+      if (entity.has(Fainted)) return
+      // Lutando pra defender o grupo: quem move é o `partyBehaviorSystem.js`.
+      if (entity.get(PartyBehavior)?.state === 'fight') return
 
       const dx = targetPos.x - pos.x
       const dz = targetPos.z - pos.z
@@ -235,6 +252,8 @@ export function creatureFollowSystem(context) {
         dirX = avoidX
         dirZ = avoidZ
         speed = stats.walkSpeed
+        // Só desviando: não está navegando rumo a nada (ver `PathState.target`).
+        entity.set(PathState, { ...entity.get(PathState), target: null })
       } else {
         const isBlocked = entity.has(MovementBlocked)
 
@@ -278,6 +297,7 @@ export function creatureFollowSystem(context) {
           waypointIndex,
           repathTimer,
           wasBlocked: isBlocked,
+          target: { x: targetPos.x, z: targetPos.z },
         })
 
         const baseDirX = targetX - pos.x
@@ -317,7 +337,12 @@ export function creatureFollowSystem(context) {
           dirZ = baseDirZ
         }
 
-        speed = distance > RUN_DISTANCE ? stats.runSpeed : stats.walkSpeed
+        // Longe: corre pra alcançar — pagando stamina, igual ao jogador
+        // (`tentarCorrer`); sem fôlego, anda.
+        speed =
+          distance > RUN_DISTANCE && tentarCorrer(vitals, delta)
+            ? stats.runSpeed
+            : stats.walkSpeed
       }
 
       const dirLength = Math.hypot(dirX, dirZ) || 1

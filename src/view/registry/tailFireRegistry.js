@@ -23,7 +23,9 @@
 const entries = new Map()
 
 export function registerTailFire(entity, flame, bone, config) {
-  entries.set(entity, { flame, bone, config })
+  // `fade` (0-1): quanto do fogo está aceso — `tailFireSystem.js` apaga
+  // com a criatura desmaiada e reacende ao acordar.
+  entries.set(entity, { flame, bone, config, fade: 1 })
 }
 
 export function unregisterTailFire(entity) {

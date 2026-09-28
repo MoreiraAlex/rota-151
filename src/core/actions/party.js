@@ -2,7 +2,12 @@ import { getSpecies } from '../data/species'
 import { rollIndividualValues } from '../data/species/stats'
 import { gameplayRng } from '../rng'
 import { GAME_CONFIG } from '../gameConfig'
-import { Party, PartyIndividualValues } from '../traits'
+import {
+  Party,
+  PartyFaint,
+  PartyIndividualValues,
+  PartyVitals,
+} from '../traits'
 
 /**
  * Equipa (ou desequipa, com `speciesId: null`) a criatura de um slot do
@@ -20,6 +25,10 @@ import { Party, PartyIndividualValues } from '../traits'
  * migrados, ou id desconhecido) — `PartyIndividualValues[slot]` fica
  * `null`, mesmo fallback gracioso de sempre (`resolveCreatureStats`
  * já trata isso).
+ *
+ * Mesmo motivo pro desmaio (`PartyFaint`) e pra vida/energia guardadas
+ * na bola (`PartyVitals`): criatura nova no slot não herda nada da
+ * anterior — sai cheia.
  */
 export function equiparCriatura(trainer, slot, speciesId) {
   const species = speciesId ? getSpecies(speciesId) : null
@@ -33,4 +42,6 @@ export function equiparCriatura(trainer, slot, speciesId) {
 
   trainer.set(Party, { [slot]: speciesId ?? null })
   trainer.set(PartyIndividualValues, { [slot]: individualValues })
+  if (trainer.has(PartyFaint)) trainer.set(PartyFaint, { [slot]: null })
+  if (trainer.has(PartyVitals)) trainer.set(PartyVitals, { [slot]: null })
 }

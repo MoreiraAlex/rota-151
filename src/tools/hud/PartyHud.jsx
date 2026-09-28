@@ -6,9 +6,12 @@ import { ArrowLeftRight } from 'lucide-react'
 import { playerEntity } from '@/core/world/world'
 import { getSpecies } from '@/core/data/species'
 import {
+  Fainted,
   InputControlled,
   Party,
+  PartyFaint,
   PartyIndividualValues,
+  PartyVitals,
   resolveMaxHp,
   resolveMaxStamina,
   SummonedCreature,
@@ -163,6 +166,8 @@ const POKEBALL_OPEN = '/assets/sprites/pokebola/default/poke_aberta.png'
 export function PartyHud() {
   const party = useTrait(playerEntity, Party)
   const partyIndividualValues = useTrait(playerEntity, PartyIndividualValues)
+  const partyFaint = useTrait(playerEntity, PartyFaint)
+  const partyVitals = useTrait(playerEntity, PartyVitals)
   const summoned = useQuery(SummonedCreature)
   const controlled = useQueryFirst(InputControlled)
   const controllingCreature = !!controlled && controlled !== playerEntity
@@ -200,6 +205,8 @@ export function PartyHud() {
               speciesId={speciesId}
               activeEntity={activeEntity}
               individualValues={partyIndividualValues?.[slot]}
+              slotFaint={partyFaint?.[slot] ?? null}
+              storedVitals={partyVitals?.[slot] ?? null}
               dimInvoke={controllingCreature}
             />
           )
@@ -221,16 +228,26 @@ export function PartyHud() {
  * "5ª rodada", correção: "preciso que os vitals apareçam sempre,
  * independente se a criatura tá invocada ou não" — antes, sem
  * `activeEntity`, a barra sumia por falta de `Vitals` de verdade pra
- * ler). Sem entidade viva (criatura só equipada, nunca invocada — não
- * existe corpo físico, logo não existe trait `Vitals` pra ler), cai no
- * máximo via `resolveMaxHp`/`resolveMaxStamina` (`core/traits/
- * components/vitals.js`) mostrado CHEIO — não há combate acontecendo
- * fora de campo que justifique outro valor. Recebe `individualValues`
+ * ler). Sem entidade viva e sem nada guardado na bola (criatura só
+ * equipada, nunca invocada — ver `storedVitals` abaixo), cai no máximo
+ * via `resolveMaxHp`/`resolveMaxStamina` (`core/traits/components/
+ * vitals.js`) mostrado CHEIO. Recebe `individualValues`
  * (o IV congelado deste slot, `PartyIndividualValues` — ver `PartyHud`
  * acima) pra essa conta bater com o IV de VERDADE desta criatura —
  * MESMA função e mesmo `individualValues` que `summonBallSystem.js`
  * usa pra decidir o máximo de verdade no spawn, evita esta tela
  * mostrar um número diferente do que a criatura nasce tendo.
+ *
+ * **Na bola, a vida/energia guardadas** (`storedVitals`, `PartyVitals`
+ * — docs/features/031-ia-de-combate-e-desmaio.md): recolhida, a
+ * criatura mantém o que tinha e regenera lá dentro; o card mostra isso
+ * (o mesmo que ela vai ter ao sair), e só cai no máximo quando não há
+ * nada guardado (nunca saiu, ou criatura nova no slot).
+ *
+ * **Desmaio**: a contagem pra reanimar vem da criatura em campo
+ * (`Fainted`) ou, já recolhida, do slot no treinador (`slotFaint`,
+ * `PartyFaint`). Enquanto conta, mostra o tempo que falta e a tecla de
+ * invocar apagada (não sai da bola).
  */
 function PartySlotCard({
   slot,
@@ -239,9 +256,12 @@ function PartySlotCard({
   speciesId,
   activeEntity,
   individualValues,
+  slotFaint,
+  storedVitals,
   dimInvoke,
 }) {
   const liveVitals = useTrait(activeEntity, Vitals)
+  const fainted = useTrait(activeEntity, Fainted)
 
   const species = getSpecies(speciesId)
   const active = !!activeEntity
@@ -252,8 +272,11 @@ function PartySlotCard({
 
   const maxHp = resolveMaxHp(species, individualValues)
   const maxStamina = resolveMaxStamina(species, individualValues)
-  const hp = liveVitals?.hp ?? maxHp
-  const stamina = liveVitals?.stamina ?? maxStamina
+  const faintTimeLeft = fainted?.timeLeft ?? slotFaint?.timeLeft ?? 0
+  const faintedInBall = !active && faintTimeLeft > 0
+  const shownVitals = liveVitals ?? storedVitals
+  const hp = shownVitals?.hp ?? maxHp
+  const stamina = shownVitals?.stamina ?? maxStamina
 
   return (
     <motion.div
@@ -261,7 +284,7 @@ function PartySlotCard({
       layoutId={statusLayoutId(slot)}
       transition={CARD_TRANSITION}
       initial={{ opacity: 0, x: -50 }}
-      animate={{ opacity: 1, x: 0}}
+      animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0 }}
       className={`flex w-40 items-center gap-2 rounded border p-1.5  border-white/10 bg-black/10 font-mono text-white 
   
@@ -277,14 +300,14 @@ function PartySlotCard({
           <KeyHint
             keyLabel={label}
             img={active ? POKEBALL_OPEN : POKEBALL_CLOSED}
-            dim={dimInvoke}
+            dim={dimInvoke || faintedInBall}
           />
           {trade && (
             <KeyHint
               keyLabel={trade}
               icon={ArrowLeftRight}
               variant="accent"
-              dim={!active}
+              dim={!active || faintTimeLeft > 0}
             />
           )}
         </div>
@@ -298,6 +321,11 @@ function PartySlotCard({
             </span>
           )}
         </div>
+        {faintTimeLeft > 0 && (
+          <span className="text-[10px] text-red-400">
+            desmaiada · {formatCountdown(faintTimeLeft)}
+          </span>
+        )}
         <VitalBar
           height={1}
           value={hp}
@@ -313,6 +341,13 @@ function PartySlotCard({
       </div>
     </motion.div>
   )
+}
+
+/** Segundos → `m:ss` (contagem do desmaio). */
+function formatCountdown(seconds) {
+  const total = Math.ceil(seconds)
+  const minutes = Math.floor(total / 60)
+  return `${minutes}:${String(total % 60).padStart(2, '0')}`
 }
 
 /** Um slot vazio/o item na mão — só leitura, sem clique/seletor (ver
@@ -340,7 +375,12 @@ function HudSlot({
       <div className="flex w-full justify-between">
         <KeyHint keyLabel={label} img={POKEBALL_CLOSED} dim={dimInvoke} />
         {trade && (
-          <KeyHint keyLabel={trade} icon={ArrowLeftRight} variant="accent" dim />
+          <KeyHint
+            keyLabel={trade}
+            icon={ArrowLeftRight}
+            variant="accent"
+            dim
+          />
         )}
       </div>
       {preview}

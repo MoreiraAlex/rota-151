@@ -3,9 +3,11 @@ import { createWorld } from 'koota'
 import { TEST_LEVEL } from '@/core/data/testLevel'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import {
+  AttackCooldowns,
   IndividualValues,
   PhysicsBody,
   WanderState,
+  WildBehavior,
   WildCreature,
 } from '@/core/traits'
 import { wildCreatureSpawnSystem } from './wildCreatureSpawnSystem'
@@ -112,5 +114,30 @@ describe('wildCreatureSpawnSystem', () => {
     // mas a chance de todas baterem exatamente é desprezível com o range
     // configurado e a quantidade de criaturas do nível de teste).
     expect(new Set(ivSets).size).toBeGreaterThan(1)
+  })
+
+  it('cada WildCreature nasce vagando, com temperamento hostil ou pacífico', () => {
+    const world = spawnWorld()
+
+    tick(world)
+
+    const behaviors = world
+      .query(WildCreature, WildBehavior)
+      .map((entity) => entity.get(WildBehavior))
+    expect(behaviors.length).toBeGreaterThan(0)
+    for (const behavior of behaviors) {
+      expect(['hostile', 'peaceful']).toContain(behavior.temperament)
+      expect(behavior.state).toBe('wander')
+    }
+  })
+
+  it('cada WildCreature nasce pronta pra atacar (AttackCooldowns)', () => {
+    const world = spawnWorld()
+
+    tick(world)
+
+    for (const entity of world.query(WildCreature)) {
+      expect(entity.has(AttackCooldowns)).toBe(true)
+    }
   })
 })

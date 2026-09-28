@@ -1,15 +1,53 @@
-import { Vitals } from '../traits'
+import { Fainted, PartyFaint, PartyVitals, Vitals } from '../traits'
+
+const PARTY_SLOTS = ['slot1', 'slot2', 'slot3']
 
 /**
- * Regenera HP e stamina com o tempo, a uma taxa (% do máximo por segundo)
- * definida por espécie (`Vitals.hpRegenPercent`/`staminaRegenPercent`).
+ * Um tick de regeneração num objeto com os campos de `Vitals` (muta ele):
+ * HP e stamina sobem a uma taxa (% do máximo por segundo) definida por
+ * espécie (`hpRegenPercent`/`staminaRegenPercent`), cada um só depois do
+ * próprio delay zerar (`hpRegenDelay` pós-dano, `staminaRegenDelay` pós-
+ * uso — contados pra baixo aqui). Devolve se mudou algo.
  *
- * HP tem um delay pós-dano (`Vitals.hpRegenDelay`, em segundos, contado pra
- * baixo aqui): enquanto não chega a zero, HP não regenera. Stamina tem o
- * mesmo princípio (`Vitals.staminaRegenDelay`), mas contado a partir do
- * último uso (correr, dash ou pulo) em vez de dano — quem drena stamina
- * reseta o delay, este system só conta pra baixo e libera a regeneração
- * quando chega a zero.
+ * Exportada: a MESMA regra vale pra criatura em campo (`Vitals`) e pra
+ * criatura do time dentro da bola (`PartyVitals`).
+ */
+export function regenerateVitals(vitals, delta) {
+  let changed = false
+
+  if (vitals.hpRegenDelay > 0) {
+    vitals.hpRegenDelay = Math.max(0, vitals.hpRegenDelay - delta)
+    changed = true
+  } else if (vitals.hp < vitals.maxHp) {
+    const regen = vitals.maxHp * (vitals.hpRegenPercent / 100) * delta
+    vitals.hp = Math.min(vitals.maxHp, vitals.hp + regen)
+    changed = true
+  }
+
+  if (vitals.staminaRegenDelay > 0) {
+    vitals.staminaRegenDelay = Math.max(0, vitals.staminaRegenDelay - delta)
+    changed = true
+  } else if (vitals.stamina < vitals.maxStamina) {
+    const regen = vitals.maxStamina * (vitals.staminaRegenPercent / 100) * delta
+    vitals.stamina = Math.min(vitals.maxStamina, vitals.stamina + regen)
+    changed = true
+  }
+
+  return changed
+}
+
+/**
+ * Regenera HP e stamina com o tempo (`regenerateVitals`) de toda entidade
+ * com `Vitals` e, no treinador, de cada criatura do time guardada na bola
+ * (`PartyVitals`) — dentro da bola ela continua exatamente como se
+ * estivesse fora. Desmaiada não regenera, em campo (`Fainted`) nem na bola
+ * (`PartyFaint`).
+ *
+ * HP tem um delay pós-dano: enquanto não chega a zero, HP não regenera.
+ * Stamina tem o mesmo princípio, mas contado a partir do último uso
+ * (correr, dash ou pulo) em vez de dano — quem drena stamina reseta o
+ * delay, este system só conta pra baixo e libera a regeneração quando
+ * chega a zero.
  *
  * Headless. Fase: simulation, antes de movementSystem/playerActionSystem/
  * characterPhysicsSystem — o dreno de stamina desses systems desconta por
@@ -20,20 +58,20 @@ import { Vitals } from '../traits'
 export function vitalsRegenSystem(context) {
   const { world, delta } = context
 
-  world.query(Vitals).updateEach(([vitals]) => {
-    if (vitals.hpRegenDelay > 0) {
-      vitals.hpRegenDelay = Math.max(0, vitals.hpRegenDelay - delta)
-    } else if (vitals.hp < vitals.maxHp) {
-      const regen = vitals.maxHp * (vitals.hpRegenPercent / 100) * delta
-      vitals.hp = Math.min(vitals.maxHp, vitals.hp + regen)
-    }
+  world.query(Vitals).updateEach(([vitals], entity) => {
+    // Desmaiada não regenera nada (acorda com HP fixo, ver `acordar`).
+    if (entity.has(Fainted)) return
+    regenerateVitals(vitals, delta)
+  })
 
-    if (vitals.staminaRegenDelay > 0) {
-      vitals.staminaRegenDelay = Math.max(0, vitals.staminaRegenDelay - delta)
-    } else if (vitals.stamina < vitals.maxStamina) {
-      const regen =
-        vitals.maxStamina * (vitals.staminaRegenPercent / 100) * delta
-      vitals.stamina = Math.min(vitals.maxStamina, vitals.stamina + regen)
+  world.query(PartyVitals).updateEach(([partyVitals], entity) => {
+    const partyFaint = entity.get(PartyFaint)
+    for (const slot of PARTY_SLOTS) {
+      const stored = partyVitals[slot]
+      if (!stored || partyFaint?.[slot]) continue
+      // Objeto novo (não muta o guardado): a HUD só percebe a troca.
+      const next = { ...stored }
+      if (regenerateVitals(next, delta)) partyVitals[slot] = next
     }
   })
 }

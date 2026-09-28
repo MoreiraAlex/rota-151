@@ -1,3 +1,4 @@
+import { Fainted } from '@/core/traits'
 import { getVoiceAudioEntries } from '@/view/registry/voiceAudioRegistry'
 import { pickRandomVariation } from '@/view/audio/pickRandomVariation'
 
@@ -21,6 +22,9 @@ import { pickRandomVariation } from '@/view/audio/pickRandomVariation'
  * naturalmente em vez de cortar no meio, e o intervalo até a próxima só
  * começa a valer depois que a anterior já acabou.
  *
+ * Desmaiada (`Fainted`) fica muda: corta a vocalização que estiver
+ * tocando e o timer para até ela acordar.
+ *
  * Vive na view (mexe em nó Three de áudio). Fase: presentation, perto de
  * `footstepAudioSystem` (mesma família — sem dependência de ordem real
  * entre os dois).
@@ -28,7 +32,11 @@ import { pickRandomVariation } from '@/view/audio/pickRandomVariation'
 export function voiceAudioSystem(context) {
   const { delta } = context
 
-  for (const [, entry] of getVoiceAudioEntries()) {
+  for (const [entity, entry] of getVoiceAudioEntries()) {
+    if (entity.has(Fainted)) {
+      if (entry.audio.isPlaying) entry.audio.stop()
+      continue
+    }
     if (entry.audio.isPlaying) continue
 
     entry.timer -= delta

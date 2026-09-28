@@ -43,6 +43,7 @@ function TestLevelView() {
         <boxGeometry args={[ground.size, ground.thickness, ground.size]} />
         <meshStandardMaterial color="#35271f" />
       </mesh>
+      <gridHelper args={[ground.size, ground.size]} />
 
       {obstacles.map((obstacle) => (
         <mesh

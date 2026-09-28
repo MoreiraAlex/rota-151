@@ -1,6 +1,7 @@
 {
   "name": "boy-run",
   "loop": true,
+  "speed": 1.4,
   "bones": {
     "Waist": {
       "rotation": {

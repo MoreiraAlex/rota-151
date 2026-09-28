@@ -1,5 +1,6 @@
-import { Mood } from '@/core/traits'
+import { Fainted, Mood } from '@/core/traits'
 import { getEyeBlinkEntries } from '@/view/registry/eyeBlinkRegistry'
+import { resolveEyeState } from '@/view/shared/eyeState'
 
 function randomRange(min, max) {
   return min + Math.random() * (max - min)
@@ -8,18 +9,23 @@ function randomRange(min, max) {
 // Mesma fórmula que `useAnimatedModel.js` já usa pro `pan` ESTÁTICO — uma
 // célula do atlas vira offset de UV a partir do tamanho de uma célula
 // (`repeat`) e de qual célula (`pan`, `{x, y}` em unidades de célula).
+//
+// Sem `needsUpdate`: o `offset` chega no shader pela matriz de UV
+// (`texture.matrix`, atualizada pelo renderer a cada frame —
+// `matrixAutoUpdate`), não pela imagem. `needsUpdate` reenviava a IMAGEM
+// inteira do atlas pra GPU a cada piscada — e, com a imagem compartilhada
+// entre as cópias (`clone()`, `useAnimatedModel.js`), a de todo mundo que
+// usa o mesmo arquivo. Suspeito do olho do treinador "sumindo" às vezes.
 function applyPan(texture, repeat, pan) {
   texture.offset.set((1 - repeat.x) / 2 + pan.x, (1 - repeat.y) / 2 + pan.y)
-  texture.needsUpdate = true
 }
 
-// Estados declarados por uma espécie (`eyeStates`) podem não incluir toda
-// chave possível de `Mood.state` (ex.: espécie só tem `awake`/`sleeping`,
-// mas por engano ou config futura `Mood.state` vira `'angry'`) — cai pro
-// PRIMEIRO estado declarado em vez de travar sem reagir, mesmo fallback
-// gracioso do resto do motor.
-function resolveMoodState(states, mood) {
-  return states[mood] ?? states[Object.keys(states)[0]]
+// Aplica a célula `phase` do humor atual em TODAS as unidades da entidade.
+function applyPhase(units, mood, phase) {
+  for (const unit of units) {
+    const state = resolveEyeState(unit.states, mood)
+    if (state) applyPan(unit.texture, unit.repeat, state[phase])
+  }
 }
 
 /**
@@ -37,6 +43,14 @@ function resolveMoodState(states, mood) {
  * reflete no próximo "aberto" (trocar de humor de olho fechado não faz
  * diferença visível mesmo).
  *
+ * Com mais de uma unidade na mesma entidade (uma textura por olho), o
+ * relógio é um só — o da 1ª unidade (`phase`/`timer`/`lastMood`/`blink`
+ * dela) — e cada troca vale pra todas: os olhos piscam juntos.
+ *
+ * Desmaiada (`Fainted`) não pisca: o olho fica parado na célula "aberto"
+ * do humor dela (`'faint'`, ver `desmaiar`) e o relógio do piscar para —
+ * ao acordar, continua de onde estava.
+ *
  * Vive na view (mexe em propriedade de `THREE.Texture`). Fase:
  * presentation, perto de `footstepAudioSystem`/`voiceAudioSystem` (mesma
  * família de "efeito periódico por entidade").
@@ -45,32 +59,40 @@ export function eyeBlinkSystem(context) {
   const { delta } = context
 
   for (const [entity, units] of getEyeBlinkEntries()) {
+    if (units.length === 0) continue
     const mood = entity.get(Mood)?.state ?? 'awake'
+    const fainted = entity.has(Fainted)
+    // Um relógio só por entidade (o da 1ª unidade): com mais de uma
+    // textura de olho (o treinador tem uma por olho), todas piscam JUNTAS
+    // — cada uma com o próprio relógio sorteado, piscavam separadas.
+    const clock = units[0]
+    const moodChanged = mood !== clock.lastMood
+    clock.lastMood = mood
 
-    for (const unit of units) {
-      const moodChanged = mood !== unit.lastMood
-      unit.lastMood = mood
-
-      if (moodChanged && unit.phase === 'open') {
-        const state = resolveMoodState(unit.states, mood)
-        if (state) applyPan(unit.texture, unit.repeat, state.open)
+    if (fainted) {
+      if (moodChanged || clock.phase !== 'open') {
+        applyPhase(units, mood, 'open')
+        clock.phase = 'open'
       }
+      continue
+    }
 
-      unit.timer -= delta
-      if (unit.timer > 0) continue
+    if (moodChanged && clock.phase === 'open') applyPhase(units, mood, 'open')
 
-      const state = resolveMoodState(unit.states, mood)
-      if (!state) continue
+    clock.timer -= delta
+    if (clock.timer > 0) continue
 
-      if (unit.phase === 'open') {
-        applyPan(unit.texture, unit.repeat, state.closed)
-        unit.phase = 'closed'
-        unit.timer = unit.blink.closedDuration
-      } else {
-        applyPan(unit.texture, unit.repeat, state.open)
-        unit.phase = 'open'
-        unit.timer = randomRange(unit.blink.minInterval, unit.blink.maxInterval)
-      }
+    if (clock.phase === 'open') {
+      applyPhase(units, mood, 'closed')
+      clock.phase = 'closed'
+      clock.timer = clock.blink.closedDuration
+    } else {
+      applyPhase(units, mood, 'open')
+      clock.phase = 'open'
+      clock.timer = randomRange(
+        clock.blink.minInterval,
+        clock.blink.maxInterval,
+      )
     }
   }
 }

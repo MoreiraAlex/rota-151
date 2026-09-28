@@ -1,12 +1,14 @@
 import { TEST_LEVEL } from '../data/testLevel'
 import { getSpecies } from '../data/species'
 import { rollIndividualValues } from '../data/species/stats'
+import { rollTemperament } from '../battle/wildBehavior'
 import { GAME_CONFIG } from '../gameConfig'
 import { gameplayRng } from '../rng'
 import { isPhysicsReady } from '../physics/physicsWorld'
 import { createCharacterBody } from '../physics/colliders'
 import {
   ActionState,
+  AttackCooldowns,
   AnimationState,
   CharacterController,
   IndividualValues,
@@ -19,6 +21,7 @@ import {
   Velocity,
   vitalsFromSpecies,
   WanderState,
+  WildBehavior,
   WildCreature,
 } from '../traits'
 
@@ -103,9 +106,14 @@ export function wildCreatureSpawnSystem(context) {
       Position({ x, y, z }),
       Rotation,
       WildCreature({ speciesId: entry.speciesId }),
+      // Hostil ou pacífica — sorteado por indivíduo, chance por espécie.
+      WildBehavior({ temperament: rollTemperament(gameplayRng, species) }),
       IndividualValues(individualValues),
       AnimationState,
       ActionState,
+      // Ataque básico da selvagem (cooldown por slot, mesmo trait das
+      // criaturas do time — `creatureAttackSystem.js`).
+      AttackCooldowns,
       Velocity,
       CharacterController(species.body),
       MovementStats(species.movement),

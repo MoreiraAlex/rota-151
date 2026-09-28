@@ -1,8 +1,10 @@
 import { trait } from 'koota'
 
 /**
- * Caminho calculado por `core/pathfinding.js` que uma `SummonedCreature`
- * está seguindo até o treinador — ver `creatureFollowSystem.js`. Trait AoS
+ * Caminho calculado por `core/pathfinding.js` que um personagem está
+ * seguindo — a criatura do time até quem está no controle
+ * (`creatureFollowSystem.js`) ou a selvagem vagando/perseguindo/fugindo
+ * (`steerTowards`, `core/steering.js`). Trait AoS
  * (schema função, mesmo motivo de `Inventory`: `waypoints` é um array, não
  * um primitivo) — mutação sempre por `get` → objeto novo → `set`, nunca
  * mutar o array em cima do valor de uma query (mesma convenção já usada
@@ -22,12 +24,22 @@ import { trait } from 'koota'
  * em vez de uma vez por episódio de bloqueio (achado no code review desta
  * feature).
  *
- * Dono de escrita: `creatureFollowSystem`, único lugar que calcula/avança
- * caminho.
+ * `target`: o destino FINAL (`{x, z}`) que a navegação está usando — o
+ * ponto de onde `waypoints` foi calculado (onde vagar, quem perseguir, pra
+ * onde fugir, quem seguir). `null` quando não está navegando rumo a nada
+ * (caminho zerado, ou a do time só desviando de alguém). Só informativo —
+ * o debug (`PathfindingDebugView.jsx`) desenha isso em vez de adivinhar o
+ * alvo (adivinhar "quem está no controle" fazia a linha da selvagem
+ * vagando apontar pro jogador entre um recálculo e outro).
+ *
+ * Donos de escrita: `creatureFollowSystem` e `steerTowards` (calculam/
+ * avançam o caminho) e as actions de `core/actions/wildBehavior.js`
+ * (zeram ao trocar de estado).
  */
 export const PathState = trait(() => ({
   waypoints: [],
   waypointIndex: 0,
   repathTimer: 0,
   wasBlocked: false,
+  target: null,
 }))

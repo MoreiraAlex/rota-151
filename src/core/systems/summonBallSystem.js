@@ -15,7 +15,9 @@ import {
   Mood,
   MovementStats,
   Party,
+  PartyBehavior,
   PartyIndividualValues,
+  PartyVitals,
   PathState,
   PhysicsBody,
   Position,
@@ -26,6 +28,7 @@ import {
   SummonFlash,
   SummonPulse,
   Velocity,
+  Vitals,
   vitalsFromSpecies,
 } from '../traits'
 
@@ -56,6 +59,13 @@ import {
  * próprio no spawn (`wildCreatureSpawnSystem.js`). `vitalsFromSpecies`
  * recebe o mesmo `individualValues` — sem isso o HP/energy de spawn
  * ignoraria o IV de verdade desta criatura.
+ *
+ * Vida/energia: sai do jeito que foi recolhida (`PartyVitals[slot]`,
+ * guardado por `applyRecall` e regenerado na bola pelo
+ * `vitalsRegenSystem.js` — inclusive o HP de quem acorda, se reanimou lá
+ * dentro), com os máximos recalculados agora (mesma espécie/IV → mesmo
+ * valor). Nada guardado (nunca saiu, ou criatura nova no slot): cheia. O
+ * slot é limpo — a partir daqui vale o `Vitals` da criatura em campo.
  */
 function spawnCreature(
   world,
@@ -75,7 +85,7 @@ function spawnCreature(
 
   const individualValues = trainer?.get(PartyIndividualValues)?.[slot] ?? null
 
-  world.spawn(
+  const creature = world.spawn(
     Position(spawnPosition),
     Rotation,
     SummonedCreature({ slot, speciesId }),
@@ -94,7 +104,21 @@ function spawnCreature(
     HeldItem,
     Mood,
     ScanMode,
+    // IA de combate fora do controle (sempre defensiva, `partyBehaviorSystem.js`).
+    PartyBehavior,
   )
+
+  const stored = trainer?.get(PartyVitals)?.[slot]
+  if (stored) {
+    const { maxHp, maxStamina } = creature.get(Vitals)
+    creature.set(Vitals, {
+      hp: Math.min(maxHp, stored.hp),
+      stamina: Math.min(maxStamina, stored.stamina),
+      hpRegenDelay: stored.hpRegenDelay,
+      staminaRegenDelay: stored.staminaRegenDelay,
+    })
+    trainer.set(PartyVitals, { [slot]: null })
+  }
 }
 
 /**

@@ -23,7 +23,7 @@ describe('tailFireRegistry', () => {
 
     registerTailFire(entity, flame, bone, config)
 
-    expect(getTailFireEntry(entity)).toEqual({ flame, bone, config })
+    expect(getTailFireEntry(entity)).toEqual({ flame, bone, config, fade: 1 })
 
     unregisterTailFire(entity)
   })

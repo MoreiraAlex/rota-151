@@ -131,3 +131,19 @@ export function destroyCharacterBody(bodyHandle) {
   if (!body) return
   world.removeRigidBody(body)
 }
+
+/**
+ * Liga/desliga o collider de um personagem sem destruí-lo — desligado, ele
+ * sai da colisão com os outros (atravessam) e das consultas (`castRay`),
+ * mas o próprio `computeColliderMovement` dele continua funcionando (ainda
+ * pisa no chão). Usado pelo desmaio (`core/actions/faint.js`): a criatura
+ * desmaiada fica intangível e volta ao normal ao acordar. Handle inválido
+ * (`< 0`, física não estava pronta) ou que já não existe: não faz nada.
+ */
+export function setCharacterColliderEnabled(colliderHandle, enabled) {
+  if (colliderHandle == null || colliderHandle < 0) return
+  const world = getRapierWorld()
+  const collider = world?.getCollider(colliderHandle)
+  if (!collider) return
+  collider.setEnabled(enabled)
+}

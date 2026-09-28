@@ -22,8 +22,14 @@ import {
   SummonedCreature,
 } from '@/core/traits'
 
-const { FILL_COLOR, FILL_OPACITY, EDGE_COLOR, EDGE_OPACITY, GROUND_LIFT } =
-  GAME_CONFIG.FEEDBACK.ATTACK_INDICATOR
+const {
+  FILL_COLOR,
+  FILL_OPACITY,
+  EDGE_COLOR,
+  EDGE_OPACITY,
+  GROUND_LIFT,
+  ALWAYS_ON_TOP,
+} = GAME_CONFIG.FEEDBACK.ATTACK_INDICATOR
 
 // Leque unitário: ápice em (0,0,0), base em (-1,0,1)/(1,0,1). A base fica
 // em +Z porque `Object3D.lookAt` aponta o +Z local de um MESH pro alvo.
@@ -52,6 +58,10 @@ EDGE_GEOMETRY.setAttribute(
  * AGORA — mesma direção e trajetória do golpe de verdade
  * (`resolveAttackDirection` + `resolveAttackImpactPoint`), só que na
  * altura do chão, acompanhando rampa.
+ *
+ * `ALWAYS_ON_TOP` (config) desliga o teste de profundidade: o leque é
+ * desenhado por cima de tudo, então a própria criatura não tampa o
+ * pedaço embaixo dela (e ele também aparece através de parede).
  *
  * `useFrame` aqui é a exceção documentada de componente puramente visual:
  * só LÊ estado do ECS e reposiciona o próprio mesh, nunca escreve gameplay.
@@ -127,6 +137,7 @@ export function AttackIndicatorView() {
           transparent
           opacity={FILL_OPACITY}
           depthWrite={false}
+          depthTest={!ALWAYS_ON_TOP}
           side={THREE.DoubleSide}
         />
       </mesh>
@@ -136,6 +147,7 @@ export function AttackIndicatorView() {
           transparent
           opacity={EDGE_OPACITY}
           depthWrite={false}
+          depthTest={!ALWAYS_ON_TOP}
         />
       </lineLoop>
     </group>

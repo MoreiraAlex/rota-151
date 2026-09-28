@@ -6,6 +6,7 @@ import {
   ActionState,
   Grounded,
   CharacterController,
+  Fainted,
 } from '../traits'
 
 /**
@@ -42,6 +43,7 @@ export function animationStateSystem(context) {
         speed,
         grounded,
         action: action.current,
+        fainted: entity.has(Fainted),
       })
 
       const forwardDot = vel.x * Math.sin(rot.y) + vel.z * Math.cos(rot.y)

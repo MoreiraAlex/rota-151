@@ -77,6 +77,22 @@ export function getCharacterController() {
   return characterController
 }
 
+/**
+ * Filtro de consulta que só enxerga a geometria FIXA do nível (chão/
+ * obstáculos) — todo personagem é corpo cinemático (`createCharacterBody`),
+ * então fica de fora. Usado pelo raycast de terreno (`castRay`,
+ * `terrainOnly`) e pelo movimento da criatura desmaiada
+ * (`characterPhysicsSystem.js`), que não pode ser empurrada por quem passa
+ * por cima dela. `undefined` sem física carregada.
+ */
+export function terrainOnlyFilterFlags() {
+  if (!rapier) return undefined
+  return (
+    rapier.QueryFilterFlags.EXCLUDE_KINEMATIC |
+    rapier.QueryFilterFlags.EXCLUDE_DYNAMIC
+  )
+}
+
 export function stepPhysics() {
   if (rapierWorld) rapierWorld.step()
 }

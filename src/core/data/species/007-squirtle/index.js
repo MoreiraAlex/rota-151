@@ -2,6 +2,7 @@ import IDLE_CLIP from './clips/idle.json'
 import WALK_CLIP from './clips/walk.json'
 import RUN_CLIP from './clips/run.json'
 import CRY_CLIP from './clips/cry.json'
+import FAINT_CLIP from './clips/faint.json'
 
 const LEVEL = 5
 
@@ -54,6 +55,10 @@ export const SQUIRTLE = {
             open: { x: 0, y: 0 },
             closed: { x: 0.5, y: 0.75 },
           },
+          faint: {
+            open: { x: -0.5, y: 0.5 },
+            closed: { x: -0.5, y: 0.5 },
+          },
         },
         blink: { minInterval: 2, maxInterval: 6, closedDuration: 0.15 },
       },
@@ -63,7 +68,8 @@ export const SQUIRTLE = {
     idle: IDLE_CLIP,
     walk: WALK_CLIP,
     run: RUN_CLIP,
-    cry: CRY_CLIP
+    cry: CRY_CLIP,
+    faint: FAINT_CLIP
   },
   body: {
     capsuleRadius: 0.3,

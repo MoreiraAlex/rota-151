@@ -1,3 +1,4 @@
+import { tentarCorrer } from '../actions/stamina'
 import { lerpAngle } from '../math'
 import {
   Velocity,
@@ -73,14 +74,9 @@ export function movementSystem(context) {
       const worldZ = -input.x * sinYaw + input.z * cosYaw
 
       const hasMoveIntent = worldX !== 0 || worldZ !== 0
-      const runCost = vitals.runStaminaDrainPerSecond * delta
-      const isRunning = input.run && hasMoveIntent && vitals.stamina >= runCost
+      const isRunning =
+        input.run && hasMoveIntent && tentarCorrer(vitals, delta)
       const speed = isRunning ? stats.runSpeed : stats.walkSpeed
-
-      if (isRunning) {
-        vitals.stamina = Math.max(0, vitals.stamina - runCost)
-        vitals.staminaRegenDelay = vitals.staminaRegenDelayAfterUse
-      }
 
       vel.x = worldX * speed
       vel.z = worldZ * speed

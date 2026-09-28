@@ -21,6 +21,8 @@ import {
   Inventory,
   Party,
   PartyIndividualValues,
+  PartyFaint,
+  PartyVitals,
   PathState,
   Mood,
   ScanMode,
@@ -85,6 +87,10 @@ export const playerEntity = world.spawn(
   Inventory,
   Party(STARTER_PARTY),
   PartyIndividualValues(STARTER_INDIVIDUAL_VALUES),
+  // Ninguém do time começa desmaiado (ver `PartyFaint`), e todos começam
+  // com a vida/energia cheias na bola (ver `PartyVitals`).
+  PartyFaint,
+  PartyVitals,
   ScanMode,
   // Coleção de espécies já escaneadas (aba "Pokémons") e histórico dos
   // últimos scans (aba "Histórico") — ambas vivem só no treinador, quem

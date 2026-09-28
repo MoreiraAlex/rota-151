@@ -24,12 +24,12 @@ export function calculateHpStat({ base, iv, ev, level }) {
   return (
     Math.trunc(((2 * base + iv + Math.trunc(ev / 4)) * level) / 100) +
     level +
-    10
+    50
   )
 }
 
 export function calculateEnergyStat({ hp, defense, sp_def }) {
-  return Math.trunc((hp + defense + sp_def) / 3)
+  return Math.trunc((hp + defense + sp_def) / 3) + 25
 }
 
 /**
@@ -63,8 +63,8 @@ export function calculateAttackInterval(speed) {
   const minSpeed = 5
   const maxSpeed = 400
 
-  const minInterval = 0.15
-  const maxInterval = 0.75
+  const minInterval = 0.05
+  const maxInterval = 0.5
 
   const t = Math.min(
     1,

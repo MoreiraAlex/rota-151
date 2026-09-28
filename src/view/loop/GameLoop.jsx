@@ -23,8 +23,10 @@ const { FIXED_TIMESTEP, MAX_FRAME_TIME, MAX_STEPS_PER_FRAME } = GAME_CONFIG.LOOP
  * `context.events`; a fila é drenada UMA vez por frame, logo antes da
  * apresentação, e a lista vai pra ela como `context.frameEvents` — assim
  * um evento emitido em qualquer um dos passos fixos do frame é visto
- * exatamente uma vez pelos efeitos visuais/sonoros. A fase `events` do
- * passo fixo continua sem system (fica pra consumidor de GAMEPLAY).
+ * exatamente uma vez pelos efeitos visuais/sonoros. Systems de GAMEPLAY
+ * que reagem a eventos rodam na fase `events` do próprio passo e leem
+ * `context.events.stepEvents()` (só o que saiu neste passo — o loop chama
+ * `beginStep()` antes de cada um).
  *
  * `castModeOverride` (prop, vira `context.settings.castModeOverride`):
  * força o modo de lançamento de todo ataque (`creatureAttackSystem.js`) —
@@ -61,6 +63,7 @@ export function GameLoop({ castModeOverride = null }) {
     ) {
       // pointer.snapshot() drena os deltas acumulados — chamado a cada passo
       // fixo, o primeiro consome o movimento e os seguintes recebem zero.
+      events.beginStep()
       runFixedPipeline({
         world,
         delta: FIXED_TIMESTEP,

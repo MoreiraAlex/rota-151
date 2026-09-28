@@ -22,6 +22,29 @@ describe('createEventQueue', () => {
   })
 })
 
+describe('createEventQueue — eventos do passo (gameplay)', () => {
+  it('stepEvents traz só o que saiu desde o último beginStep', () => {
+    const queue = createEventQueue()
+    queue.beginStep()
+    queue.emit({ type: 'a' })
+    expect(queue.stepEvents()).toEqual([{ type: 'a' }])
+
+    queue.beginStep()
+    queue.emit({ type: 'b' })
+    expect(queue.stepEvents()).toEqual([{ type: 'b' }])
+  })
+
+  it('o drain do frame continua recebendo tudo dos vários passos', () => {
+    const queue = createEventQueue()
+    queue.beginStep()
+    queue.emit({ type: 'a' })
+    queue.beginStep()
+    queue.emit({ type: 'b' })
+
+    expect(queue.drain()).toEqual([{ type: 'a' }, { type: 'b' }])
+  })
+})
+
 describe('attackResolved', () => {
   const base = {
     attacker: 1,

@@ -1,0 +1,58 @@
+{
+  "name": "criature-faint",
+  "bones": {
+    "Waist": {
+      "rotation": {
+        "y": { "type": "constant", "value": -1.15 }
+      },
+      "position": {
+        "y": { "type": "constant", "value": -8 }
+      }      
+    },
+    "Head": {
+      "scale": {
+        "x": { "type": "constant", "value": -1 },
+        "y": { "type": "constant", "value": -1 },
+        "z": { "type": "constant", "value": -1 }
+      }      
+    },
+
+    "LArm": {
+      "scale": {
+        "x": { "type": "constant", "value": -1 },
+        "y": { "type": "constant", "value": -1 },
+        "z": { "type": "constant", "value": -1 }
+      }      
+    },
+    "LThigh": {
+      "scale": {
+        "x": { "type": "constant", "value": -1 },
+        "y": { "type": "constant", "value": -1 },
+        "z": { "type": "constant", "value": -1 }
+      }      
+    },
+
+    "RArm": {
+      "scale": {
+        "x": { "type": "constant", "value": -1 },
+        "y": { "type": "constant", "value": -1 },
+        "z": { "type": "constant", "value": -1 }
+      }      
+    },
+    "RThigh": {
+      "scale": {
+        "x": { "type": "constant", "value": -1 },
+        "y": { "type": "constant", "value": -1 },
+        "z": { "type": "constant", "value": -1 }
+      }      
+    },
+
+    "Tail1": {
+      "scale": {
+        "x": { "type": "constant", "value": -1 },
+        "y": { "type": "constant", "value": -1 },
+        "z": { "type": "constant", "value": -1 }
+      }      
+    }
+  }
+}

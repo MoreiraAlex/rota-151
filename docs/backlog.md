@@ -110,7 +110,9 @@ de puxar ela pra frente.
       `SummonedCreature` daquele slot.
 - [ ] **Morrer** — estado terminal, não uma ação com fim automático; trava
       input e provavelmente dispara um fluxo de respawn/checkpoint que ainda
-      não existe — desenhar quando for a vez.
+      não existe — desenhar quando for a vez. (O desmaio das CRIATURAS —
+      selvagens e do time — saiu na `docs/features/031-ia-de-combate-e-
+      desmaio.md`; o treinador a 0 de HP continua sem estado nenhum.)
 - [X] **Ataque comum de criatura** — entregue em
       `docs/features/025-ataque-comum-de-criatura.md` (v0.0.25): botão
       esquerdo do mouse controlando uma `SummonedCreature` dispara a ação

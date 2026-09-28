@@ -1,6 +1,6 @@
 {
   "name": "boy-recall",
-  "loop": false,
+  "spped": 1.6,
   "bones": {
     "Waist": {
       "rotation": {

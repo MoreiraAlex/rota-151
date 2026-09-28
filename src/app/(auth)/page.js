@@ -12,6 +12,8 @@ import { GameScene } from '@/view/scene/GameScene'
 import { PhysicsDebugView } from '@/tools/debug/PhysicsDebugView'
 import { PathfindingDebugView } from '@/tools/debug/PathfindingDebugView'
 import { ScanRangeDebugView } from '@/tools/debug/ScanRangeDebugView'
+import { WildBehaviorDebugView } from '@/tools/debug/WildBehaviorDebugView'
+import { PartyBehaviorDebugView } from '@/tools/debug/PartyBehaviorDebugView'
 import { DebugPanel } from '@/tools/debug/DebugPanel'
 import { PauseMenu } from '@/tools/menu/PauseMenu'
 import { ActionSlotHud } from '@/tools/hud/ActionSlotHud'
@@ -221,6 +223,8 @@ export default function GamePage() {
                 <PhysicsDebugView />
                 <PathfindingDebugView />
                 <ScanRangeDebugView />
+                <WildBehaviorDebugView />
+                <PartyBehaviorDebugView />
               </>
             )}
           </GameScene>

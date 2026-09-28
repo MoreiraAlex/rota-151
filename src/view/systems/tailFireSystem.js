@@ -1,5 +1,9 @@
 import * as THREE from 'three'
+import { Fainted } from '@/core/traits'
 import { getTailFireEntries } from '@/view/registry/tailFireRegistry'
+
+// Segundos pra apagar (desmaiou) ou reacender (acordou) o fogo por inteiro.
+const FAINT_FADE_DURATION = 0.4
 
 // Vetor reaproveitado pra não alocar um THREE.Vector3 novo por entidade a
 // cada tick só pra ler a escala do osso (mesmo cuidado de
@@ -48,6 +52,11 @@ const worldScale = new THREE.Vector3()
  * `config.speed` multiplica o `delta` passado pra `flame.update`, mesmo
  * princípio do `speed` do spike (`Campfire.jsx`).
  *
+ * Criatura desmaiada (`Fainted`): o fogo apaga (`intensity` → 0 em
+ * `FAINT_FADE_DURATION` — some a opacidade das partículas e a luz) e o
+ * grupo fica invisível, sem simular; ao acordar, reacende do mesmo jeito.
+ * `entry.fade` guarda o quanto está aceso.
+ *
  * Vive na view (mexe em objeto Three puro). Fase: presentation, perto de
  * `animationSystem`/`heldItemViewSystem` — sem dependência de ordem
  * estrita com eles (só precisa que os ossos já tenham sido registrados
@@ -57,7 +66,18 @@ const worldScale = new THREE.Vector3()
 export function tailFireSystem(context) {
   const { delta } = context
 
-  for (const [, { flame, bone, config = {} }] of getTailFireEntries()) {
+  for (const [entity, entry] of getTailFireEntries()) {
+    const { flame, bone, config = {} } = entry
+
+    const target = entity.has(Fainted) ? 0 : 1
+    const step = delta / FAINT_FADE_DURATION
+    entry.fade =
+      target > entry.fade
+        ? Math.min(target, entry.fade + step)
+        : Math.max(target, entry.fade - step)
+    flame.group.visible = entry.fade > 0
+    if (!flame.group.visible) continue
+
     const scale = config.scale ?? 1
 
     bone.getWorldScale(worldScale)
@@ -83,6 +103,8 @@ export function tailFireSystem(context) {
       )
     }
 
-    flame.update(delta * (config.speed ?? 1))
+    flame.update(delta * (config.speed ?? 1), {
+      intensity: (config.intensity ?? 1) * entry.fade,
+    })
   }
 }

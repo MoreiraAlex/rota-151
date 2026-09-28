@@ -4,6 +4,7 @@ import * as THREE from 'three'
 import { clone as cloneSkeleton } from 'three/examples/jsm/utils/SkeletonUtils.js'
 
 import { SummonedCreature, Mood } from '@/core/traits'
+import { resolveEyeState } from '@/view/shared/eyeState'
 import { resolveBones } from '@/core/animation/resolveBones'
 import { resolveFootstepSound } from '@/core/data/audio/footstepGroups'
 import {
@@ -83,14 +84,6 @@ const DEFAULT_ACTION_SOUND_REF_DISTANCE = 6
 const DEFAULT_BLINK_MIN_INTERVAL = 2
 const DEFAULT_BLINK_MAX_INTERVAL = 6
 const DEFAULT_BLINK_CLOSED_DURATION = 0.12
-
-// Mesmo fallback de `view/systems/eyeBlinkSystem.js` (mantido em sincronia
-// na mão — arquivos pequenos, acoplar os dois por import cruzado hook↔system
-// não vale a pena): humor sem estado declarado pra ele cai no PRIMEIRO
-// declarado, em vez de travar sem reagir.
-function resolveEyeState(states, mood) {
-  return states[mood] ?? states[Object.keys(states)[0]]
-}
 
 // Nome do osso da ponta da cauda, por espécie — puramente visual (nomes
 // vêm do rig 3D, não faz sentido core saber disso), mesmo raciocínio de

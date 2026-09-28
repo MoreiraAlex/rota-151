@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach } from 'vitest'
 import { createWorld } from 'koota'
-import { getSpecies } from '@/core/data/species'
+import { getPlayerSpecies, getSpecies } from '@/core/data/species'
 import { resolveCreatureAttack } from '@/core/data/attacks'
 import { computeAimRay } from '@/core/camera/orbitCamera'
 import { disposePhysics } from '@/core/physics/physicsWorld'
@@ -19,11 +19,13 @@ import {
   AttackEffect,
   AttackPulse,
   CombatMode,
+  Fainted,
   Mood,
   CharacterController,
   IndividualValues,
   InputControlled,
   OrbitCamera,
+  Party,
   PhysicsBody,
   Position,
   resolveMaxStamina,
@@ -31,6 +33,7 @@ import {
   SummonedCreature,
   Vitals,
   vitalsFromSpecies,
+  WantsToAttack,
   WildCreature,
 } from '@/core/traits'
 import {
@@ -656,7 +659,7 @@ describe('resolveAttackTarget — combate 2.5D ao longo da trajetória', () => {
   const ON_GROUND = 0
 
   function hit(world, origin = ORIGIN, impact = IMPACT, elevation = ON_GROUND) {
-    return resolveAttackTarget(world, origin, impact, RADIUS, elevation)
+    return resolveAttackTarget(world, origin, impact, RADIUS, elevation, 'wild')
   }
 
   afterEach(() => {
@@ -1062,5 +1065,162 @@ describe('resolveCastMode', () => {
   it('override (modo debug) ganha da definição', () => {
     expect(resolveCastMode({ castMode: 'instant' }, 'confirm')).toBe('confirm')
     expect(resolveCastMode({}, 'confirm')).toBe('confirm')
+  })
+})
+
+describe('creatureAttackSystem — selvagem atacando (IA)', () => {
+  // Selvagem pronta pra atacar, como o `wildCreatureSpawnSystem` cria.
+  function spawnWildAttacker(world, position) {
+    return world.spawn(
+      Position(position),
+      Rotation,
+      ActionState,
+      AttackCooldowns,
+      Mood,
+      CharacterController(getSpecies('charmander').body),
+      PhysicsBody,
+      vitalsFromSpecies(getSpecies('charmander')),
+      WildCreature({ speciesId: 'charmander' }),
+      IndividualValues,
+    )
+  }
+
+  it('pedido de golpe (WantsToAttack) lança o ataque básico mirando no alvo do pedido', () => {
+    const world = spawnWorld()
+    const mine = spawnControlledCreature(world, {
+      speciesId: 'bulbasaur',
+      position: { x: 1, y: 1, z: 0 },
+    })
+    const wild = spawnWildAttacker(world, { x: 0, y: 1, z: 0 })
+    const staminaBefore = wild.get(Vitals).stamina
+    wild.add(WantsToAttack({ target: mine }))
+
+    tick(world)
+
+    expect(wild.get(ActionState)).toMatchObject({
+      current: 'attack',
+      pendingSlot: 'primary',
+    })
+    expect(wild.get(Vitals).stamina).toBeLessThan(staminaBefore)
+    // Virada pro alvo (+X): yaw = atan2(1, 0) = 90°.
+    expect(wild.get(Rotation).y).toBeCloseTo(Math.PI / 2)
+    expect(wild.has(WantsToAttack)).toBe(false)
+    expect(wild.has(CombatMode)).toBe(true)
+  })
+
+  it('o golpe da selvagem acerta a criatura do jogador e emite o evento', () => {
+    const world = spawnWorld()
+    const mine = spawnControlledCreature(world, {
+      speciesId: 'bulbasaur',
+      position: { x: 0.9, y: 1, z: 0 },
+    })
+    const wild = spawnWildAttacker(world, { x: 0, y: 1, z: 0 })
+    const hpBefore = mine.get(Vitals).hp
+    wild.add(WantsToAttack({ target: mine }))
+
+    for (let i = 0; i < 60; i++) tick(world)
+
+    expect(mine.get(Vitals).hp).toBeLessThan(hpBefore)
+    const hits = events
+      .drain()
+      .filter((event) => event.result === 'hit' && event.attacker === wild)
+    expect(hits).toHaveLength(1)
+    expect(hits[0].target).toBe(mine)
+  })
+
+  it('sem stamina pro golpe, o pedido é descartado sem atacar', () => {
+    const world = spawnWorld()
+    const mine = spawnControlledCreature(world, {
+      position: { x: 1, y: 1, z: 0 },
+    })
+    const wild = spawnWildAttacker(world, { x: 0, y: 1, z: 0 })
+    wild.set(Vitals, { stamina: 0 })
+    wild.add(WantsToAttack({ target: mine }))
+
+    tick(world)
+
+    expect(wild.get(ActionState).current).toBe(null)
+    expect(wild.has(WantsToAttack)).toBe(false)
+  })
+
+  it('alvo fora da luta (desmaiado), o pedido é descartado sem atacar', () => {
+    const world = spawnWorld()
+    const mine = spawnControlledCreature(world, {
+      position: { x: 1, y: 1, z: 0 },
+    })
+    const wild = spawnWildAttacker(world, { x: 0, y: 1, z: 0 })
+    mine.add(Fainted)
+    wild.add(WantsToAttack({ target: mine }))
+
+    tick(world)
+
+    expect(wild.get(ActionState).current).toBe(null)
+    expect(wild.has(WantsToAttack)).toBe(false)
+  })
+
+  it('criatura do time fora do controle (IA) também lança pelo pedido, mirando na selvagem', () => {
+    const world = spawnWorld()
+    const wild = spawnWildAttacker(world, { x: 1, y: 1, z: 0 })
+    const mine = spawnControlledCreature(world, {
+      speciesId: 'bulbasaur',
+      position: { x: 0, y: 1, z: 0 },
+    })
+    mine.remove(InputControlled)
+    mine.add(WantsToAttack({ target: wild }))
+
+    tick(world)
+
+    expect(mine.get(ActionState)).toMatchObject({
+      current: 'attack',
+      pendingSlot: 'primary',
+    })
+    expect(mine.get(Rotation).y).toBeCloseTo(Math.PI / 2)
+  })
+
+  it('cooldown também corre pra selvagem', () => {
+    const world = spawnWorld()
+    const wild = spawnWildAttacker(world, { x: 0, y: 1, z: 0 })
+    wild.set(AttackCooldowns, { primary: 1 })
+
+    tick(world)
+
+    expect(wild.get(AttackCooldowns).primary).toBeCloseTo(1 - DELTA)
+  })
+})
+
+describe('resolveAttackTarget — lado do jogador (golpe de selvagem)', () => {
+  const ORIGIN = { x: 0, y: 1, z: 0 }
+  const IMPACT = { x: 0, y: 1, z: 4 }
+
+  it('acerta criatura do time e o treinador; nunca outra selvagem', () => {
+    const world = spawnWorld()
+    const otherWild = spawnWildCreature(world, {
+      position: { x: 0, y: 1, z: 1 },
+    })
+    const trainer = world.spawn(
+      Position({ x: 0, y: 1, z: 2 }),
+      Rotation,
+      CharacterController(getPlayerSpecies().body),
+      Vitals,
+      Party,
+    )
+
+    const hit = resolveAttackTarget(world, ORIGIN, IMPACT, 0.3, 0, 'player')
+
+    // A selvagem está antes no caminho, mas é do mesmo lado — o golpe
+    // segue e pega o treinador.
+    expect(hit.entity).toBe(trainer)
+    expect(hit.entity).not.toBe(otherWild)
+  })
+
+  it('criatura do time no caminho é atingida', () => {
+    const world = spawnWorld()
+    const mine = spawnControlledCreature(world, {
+      position: { x: 0, y: 1, z: 1.5 },
+    })
+
+    const hit = resolveAttackTarget(world, ORIGIN, IMPACT, 0.3, 0, 'player')
+
+    expect(hit.entity).toBe(mine)
   })
 })

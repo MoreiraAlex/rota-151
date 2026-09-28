@@ -9,12 +9,17 @@ import { playerActionSystem } from '@/core/systems/playerActionSystem'
 import { scannerModeSystem } from '@/core/systems/scannerModeSystem'
 import { creatureAttackSystem } from '@/core/systems/creatureAttackSystem'
 import { combatModeSystem } from '@/core/systems/combatModeSystem'
+import { faintSystem } from '@/core/systems/faintSystem'
 import { attackEffectSystem } from '@/core/systems/attackEffectSystem'
 import { partySummonSystem } from '@/core/systems/partySummonSystem'
 import { summonBallSystem } from '@/core/systems/summonBallSystem'
 import { creatureFollowSystem } from '@/core/systems/creatureFollowSystem'
 import { wildCreatureSpawnSystem } from '@/core/systems/wildCreatureSpawnSystem'
 import { wildWanderSystem } from '@/core/systems/wildWanderSystem'
+import { wildBehaviorSystem } from '@/core/systems/wildBehaviorSystem'
+import { wildReactionSystem } from '@/core/systems/wildReactionSystem'
+import { partyBehaviorSystem } from '@/core/systems/partyBehaviorSystem'
+import { partyReactionSystem } from '@/core/systems/partyReactionSystem'
 import { projectileSystem } from '@/core/systems/projectileSystem'
 import { consumeEffectSystem } from '@/core/systems/consumeEffectSystem'
 import { summonEffectsSystem } from '@/core/systems/summonEffectsSystem'
@@ -152,6 +157,9 @@ export function registerGameSystems() {
   registerSystem(GAME_PHASES.SIMULATION, playerActionSystem)
   registerSystem(GAME_PHASES.SIMULATION, scannerModeSystem)
   registerSystem(GAME_PHASES.SIMULATION, creatureAttackSystem)
+  // Logo depois do ataque: quem zerou o HP desmaia no mesmo tick do golpe
+  // (e antes do partySummonSystem, que recolhe a do time desmaiada).
+  registerSystem(GAME_PHASES.SIMULATION, faintSystem)
   // Depois do ataque: um golpe neste tick renova o combate antes de contar.
   registerSystem(GAME_PHASES.SIMULATION, combatModeSystem)
   registerSystem(GAME_PHASES.SIMULATION, projectileSystem)
@@ -160,13 +168,24 @@ export function registerGameSystems() {
   registerSystem(GAME_PHASES.SIMULATION, summonEffectsSystem)
   registerSystem(GAME_PHASES.SIMULATION, partySummonSystem)
   registerSystem(GAME_PHASES.SIMULATION, summonBallSystem)
+  // Antes do follow: quem está lutando pra defender o grupo não segue.
+  registerSystem(GAME_PHASES.SIMULATION, partyBehaviorSystem)
   registerSystem(GAME_PHASES.SIMULATION, creatureFollowSystem)
   registerSystem(GAME_PHASES.SIMULATION, wildCreatureSpawnSystem)
+  // Antes do vagar: decide perseguir/fugir/voltar a vagar e move quem
+  // persegue/foge; quem voltou a vagar já vaga no mesmo tick.
+  registerSystem(GAME_PHASES.SIMULATION, wildBehaviorSystem)
   registerSystem(GAME_PHASES.SIMULATION, wildWanderSystem)
   registerSystem(GAME_PHASES.SIMULATION, characterPhysicsSystem)
   registerSystem(GAME_PHASES.SIMULATION, physicsStepSystem)
   registerSystem(GAME_PHASES.SIMULATION, syncPhysicsSystem)
   registerSystem(GAME_PHASES.SIMULATION, animationStateSystem)
+
+  // Reação de gameplay a eventos do passo (`context.events.stepEvents()`):
+  // selvagem que apanhou soma ameaça e revida/foge/persegue; o time entra
+  // na luta contra a selvagem que acertou alguém do grupo.
+  registerSystem(GAME_PHASES.EVENTS, wildReactionSystem)
+  registerSystem(GAME_PHASES.EVENTS, partyReactionSystem)
 
   registerSystem(GAME_PHASES.PRESENTATION, syncTransformSystem)
   registerSystem(GAME_PHASES.PRESENTATION, cameraFollowSystem)
