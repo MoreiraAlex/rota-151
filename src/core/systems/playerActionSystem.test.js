@@ -12,12 +12,14 @@ import {
   Projectile,
   ConsumeEffect,
   Grounded,
+  InputState,
+  MovementStats,
 } from '@/core/traits'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import { getItem } from '@/core/data/items'
 import { getSpecies, getPlayerSpecies } from '@/core/data/species'
 import { computeAimRay } from '@/core/camera/orbitCamera'
-import { playerActionSystem } from './playerActionSystem'
+import { playerActionSystem, resolveDashSpeed } from './playerActionSystem'
 
 // DASH continua global (GAME_CONFIG) — THROW/CONSUME são exclusivos do
 // treinador (`getPlayerSpecies().actions`, ver docs/features/018-troca-
@@ -194,6 +196,60 @@ describe('playerActionSystem — dash', () => {
     const action = player.get(ActionState)
     expect(action.dirX).toBeCloseTo(dirAtStart.dirX)
     expect(action.dirZ).toBeCloseTo(dirAtStart.dirZ)
+  })
+})
+
+describe('dash — frenagem no fim', () => {
+  const DASH = { SPEED: 12, DURATION: 1, EASE_OUT_TIME: 0.25 }
+
+  it('resolveDashSpeed: velocidade cheia até o início da frenagem, chega exata na de saída no fim', () => {
+    expect(resolveDashSpeed(DASH, 0.1, 4)).toBe(12)
+    expect(resolveDashSpeed(DASH, 0.75, 4)).toBe(12)
+    expect(resolveDashSpeed(DASH, 0.875, 4)).toBeCloseTo(8) // metade, smoothstep
+    expect(resolveDashSpeed(DASH, 1, 4)).toBeCloseTo(4)
+  })
+
+  it('resolveDashSpeed: EASE_OUT_TIME 0 desliga; nunca passa de metade da duração', () => {
+    expect(resolveDashSpeed({ ...DASH, EASE_OUT_TIME: 0 }, 0.99, 0)).toBe(12)
+    const short = { SPEED: 12, DURATION: 0.2, EASE_OUT_TIME: 0.25 }
+    expect(resolveDashSpeed(short, 1 / 60, 0)).toBe(12) // 1º tick ainda cheio
+  })
+
+  function dashAndRecord(world, player, input) {
+    player.add(Grounded)
+    player.set(Rotation, { y: 0 })
+    player.set(InputState, input)
+    tick(world, { dash: true })
+    const speeds = []
+    while (player.get(ActionState).current === 'dash') {
+      tick(world, {})
+      const vel = player.get(Velocity)
+      speeds.push(Math.hypot(vel.x, vel.z))
+      if (speeds.length > 1000) throw new Error('dash nunca terminou')
+    }
+    return speeds
+  }
+
+  it('sem input: desce suave até 0 — sem degrau maior que a frenagem permite', () => {
+    const { world, player } = spawnWorld()
+    const speeds = dashAndRecord(world, player, { x: 0, z: 0, run: false })
+
+    expect(speeds.at(-1)).toBeCloseTo(0)
+    for (let i = 1; i < speeds.length; i++) {
+      expect(speeds[i]).toBeLessThanOrEqual(speeds[i - 1] + 1e-9)
+    }
+    const biggestDrop = Math.max(
+      ...speeds.slice(1).map((v, i) => speeds[i] - v),
+    )
+    expect(biggestDrop).toBeLessThan(SPEED / 4) // antes: SPEED inteiro num tick
+  })
+
+  it('segurando correr: termina exatamente no runSpeed, não em 0 (sem tick parado no fim)', () => {
+    const { world, player } = spawnWorld()
+    const { runSpeed } = player.get(MovementStats)
+    const speeds = dashAndRecord(world, player, { x: 0, z: 1, run: true })
+
+    expect(speeds.at(-1)).toBeCloseTo(runSpeed)
   })
 })
 

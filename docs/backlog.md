@@ -58,6 +58,14 @@ de puxar ela pra frente.
       curta. Sem cooldown, sem dash aéreo, sem i-frames — fica pra depois se
       fizer falta. Clipe de animação (`species/fox/clips/dash.json`) por
       conta do usuário.
+- [X] **Frenagem no fim do dash** — entregue em
+      `docs/features/032-animacoes-embutidas-e-keyframes.md` (v0.0.32): nos
+      últimos `DASH.EASE_OUT_TIME` segundos a velocidade desce suave até a
+      de saída (0 / andar / correr, pelo input) — `resolveDashSpeed`,
+      `playerActionSystem.js`. Corrigiu junto o tick parado (velocidade 0)
+      no fim do dash. Fica pendente o giro no fim: o `movementSystem` volta
+      a virar pro input com `turnSpeed` no mesmo tick (ver "Sensação de
+      movimento" acima).
 - [X] **Slots de ação** — entregue em
       `docs/features/011-slots-de-acao.md` (v0.0.11): 4 botões predefinidos
       (`primary` = clique esquerdo, só com o ponteiro travado;
@@ -150,16 +158,14 @@ de puxar ela pra frente.
 
 ## Animação
 
-- [ ] **Clipe por keyframes gravados (além de curva procedural)** —
-      `applyAnimationClip.js` hoje só entende curva procedural por eixo
-      (`sine`/`constant`/`clampedSine`/`absSine`, ver `core/animation/
-      curves.js`); um clipe gravado/exportado de outra ferramenta (ex.:
-      `bot/clips/throw1.json`, 40 frames, `quaternion`/`position` por osso
-      como array de valores brutos, `type: "keyframes"`) não é reconhecido
-      — nenhum osso sem correspondente na curva procedural recebe override,
-      então o personagem cai pra pose de descanso (T-pose) inteira durante
-      o clipe. Precisa de um caminho de aplicação novo, convivendo com o
-      procedural (não substituindo): interpolar entre os frames gravados
-      pelo tempo decorrido — slerp pra rotação (quaternion), lerp pra
-      posição — em vez de avaliar uma fórmula. Acertar o mapeamento
-      tempo→frame (fps/duração real do clipe) é parte do trabalho.
+- [X] **Clipe por keyframes gravados (além de curva procedural)** —
+      entregue em `docs/features/032-animacoes-embutidas-e-keyframes.md` (v0.0.32):
+      `type: "keyframes"` no clipe escolhe um caminho de amostragem novo
+      (interpola entre frames gravados — slerp/lerp), convivendo com o
+      procedural de sempre (escolha por clipe inteiro, `entry.clips[id]`
+      pode ser de qualquer um dos dois por estado).
+- [X] **Animações embutidas no `.glb`** — entregue no mesmo doc (v0.0.32):
+      `species.nativeAnimations` tocadas pelo `THREE.AnimationMixer`
+      (sequências start/loop/end, lista `sequence`, corte por frames,
+      `blend` por estado, encaixe na duração da ação), estados
+      `battleIdle`/`appeal`/`jump`, piscar por animação.

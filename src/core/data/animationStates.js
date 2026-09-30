@@ -4,10 +4,16 @@ const { WALK_MIN_SPEED, RUN_MIN_SPEED } = GAME_CONFIG.ANIMATION
 
 /**
  * Tabela de resolução de estado de animação — uma lista ordenada de
- * `{ id, when, oneShot? }`; a primeira cuja condição bate, vence. `ctx` é
- * `{ speed, grounded, action, fainted }` — `action` é o
- * `ActionState.current` da entidade (`null` quando livre); `fainted`, se
- * ela tem `Fainted` (desmaiada).
+ * `{ id, when, oneShot?, fallback? }`; a primeira cuja condição bate,
+ * vence. `ctx` é `{ speed, grounded, action, fainted, inCombat, jumping }` —
+ * `action` é o `ActionState.current` da entidade (`null` quando livre);
+ * `fainted`, se ela tem `Fainted` (desmaiada); `inCombat`, se tem
+ * `CombatMode`; `jumping`, se está SUBINDO num pulo de verdade
+ * (`Jumping` — input de pulo aceito — e `vel.y > 0`).
+ *
+ * `fallback` é o id cuja animação a view toca quando a espécie não tem
+ * nenhuma pra este estado (ex.: `battleIdle` → `idle`) — sem ele, estado
+ * sem animação cai na pose de descanso.
  *
  * Cresce depois (mais estados, condições novas) sem trocar o formato. Ações
  * disparadas (dash, arremesso, invocar/recolher criatura, e no futuro uso/
@@ -35,6 +41,9 @@ export const ANIMATION_STATES = [
   // `duration` de ação por trás — o clipe toca no `speed` do próprio JSON;
   // a entrada é suavizada pelo crossfade (`BLEND_DURATION`).
   { id: 'faint', when: (ctx) => ctx.fainted === true },
+  // Apresentação ao ser invocada (`creatureAppealSystem.js`) — a
+  // criatura fica parada enquanto a ação dura.
+  { id: 'appeal', oneShot: true, when: (ctx) => ctx.action === 'appeal' },
   { id: 'dash', oneShot: true, when: (ctx) => ctx.action === 'dash' },
   // 'summon' (invocar criatura, ver docs/features/017-locomocao-e-
   // recolhimento-de-criaturas.md) reusa o MESMO clipe/id do arremesso —
@@ -65,11 +74,18 @@ export const ANIMATION_STATES = [
   // de descanso) — a arquitetura já fica pronta pra tocar o clipe de
   // verdade assim que `clips.attack` existir, sem mudar nada aqui.
   { id: 'attack', oneShot: true, when: (ctx) => ctx.action === 'attack' },
+  // Subida de um pulo de verdade (input aceito, `Jumping`, e `vel.y > 0`)
+  // — do disparo até o ponto mais alto; dali em diante a descida é `fall`
+  // (pedido do usuário: a animação de pulo não combina com a queda). Antes
+  // da locomoção: nos 1-2 ticks logo após o disparo a entidade ainda está
+  // `grounded`. Cair de uma borda sem pular é `fall` desde o início, e
+  // `fall` também é o fallback de quem não tem animação de pulo.
+  { id: 'jump', fallback: 'fall', when: (ctx) => ctx.jumping === true },
   { id: 'run', when: (ctx) => ctx.grounded && ctx.speed > RUN_MIN_SPEED },
   { id: 'walk', when: (ctx) => ctx.grounded && ctx.speed > WALK_MIN_SPEED },
-  // No ar (subindo OU descendo — pulo inteiro, um clipe só, sem separar
-  // "início do pulo" de "caindo") — pedido do usuário ("vou implementar
-  // as animações de dash e falling no boy"). CÍCLICO, não `oneShot`
+  // No ar sem ter pulado (caiu de uma borda) — o pulo de verdade é `jump`,
+  // acima. Antes cobria o pulo inteiro também — pedido do usuário ("vou
+  // implementar as animações de dash e falling no boy"). CÍCLICO, não `oneShot`
   // (mesmo grupo de walk/run/idle): fica no ar por tempo variável
   // (depende da altura/física, não uma duração fixa como um gesto de
   // ação), então não existe "fase certa" de início — sample contínuo do
@@ -78,6 +94,10 @@ export const ANIMATION_STATES = [
   // presença) — nenhum dado novo precisou ser calculado aqui, só faltava
   // esta entrada na tabela.
   { id: 'fall', when: (ctx) => !ctx.grounded },
+  // Parado no chão em modo combate (`CombatMode`) — postura de luta no
+  // lugar do olho bravo por textura. Espécie sem animação própria toca a
+  // idle.
+  { id: 'battleIdle', fallback: 'idle', when: (ctx) => ctx.inCombat === true },
   // Fallback: parado no chão.
   { id: 'idle', when: () => true },
 ]
@@ -86,8 +106,20 @@ const ONE_SHOT_ANIMATION_IDS = new Set(
   ANIMATION_STATES.filter((state) => state.oneShot).map((state) => state.id),
 )
 
+const FALLBACK_BY_ID = new Map(
+  ANIMATION_STATES.filter((state) => state.fallback).map((state) => [
+    state.id,
+    state.fallback,
+  ]),
+)
+
 export function resolveAnimationState(ctx) {
   return ANIMATION_STATES.find((state) => state.when(ctx)).id
+}
+
+/** Id cuja animação substitui a deste estado quando a espécie não tem. */
+export function resolveAnimationFallback(id) {
+  return FALLBACK_BY_ID.get(id) ?? null
 }
 
 export function isOneShotAnimationState(id) {

@@ -6,6 +6,11 @@ import { computeAimRay } from '@/core/camera/orbitCamera'
 import { disposePhysics } from '@/core/physics/physicsWorld'
 import { createEventQueue, EVENT_TYPES } from '@/core/events'
 import { castRay } from '@/core/physics/raycast'
+import { GAME_CONFIG } from '@/core/gameConfig'
+import {
+  calculateAttackDurationFactor,
+  calculateStat,
+} from '@/core/data/species/stats'
 import { resolveGroundY } from '@/core/battle/attackGeometry'
 import {
   addStaticBox,
@@ -403,6 +408,69 @@ describe('creatureAttackSystem', () => {
     // horizontalLength = 0 aqui → atan2(-1, 0) = -PI/2.
     expect(rotation.x).toBeCloseTo(-Math.PI / 2)
     expect(rotation.z).toBe(0)
+  })
+
+  it('overrides.duration da espécie é a BASE — o speed só escala em volta dela (e a animação acompanha)', () => {
+    // Regressão: antes o `speed` gerava a duração inteira (0.05–0.5s) e
+    // sobrescrevia o override em silêncio — o clipe de ataque continuava
+    // rápido mesmo com `duration` maior. Agora o override é a base.
+    const squirtle = getSpecies('squirtle')
+    const { duration } = squirtle.attacks.primary.overrides
+    const { REFERENCE, MIN_FACTOR, MAX_FACTOR } =
+      GAME_CONFIG.BATTLE.ATTACK_SPEED
+    const speed = calculateStat({
+      base: squirtle.stats.speed.base,
+      iv: 0,
+      ev: squirtle.stats.speed.ev ?? 0,
+      level: squirtle.level,
+    })
+    const factor = calculateAttackDurationFactor(speed, {
+      reference: REFERENCE,
+      minFactor: MIN_FACTOR,
+      maxFactor: MAX_FACTOR,
+    })
+
+    const world = spawnWorld()
+    const creature = spawnControlledCreature(world, { speciesId: 'squirtle' })
+    tick(world, { primary: true })
+
+    expect(creature.get(ActionState).animationSpeed).toBeCloseTo(
+      1 / (duration * factor),
+    )
+  })
+
+  it('mesma espécie com speed maior (IV) ataca mais rápido', () => {
+    const attackSpeedWith = (iv) => {
+      const world = spawnWorld()
+      const creature = spawnControlledCreature(world, {
+        speciesId: 'squirtle',
+        individualValues: { speed: iv },
+      })
+      tick(world, { primary: true })
+      return creature.get(ActionState).animationSpeed
+    }
+
+    expect(attackSpeedWith(31)).toBeGreaterThan(attackSpeedWith(0))
+  })
+
+  it('overrides.animationFrames chega no ActionState no disparo e volta a null no fim', () => {
+    const world = spawnWorld()
+    const creature = spawnControlledCreature(world, { speciesId: 'squirtle' })
+    const species = getSpecies('squirtle')
+    const original = species.attacks.primary
+    species.attacks.primary = {
+      ...original,
+      overrides: { ...original.overrides, animationFrames: 40 },
+    }
+    try {
+      tick(world, { primary: true })
+      expect(creature.get(ActionState).animationFrames).toBe(40)
+
+      advanceUntilFree(world, creature)
+      expect(creature.get(ActionState).animationFrames).toBeNull()
+    } finally {
+      species.attacks.primary = original
+    }
   })
 
   it('a ação termina sozinha (current volta a null) depois de DURATION', () => {

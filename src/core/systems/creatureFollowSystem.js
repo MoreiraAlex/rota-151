@@ -5,6 +5,7 @@ import { findPath } from '../pathfinding'
 import { castRay } from '../physics/raycast'
 import { getPlayerSpecies } from '../data/species'
 import {
+  ActionState,
   CharacterController,
   Fainted,
   InputControlled,
@@ -212,6 +213,12 @@ export function creatureFollowSystem(context) {
       if (entity.has(Fainted)) return
       // Lutando pra defender o grupo: quem move é o `partyBehaviorSystem.js`.
       if (entity.get(PartyBehavior)?.state === 'fight') return
+      // Ação em andamento (ex.: `appeal` ao ser invocada): fica parada.
+      if (entity.get(ActionState)?.current) {
+        vel.x = 0
+        vel.z = 0
+        return
+      }
 
       const dx = targetPos.x - pos.x
       const dz = targetPos.z - pos.z

@@ -1,10 +1,4 @@
 /**
- * Elenco de criaturas da cena de teste (/tools/procedural-fox). ESTE ARQUIVO
- * É SEU — o motor (page.js, applyAnimationClip.js, curves.js,
- * resolveBones.js) só depende do formato de cada entrada, nunca do conteúdo.
- * Adiciona, remove ou edita criaturas aqui à vontade; nada disso é tocado
- * por mim em nenhum refactor do motor.
- *
  * Formato de cada entrada (exemplo do Fox abaixo):
  * { id, model, scale, position, clips: { <ação>: <clipeJSON>, ... } }
  *
@@ -15,9 +9,6 @@
 // import FOX_WALK_CLIP from '@/core/data/species/fox/clips/walk.json'
 // import FOX_RUN_CLIP from '@/core/data/species/fox/clips/run.json'
 
-import BULBASAUR_WALK_CLIP from '@/core/data/species/001-bulbasaur/clips/walk.json'
-import BULBASAUR_FAINT_CLIP from '@/core/data/species/001-bulbasaur/clips/faint.json'
-import BULBASAUR_RUN_CLIP from '@/core/data/species/001-bulbasaur/clips/run.json'
 
 // import ARCANINE_WALK_CLIP from '@/core/data/species/arcanine/clips/walk.json'
 // import ARCANINE_RUN_CLIP from '@/core/data/species/arcanine/clips/run.json'
@@ -25,11 +16,6 @@ import BULBASAUR_RUN_CLIP from '@/core/data/species/001-bulbasaur/clips/run.json
 // import BOY_WALK_CLIP from '@/core/data/species/boy/clips/walk.json'
 // import BOY_RUN_CLIP from '@/core/data/species/boy/clips/run.json'
 
-import CHARMANDER_WALK_CLIP from '@/core/data/species/004-charmander/clips/walk.json'
-import CHARMANDER_RUN_CLIP from '@/core/data/species/004-charmander/clips/faint.json'
-
-import SQUIRTLE_FAINT_CLIP from '@/core/data/species/007-squirtle/clips/faint.json'
-import SQUIRTLE_RUN_CLIP from '@/core/data/species/007-squirtle/clips/faint.json'
 
 
 export const CREATURES = [
@@ -66,15 +52,15 @@ export const CREATURES = [
   //   model: '/assets/models/004-charmander.glb',
   //   scale: 0.03,
   //   position: [0, 0, 0],
-  //   clips: { walk: CHARMANDER_WALK_CLIP, run: CHARMANDER_RUN_CLIP },
+  //   clips: { 
+  //     idle: CHARMANDER_IDLE_CLIP, 
+  //     walk: CHARMANDER_WALK_CLIP, 
+  //     run: CHARMANDER_RUN_CLIP, 
+  //     faint: CHARMANDER_FAINT_CLIP,
+  //     attack: CHARMANDER_ATTACK_CLIP 
+  //   },
   // },
-  {
-    id: 'squirtle',
-    model: '/assets/models/007-squirtle.glb',
-    scale: 0.03,
-    position: [0, 0, 0],
-    clips: { walk: SQUIRTLE_FAINT_CLIP, run: SQUIRTLE_RUN_CLIP },
-  },
+
   //  {
   //   id: 'boy',
   //   model: '/assets/models/boy.glb',

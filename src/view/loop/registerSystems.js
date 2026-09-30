@@ -13,6 +13,7 @@ import { faintSystem } from '@/core/systems/faintSystem'
 import { attackEffectSystem } from '@/core/systems/attackEffectSystem'
 import { partySummonSystem } from '@/core/systems/partySummonSystem'
 import { summonBallSystem } from '@/core/systems/summonBallSystem'
+import { creatureAppealSystem } from '@/core/systems/creatureAppealSystem'
 import { creatureFollowSystem } from '@/core/systems/creatureFollowSystem'
 import { wildCreatureSpawnSystem } from '@/core/systems/wildCreatureSpawnSystem'
 import { wildWanderSystem } from '@/core/systems/wildWanderSystem'
@@ -168,6 +169,9 @@ export function registerGameSystems() {
   registerSystem(GAME_PHASES.SIMULATION, summonEffectsSystem)
   registerSystem(GAME_PHASES.SIMULATION, partySummonSystem)
   registerSystem(GAME_PHASES.SIMULATION, summonBallSystem)
+  // Logo depois do spawn: a recém-invocada começa a apresentação no mesmo
+  // tick (e antes do follow/IA, que respeitam a ação em andamento).
+  registerSystem(GAME_PHASES.SIMULATION, creatureAppealSystem)
   // Antes do follow: quem está lutando pra defender o grupo não segue.
   registerSystem(GAME_PHASES.SIMULATION, partyBehaviorSystem)
   registerSystem(GAME_PHASES.SIMULATION, creatureFollowSystem)

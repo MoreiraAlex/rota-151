@@ -1,6 +1,6 @@
 {
   "name": "rota151",
-  "version": "0.0.31",
+  "version": "0.0.32",
   "private": true,
   "type": "module",
   "scripts": {
@@ -12,6 +12,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "extract:glb-animation": "node scripts/extract-glb-animation.js",
     "prisma:seed": "npx prisma db seed",
     "db:dev": "prisma migrate dev && prisma generate",
     "db:prod": "prisma migrate deploy"

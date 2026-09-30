@@ -18,6 +18,10 @@ import { resolveSummonSound } from '@/core/data/audio/summonSound'
 import { resolveRecallSound } from '@/core/data/audio/recallSound'
 import { resolveAttackSound } from '@/core/data/audio/attackSound'
 import { createFlame } from '@/view/vfx/flameParticles'
+import {
+  createNativeAnimationPlayer,
+  disposeNativeAnimationPlayer,
+} from '@/view/animation/nativeAnimationPlayer'
 import { getAudioListener } from '../audio/audioListener'
 import { loadAudioBuffer } from '../audio/audioBufferCache'
 import { loadTexture } from '../textures/textureCache'
@@ -91,7 +95,7 @@ const DEFAULT_BLINK_CLOSED_DURATION = 0.12
 // de cauda entram aqui — sem entrada (ou sem `species.vfx.tailFire`
 // configurado), o efeito abaixo não cria nada e não quebra.
 const TAIL_BONE_BY_SPECIES = {
-  charmander: 'Tail6',
+  // charmander: 'Tail6',
 }
 
 // Únicas texturas de fogo existentes no projeto hoje (extraídas do rip do
@@ -219,7 +223,7 @@ function setupPositionalActionSound(
  */
 export function useAnimatedModel(entity, species) {
   const groupRef = useRef()
-  const { scene } = useGLTF(species.model.path)
+  const { scene, animations } = useGLTF(species.model.path)
   const cloned = useMemo(() => cloneSkeleton(scene), [scene])
 
   useEffect(() => {
@@ -415,16 +419,29 @@ export function useAnimatedModel(entity, species) {
     cloned.traverse((child) => {
       if (child.isSkinnedMesh) skeleton = child.skeleton
     })
+    // Animações embutidas no `.glb` (`species.nativeAnimations`, opcional)
+    // — este efeito é o dono do player: cria aqui, descarta no cleanup.
+    const native =
+      skeleton && species.nativeAnimations
+        ? createNativeAnimationPlayer(
+            cloned,
+            animations,
+            species.nativeAnimations,
+            { blinkConfig: species.nativeBlink },
+          )
+        : null
     if (skeleton) {
       registerAnimatedBones(entity, {
         bones: resolveBones(skeleton),
         clips: species.clips,
+        native,
       })
     }
 
     return () => {
       unregisterView(entity)
       unregisterAnimatedBones(entity)
+      if (native) disposeNativeAnimationPlayer(native)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cloned, entity])

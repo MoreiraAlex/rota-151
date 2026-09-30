@@ -3,6 +3,7 @@ import {
   applyAnimationClip,
   capturePose,
   applyBlendedAnimationClip,
+  resolveClipSpeed,
 } from './applyAnimationClip'
 import { quaternionFromAxisAngle, multiplyQuaternions } from '@/core/math'
 import FOX_WALK_CLIP from '@/core/data/species/fox/clips/walk.json'
@@ -330,3 +331,118 @@ function signedZAngle(q) {
 function signedYAngle(q) {
   return 2 * Math.atan2(q.y, q.w)
 }
+
+describe('applyAnimationClip — clipe de keyframes gravados', () => {
+  // Rotação: identidade → 180° em Z, em 3 frames (0, meio, fim) — fácil de
+  // conferir por slerp. Posição: sobe em Y de 0 a 2. `fps` deliberadamente
+  // "errado" pra duração real (3 frames a 10fps = 0.3s) — os testes de
+  // ONE-SHOT abaixo provam que isso não importa pro `speed` vindo de fora
+  // (`ActionState.animationSpeed`, ver docstring de `applyAnimationClip`).
+  const HALF_TURN_Z = quaternionFromAxisAngle('z', Math.PI)
+  const clip = {
+    name: 'recorded-gesture',
+    type: 'keyframes',
+    fps: 10,
+    bones: {
+      arm: {
+        quaternion: [IDENTITY, HALF_TURN_Z, IDENTITY],
+        position: [
+          { x: 0, y: 0, z: 0 },
+          { x: 0, y: 1, z: 0 },
+          { x: 0, y: 2, z: 0 },
+        ],
+      },
+      // Só posição — a rotação deve continuar no descanso (identidade).
+      spine: {
+        position: [
+          { x: 0, y: 0, z: 0 },
+          { x: 1, y: 0, z: 0 },
+        ],
+      },
+    },
+  }
+
+  it('no frame exato (t=0), aplica o valor gravado sem interpolar', () => {
+    const bones = { arm: makeEntry(), spine: makeEntry() }
+    applyAnimationClip(clip, bones, 0, 1)
+    expectQuaternionCloseTo(bones.arm.bone.quaternion, IDENTITY)
+    expect(bones.arm.bone.position.y).toBeCloseTo(0)
+  })
+
+  it('a meio caminho entre dois frames, interpola: slerp na rotação, lerp na posição', () => {
+    const bones = { arm: makeEntry() }
+    // 3 frames = 1 ciclo inteiro do array; t=1/6 com speed=1 cai bem no
+    // meio do segmento frame 0 → frame 1 (1/3 do ciclo, alpha 0.5).
+    applyAnimationClip(clip, bones, 1 / 6, 1)
+
+    expect(bones.arm.bone.position.y).toBeCloseTo(0.5)
+    // Meio caminho (slerp) de identidade a 180° em Z é 90° em Z.
+    expectQuaternionCloseTo(
+      bones.arm.bone.quaternion,
+      quaternionFromAxisAngle('z', Math.PI / 2),
+    )
+  })
+
+  it('osso só com `position` gravada não mexe na rotação (fica no descanso)', () => {
+    const bones = { spine: makeEntry() }
+    applyAnimationClip(clip, bones, 1 / 6, 1) // meio do único segmento
+    expectQuaternionCloseTo(bones.spine.bone.quaternion, IDENTITY)
+    expect(bones.spine.bone.position.x).toBeCloseTo(0.5)
+  })
+
+  it('é cíclico: depois do último frame, envolve de volta pro frame 0', () => {
+    const bones = { arm: makeEntry() }
+    applyAnimationClip(clip, bones, 1, 1) // 1 ciclo inteiro decorrido
+    expectQuaternionCloseTo(bones.arm.bone.quaternion, IDENTITY)
+    expect(bones.arm.bone.position.y).toBeCloseTo(0)
+  })
+
+  it('osso do clipe ausente do mapa resolvido (rig sem ele) não lança erro', () => {
+    const bones = { spine: makeEntry() } // sem "arm", que o clipe também anima
+    expect(() => applyAnimationClip(clip, bones, 0.5, 1)).not.toThrow()
+  })
+
+  it('clipe sem nenhum array de frame (malformado) mantém o descanso, sem lançar', () => {
+    const bones = { arm: makeEntry() }
+    applyAnimationClip({ type: 'keyframes', bones: { arm: {} } }, bones, 1, 1)
+    expectQuaternionCloseTo(bones.arm.bone.quaternion, IDENTITY)
+  })
+
+  describe('resolveClipSpeed — padrão do keyframes vindo de fps', () => {
+    it('sem `speed` declarado, usa fps / total de frames (1 volta no tempo real gravado)', () => {
+      expect(resolveClipSpeed(clip)).toBeCloseTo(10 / 3)
+    })
+
+    it('`speed` explícito no clipe sempre ganha do padrão calculado', () => {
+      expect(resolveClipSpeed({ ...clip, speed: 2 })).toBe(2)
+    })
+
+    it('clipe procedural (sem type) cai no fallback de sempre (1), fps é ignorado', () => {
+      expect(resolveClipSpeed({ fps: 10, bones: {} })).toBe(1)
+    })
+  })
+
+  it('one-shot: `speed = 1/duration` estica o clipe GRAVADO inteiro pra caber na duração — não usa `fps`', () => {
+    // Mesmo clipe (3 frames @ 10fps → duração "natural" de 0.3s), mas a
+    // ação que o dispara dura 2s — bem diferente da duração natural.
+    // `ActionState.animationSpeed` (aqui, o `speed` passado direto) manda
+    // sozinho: o gesto inteiro (frame 0 → o último) tem que caber EXATAMENTE
+    // nesses 2s, do mesmo jeito que já acontece pra um clipe procedural
+    // (ver docstring de `applyAnimationClip` e `ActionState.animationSpeed`).
+    const duration = 2
+    const speed = 1 / duration
+    const bones = { arm: makeEntry() }
+
+    applyAnimationClip(clip, bones, 0, speed)
+    expect(bones.arm.bone.position.y).toBeCloseTo(0) // começo do gesto
+
+    // 3 frames = 1 ciclo inteiro; 1/3 do caminho cai exatamente no frame do
+    // meio (sem interpolar) — 1/3 de 2s, não a metade dos 2s.
+    applyAnimationClip(clip, bones, duration / 3, speed)
+    expect(bones.arm.bone.position.y).toBeCloseTo(1) // no frame do meio
+
+    applyAnimationClip(clip, bones, duration, speed) // fim exato do gesto
+    expectQuaternionCloseTo(bones.arm.bone.quaternion, IDENTITY)
+    expect(bones.arm.bone.position.y).toBeCloseTo(0) // envolveu de volta ao frame 0 — mesma pose do início, o gesto "fechou"
+  })
+})

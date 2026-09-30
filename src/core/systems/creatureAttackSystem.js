@@ -1,7 +1,10 @@
 import { resolveAttackDirection } from '../battle/attackAim'
 import { getPlayerSpecies, getSpecies } from '../data/species'
 import { resolveCreatureAttack } from '../data/attacks'
-import { calculateAttackInterval, calculateStat } from '../data/species/stats'
+import {
+  calculateAttackDurationFactor,
+  calculateStat,
+} from '../data/species/stats'
 import { castRay } from '../physics/raycast'
 import { resolveDamageAmount } from '../battle/calculateDamage'
 import {
@@ -52,22 +55,27 @@ const DEG_TO_RAD = Math.PI / 180
 const PRIMARY_EFFECT_AT_RATIO = 0.4
 
 /**
- * Recalcula `duration`/`effectAt` do ataque BÁSICO (`primary`) a partir
- * do status `speed` da PRÓPRIA entidade — pedido original do usuário:
- * "preciso que o status speed influencie na velocidade de ataque
- * básico da criatura". Antes, cada espécie calculava isso uma vez, no
- * module load, com o `iv` fixo do arquivo (`attacks.primary.overrides
- * .duration`); agora que IV é sorteado por INDIVÍDUO e nunca mais um
- * literal na espécie (ver `core/data/species/stats.js`,
- * `resolveCreatureStats`), esse cálculo só pode acontecer aqui, por
- * entidade, na hora do ataque.
+ * `duration`/`effectAt` do ataque BÁSICO (`primary`) escalados pelo
+ * status `speed` da PRÓPRIA entidade — pedido original do usuário:
+ * "preciso que o status speed influencie na velocidade de ataque básico
+ * da criatura".
  *
- * Retorna `null` pra espécie sem `stats.speed.base` (`fox`/`wolf`
- * ainda não migrados) — `CANDIDATE` fica com o `duration`/`effectAt`
- * PRÓPRIO da definição do ataque (`core/data/attacks/<id>/index.js`),
- * sem overrides, mesmo fallback gracioso de sempre.
+ * A duração BASE é a autorada: `attacks.primary.overrides.duration` da
+ * espécie (já mesclado em `attack` por `resolveCreatureAttack`), ou a do
+ * próprio ataque. O `speed` só multiplica por um fator em volta de 1
+ * (`calculateAttackDurationFactor`, `GAME_CONFIG.BATTLE.ATTACK_SPEED`) —
+ * assim a duração escolhida pra casar com a animação continua valendo, e
+ * uma criatura mais rápida só encurta o golpe. (Antes, o `speed` gerava a
+ * duração inteira, 0.05–0.5s — curto demais pros clipes embutidos, e por
+ * isso o override da espécie passou a ignorá-lo; ver docs/features/032-*.)
+ * `effectAt` escala junto: `overrides.effectAt`, ou 40% da duração base.
+ * O corte de frames e as fases da animação acompanham sozinhos (são
+ * proporcionais à duração).
+ *
+ * Retorna `null` pra espécie sem `stats.speed.base` (`fox`/`wolf` ainda
+ * não migrados) — fica o ataque como está, mesmo fallback de sempre.
  */
-function resolvePrimaryDurationOverride(species, individualValues) {
+function resolvePrimaryDurationOverride(species, attack, individualValues) {
   const speedStat = species?.stats?.speed
   if (!speedStat || speedStat.base == null) return null
 
@@ -77,8 +85,20 @@ function resolvePrimaryDurationOverride(species, individualValues) {
     ev: speedStat.ev ?? 0,
     level: species.level ?? 1,
   })
-  const duration = calculateAttackInterval(speed)
-  return { duration, effectAt: duration * PRIMARY_EFFECT_AT_RATIO }
+  const { REFERENCE, MIN_FACTOR, MAX_FACTOR } = GAME_CONFIG.BATTLE.ATTACK_SPEED
+  const factor = calculateAttackDurationFactor(speed, {
+    reference: REFERENCE,
+    minFactor: MIN_FACTOR,
+    maxFactor: MAX_FACTOR,
+  })
+
+  const baseEffectAt =
+    species.attacks.primary.overrides?.effectAt ??
+    attack.duration * PRIMARY_EFFECT_AT_RATIO
+  return {
+    duration: attack.duration * factor,
+    effectAt: baseEffectAt * factor,
+  }
 }
 
 /**
@@ -95,7 +115,11 @@ function resolveAttackForEntity(species, slot, individualValues) {
   if (!attack) return null
   if (slot !== 'primary') return attack
 
-  const override = resolvePrimaryDurationOverride(species, individualValues)
+  const override = resolvePrimaryDurationOverride(
+    species,
+    attack,
+    individualValues,
+  )
   return override ? { ...attack, ...override } : attack
 }
 
@@ -424,6 +448,8 @@ function tryStartAttack(castContext, slot, direction = null) {
   // toca o clipe de ataque nesta velocidade, então o gesto sempre cabe
   // exatamente em `attack.duration`.
   action.animationSpeed = attack.duration > 0 ? 1 / attack.duration : 1
+  // Corte do clipe embutido (`overrides.animationFrames`) — ver `ActionState`.
+  action.animationFrames = attack.animationFrames ?? null
   vitals.stamina -= attack.staminaCost
   vitals.staminaRegenDelay = vitals.staminaRegenDelayAfterUse
   cooldowns[slot] = attack.cooldown
@@ -916,6 +942,7 @@ export function creatureAttackSystem(context) {
         if (action.elapsed >= ATTACK.duration) {
           action.current = null
           action.pendingSlot = null
+          action.animationFrames = null
         }
       },
     )

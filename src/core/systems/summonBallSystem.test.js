@@ -146,6 +146,27 @@ describe('summonBallSystem', () => {
     expect(flash.get(Position).x).toBeCloseTo(expected.x)
   })
 
+  it('criatura com actions.appeal (charmander) nasce fazendo a apresentação', () => {
+    const { world, player } = makeWorld()
+    spawnedWorlds.push(world)
+    player.set(Party, { slot1: 'charmander' })
+
+    world.spawn(
+      Position({ x: 0, y: 1, z: 0 }),
+      Velocity({ x: 10, y: 0, z: 0 }),
+      SummonBall({
+        slot: 'slot1',
+        speciesId: 'charmander',
+        maxDistance: 1,
+        traveled: 0,
+      }),
+    )
+    for (let i = 0; i < 30; i++) tick(world, 1 / 60)
+
+    const [creature] = world.query(SummonedCreature)
+    expect(creature.get(ActionState).current).toBe('appeal')
+  })
+
   it('sem hasSpecies válido (removido/trocado enquanto a esfera voava), pousa sem spawnar nada — some silenciosamente', () => {
     const { world, player } = makeWorld()
     spawnedWorlds.push(world)

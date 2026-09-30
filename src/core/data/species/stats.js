@@ -59,23 +59,21 @@ export function calculateCP({ SomaStatus, SomaIV, SomaEV, level }) {
   )
 }
 
-export function calculateAttackInterval(speed) {
-  const minSpeed = 5
-  const maxSpeed = 400
-
-  const minInterval = 0.05
-  const maxInterval = 0.5
-
-  const t = Math.min(
-    1,
-    Math.max(
-      0,
-      (Math.sqrt(speed) - Math.sqrt(minSpeed)) /
-        (Math.sqrt(maxSpeed) - Math.sqrt(minSpeed))
-    )
-  )
-
-  return maxInterval - t * (maxInterval - minInterval)
+/**
+ * Fator (multiplica a duração do ataque básico) a partir do status `speed`
+ * JÁ calculado (base + IV + nível, `calculateStat`): `√(reference /
+ * speed)`, limitado a `[minFactor, maxFactor]`. `speed == reference` → 1
+ * (duração autorada, sem mudança); mais rápido → menor que 1 (golpe mais
+ * curto); mais lento → maior que 1. Constantes em
+ * `GAME_CONFIG.BATTLE.ATTACK_SPEED`.
+ */
+export function calculateAttackDurationFactor(
+  speed,
+  { reference, minFactor, maxFactor },
+) {
+  if (!(speed > 0)) return maxFactor
+  const factor = Math.sqrt(reference / speed)
+  return Math.min(maxFactor, Math.max(minFactor, factor))
 }
 
 // Os seis status de combate que têm `base`/`iv`/`ev` de verdade — `energy`

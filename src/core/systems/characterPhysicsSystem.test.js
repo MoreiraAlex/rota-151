@@ -16,6 +16,7 @@ import {
   Grounded,
   MovementBlocked,
   Jumped,
+  Jumping,
 } from '@/core/traits'
 import {
   initPhysics,
@@ -214,6 +215,45 @@ describe('characterPhysicsSystem + integração Rapier', () => {
     // pular de novo não deveria fazer a tag sumir sozinha.
     for (let i = 0; i < 30; i++) tick(world)
     expect(player.has(Jumped)).toBe(true)
+  })
+
+  it('`Jumping` dura do pulo até aterrissar — subindo e descendo', () => {
+    const { world, player } = makeWorld({
+      playerPosition: { x: 0, y: 1, z: 0 },
+    })
+    run(world, 30)
+    expect(player.has(Jumping)).toBe(false)
+
+    tick(world, { jump: true })
+    expect(player.has(Jumping)).toBe(true)
+
+    // Sobe e começa a descer ainda no ar — continua pulando.
+    let sawDescending = false
+    let guard = 0
+    while (!player.has(Grounded) || guard < 5) {
+      tick(world)
+      if (player.get(Velocity).y < 0 && !player.has(Grounded)) {
+        sawDescending = true
+        expect(player.has(Jumping)).toBe(true)
+      }
+      guard++
+      if (guard > 300) throw new Error('nunca aterrissou')
+    }
+
+    expect(sawDescending).toBe(true)
+    expect(player.has(Jumping)).toBe(false)
+  })
+
+  it('cair de uma borda sem pular não é `Jumping`', () => {
+    const { world, player } = makeWorld({
+      playerPosition: { x: 0, y: 4, z: 0 },
+    })
+
+    for (let i = 0; i < 10; i++) {
+      tick(world)
+      expect(player.has(Jumping)).toBe(false)
+    }
+    expect(player.has(Grounded)).toBe(false)
   })
 
   it('sem `input.jump`, ou no ar (sem `Grounded`), não adiciona `Jumped`', () => {

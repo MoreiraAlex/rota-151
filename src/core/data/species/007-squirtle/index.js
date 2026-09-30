@@ -1,16 +1,7 @@
-import IDLE_CLIP from './clips/idle.json'
-import WALK_CLIP from './clips/walk.json'
-import RUN_CLIP from './clips/run.json'
 import CRY_CLIP from './clips/cry.json'
-import FAINT_CLIP from './clips/faint.json'
 
 const LEVEL = 5
 
-// BASE — único valor de `stats` fixo por ESPÉCIE (pedido do usuário:
-// "BASE é o único que vai ser fixo por espécie"). IV não mora mais
-// aqui — é sempre sorteado por INDIVÍDUO (`IndividualValues`/
-// `PartyIndividualValues`), nunca um literal fixo — ver
-// docs/features/029-*.md.
 const HP = 44
 const ATTACK = 48
 const DEFENSE = 65
@@ -18,9 +9,6 @@ const SP_ATK = 50
 const SP_DEF = 64
 const SPEED = 43
 
-// EV — 0 pra todo status por enquanto (sistema de treino ainda não
-// existe; pedido do usuário: "EVs 0 para todos, no futuro vou
-// modificando o EV de cada atributo para os meus pokemons").
 const HP_EV = 0
 const ATTACK_EV = 0
 const DEFENSE_EV = 0
@@ -31,55 +19,54 @@ const SPEED_EV = 0
 export const SQUIRTLE = {
   id: 'squirtle',
   dexNumber: 7,
-  // Nível fixo por ESPÉCIE — ver comentário completo em `../fox/index.js`.
   level: LEVEL,
   kind: 'pokemon',
   sprite: { path: 'https://play.pokemonshowdown.com/sprites/ani/squirtle.gif' },
   model: {
     path: '/assets/models/007-squirtle.glb',
-    scale: 0.020,
+    scale: 1.2,
     texture: {
-      0: { path: '/assets/textures/007-squirtle/default/pm0007_00_Body1.png' },
-      1: { 
-        path: '/assets/textures/007-squirtle/default/pm0007_00_Eye1.png',
-        flipY: false,
-        center: {x: 0.5, y: 0.5},
-        repeat: {x: 1, y: 1},
-        rotation: 180,
-        eyeStates: {
-          awake: {
-            open: { x: -0.5, y: 0 },
-            closed: { x: -0.5, y: 0.5 },
-          },
-          angry: {
-            open: { x: 0, y: 0 },
-            closed: { x: 0.5, y: 0.75 },
-          },
-          faint: {
-            open: { x: -0.5, y: 0.5 },
-            closed: { x: -0.5, y: 0.5 },
-          },
-        },
-        blink: { minInterval: 2, maxInterval: 6, closedDuration: 0.15 },
-      },
-    },
+      0: { path: '/assets/textures/007-squirtle/default/pm0007_00_00_body_a_alb.png', flipY: false },
+      1: { path: '/assets/textures/007-squirtle/default/pm0007_00_00_body_b_01_alb.png', flipY: false },
+      2: { path: '/assets/textures/007-squirtle/default/pm0007_00_00_eye_alb.png', flipY: false },
+      3: { path: '/assets/textures/007-squirtle/default/pm0007_00_00_body_b_00_alb.png', flipY: false },
+    }
   },
+
   clips: {
-    idle: IDLE_CLIP,
-    walk: WALK_CLIP,
-    run: RUN_CLIP,
     cry: CRY_CLIP,
-    faint: FAINT_CLIP
   },
+  nativeAnimations: {
+    idle: 'idle',
+    walk: 'walk',
+    run: 'run',
+    attack: 'attack',
+    faint: {
+      start: 'faintStart',
+      loop: 'faintLoop',
+      end: 'faintEnd',
+    },
+    fall: 'fallLoop',
+    jump: 'jumpLoop',
+    dash: { sequence: ['stepIn', { animation: 'stepInEnd', frames: 10 }], },
+    battleIdle: 'battleIdle',
+    appeal: 'appeal',
+  },
+
+  nativeBlink: { animation: 'blink', minInterval: 2, maxInterval: 6 },
+  actions: {
+    appeal: { duration: 1 },
+  },
+
   body: {
-    capsuleRadius: 0.3,
-    capsuleHalfHeight: 0.15,
+    capsuleRadius: 0.2,
+    capsuleHalfHeight: 0.07,
     capsuleAxis: 'y',
-    modelOffset: [0, -0.45, 0],
+    modelOffset: [0, -0.26, 0],
   },
   movement: {
-    walkSpeed: 2,
-    runSpeed: 6,
+    walkSpeed: 1.5,
+    runSpeed: 4,
     turnSpeed: 10,
     jumpSpeed: 9,
   },
@@ -107,24 +94,11 @@ export const SQUIRTLE = {
     dashGroup: 'default',
     jumpGroup: 'default',
   },
-  // Quais ataques/skills — ver docs/features/025-ataque-comum-de-
-  // criatura.md e o comentário completo em `../fox/index.js`. `range`
-  // sobrescrito pra 1 (menor que o `1.4` da definição base de `'punch'`)
-  // — corpo pequeno do Squirtle, alcance mais curto fica proporcional.
-  // `secondary1` (tecla Q, 9ª rodada) — Redemoinho (`core/data/attacks/
-  // whirlpool/index.js`), sem override nenhum ainda.
-  // SEM `duration`/`effectAt` no `primary` — calculados por INDIVÍDUO
-  // a partir do `speed` de cada criatura (`creatureAttackSystem.js`,
-  // `resolvePrimaryDurationOverride`), não mais um literal fixo desta
-  // espécie (ver docs/features/029-*.md).
   attacks: {
-    primary: { id: 'punch', overrides: { range: 1 } },
+    primary: { id: 'scratch', overrides: { range: 1, duration: 0.8, effectAt: 0.6, animationFrames: 30 } },
     secondary1: 'whirlpool',
   },
-  // `base`/`ev` daqui + o IV sorteado por indivíduo (congelado no
-  // spawn/equipar, ver docs/features/029-*.md) é o que forma o status
-  // de VERDADE de cada criatura, sempre calculado na hora por
-  // `resolveCreatureStats` (`../stats.js`) — nada pré-calculado aqui.
+
   stats: {
     hp: { base: HP, ev: HP_EV, regenPercent: 2, regenDelay: 5 },
     energy: { regenPercent: 45, regenDelay: 2 },

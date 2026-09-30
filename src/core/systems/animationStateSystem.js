@@ -6,7 +6,9 @@ import {
   ActionState,
   Grounded,
   CharacterController,
+  CombatMode,
   Fainted,
+  Jumping,
 } from '../traits'
 
 /**
@@ -44,6 +46,9 @@ export function animationStateSystem(context) {
         grounded,
         action: action.current,
         fainted: entity.has(Fainted),
+        inCombat: entity.has(CombatMode),
+        // Só a SUBIDA do pulo; do ponto mais alto em diante é `fall`.
+        jumping: entity.has(Jumping) && vel.y > 0,
       })
 
       const forwardDot = vel.x * Math.sin(rot.y) + vel.z * Math.cos(rot.y)

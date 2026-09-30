@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { createRng } from '../../rng'
 import {
+  calculateAttackDurationFactor,
   calculateHpStat,
   calculateStat,
   resolveCreatureStats,
@@ -116,5 +117,25 @@ describe('calculateStat (referência pra checagem cruzada)', () => {
     expect(calculateStat({ base: 49, iv: 31, ev: 0, level: 5 })).toBe(
       Math.trunc((Math.trunc(((2 * 49 + 31) * 5) / 100) + 5) * 1),
     )
+  })
+})
+
+describe('calculateAttackDurationFactor', () => {
+  const cfg = { reference: 10, minFactor: 0.6, maxFactor: 1.4 }
+
+  it('speed igual à referência → 1 (duração autorada, sem mudança)', () => {
+    expect(calculateAttackDurationFactor(10, cfg)).toBe(1)
+  })
+
+  it('mais rápido encurta, mais lento alonga — curva de raiz', () => {
+    expect(calculateAttackDurationFactor(40, cfg)).toBeCloseTo(0.6) // √(10/40)=0.5 → piso
+    expect(calculateAttackDurationFactor(12.5, cfg)).toBeCloseTo(Math.sqrt(0.8))
+    expect(calculateAttackDurationFactor(8, cfg)).toBeCloseTo(Math.sqrt(1.25))
+  })
+
+  it('limitado a [minFactor, maxFactor]; speed inválido vira o mais lento', () => {
+    expect(calculateAttackDurationFactor(1000, cfg)).toBe(0.6)
+    expect(calculateAttackDurationFactor(1, cfg)).toBe(1.4)
+    expect(calculateAttackDurationFactor(0, cfg)).toBe(1.4)
   })
 })

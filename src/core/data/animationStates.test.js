@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { GAME_CONFIG } from '../gameConfig'
 import {
   resolveAnimationState,
+  resolveAnimationFallback,
   isOneShotAnimationState,
 } from './animationStates'
 
@@ -107,5 +108,63 @@ describe('isOneShotAnimationState', () => {
 
   it('id desconhecido não é one-shot', () => {
     expect(isOneShotAnimationState('nao-existe')).toBe(false)
+  })
+})
+
+describe('battleIdle e appeal', () => {
+  it('parada no chão em combate → battleIdle, com fallback pra idle', () => {
+    expect(
+      resolveAnimationState({ speed: 0, grounded: true, inCombat: true }),
+    ).toBe('battleIdle')
+    expect(resolveAnimationFallback('battleIdle')).toBe('idle')
+  })
+
+  it('em combate, andar/correr/cair continua vencendo o battleIdle', () => {
+    const ctx = { speed: WALK_MIN_SPEED + 0.1, grounded: true, inCombat: true }
+    expect(resolveAnimationState(ctx)).toBe('walk')
+    expect(
+      resolveAnimationState({ speed: 0, grounded: false, inCombat: true }),
+    ).toBe('fall')
+  })
+
+  it('ação "appeal" (ao ser invocada) é one-shot e vence a locomoção', () => {
+    const ctx = { speed: RUN_MIN_SPEED + 1, grounded: true, action: 'appeal' }
+    expect(resolveAnimationState(ctx)).toBe('appeal')
+    expect(isOneShotAnimationState('appeal')).toBe(true)
+  })
+
+  it('estado sem fallback declarado não tem substituto', () => {
+    expect(resolveAnimationFallback('walk')).toBeNull()
+  })
+})
+
+describe('jump × fall', () => {
+  it('no meio de um pulo de verdade → jump, mesmo nos ticks em que ainda está grounded', () => {
+    expect(
+      resolveAnimationState({ speed: 0, grounded: false, jumping: true }),
+    ).toBe('jump')
+    expect(
+      resolveAnimationState({
+        speed: RUN_MIN_SPEED + 1,
+        grounded: true,
+        jumping: true,
+      }),
+    ).toBe('jump')
+  })
+
+  it('no ar sem ter pulado (caiu de uma borda) → fall', () => {
+    expect(
+      resolveAnimationState({ speed: 0, grounded: false, jumping: false }),
+    ).toBe('fall')
+  })
+
+  it('espécie sem animação de pulo cai no fall', () => {
+    expect(resolveAnimationFallback('jump')).toBe('fall')
+  })
+
+  it('ação (ex.: dash) vence o pulo', () => {
+    expect(
+      resolveAnimationState({ grounded: false, jumping: true, action: 'dash' }),
+    ).toBe('dash')
   })
 })

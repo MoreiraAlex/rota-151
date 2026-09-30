@@ -1,4 +1,7 @@
-import { applyAnimationClip } from '@/core/animation/applyAnimationClip'
+import {
+  applyAnimationClip,
+  resolveClipSpeed,
+} from '@/core/animation/applyAnimationClip'
 import { getVoiceAudioEntry } from '@/view/registry/voiceAudioRegistry'
 import { getMouthSyncEntries } from '@/view/registry/mouthSyncRegistry'
 
@@ -50,7 +53,7 @@ export function mouthSyncSystem(context) {
       entry.clip,
       entry.bones,
       entry.elapsed,
-      entry.clip.speed || 1,
+      resolveClipSpeed(entry.clip),
     )
   }
 }

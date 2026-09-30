@@ -9,6 +9,7 @@ export {
   Grounded,
   MovementBlocked,
   Jumped,
+  Jumping,
 } from './components/physics'
 export { AnimationState } from './components/animation'
 export { ActionState } from './components/action'

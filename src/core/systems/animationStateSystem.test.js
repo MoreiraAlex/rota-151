@@ -1,6 +1,12 @@
 import { describe, it, expect } from 'vitest'
 import { makeWorld } from '@/test/makeWorld'
-import { Velocity, AnimationState, ActionState, Grounded } from '@/core/traits'
+import {
+  Velocity,
+  AnimationState,
+  ActionState,
+  Grounded,
+  Jumping,
+} from '@/core/traits'
 import { animationStateSystem } from './animationStateSystem'
 
 function resolve(world, player) {
@@ -53,5 +59,28 @@ describe('animationStateSystem', () => {
     player.set(ActionState, { current: 'dash' })
 
     expect(resolve(world, player)).toBe('dash')
+  })
+
+  it('pulo de verdade SUBINDO → jump; do ponto mais alto em diante → fall', () => {
+    const { world, player } = makeWorld()
+    player.add(Jumping)
+
+    player.set(Velocity, { x: 0, y: 5, z: 0 })
+    expect(resolve(world, player)).toBe('jump')
+
+    player.set(Velocity, { x: 0, y: 0, z: 0 }) // ponto mais alto
+    expect(resolve(world, player)).toBe('fall')
+
+    player.set(Velocity, { x: 0, y: -5, z: 0 })
+    expect(resolve(world, player)).toBe('fall')
+  })
+
+  it('logo após o disparo, ainda grounded mas subindo → jump (não walk/idle)', () => {
+    const { world, player } = makeWorld()
+    player.add(Grounded)
+    player.add(Jumping)
+    player.set(Velocity, { x: 3, y: 9, z: 0 })
+
+    expect(resolve(world, player)).toBe('jump')
   })
 })

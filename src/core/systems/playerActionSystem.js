@@ -12,6 +12,8 @@ import {
   Inventory,
   Grounded,
   InputControlled,
+  InputState,
+  MovementStats,
   Projectile,
   ConsumeEffect,
   PhysicsBody,
@@ -78,6 +80,41 @@ function removeOneFromInventory(entity, itemId) {
       : [...itemIds.slice(0, index), ...itemIds.slice(index + 1)]
   entity.set(Inventory, { itemIds: newItemIds })
   return newItemIds
+}
+
+/**
+ * Velocidade do dash em `elapsed` segundos: `SPEED` constante e, nos
+ * últimos `EASE_OUT_TIME` segundos (no máximo metade de `DURATION`), desce
+ * suave (smoothstep) até `exitSpeed` — chega EXATAMENTE nela no fim, então
+ * a passagem pro `movementSystem` não tem salto de velocidade. Pedido do
+ * usuário: a queda brusca de 12 m/s pra 0-4 m/s num tick, no fim do dash,
+ * dava sensação de freio de mão.
+ */
+export function resolveDashSpeed(dash, elapsed, exitSpeed) {
+  const ease = Math.min(dash.EASE_OUT_TIME ?? 0, dash.DURATION / 2)
+  const easeStart = dash.DURATION - ease
+  if (ease <= 0 || elapsed <= easeStart) return dash.SPEED
+
+  const t = Math.min(1, (elapsed - easeStart) / ease)
+  const smooth = t * t * (3 - 2 * t)
+  return dash.SPEED + (exitSpeed - dash.SPEED) * smooth
+}
+
+/**
+ * Velocidade que o `movementSystem` vai dar logo depois do dash, pelo
+ * input de agora: parado → 0; andando → `walkSpeed`; segurando correr →
+ * `runSpeed` (proporcional à intensidade do input, mesma conta de lá). Não
+ * checa stamina da corrida — se faltar, o `movementSystem` cai pra andar
+ * no tick seguinte.
+ */
+function resolveDashExitSpeed(entity) {
+  const input = entity.get(InputState)
+  const stats = entity.get(MovementStats)
+  if (!input || !stats) return 0
+
+  const intent = Math.min(1, Math.hypot(input.x, input.z))
+  if (intent === 0) return 0
+  return intent * (input.run ? stats.runSpeed : stats.walkSpeed)
 }
 
 /**
@@ -225,13 +262,17 @@ export function playerActionSystem(context) {
       action.elapsed += delta
 
       if (action.current === 'dash') {
-        if (action.elapsed >= DASH.DURATION) {
-          action.current = null
-          return
-        }
-
-        vel.x = action.dirX * DASH.SPEED
-        vel.z = action.dirZ * DASH.SPEED
+        const exitSpeed = resolveDashExitSpeed(entity)
+        // No tick do fim, já deixa a velocidade de saída — o
+        // `movementSystem` (que roda ANTES) zerou a velocidade por ainda
+        // ver o dash ativo; sem isso sobrava um tick parado no fim.
+        const speed =
+          action.elapsed >= DASH.DURATION
+            ? exitSpeed
+            : resolveDashSpeed(DASH, action.elapsed, exitSpeed)
+        vel.x = action.dirX * speed
+        vel.z = action.dirZ * speed
+        if (action.elapsed >= DASH.DURATION) action.current = null
         return
       }
 

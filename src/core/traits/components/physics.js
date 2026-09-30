@@ -95,3 +95,19 @@ export const MovementBlocked = trait()
  * roda só uma vez por frame) ter a chance de ver e tocar o som.
  */
 export const Jumped = trait()
+
+/**
+ * Tag: no meio de um PULO de verdade (input de pulo aceito), do disparo
+ * até aterrissar — diferente de estar no ar por ter caído de uma borda
+ * (só sem `Grounded`). É o que separa o estado de animação `jump` do
+ * `fall` (`core/data/animationStates.js`).
+ *
+ * Ao contrário de `Jumped` (pulso de um tick, consumido pelo som), é
+ * estado CONTÍNUO. Dono de escrita: `characterPhysicsSystem` — adiciona
+ * no mesmo instante do `Jumped`, remove quando está no chão sem subir
+ * (`Grounded` e `vel.y <= 0`), o que ignora os 1-2 ticks logo após o
+ * disparo em que `Grounded` ainda não caiu mas `vel.y` já é positivo.
+ * Lê: `animationStateSystem` (estado `jump` só enquanto sobe — `vel.y > 0`;
+ * a descida do mesmo pulo já é `fall`).
+ */
+export const Jumping = trait()

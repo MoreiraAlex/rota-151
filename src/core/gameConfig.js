@@ -27,6 +27,18 @@ export const GAME_CONFIG = {
   // jogo, PRNG seedado e nomeado. `core/rng.js` (`gameplayRng`) usa
   // `WORLD.SEED` acima como seed.
   BATTLE: {
+    // Velocidade do ataque básico pelo status `speed` (ver
+    // `calculateAttackDurationFactor`, core/data/species/stats.js): a
+    // duração autorada (`attacks.primary.overrides.duration`, ou a do
+    // próprio ataque) é multiplicada por √(REFERENCE / speed), limitado a
+    // [MIN_FACTOR, MAX_FACTOR]. REFERENCE é o `speed` CALCULADO (base + IV
+    // + nível) que toca a duração autorada exata — 10 ≈ base 45 no nível 5
+    // com IV médio (bulbasaur).
+    ATTACK_SPEED: {
+      REFERENCE: 10,
+      MIN_FACTOR: 0.6,
+      MAX_FACTOR: 1.4,
+    },
     // Faixa de IV (individual value, convenção clássica de Pokémon)
     // sorteada pra QUALQUER criatura — selvagem, no spawn
     // (`wildCreatureSpawnSystem.js`), ou do time do jogador, ao
@@ -139,11 +151,16 @@ export const GAME_CONFIG = {
   PLAYER_ACTIONS: {
     dash: {
       // Duração do impulso (segundos).
-      DURATION: 0.4,
+      DURATION: 0.5,
       // Unidades por segundo — maior que o runSpeed de qualquer espécie hoje.
-      SPEED: 12,
+      SPEED: 10,
       // Custo de stamina, descontado uma vez no disparo (não por segundo).
-      STAMINA_COST: 5,
+      STAMINA_COST: 1,
+      // Frenagem (s): nos últimos EASE_OUT_TIME segundos, a velocidade desce
+      // suave de SPEED até a de saída (0 / andar / correr, pelo input) em
+      // vez de cair de uma vez no tick seguinte. Limitado a metade de
+      // DURATION; 0 desliga. Ver `resolveDashSpeed` (playerActionSystem.js).
+      EASE_OUT_TIME: 0.25,
     },
   },
   // Grade de navegação usada por `core/pathfinding.js` pra contornar
@@ -266,12 +283,13 @@ export const GAME_CONFIG = {
     // Segundos desmaiada no chão antes do treinador recolher a do time.
     PARTY_RECALL_DELAY: 2,
   },
+
   ANIMATION: {
     // Abaixo disso, considera parado (idle).
     WALK_MIN_SPEED: 0.3,
     // Acima disso, considera correndo (run) em vez de andando (walk). Fica
     // entre walkSpeed e runSpeed de MovementStats (core/data/species).
-    RUN_MIN_SPEED: 5,
+    RUN_MIN_SPEED: 3,
     // Duração do crossfade (segundos) ao trocar de AnimationState — evita o
     // corte seco entre idle/walk/run (ou qualquer outro clipe futuro).
     BLEND_DURATION: 0.2,

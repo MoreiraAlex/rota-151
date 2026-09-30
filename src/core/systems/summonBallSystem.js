@@ -31,6 +31,7 @@ import {
   Vitals,
   vitalsFromSpecies,
 } from '../traits'
+import { resolveAppealActionState } from './creatureAppealSystem'
 
 /**
  * Spawna a `SummonedCreature` de verdade (mesma composição de traits que
@@ -91,7 +92,8 @@ function spawnCreature(
     SummonedCreature({ slot, speciesId }),
     IndividualValues(individualValues ?? {}),
     AnimationState,
-    ActionState,
+    // Nasce já fazendo a apresentação (`appeal`), se a espécie tiver.
+    ActionState(resolveAppealActionState(species)),
     AttackCooldowns,
     AttackAim,
     Velocity,

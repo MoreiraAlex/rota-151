@@ -37,6 +37,12 @@ export const ATTACK_TEMPLATE = {
   // AÇÃO usam `speed` como `1/duração`, mesma convenção de
   // `actions.throw`/`.summon` do bot (core/data/species/bot/index.js).
   duration: 0.5,
+  // Opcional (normalmente por espécie, em `attacks.<slot>.overrides`):
+  // quantos frames da animação EMBUTIDA (`.glb`) tocar, a partir do
+  // início — corta um final indesejado; o trecho que sobra é esticado pra
+  // caber em `duration`. Ausente/`null` = todos. Contagem de frames de
+  // cada animação: `npm run extract:glb-animation -- --file <glb> --list`.
+  // animationFrames: 40,
   // Instante (dentro de `duration`) em que o efeito de verdade acontece
   // (VFX nasce, som toca) — não é keyframe de clipe, é config do próprio
   // ataque.

@@ -15,18 +15,16 @@ const BEATS_PER_CYCLE = 2
  * footstepGroups.js`; itera o registry direto, sem query ECS pra filtrar
  * de novo).
  *
- * Detecção de batida: `view/registry/animationRegistry.js` já mantém,
- * por entidade, o relógio de animação (`entry.elapsed`) e a frequência do
- * clipe ativo (`entry.clips[id].speed`, mesmo valor que
- * `view/systems/animationSystem.js` usa pra tocar o clipe) — sem
- * conhecer o rig, dá pra aproximar a fase normalizada do ciclo de
- * passada com `phase = (elapsed * speed) mod 1` (0→1, uma volta = um
- * ciclo completo de perna) e dividir em `BEATS_PER_CYCLE` batidas
- * (`Math.floor(phase * BEATS_PER_CYCLE)`) — funciona igual pra bípede
- * (2 pernas) e quadrúpede (marcha em pares) sem dado novo nenhum, e já
- * lida com `AnimationState.direction === -1` (andar de costas/lock-on):
- * `elapsed` decresce nesse caso, mas o módulo normaliza os dois sentidos
- * (`((phase % 1) + 1) % 1`).
+ * Detecção de batida: `animationSystem.js` escreve, por entidade, a fase
+ * normalizada do clipe exibido (`entry.cyclePhase`, 0→1, uma volta = um
+ * ciclo completo de perna) — do relógio procedural (`elapsed * speed`) ou
+ * do tempo da animação embutida no `.glb` (`action.time / duration`), o
+ * que estiver tocando. Sem conhecer o rig, divide em `BEATS_PER_CYCLE`
+ * batidas (`Math.floor(phase * BEATS_PER_CYCLE)`) — funciona igual pra
+ * bípede (2 pernas) e quadrúpede (marcha em pares), e já lida com
+ * `AnimationState.direction === -1` (a fase continua em [0, 1)). Usa o
+ * estado EXIBIDO (`entry.stateId`), não o lógico — enquanto o `end` de uma
+ * sequência toca (levantar do desmaio), não é passo ainda.
  *
  * Toca só na TROCA de batida (`previousBeat`, guardado no registry) —
  * nunca todo frame enquanto andando, senão o som spamaria a cada tick.
@@ -60,24 +58,21 @@ const BEATS_PER_CYCLE = 2
 export function footstepAudioSystem() {
   for (const [entity, entry] of getFootstepAudioEntries()) {
     const anim = entity.get(AnimationState)
-    if (!anim || (anim.id !== 'walk' && anim.id !== 'run')) {
+    const animatedEntry = anim && getAnimatedBonesEntry(entity)
+    const stateId = animatedEntry?.stateId
+    if (stateId !== 'walk' && stateId !== 'run') {
       entry.previousBeat = -1
       continue
     }
 
-    const animatedEntry = getAnimatedBonesEntry(entity)
-    const clip = animatedEntry?.clips[anim.id]
-    if (!animatedEntry || !clip) continue
-
-    const speed = clip.speed || 1
-    const rawPhase = (animatedEntry.elapsed * speed) % 1
-    const phase = (rawPhase + 1) % 1
+    const phase = animatedEntry.cyclePhase
+    if (phase === null) continue
     const beat = Math.floor(phase * BEATS_PER_CYCLE)
 
     if (beat === entry.previousBeat) continue
     entry.previousBeat = beat
 
-    const buffers = entry.buffers[anim.id]
+    const buffers = entry.buffers[stateId]
     if (!buffers || buffers.length === 0) continue
 
     const buffer = pickRandomVariation(buffers)

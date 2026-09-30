@@ -51,6 +51,13 @@ import { trait } from 'koota'
  * em `duration` segundos, não importa o valor. Default `1` (nenhuma
  * ação em andamento, ou ação sem `duration` configurada).
  *
+ * `animationFrames` — quantos frames do clipe EMBUTIDO (`.glb`) a ação
+ * toca, a partir do início (`null` = todos). Pra cortar um final que não
+ * serve: o trecho que sobra é que é esticado pra caber em `duration`.
+ * Hoje só o ataque usa (`attacks.<slot>.overrides.animationFrames`):
+ * `creatureAttackSystem` grava no disparo e volta pra `null` ao fim da
+ * ação. Lê: `animationSystem.js` (view).
+ *
  * `pendingSlot` guarda QUAL slot a ação em andamento diz respeito, com
  * significado diferente por ação (mesmo campo reaproveitado, não um por
  * ação — igual a `dirX/dirY/dirZ`):
@@ -78,13 +85,15 @@ import { trait } from 'koota'
  *
  * Dono de escrita: `playerActionSystem` (dash/arremesso/uso),
  * `partySummonSystem` (invocar/recolher), `creatureAttackSystem`
- * (ataque/skill).
+ * (ataque/skill), `creatureAppealSystem` (apresentação ao ser invocada —
+ * o valor inicial vem do spawn em `summonBallSystem`).
  * Leem: `animationStateSystem` (repassa `current` pra tabela de prioridade).
  */
 export const ActionState = trait({
   current: null,
   elapsed: 0,
   animationSpeed: 1,
+  animationFrames: null,
   dirX: 0,
   dirY: 0,
   dirZ: 0,

@@ -9,6 +9,7 @@ import {
   Grounded,
   MovementBlocked,
   Jumped,
+  Jumping,
   InputControlled,
   Fainted,
 } from '../traits'
@@ -143,6 +144,7 @@ export function characterPhysicsSystem(context) {
         // ADICIONA, nunca remove aqui (ver docstring de `Jumped`,
         // core/traits/components/physics.js).
         entity.add(Jumped)
+        entity.add(Jumping)
       }
 
       const requestedX = vel.x * delta
@@ -173,6 +175,10 @@ export function characterPhysicsSystem(context) {
       if (isGrounded && !wasGrounded) entity.add(Grounded)
       if (!isGrounded && wasGrounded) entity.remove(Grounded)
       if (isGrounded && vel.y < 0) vel.y = 0
+      // Aterrissou (ou nunca saiu do chão): fim do pulo — ver `Jumping`.
+      if (isGrounded && vel.y <= 0 && entity.has(Jumping)) {
+        entity.remove(Jumping)
+      }
 
       const isBlocked =
         requestedDistance > cfg.CHARACTER.MIN_BLOCKED_CHECK_DISTANCE &&
