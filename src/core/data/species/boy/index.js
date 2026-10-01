@@ -314,7 +314,7 @@ export const BOY = {
     },
     recall: {
       clips: ['/assets/audio/recall/recall-01.wav'],
-      volume: 0.4, 
+      volume: 0.4,
       refDistance: 1,
     },
   },

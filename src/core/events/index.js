@@ -2,21 +2,31 @@ export { createEventQueue } from './eventQueue'
 
 export const EVENT_TYPES = {
   ATTACK_RESOLVED: 'attackResolved',
+  STAT_STAGE_CHANGED: 'statStageChanged',
+  ATTACK_INTERRUPTED: 'attackInterrupted',
 }
 
 /**
  * @typedef {object} AttackResolvedEvent
  * @property {'attackResolved'} type
- * @property {'hit' | 'miss'} result
+ * @property {'hit' | 'miss'} result `'miss'` quando ninguém foi atingido OU quando o
+ *   sorteio de precisão falhou (`missed`)
  * @property {import('koota').Entity} attacker
- * @property {import('koota').Entity | null} target `null` num miss
- * @property {string} attackId id do ataque (`core/data/attacks/<id>`)
+ * @property {import('koota').Entity | null} target `null` num miss sem alvo; no miss
+ *   por PRECISÃO é o alvo que foi errado
+ * @property {boolean} missed o golpe tinha alvo mas o sorteio de precisão errou
+ * @property {string} attackId id do ataque (`core/data/skills/<id>`)
  * @property {string} slot `'primary' | 'secondary1-3'`
  * @property {{x:number,y:number,z:number}} origin onde o golpe começou
  * @property {{x:number,y:number,z:number}} impactPoint onde a trajetória terminou
  * @property {{x:number,y:number,z:number} | null} contactPoint onde tocou o alvo (`null` num miss)
  * @property {number} damage dano aplicado (`0` num miss)
  * @property {boolean} critical se o crítico saiu (`false` num miss)
+ * @property {boolean} status golpe de STATUS (`damage: 0`, sem dano — ex.: Growl):
+ *   conta como acerto pra reação (a selvagem se provoca, o time defende), mas
+ *   brilho, congelar de animação e número de dano ignoram
+ * @property {boolean} channel tick de um ataque canalizado (`damageMode:
+ *   'channel'`) — efeitos de impacto "pesados" (hit stop) ignoram
  */
 
 /**
@@ -24,10 +34,11 @@ export const EVENT_TYPES = {
  *
  * - Quem emite: `creatureAttackSystem.js`, no instante `effectAt`, depois
  *   de aplicar o dano (o dano em si é estado e não depende do evento).
- * - Quem consome: `view/systems/hitFlashSystem.js` (brilho no alvo) e
- *   `view/systems/damageNumberSystem.js` (número de dano). É o
- *   ponto de encaixe pra hit stop, reação, knockback, VFX/SFX de impacto e
- *   tremor de câmera.
+ * - Quem consome: `view/systems/hitFlashSystem.js` (brilho no alvo),
+ *   `view/systems/damageNumberSystem.js` (número de dano),
+ *   e `view/systems/hitStopSystem.js` (congela a animação no acerto).
+ *   Ponto de encaixe pra reação, knockback, som de acerto e tremor de
+ *   câmera.
  * - Drenado uma vez por frame, antes da apresentação; sem consumidor, some.
  *
  * @returns {AttackResolvedEvent}
@@ -42,10 +53,14 @@ export function attackResolved({
   contactPoint,
   damage,
   critical,
+  channel = false,
+  status = false,
+  missed = false,
 }) {
   return {
     type: EVENT_TYPES.ATTACK_RESOLVED,
-    result: target ? 'hit' : 'miss',
+    result: target && !missed ? 'hit' : 'miss',
+    missed,
     attacker,
     target: target ?? null,
     attackId,
@@ -55,5 +70,77 @@ export function attackResolved({
     contactPoint: contactPoint ?? null,
     damage: damage ?? 0,
     critical: critical ?? false,
+    channel,
+    status,
   }
+}
+
+/**
+ * @typedef {object} StatStageChangedEvent
+ * @property {'statStageChanged'} type
+ * @property {import('koota').Entity} attacker quem lançou o golpe de status
+ * @property {import('koota').Entity} target quem teve o atributo alterado
+ * @property {string} attackId id do ataque (`core/data/skills/<id>`)
+ * @property {'attack' | 'defense' | 'sp_atk' | 'sp_def' | 'accuracy'} stat
+ * @property {number} delta quanto o estágio MUDOU de verdade (negativo = baixou;
+ *   nunca `0` — um efeito que já estava no limite não emite)
+ * @property {number} stage estágio resultante (-6 a +6)
+ */
+
+/**
+ * Um atributo de uma criatura mudou de estágio (golpe de STATUS, ex.: Growl
+ * baixa o ataque do alvo).
+ *
+ * - Quem emite: `creatureAttackSystem.js`, no instante `effectAt`, depois de
+ *   aplicar o efeito (o estágio em si é estado — `StatStages` — e não depende
+ *   do evento). Um evento por atributo e por alvo.
+ * - Quem consome: `view/systems/damageNumberSystem.js` (texto "Ataque ↓" acima
+ *   do alvo) e `view/systems/hitFlashSystem.js` (brilho laranja/verde no
+ *   alvo). Drenado uma vez por frame; sem consumidor, some.
+ *
+ * @returns {StatStageChangedEvent}
+ */
+export function statStageChanged({
+  attacker,
+  target,
+  attackId,
+  stat,
+  delta,
+  stage,
+}) {
+  return {
+    type: EVENT_TYPES.STAT_STAGE_CHANGED,
+    attacker,
+    target,
+    attackId,
+    stat,
+    delta,
+    stage,
+  }
+}
+
+/**
+ * @typedef {object} AttackInterruptedEvent
+ * @property {'attackInterrupted'} type
+ * @property {import('koota').Entity} entity quem teve o golpe interrompido
+ * @property {string} attackId id do golpe interrompido (`core/data/skills/<id>`)
+ * @property {string} slot `'primary' | 'secondary1-3'`
+ */
+
+/**
+ * Um golpe de STATUS foi interrompido na carga porque quem o lançava levou
+ * dano (`isInterruptible`, `core/battle/attackInterrupt.js`). A ação já
+ * acabou (estado: `ActionState.current` volta a `null`, o cooldown do slot
+ * começa, a stamina gasta não volta).
+ *
+ * - Quem emite: `creatureAttackSystem.js`, no fim do tick em que o dano
+ *   aconteceu. Um evento por golpe interrompido.
+ * - Quem consome: `view/systems/damageNumberSystem.js` (texto
+ *   "Interrompido!" acima da cabeça). Drenado uma vez por frame; sem
+ *   consumidor, some.
+ *
+ * @returns {AttackInterruptedEvent}
+ */
+export function attackInterrupted({ entity, attackId, slot }) {
+  return { type: EVENT_TYPES.ATTACK_INTERRUPTED, entity, attackId, slot }
 }

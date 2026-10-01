@@ -1,6 +1,7 @@
 import CRY_CLIP from './clips/cry.json'
+import { BASIC_ATTACK } from './basicAttack'
 
-const LEVEL = 5
+const LEVEL = 100
 
 const HP = 44
 const ATTACK = 48
@@ -26,17 +27,31 @@ export const SQUIRTLE = {
     path: '/assets/models/007-squirtle.glb',
     scale: 1.2,
     texture: {
-      0: { path: '/assets/textures/007-squirtle/default/pm0007_00_00_body_a_alb.png', flipY: false },
-      1: { path: '/assets/textures/007-squirtle/default/pm0007_00_00_body_b_01_alb.png', flipY: false },
-      2: { path: '/assets/textures/007-squirtle/default/pm0007_00_00_eye_alb.png', flipY: false },
-      3: { path: '/assets/textures/007-squirtle/default/pm0007_00_00_body_b_00_alb.png', flipY: false },
-    }
+      0: {
+        path: '/assets/textures/007-squirtle/default/pm0007_00_00_body_a_alb.png',
+        flipY: false,
+      },
+      1: {
+        path: '/assets/textures/007-squirtle/default/pm0007_00_00_body_b_01_alb.png',
+        flipY: false,
+      },
+      2: {
+        path: '/assets/textures/007-squirtle/default/pm0007_00_00_eye_alb.png',
+        flipY: false,
+      },
+      3: {
+        path: '/assets/textures/007-squirtle/default/pm0007_00_00_body_b_00_alb.png',
+        flipY: false,
+      },
+    },
   },
 
   clips: {
     cry: CRY_CLIP,
   },
   nativeAnimations: {
+    // Growl (skill de status): o rugido
+    roar: 'roar',
     idle: 'idle',
     walk: 'walk',
     run: 'run',
@@ -48,9 +63,11 @@ export const SQUIRTLE = {
     },
     fall: 'fallLoop',
     jump: 'jumpLoop',
-    dash: { sequence: ['stepIn', { animation: 'stepInEnd', frames: 10 }], },
+    dash: { sequence: ['stepIn', { animation: 'stepInEnd', frames: 10 }] },
     battleIdle: 'battleIdle',
     appeal: 'appeal',
+    // atordoada por golpe interrompido (ação `'hit'`)
+    hit: 'hit',
   },
 
   nativeBlink: { animation: 'blink', minInterval: 2, maxInterval: 6 },
@@ -94,9 +111,13 @@ export const SQUIRTLE = {
     dashGroup: 'default',
     jumpGroup: 'default',
   },
-  attacks: {
-    primary: { id: 'scratch', overrides: { range: 1, duration: 0.8, effectAt: 0.6, animationFrames: 30 } },
-    secondary1: 'whirlpool',
+  // Ataque básico (mouse) — próprio desta espécie, ver ./basicAttack.js.
+  basicAttack: BASIC_ATTACK,
+  // Habilidades (Q/E/R) — referências ao registro compartilhado
+  // (`core/data/skills/`), com `{ id, overrides }` opcional.
+  skills: {
+    1: 'whirlpool',
+    2: 'smokescreen',
   },
 
   stats: {

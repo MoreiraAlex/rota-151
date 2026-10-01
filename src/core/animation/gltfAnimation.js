@@ -213,7 +213,7 @@ export function listGltfAnimations({ json, bin }) {
 /**
  * Quantidade de keyframes da animação (o maior entre os canais — é a
  * mesma linha do tempo pra todos). É a unidade de `animationFrames` no
- * override de ataque (ver `core/data/attacks/_template/index.js`).
+ * override de ataque (ver `core/data/skills/_template/index.js`).
  */
 function resolveAnimationFrameCount(json, animation) {
   let frames = 0

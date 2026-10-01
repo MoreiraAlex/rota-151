@@ -1,12 +1,26 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import * as THREE from 'three'
 import { createWorld } from 'koota'
-import { attackResolved } from '@/core/events'
+import {
+  attackInterrupted,
+  attackResolved,
+  statStageChanged,
+} from '@/core/events'
 import { GAME_CONFIG } from '@/core/gameConfig'
-import { CharacterController, Position } from '@/core/traits'
+import {
+  CharacterController,
+  Position,
+  SummonedCreature,
+  WildCreature,
+} from '@/core/traits'
 import { damageNumberPool } from '../vfx/damageNumberPool'
-import { damageNumberSystem, formatDamage } from './damageNumberSystem'
+import {
+  damageNumberSystem,
+  formatDamage,
+  formatStatChange,
+} from './damageNumberSystem'
 
+const { OPPONENT, ALLY } = GAME_CONFIG.FEEDBACK.FEEDBACK_COLORS
 const { LIFETIME, CRIT_LIFETIME, HEAD_MARGIN, SPREAD } =
   GAME_CONFIG.FEEDBACK.DAMAGE_NUMBER
 const BODY = { capsuleRadius: 0.3, capsuleHalfHeight: 0.15, capsuleAxis: 'y' }
@@ -26,7 +40,7 @@ function hit(target, damage, critical = false) {
   return attackResolved({
     attacker: 'atacante',
     target,
-    attackId: 'scratch',
+    attackId: 'tackle',
     slot: 'primary',
     origin: { x: 0, y: 0, z: 0 },
     impactPoint: { x: 0, y: 0, z: 1 },
@@ -71,10 +85,33 @@ describe('damageNumberSystem', () => {
     expect(slot.lifetime).toBeCloseTo(CRIT_LIFETIME)
   })
 
+  it('o golpe que ERROU no sorteio de precisão mostra "Errou!" acima do alvo, em cinza', () => {
+    const target = spawnTarget({ x: 0, y: 0.45, z: 0 })
+    const missed = attackResolved({
+      attacker: 'atacante',
+      target,
+      attackId: 'tackle',
+      slot: 'primary',
+      origin: { x: 0, y: 0, z: 0 },
+      impactPoint: { x: 0, y: 0, z: 1 },
+      damage: 0,
+      critical: false,
+      missed: true,
+    })
+
+    run([missed])
+
+    const [slot] = activeSlots()
+    expect(slot.text).toBe('Errou!')
+    expect(slot.kind).toBe('miss')
+    expect(slot.color).toBe(GAME_CONFIG.FEEDBACK.MISS_COLOR)
+    expect(slot.y).toBeCloseTo(0.9 + HEAD_MARGIN)
+  })
+
   it('miss não cria número', () => {
     const miss = attackResolved({
       attacker: 'atacante',
-      attackId: 'scratch',
+      attackId: 'tackle',
       slot: 'primary',
       origin: { x: 0, y: 0, z: 0 },
       impactPoint: { x: 0, y: 0, z: 1 },
@@ -114,5 +151,175 @@ describe('formatDamage', () => {
     expect(formatDamage(7.4)).toBe('7')
     expect(formatDamage(7.5)).toBe('8')
     expect(formatDamage(0.2)).toBe('1')
+  })
+})
+
+function statChanged(target, stat, delta) {
+  return statStageChanged({
+    attacker: 'atacante',
+    target,
+    attackId: 'growl',
+    stat,
+    delta,
+    stage: delta,
+  })
+}
+
+describe('formatStatChange', () => {
+  it('rótulo do atributo + uma seta por estágio (no máximo 3)', () => {
+    expect(formatStatChange('attack', -1)).toBe('Ataque ↓')
+    expect(formatStatChange('defense', -2)).toBe('Defesa ↓↓')
+    expect(formatStatChange('sp_atk', 1)).toBe('Atq. Esp. ↑')
+    expect(formatStatChange('sp_def', 5)).toBe('Def. Esp. ↑↑↑')
+  })
+})
+
+describe('damageNumberSystem — golpes de status (Growl)', () => {
+  it('statStageChanged cria o texto "Ataque ↓" acima do alvo, como debuff', () => {
+    const target = spawnTarget({ x: 0, y: 0.45, z: 0 })
+
+    run([statChanged(target, 'attack', -1)])
+
+    const [slot] = activeSlots()
+    expect(slot.text).toBe('Ataque ↓')
+    expect(slot.kind).toBe('debuff')
+    expect(slot.critical).toBe(false)
+    expect(slot.y).toBeCloseTo(0.9 + HEAD_MARGIN)
+  })
+
+  it('subir atributo é um buff', () => {
+    const target = spawnTarget({ x: 0, y: 0.45, z: 0 })
+
+    run([statChanged(target, 'defense', 1)])
+
+    expect(activeSlots()[0].kind).toBe('buff')
+  })
+
+  it('golpe em SI MESMO (Growth): "Ataque ↑" e "Atq. Esp. ↑" acima de quem usou', () => {
+    const user = spawnTarget({ x: 0, y: 0.45, z: 0 })
+    const self = (stat) =>
+      statStageChanged({
+        attacker: user,
+        target: user,
+        attackId: 'growth',
+        stat,
+        delta: 1,
+        stage: 1,
+      })
+
+    run([self('attack'), self('sp_atk')])
+
+    const slots = activeSlots()
+    expect(slots.map((slot) => slot.text)).toEqual(['Ataque ↑', 'Atq. Esp. ↑'])
+    for (const slot of slots) {
+      expect(slot.kind).toBe('buff')
+      expect(slot.y).toBeCloseTo(0.9 + HEAD_MARGIN)
+    }
+  })
+
+  it('golpe de status interrompido: "Interrompido!" acima de quem perdeu o golpe', () => {
+    const user = spawnTarget({ x: 0, y: 0.45, z: 0 })
+
+    run([
+      attackInterrupted({
+        entity: user,
+        attackId: 'growth',
+        slot: 'secondary1',
+      }),
+    ])
+
+    const [slot] = activeSlots()
+    expect(slot.text).toBe('Interrompido!')
+    expect(slot.color).toBe(GAME_CONFIG.FEEDBACK.INTERRUPT_COLOR)
+    expect(slot.y).toBeCloseTo(0.9 + HEAD_MARGIN)
+  })
+
+  it('o attackResolved de STATUS (damage 0) não cria número de dano', () => {
+    const target = spawnTarget({ x: 0, y: 0.45, z: 0 })
+    const status = { ...hit(target, 0), status: true }
+
+    run([status])
+
+    expect(activeSlots()).toHaveLength(0)
+  })
+
+  it('um golpe de status em 2 alvos cria 2 textos, e o de dano continua com kind "damage"', () => {
+    const a = spawnTarget({ x: 0, y: 0.45, z: 0 })
+    const b = spawnTarget({ x: 1, y: 0.45, z: 0 })
+
+    run([statChanged(a, 'attack', -1), statChanged(b, 'attack', -1), hit(a, 5)])
+
+    const slots = activeSlots()
+    expect(slots).toHaveLength(3)
+    expect(slots.map((slot) => slot.kind).sort()).toEqual([
+      'damage',
+      'debuff',
+      'debuff',
+    ])
+  })
+
+  it('alvo já destruído não quebra o system', () => {
+    const target = spawnTarget({ x: 0, y: 0.45, z: 0 })
+    const event = statChanged(target, 'attack', -1)
+    target.destroy()
+
+    expect(() => run([event])).not.toThrow()
+    expect(activeSlots()).toHaveLength(0)
+  })
+})
+
+describe('damageNumberSystem — cor do texto: tipo × lado do alvo', () => {
+  function spawnSided(side) {
+    const world = createWorld()
+    worlds.push(world)
+    return world.spawn(
+      Position({ x: 0, y: 0.45, z: 0 }),
+      CharacterController(BODY),
+      side === 'ally'
+        ? SummonedCreature({ slot: 'slot1', speciesId: 'charmander' })
+        : WildCreature({ speciesId: 'charmander' }),
+    )
+  }
+
+  it('número de DANO: vermelho no oponente, rosa no aliado', () => {
+    run([hit(spawnSided('opponent'), 5)])
+    expect(activeSlots()[0].color).toBe(OPPONENT.DAMAGE)
+    run([], 1000)
+
+    run([hit(spawnSided('ally'), 5)])
+    expect(activeSlots()[0].color).toBe(ALLY.DAMAGE)
+  })
+
+  it('texto de STATUS: laranja/violeta quando o atributo baixa, verde/ciano quando sobe', () => {
+    const expectColor = (side, delta, color) => {
+      run([statChanged(spawnSided(side), 'attack', delta)])
+      expect(activeSlots()[0].color).toBe(color)
+      run([], 1000)
+    }
+
+    expectColor('opponent', -1, OPPONENT.DEBUFF)
+    expectColor('ally', -1, ALLY.DEBUFF)
+    expectColor('opponent', 1, OPPONENT.BUFF)
+    expectColor('ally', 1, ALLY.BUFF)
+  })
+
+  it('o crítico usa a cor CRIT do lado e o brilho do contorno é a cor de dano do lado', () => {
+    run([hit(spawnSided('ally'), 20, true)])
+    run([hit(spawnSided('opponent'), 20, true)])
+
+    const [ally, opponent] = activeSlots()
+    expect(ally.critical).toBe(true)
+    expect(ally.color).toBe(ALLY.CRIT)
+    expect(ally.glow).toBe(ALLY.DAMAGE)
+    expect(opponent.color).toBe(OPPONENT.CRIT)
+    expect(opponent.glow).toBe(OPPONENT.DAMAGE)
+    expect(ally.color).not.toBe(opponent.color)
+  })
+
+  it('alvo sem marca de lado (nem aliado nem selvagem) conta como oponente', () => {
+    expect(() =>
+      run([hit(spawnTarget({ x: 0, y: 0.45, z: 0 }), 5)]),
+    ).not.toThrow()
+    expect(activeSlots()[0].color).toBe(OPPONENT.DAMAGE)
   })
 })

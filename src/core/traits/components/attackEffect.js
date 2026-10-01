@@ -3,7 +3,7 @@ import { trait } from 'koota'
 /**
  * Id do grupo de efeito visual usado quando o ataque resolvido não
  * declara `visual.effectGroup` (não devia acontecer, já que toda entrada
- * de `core/data/attacks/` declara — ver `_template/index.js` — mas serve
+ * de `core/data/skills/` declara — ver `_template/index.js` — mas serve
  * de piso seguro, mesmo espírito de outros fallbacks graciosos do
  * projeto). `'punch'` é o grupo compartilhado por padrão — mesmo
  * princípio de `footstepGroup`/`dashGroup` (`core/data/audio/*.js`):
@@ -24,26 +24,26 @@ export const DEFAULT_ATTACK_EFFECT_GROUP = 'punch'
  * `creatureAttackSystem.js`).
  *
  * `radius`/`effectGroup`/`revealDuration` vêm do ataque resolvido
- * (`core/data/attacks/`, via `resolveCreatureAttack` — base da espécie +
- * override da criatura, ver docstring de `core/data/attacks/index.js`),
+ * (`core/data/skills/`, via `resolveCreatureAttack` — base da espécie +
+ * override da criatura, ver docstring de `core/data/skills/index.js`),
  * congelados no spawn:
  * - `radius` dimensiona o efeito, proporcional à área efetiva de
  *   verdade — só visual; a detecção de acerto mora em
  *   `resolveAttackTarget` (`creatureAttackSystem.js`).
  * - `effectGroup` diz QUAL visual usar (`attack.visual.effectGroup`) —
- *   vários ataques podem apontar pro mesmo grupo (`'punch'`/`'scratch'`,
+ *   vários ataques podem apontar pro mesmo grupo (`'punch'`/`'tackle'`,
  *   os dois que existem hoje), e a VIEW (`view/scene/AttackEffectView.jsx`,
  *   via `view/scene/attackEffects/registry.js`) escolhe o COMPONENTE
  *   certo por esse id. Core não sabe nada sobre o visual em si (só
  *   carrega o id, texto puro) — a ponte id→componente React mora inteira
  *   na view, mesma separação de sempre (`core/` não importa Three/React).
  * - `revealDuration` (`attack.visual.revealDuration`, segundos) — pedido
- *   do usuário pro grupo `'scratch'`: o efeito não aparece inteiro de
+ *   do usuário pro grupo `'tackle'`: o efeito não aparece inteiro de
  *   uma vez, é REVELADO progressivamente (uma "fita" indo de 0% a 100%
  *   visível, dando a sensação de golpe partindo de um ponto até outro).
  *   `0` = revelado por inteiro desde o primeiro frame (comportamento de
  *   `'punch'`, que não usa reveal — é um estouro, não um traço). A VIEW
- *   (`ScratchAttackEffect.jsx`) decide o que fazer com o valor; o trait só
+ *   (`tackleAttackEffect.jsx`) decide o que fazer com o valor; o trait só
  *   carrega o número.
  * - `visualScale` (`attack.visual.scale`, multiplicador, padrão `1`) —
  *   pedido explícito do usuário: "uma criatura grande vai ter o efeito
@@ -53,6 +53,19 @@ export const DEFAULT_ATTACK_EFFECT_GROUP = 'punch'
  *   escondida dentro do componente de view. Multiplicado por cima da
  *   constante de normalização do rip que cada componente já tem
  *   (`*_BASE_SCALE`) e de `radius`.
+ * - `length` (metros) — distância da PARTIDA do golpe (de onde ele sai da
+ *   criatura, já com `visual.positionOffset`) até o ponto onde esta entidade
+ *   nasce. O efeito nasce no
+ *   impacto, orientado pela trajetória (+Z local = direção do golpe), então
+ *   a criatura fica em (0, 0, -`length`) no espaço local — é o que um VFX
+ *   que SAI da criatura (jato de fogo, projétil) precisa saber. Os grupos
+ *   que nascem só no impacto (`'punch'`, `'tackle'`) ignoram. `0` = não
+ *   informado.
+ *
+ * - `impactType` — tipo do golpe (`'fire'`, `'water'`...) pro grupo
+ *   `'impact'` escolher as partículas (cada tipo tem as suas); `''` = não
+ *   informado (cai em `'normal'`). Vem de `attack.visual.impactType` ou,
+ *   na falta, de `attack.damage.type`. Os outros grupos ignoram.
  *
  * Dono de escrita: `creatureAttackSystem` (spawna, no instante `effectAt`
  * da ação `'attack'`); `attackEffectSystem` (conta `lifetime` pra baixo,
@@ -64,6 +77,8 @@ export const AttackEffect = trait({
   effectGroup: DEFAULT_ATTACK_EFFECT_GROUP,
   revealDuration: 0,
   visualScale: 1,
+  length: 0,
+  impactType: '',
 })
 
 /**
@@ -82,13 +97,26 @@ export const AttackEffect = trait({
  * `simulation` pode rodar mais de um tick fixo antes da próxima
  * `presentation`, então quem limpa cedo demais arrisca apagar o pulso
  * antes da `presentation` chegar a vê-lo).
+ *
+ * Carrega `slot` (`primary`/`secondary1-3`): QUAL ataque disparou, pra o som
+ * tocar o do ataque certo (cada slot tem o seu — ver `core/data/audio/
+ * attackSound.js`).
  */
-export const AttackPulse = trait()
+export const AttackPulse = trait({ slot: 'primary' })
+
+/**
+ * Pulso de UM tick pedindo que a criatura VOCALIZE agora (o grito dela, com a
+ * boca sincronizada) — `creatureAttackSystem` o adiciona no `effectAt` de uma
+ * skill com `audio.cry: true` (ex.: Growl); `voiceAudioSystem` o consome:
+ * toca uma variação da voz da criatura na hora, sem esperar o temporizador
+ * da vocalização periódica, e remove a tag. Mesmo princípio de `AttackPulse`.
+ */
+export const CryPulse = trait()
 
 /**
  * Cooldown restante (segundos) de CADA slot de ataque/skill
  * (`primary`/`secondary1-3`, mesmos rótulos de `resolveActionSlots`/
- * `species.attacks.<slot>`) — um campo por slot, não um único
+ * `species.basicAttack`/`species.skills[N]`) — um campo por slot, não um único
  * `cooldownRemaining` compartilhado (era assim até a 9ª rodada, quando só
  * existia o ataque comum em `primary`). Motivo do split (pedido do
  * usuário: "pode fazer as habilidades agora?", ver docs/features/025-
@@ -102,8 +130,9 @@ export const AttackPulse = trait()
  * Cada campo decrementa TODO tick, independente de qual ação está em
  * andamento (mesmo comportamento que `ActionState.cooldownRemaining`
  * tinha antes de virar este trait) — travado em
- * `attacks.<slot>.cooldown` (`core/data/attacks/`) no disparo daquele
- * slot especificamente, nunca dos outros três.
+ * `cooldown` do ataque do slot (`basicAttack`/`skills[N]`) quando a AÇÃO
+ * daquele slot termina (não no disparo — a contagem só começa depois da
+ * `duration`), nunca dos outros três.
  *
  * Dono de escrita/leitura: `creatureAttackSystem.js`.
  */
@@ -117,7 +146,7 @@ export const AttackCooldowns = trait({
 /**
  * Slot cujo ataque está com o INDICADOR aberto, esperando confirmação
  * (`'primary' | 'secondary1-3'`, ou `null` sem indicador). Só existe pra
- * ataque com `castMode: 'confirm'` (`core/data/attacks/<id>/index.js`):
+ * ataque com `castMode: 'confirm'` (`core/data/skills/<id>/index.js`):
  * apertar o botão abre o indicador; apertar de novo (ou clicar) lança.
  *
  * Dono de escrita: `creatureAttackSystem.js`. Leitor:

@@ -132,7 +132,7 @@ describe('summonBallSystem', () => {
     // `summonBallSystem.js`) não tinha sido atualizado — a criatura de
     // VERDADE nunca tinha o trait, então nem o ataque comum (mouse) nem
     // as skills (Q/E/R) disparavam pra ninguém, mesmo com tudo
-    // configurado certo em `species.attacks`. `creatureAttackSystem.
+    // configurado certo em `species.basicAttack`/`species.skills`. `creatureAttackSystem.
     // test.js` não pegava isso porque usa um helper de spawn PRÓPRIO,
     // desacoplado deste system de verdade.
     expect(creature.has(ActionState)).toBe(true)

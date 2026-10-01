@@ -3,7 +3,7 @@ import { makeWorld } from '@/test/makeWorld'
 import { desmaiar } from '../actions/faint'
 import { defenderGrupo } from '../actions/partyBehavior'
 import { perseguirJogador } from '../actions/wildBehavior'
-import { resolveCreatureAttack } from '../data/attacks'
+import { resolveCreatureAttack } from '../battle/creatureAttack'
 import { getSpecies } from '../data/species'
 import { attackResolved, createEventQueue } from '../events'
 import { GAME_CONFIG } from '../gameConfig'
@@ -108,7 +108,7 @@ function hit(attacker, target) {
   return attackResolved({
     attacker,
     target,
-    attackId: 'scratch',
+    attackId: 'tackle',
     slot: 'primary',
     origin: { x: 0, y: 0, z: 0 },
     impactPoint: { x: 0, y: 0, z: 1 },
@@ -190,8 +190,8 @@ describe('partyReactionSystem — sempre defensiva', () => {
 })
 
 describe('partyBehaviorSystem — lutando', () => {
-  const scratch = resolveCreatureAttack(CHARMANDER.attacks.primary)
-  const REACH = scratch.range + scratch.radius + CHARMANDER.body.capsuleRadius
+  const tackle = resolveCreatureAttack(CHARMANDER, 'primary')
+  const REACH = tackle.range + tackle.radius + CHARMANDER.body.capsuleRadius
 
   function tick(world) {
     partyBehaviorSystem({ world, delta: DELTA })

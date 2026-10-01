@@ -53,8 +53,8 @@ function spawnTarget(world, position, body = SMALL_BODY) {
   )
 }
 
-function direction(world, attack = MELEE) {
-  return resolveAttackDirection(world, ATTACKER_POS, -1, SPECIES, attack)
+function direction(world, attack = MELEE, slot = 'primary') {
+  return resolveAttackDirection(world, ATTACKER_POS, -1, SPECIES, attack, slot)
 }
 
 // Posição 1.2m à frente, 40° pro lado (dentro do cone de 45°).
@@ -174,5 +174,67 @@ describe('resolveAttackDirection — à distância', () => {
     expect(dir.y).toBe(0)
     expect(dir.x).toBeCloseTo(camera.x / horizontalLength)
     expect(dir.z).toBeCloseTo(camera.z / horizontalLength)
+  })
+})
+
+describe('resolveAttackDirection — assistência de mira só no ataque básico', () => {
+  // Sem câmera no mundo a direção base é +Z (FORWARD) — mesma convenção dos
+  // testes acima; o alvo fica 40° pro lado, dentro do cone de 45°.
+  it('o básico corpo a corpo é puxado pro alvo dentro do cone', () => {
+    const world = spawnWorld()
+    const target = besideAt(0.45)
+    spawnTarget(world, target)
+
+    const aimed = direction(world, MELEE, 'primary')
+
+    expect(Math.atan2(aimed.x, aimed.z)).toBeCloseTo(
+      Math.atan2(target.x, target.z),
+    )
+  })
+
+  it('uma habilidade (secondary1-3) NUNCA é puxada, mesmo com aim "melee": sai pra onde a câmera olha', () => {
+    const world = spawnWorld()
+    spawnTarget(world, besideAt(0.45))
+
+    for (const slot of ['secondary1', 'secondary2', 'secondary3']) {
+      expect(direction(world, MELEE, slot)).toEqual(FORWARD)
+    }
+  })
+
+  it('o básico e a habilidade divergem exatamente por causa da assistência (mesmo ataque, mesmo alvo)', () => {
+    const world = spawnWorld()
+    spawnTarget(world, besideAt(0.45))
+
+    const basic = direction(world, MELEE, 'primary')
+    const skill = direction(world, MELEE, 'secondary1')
+
+    expect(basic).not.toEqual(skill)
+    expect(skill).toEqual(FORWARD)
+  })
+
+  it('a habilidade segue a câmera (não o alvo) quando há câmera', () => {
+    const world = spawnWorld()
+    world.spawn(OrbitCamera(LOOKING_DOWN))
+    spawnTarget(world, besideAt(0.45))
+    const camera = computeAimRay(
+      ATTACKER_POS,
+      LOOKING_DOWN,
+      -1,
+      0.5,
+      0,
+    ).direction
+    const horizontalLength = Math.hypot(camera.x, camera.z)
+
+    const skill = direction(world, MELEE, 'secondary2')
+
+    expect(skill.x).toBeCloseTo(camera.x / horizontalLength)
+    expect(skill.z).toBeCloseTo(camera.z / horizontalLength)
+  })
+
+  it('o básico à distância (aim "ranged") também não tem assistência', () => {
+    const world = spawnWorld()
+    spawnTarget(world, besideAt(0.45))
+
+    expect(direction(world, RANGED, 'primary')).toEqual(FORWARD)
   })
 })

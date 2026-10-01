@@ -220,3 +220,62 @@ export function resolveContactPoint(axisPoint, pathPoint, capsuleRadius) {
 
   return pointAt(axisPoint, toPath, capsuleRadius / distance)
 }
+
+/**
+ * Forma do cone de um ataque canalizado, em "cone de sorvete": triângulo
+ * saindo do ápice com a abertura do ataque (`radius / range` de cada lado)
+ * e uma MEIA-LUA na ponta, com diâmetro igual à largura ali — a ponta fica
+ * sempre arredondada, estreito ou largo (pedido do usuário). A meia-lua é
+ * encaixada pra ponta mais distante cair EXATAMENTE em `length`: o centro
+ * dela fica em `capCenter = length / (1 + slope)` e o raio é
+ * `capRadius = slope * capCenter` (`slope = radius / range`).
+ *
+ * Mesma conta usada pelo desenho (`view/scene/AttackShape.jsx`).
+ */
+export function resolveRoundedCone({ length, range, radius }) {
+  const slope = range > 0 ? radius / range : 0
+  const capCenter = length / (1 + slope)
+  return { slope, capCenter, capRadius: slope * capCenter }
+}
+
+/**
+ * O ponto (com folga `pointRadius`, ex.: raio da cápsula do alvo) está
+ * dentro do cone de um ataque canalizado (`resolveRoundedCone`: triângulo
+ * + meia-lua na ponta)? Ápice em `origin`, eixo na `direction`
+ * horizontal. Conta só no plano do chão (altura é checada à parte,
+ * `isWithinCombatHeight`).
+ *
+ * `length` pode ser menor que o `range` do ataque (a trajetória parou numa
+ * parede) — a abertura continua a do ataque inteiro, só o cone fica mais
+ * curto (e a meia-lua acompanha).
+ */
+export function isInsideAttackCone(
+  origin,
+  direction,
+  cone,
+  point,
+  pointRadius = 0,
+) {
+  const dirLength = Math.hypot(direction.x, direction.z)
+  if (dirLength < 1e-9 || !(cone.range > 0)) return false
+  const dx = direction.x / dirLength
+  const dz = direction.z / dirLength
+  const { slope, capCenter, capRadius } = resolveRoundedCone(cone)
+
+  const px = point.x - origin.x
+  const pz = point.z - origin.z
+  const along = px * dx + pz * dz
+  const across = Math.abs(px * dz - pz * dx)
+
+  // Meia-lua da ponta — só a metade da FRENTE do círculo (a de trás
+  // vazaria pra fora das laterais do triângulo), com a folga do alvo.
+  if (
+    along >= capCenter &&
+    Math.hypot(along - capCenter, across) <= capRadius + pointRadius
+  ) {
+    return true
+  }
+  // Triângulo, do ápice até o centro da meia-lua.
+  if (along < -pointRadius || along > capCenter) return false
+  return across <= slope * Math.max(0, along) + pointRadius
+}

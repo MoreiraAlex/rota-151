@@ -5,6 +5,8 @@ import { initTestTerrain, settleTerrain } from '@/test/physicsTerrain'
 import {
   closestPointsBetweenSegments,
   closestPointsOnGroundPlane,
+  isInsideAttackCone,
+  resolveRoundedCone,
   isWithinCombatHeight,
   resolveAttackOrigin,
   resolveCapsuleSegment,
@@ -198,5 +200,67 @@ describe('resolveFootElevation / resolveGroundY', () => {
     settleTerrain()
 
     expect(resolveGroundY(3, 5, 3, 10)).toBeCloseTo(0)
+  })
+})
+
+describe('isInsideAttackCone — cone de sorvete (triângulo + meia-lua na ponta)', () => {
+  const ORIGIN = { x: 0, y: 0, z: 0 }
+  const FORWARD = { x: 0, y: 0, z: 1 }
+  // slope 0.5 → meia-lua com centro em z=2.667 e raio 1.333; ponta em z=4.
+  const CONE = { length: 4, range: 4, radius: 2 }
+
+  function inside(point, cone = CONE, pointRadius = 0, direction = FORWARD) {
+    return isInsideAttackCone(ORIGIN, direction, cone, point, pointRadius)
+  }
+
+  it('resolveRoundedCone: ponta mais distante cai exatamente no comprimento', () => {
+    const { capCenter, capRadius } = resolveRoundedCone(CONE)
+    expect(capCenter + capRadius).toBeCloseTo(4)
+    expect(capRadius).toBeCloseTo(0.5 * capCenter)
+  })
+
+  it('no eixo: dentro até a ponta (z=4); atrás ou além, fora', () => {
+    expect(inside({ x: 0, z: 2 })).toBe(true)
+    expect(inside({ x: 0, z: 3.95 })).toBe(true)
+    expect(inside({ x: 0, z: 4.1 })).toBe(false)
+    expect(inside({ x: 0, z: -1 })).toBe(false)
+  })
+
+  it('no triângulo, a largura cresce com a abertura do ataque', () => {
+    // z=2 → meia-largura 1.
+    expect(inside({ x: 0.9, z: 2 })).toBe(true)
+    expect(inside({ x: 1.1, z: 2 })).toBe(false)
+  })
+
+  it('na meia-lua, a borda é redonda (não a reta do triângulo)', () => {
+    // z=3.5: dentro do círculo da ponta só até ~1.04 de lado.
+    expect(inside({ x: 1.0, z: 3.5 })).toBe(true)
+    expect(inside({ x: 1.1, z: 3.5 })).toBe(false)
+  })
+
+  it('leque ESTREITO também tem a ponta arredondada (caso razor-leaf)', () => {
+    const narrow = { length: 4, range: 4, radius: 0.4 }
+    expect(inside({ x: 0, z: 3.98 }, narrow)).toBe(true)
+    expect(inside({ x: 0.2, z: 3.7 }, narrow)).toBe(true)
+    // "Canto" que um retângulo/triângulo de ponta reta teria: fora.
+    expect(inside({ x: 0.3, z: 3.9 }, narrow)).toBe(false)
+  })
+
+  it('folga do alvo (raio da cápsula) conta nas bordas e na ponta', () => {
+    expect(inside({ x: 1.3, z: 2 }, CONE, 0.4)).toBe(true)
+    expect(inside({ x: 0, z: 4.3 }, CONE, 0.4)).toBe(true)
+  })
+
+  it('cone encurtado por parede mantém a abertura, e a meia-lua acompanha', () => {
+    const short = { length: 2, range: 4, radius: 2 }
+    expect(inside({ x: 0.5, z: 1.2 }, short)).toBe(true)
+    expect(inside({ x: 0, z: 1.95 }, short)).toBe(true)
+    expect(inside({ x: 0, z: 2.5 }, short)).toBe(false)
+  })
+
+  it('respeita a direção (girado 90° pra +X)', () => {
+    const right = { x: 1, y: 0, z: 0 }
+    expect(inside({ x: 2, z: 0.5 }, CONE, 0, right)).toBe(true)
+    expect(inside({ x: 0, z: 2 }, CONE, 0, right)).toBe(false)
   })
 })

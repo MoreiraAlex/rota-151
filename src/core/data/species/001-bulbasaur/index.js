@@ -1,6 +1,7 @@
 import CRY_CLIP from './clips/cry.json'
+import { BASIC_ATTACK } from './basicAttack'
 
-const LEVEL = 5
+const LEVEL = 100
 
 const HP = 45
 const ATTACK = 49
@@ -21,27 +22,48 @@ export const BULBASAUR = {
   dexNumber: 1,
   level: LEVEL,
   kind: 'pokemon',
-  sprite: { path: 'https://play.pokemonshowdown.com/sprites/ani/bulbasaur.gif' },
+  sprite: {
+    path: 'https://play.pokemonshowdown.com/sprites/ani/bulbasaur.gif',
+  },
   model: {
     path: '/assets/models/001-bulbasaur.glb',
     scale: 1.2,
     texture: {
-      0: { path: '/assets/textures/001-bulbasaur/default/pm0001_00_00_body_a_alb.png', flipY: false },
-      1: { path: '/assets/textures/001-bulbasaur/default/pm0001_00_00_body_b_alb.png', flipY: false },
-      2: { path: '/assets/textures/001-bulbasaur/default/pm0001_00_00_eye_alb.png', flipY: false },
-      3: { path: '/assets/textures/001-bulbasaur/default/pm0001_00_00_body_b_alb.png', flipY: false },
-      4: { path: '/assets/textures/001-bulbasaur/default/pm0001_00_00_body_b_alb.png', flipY: false },
-    } 
+      0: {
+        path: '/assets/textures/001-bulbasaur/default/pm0001_00_00_body_a_alb.png',
+        flipY: false,
+      },
+      1: {
+        path: '/assets/textures/001-bulbasaur/default/pm0001_00_00_body_b_alb.png',
+        flipY: false,
+      },
+      2: {
+        path: '/assets/textures/001-bulbasaur/default/pm0001_00_00_eye_alb.png',
+        flipY: false,
+      },
+      3: {
+        path: '/assets/textures/001-bulbasaur/default/pm0001_00_00_body_b_alb.png',
+        flipY: false,
+      },
+      4: {
+        path: '/assets/textures/001-bulbasaur/default/pm0001_00_00_body_b_alb.png',
+        flipY: false,
+      },
+    },
   },
 
   clips: {
     cry: CRY_CLIP,
   },
   nativeAnimations: {
+    roar: 'roar',
     idle: 'idle',
     walk: 'walk',
     run: 'run',
-    attack: 'attack',
+    attackBasic: { sequence: [{ animation: 'attackRangedAltStart' }, { animation: 'attackRangedAltEnd', frames: 10 }], },
+    attackBasicAlt: { sequence: ['attackAltStart', 'attackAltEnd'] },
+    attackAlt: 'attack',
+    attackRanged: { sequence: [{ animation: 'attackRanged', frames: 40 }] },
     faint: {
       start: 'faintStart',
       loop: 'faintLoop',
@@ -49,16 +71,20 @@ export const BULBASAUR = {
     },
     fall: 'fallLoop',
     jump: 'jumpLoop',
-    dash: { sequence: ['stepIn', { animation: 'stepInEnd', frames: 10 }], },
+    dash: { sequence: ['stepIn', { animation: 'stepInEnd', frames: 10 }] },
     battleIdle: 'battleIdle',
     appeal: 'appeal',
+    // atordoada por golpe interrompido (ação `'hit'`)
+    hit: 'hit',
+    // skill Growth (`animation.clipKey: 'growth'`)
+    charge: { loop: 'charge' },
   },
 
   nativeBlink: { animation: 'blink', minInterval: 2, maxInterval: 6 },
   actions: {
     appeal: { duration: 1 },
   },
-  
+
   body: {
     capsuleRadius: 0.3,
     capsuleHalfHeight: 0.2,
@@ -94,9 +120,34 @@ export const BULBASAUR = {
     dashGroup: 'default',
     jumpGroup: 'default',
   },
-  attacks: {
-    primary: { id: 'vine-whip', overrides: { range: 1.8, duration: 0.8, effectAt: 0.6, animationFrames: 30 } },
-    secondary1: 'razor-leaf',
+  basicAttack: BASIC_ATTACK,
+  skills: {
+    1: { id: 'growth' },
+    2: {
+      id: 'tackle',
+      overrides: {
+        range: 1,
+        duration: 1,
+        effectAt: 0.4,
+        // animationFrames: 30,
+        animation: { clipKey: 'attackBasicAlt' },
+      },
+    },
+    3: {
+      id: 'vine-whip',
+      overrides: {
+        range: 2,
+        duration: 0.8,
+        effectAt: 0.6,
+      },
+      // overrides: {
+      //   range: 1.8,
+      //   duration: 0.8,
+      //   effectAt: 0.6,
+      //   animationFrames: 30,
+      // },
+    },
+    // 2: { id: 'razor-leaf', overrides: { range: 4, duration: 2, effectAt: 1 } },
   },
   stats: {
     hp: { base: HP, ev: HP_EV, regenPercent: 2, regenDelay: 5 },

@@ -10,8 +10,9 @@ const { RISE } = GAME_CONFIG.FEEDBACK.DAMAGE_NUMBER
 // Contorno escuro por sombra (o número fica legível em qualquer fundo).
 const OUTLINE =
   '1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 0 0 4px #000'
-const CRIT_OUTLINE =
-  '1px 1px 0 #7a0000, -1px -1px 0 #7a0000, 1px -1px 0 #7a0000, -1px 1px 0 #7a0000, 0 0 8px #ff5a00'
+// Crítico: contorno escuro e brilho na cor de DANO do lado do alvo (`slot.glow`).
+const critOutline = (color) =>
+  `1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 0 0 8px ${color}`
 
 // Fração da vida em que o número começa a sumir.
 const FADE_START = 0.6
@@ -21,11 +22,16 @@ const CRIT_POP_SCALE = 1.7
 
 function applySlotContent(el, slot) {
   const [label, value] = el.children
+  const status = slot.kind !== 'damage'
   value.textContent = slot.text
   label.style.display = slot.critical ? 'block' : 'none'
-  value.style.fontSize = slot.critical ? '30px' : '20px'
-  value.style.color = slot.critical ? '#ffd23f' : '#ffffff'
-  value.style.textShadow = slot.critical ? CRIT_OUTLINE : OUTLINE
+  value.style.fontSize = slot.critical ? '30px' : status ? '17px' : '20px'
+  // Texto na cor do acontecimento e do lado (`FEEDBACK_COLORS`): o crítico
+  // também, com a cor de CRÍTICO do lado — dourado no oponente, rosa-claro no
+  // aliado — e o brilho/rótulo na cor de dano do lado.
+  value.style.color = slot.color
+  value.style.textShadow = slot.critical ? critOutline(slot.glow) : OUTLINE
+  label.style.color = slot.glow
   el.dataset.serial = String(slot.serial)
 }
 

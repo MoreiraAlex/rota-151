@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { createWorld } from 'koota'
-import { Fainted } from '@/core/traits'
+import { CryPulse, Fainted } from '@/core/traits'
 import {
   getVoiceAudioEntry,
   registerVoiceAudio,
@@ -75,5 +75,64 @@ describe('voiceAudioSystem', () => {
     voiceAudioSystem({ delta: 0.1 })
 
     expect(audio.isPlaying).toBe(false)
+  })
+
+  describe('CryPulse (skill com audio.cry, ex.: Growl)', () => {
+    it('vocaliza NA HORA, sem esperar o temporizador, e consome o pulso', () => {
+      const { entity, audio } = spawnVoiced()
+      getVoiceAudioEntry(entity).timer = 999
+
+      entity.add(CryPulse)
+      voiceAudioSystem({ delta: 1 / 60 })
+
+      expect(audio.plays).toBe(1)
+      expect(entity.has(CryPulse)).toBe(false)
+    })
+
+    it('corta a vocalização que já estava tocando e começa a do golpe', () => {
+      const { entity, audio } = spawnVoiced()
+      audio.isPlaying = true
+      let stopped = 0
+      audio.stop = () => {
+        stopped += 1
+        audio.isPlaying = false
+      }
+
+      entity.add(CryPulse)
+      voiceAudioSystem({ delta: 1 / 60 })
+
+      expect(stopped).toBe(1)
+      expect(audio.plays).toBe(1)
+    })
+
+    it('sorteia o próximo intervalo da voz periódica a partir daí', () => {
+      const { entity } = spawnVoiced()
+      getVoiceAudioEntry(entity).timer = 0.01
+
+      entity.add(CryPulse)
+      voiceAudioSystem({ delta: 1 / 60 })
+
+      // minInterval = maxInterval = 1
+      expect(getVoiceAudioEntry(entity).timer).toBeCloseTo(1)
+    })
+
+    it('sem buffer carregado ainda, consome o pulso e não toca nada', () => {
+      const { entity, audio } = spawnVoiced()
+      getVoiceAudioEntry(entity).buffers.length = 0
+
+      entity.add(CryPulse)
+      voiceAudioSystem({ delta: 1 / 60 })
+
+      expect(audio.plays).toBe(0)
+      expect(entity.has(CryPulse)).toBe(false)
+    })
+
+    it('sem o pulso, a voz periódica segue o seu ritmo (regressão)', () => {
+      const { audio } = spawnVoiced()
+
+      voiceAudioSystem({ delta: 1 / 60 })
+
+      expect(audio.plays).toBe(1) // `immediate`: timer em 0
+    })
   })
 })

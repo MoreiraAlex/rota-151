@@ -3,7 +3,7 @@
 import { useQueryFirst, useTrait } from 'koota/react'
 import { playerEntity } from '@/core/world/world'
 import { getSpecies } from '@/core/data/species'
-import { resolveCreatureAttack } from '@/core/data/attacks'
+import { resolveCreatureAttack } from '@/core/battle/creatureAttack'
 import {
   AttackCooldowns,
   HeldItem,
@@ -29,7 +29,7 @@ import { MouseLeft } from 'lucide-react'
  *   continua sendo o ITEM NA MÃO (`HeldItem`/`Inventory`, mesmo conteúdo
  *   que `PartyHud.jsx` mostrava antes desta rodada).
  * - Criatura no controle: clique vira o ATAQUE BÁSICO dela
- *   (`species.attacks.primary`, ver docs/features/025-ataque-comum-de-
+ *   (`species.basicAttack`, ver docs/features/025-ataque-comum-de-
  *   criatura.md) — pedido explícito: "quando o controle for de criatura,
  *   o clique para de ser o item na mao e passar ser o ataque basico da
  *   criatura, que vai ter seu proprio sprite tb". Reaproveita
@@ -63,7 +63,7 @@ export function ActionSlotHud() {
 
 function ActionSlotAttack({ speciesId, remaining }) {
   const species = getSpecies(speciesId)
-  const attack = resolveCreatureAttack(species?.attacks?.primary)
+  const attack = resolveCreatureAttack(species, 'primary')
 
   return <SkillSlot label={<MouseLeft size={16}/>} attack={attack} remaining={remaining} />
 }

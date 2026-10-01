@@ -206,32 +206,29 @@ export const SPECIES_TEMPLATE = {
   // `../bot/index.js` se algum dia existir uma segunda espécie `kind:
   // 'trainer'`.
   //
-  // `attacks` (opcional — ver `../fox/index.js` pro exemplo simples e
-  // `../004-charmander/index.js` pro exemplo COM override,
-  // docs/features/025-ataque-comum-de-criatura.md) é o INVERSO: exclusivo
-  // de criatura, o treinador não tem (sem arma direta no design, ver
-  // docs/backlog.md). Botão esquerdo do mouse controlando esta espécie
-  // dispara o ataque referenciado em `primary`. Só uma REFERÊNCIA por id
-  // — a definição de verdade (duração, alcance, custo, visual, áudio...)
-  // mora em `core/data/attacks/<id>/index.js` (registro reutilizável,
-  // mesmo princípio de espécie/item — ver `core/data/attacks/_template/
-  // index.js` pro que cada campo de lá significa). Sem este bloco, a
-  // criatura simplesmente não ataca (`creatureAttackSystem.js` ignora, sem
-  // quebrar nada):
-  //      attacks: { primary: 'scratch' },        // usa a definição base tal como está
-  // Precisa de um valor diferente do padrão só pra ESTA criatura (ex.:
-  // alcance maior/menor pro tamanho do corpo)? Não duplica a definição
-  // inteira — sobrescreve só o campo que precisa:
-  //      attacks: {
-  //        primary: { id: 'scratch', overrides: { range: 1, staminaCost: 4 } },
+  // `basicAttack` + `skills` (opcionais — ver `../004-charmander/`,
+  // docs/features/033-skills-de-combate-e-vfx.md) são o INVERSO: exclusivos de criatura, o
+  // treinador não tem (sem arma direta no design, ver docs/backlog.md).
+  // Cada criatura tem 4 ataques, um por botão:
+  // - `basicAttack` (mouse, slot `primary`) — ÚNICO da espécie: definição
+  //   completa em `./basicAttack.js` (copie o de uma espécie existente;
+  //   formato em `core/data/skills/_template/index.js`). Não aponta pra
+  //   habilidade nenhuma. `duration`/`effectAt` dele são a base que o
+  //   status `speed` escala.
+  // - `skills` (Q/E/R) — chave = número da habilidade (1 = Q, 2 = E,
+  //   3 = R; slots `secondary1-3`), valor = REFERÊNCIA ao registro
+  //   compartilhado (`core/data/skills/<id>/`), reaproveitada entre
+  //   espécies; override por espécie sem duplicar a definição:
+  //      skills: {
+  //        1: 'ember',                                   // Q, como está
+  //        2: { id: 'tackle', overrides: { range: 1 } }, // E, ajustada
   //      },
-  // `clips.attack` (opcional, acima em `clips`) é o clipe de animação do
-  // gesto — sem ele, a ação toca com a pose de descanso (mesmo fallback
-  // gracioso de `clips.recall`, ver core/data/animationStates.js) até
-  // alguém autorar o clipe de verdade pra esta espécie. (O ataque
-  // referenciado em `attacks.primary` também tem seu próprio
-  // `animation.clipKey`, hoje sempre `'attack'` — ver docstring em
-  // `core/data/attacks/_template/index.js`.)
+  // Sem `basicAttack`, a criatura não ataca com o mouse (e a IA não luta);
+  // slot de skill vazio simplesmente não dispara — nada quebra.
+  // Animação de cada ataque: `animation.clipKey` da definição escolhe a
+  // chave de `nativeAnimations`/`clips` que toca (padrão `'attack'`; ex.:
+  // `'attackRanged'` pra uma skill à distância) — espécie sem essa chave
+  // cai na `'attack'`.
   //
   // `sounds.summon`/`sounds.recall` (abaixo, ver
   // docs/features/023-estado-de-humor-e-piscar-de-olhos.md, seção "Som de
@@ -274,7 +271,7 @@ export const SPECIES_TEMPLATE = {
   // dashSound.js`/`jumpSound.js` pros ids disponíveis) — toca no INSTANTE
   // do dash/pulo, não por temporizador nem ciclo de passada. Som de
   // ATAQUE não fica em `sounds` — mora dentro da própria definição do
-  // ataque (`audio.group`/`audio.clips` em `core/data/attacks/<id>/
+  // ataque (`audio.group`/`audio.clips` em `core/data/skills/<id>/
   // index.js`, ver `attacks` acima), já que o som é característica do
   // ATAQUE (compartilhável entre espécies diferentes que usam o mesmo
   // ataque), não da espécie em si:
@@ -354,7 +351,7 @@ export const SPECIES_TEMPLATE = {
   // Opcional — tipo(s) elemental(is) da espécie (1 ou 2, ex.:
   // `['grass', 'poison']`), usado hoje só pro STAB (`resolveStab`,
   // `core/battle/calculateDamage.js`) — `1.5` de dano quando o
-  // `damage.type` do ataque (`core/data/attacks/<id>/index.js`) bate com
+  // `damage.type` do ataque (`core/data/skills/<id>/index.js`) bate com
   // um destes. Ausente = sem STAB pra esta espécie (cai em `1`, mesmo
   // fallback gracioso de sempre) — NENHUMA espécie declara isto ainda,
   // já que nenhum ataque tem `damage.type` definido de verdade. Também

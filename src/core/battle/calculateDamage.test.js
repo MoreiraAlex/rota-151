@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { createRng } from '../rng'
+import { getSpecies } from '../data/species'
 import {
   calculateDamage,
+  resolveChannelTickDamage,
   resolveCombatStats,
   resolveDamageAmount,
   resolveStab,
@@ -236,5 +238,83 @@ describe('resolveDamageAmount', () => {
     expect(crit.critical).toBe(true)
     expect(normal.critical).toBe(false)
     expect(crit.amount).toBeGreaterThan(normal.amount)
+  })
+})
+
+describe('resolveDamageAmount — estágios de atributo (golpes de status)', () => {
+  // fox: espécie de teste estável; rng fixo (sem crítico, fator aleatório médio)
+  const species = getSpecies('charmander')
+  const rng = () => 0.99
+  const dano = (stages = {}) =>
+    resolveDamageAmount({
+      attackerSpecies: species,
+      attackerIndividualValues: null,
+      defenderSpecies: species,
+      defenderIndividualValues: null,
+      damage: { power: 40, category: 'physical' },
+      rng,
+      ...stages,
+    }).amount
+
+  it('sem estágios, o dano é o de sempre', () => {
+    expect(dano({ attackerStages: undefined, defenderStages: undefined })).toBe(
+      dano({
+        attackerStages: { attack: 0, defense: 0, sp_atk: 0, sp_def: 0 },
+        defenderStages: { attack: 0, defense: 0, sp_atk: 0, sp_def: 0 },
+      }),
+    )
+  })
+
+  it('o ataque do ATACANTE baixado (-1) causa menos dano', () => {
+    const normal = dano()
+    const baixado = dano({ attackerStages: { attack: -1 } })
+
+    expect(baixado).toBeLessThan(normal)
+  })
+
+  it('ataque em -6 (×1/4) causa bem menos dano que em -1 (×2/3)', () => {
+    expect(dano({ attackerStages: { attack: -6 } })).toBeLessThan(
+      dano({ attackerStages: { attack: -1 } }),
+    )
+  })
+
+  it('a DEFESA do alvo baixada (-1) faz o alvo levar mais dano; elevada (+1), menos', () => {
+    const normal = dano()
+    expect(dano({ defenderStages: { defense: -1 } })).toBeGreaterThan(normal)
+    expect(dano({ defenderStages: { defense: 1 } })).toBeLessThan(normal)
+  })
+
+  it('golpe FÍSICO ignora os estágios especiais, e o ESPECIAL ignora os físicos', () => {
+    const physical = (stages) => dano(stages)
+    expect(physical({ attackerStages: { sp_atk: -6 } })).toBe(physical())
+    expect(physical({ defenderStages: { sp_def: -6 } })).toBe(physical())
+
+    const special = (stages) =>
+      resolveDamageAmount({
+        attackerSpecies: species,
+        attackerIndividualValues: null,
+        defenderSpecies: species,
+        defenderIndividualValues: null,
+        damage: { power: 40, category: 'special' },
+        rng,
+        ...stages,
+      }).amount
+    expect(special({ attackerStages: { attack: -6 } })).toBe(special())
+    expect(special({ attackerStages: { sp_atk: -1 } })).toBeLessThan(special())
+  })
+
+  it('o dano de um tick de canal também lê os estágios', () => {
+    const tick = (stages) =>
+      resolveChannelTickDamage({
+        attackerSpecies: species,
+        attackerIndividualValues: null,
+        defenderSpecies: species,
+        defenderIndividualValues: null,
+        damage: { power: 40, category: 'physical' },
+        weight: 0.5,
+        rng,
+        ...stages,
+      }).amount
+    expect(tick({ attackerStages: { attack: -2 } })).toBeLessThan(tick())
   })
 })

@@ -2,7 +2,7 @@
 
 import { useQueryFirst, useTrait } from 'koota/react'
 import { getSpecies } from '@/core/data/species'
-import { resolveCreatureAttack } from '@/core/data/attacks'
+import { resolveCreatureAttack } from '@/core/battle/creatureAttack'
 import {
   AttackCooldowns,
   InputControlled,
@@ -18,7 +18,7 @@ const SKILL_SLOTS = [
 
 /**
  * HUD real (não-debug, ver docs/backlog.md — "HUD real (não-debug)") das
- * SKILLS da criatura controlada (Q/E/R — `attacks.secondary1-3`, ver
+ * SKILLS da criatura controlada (Q/E/R — `skills[1-3]`, ver
  * docs/features/025-ataque-comum-de-criatura.md, "9ª rodada") — pedido do
  * usuário: "preciso da hud das habilidades bem como algum efeito que
  * mostre o tempo de recarga no slot da habilidade". Mesmo princípio de
@@ -52,7 +52,7 @@ export function SkillsHud() {
   const slots = SKILL_SLOTS.map(({ key, label }) => ({
     key,
     label,
-    attack: resolveCreatureAttack(species?.attacks?.[key]),
+    attack: resolveCreatureAttack(species, key),
   }))
 
   if (slots.length === 0) return null

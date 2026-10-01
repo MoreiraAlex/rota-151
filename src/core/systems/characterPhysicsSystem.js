@@ -1,4 +1,5 @@
 import { GAME_CONFIG } from '../gameConfig'
+import { isHitStunned } from '../actions/hitStun'
 import {
   Velocity,
   Rotation,
@@ -135,6 +136,8 @@ export function characterPhysicsSystem(context) {
         input.jump &&
         wasGrounded &&
         entity.has(InputControlled) &&
+        // atordoada (golpe interrompido) não faz nada, nem pular
+        !isHitStunned(entity) &&
         vitals.stamina >= vitals.jumpStaminaCost
       ) {
         vel.y = stats.jumpSpeed

@@ -11,21 +11,23 @@ import { resolveAttackEffectComponent } from './attackEffects/registry'
  * sozinha quando `attackEffectSystem` destrói a entidade ao `lifetime`
  * zerar. Este componente é só o WRAPPER (registro de ref + posição) — o
  * visual de verdade é escolhido por `effectGroup` (congelado no spawn,
- * `attack.visual.effectGroup` — ver `core/data/attacks/`) via
+ * `attack.visual.effectGroup` — ver `core/data/skills/`) via
  * `resolveAttackEffectComponent` (`attackEffects/registry.js`): "muitas
  * criaturas vão compartilhar o ataque básico de arranhar, outras vão ser
  * específicas como um chicote" (pedido do usuário) — cada grupo é um
  * componente próprio, sem inchar este arquivo por golpe novo.
  *
  * `revealDuration` (de `attack.visual.revealDuration`) só é usado por
- * componentes que suportam revelação progressiva (`ScratchAttackEffect.jsx`
+ * componentes que suportam revelação progressiva (`tackleAttackEffect.jsx`
  * hoje) — repassado pra todos igual, componentes que não usam (ex.:
- * `PunchAttackEffect.jsx`) simplesmente ignoram o prop. `visualScale` (de
+ * `PunchAttackEffect.jsx`) simplesmente ignoram o prop. `impactType` (tipo do golpe) idem — só `ImpactAttackEffect.jsx`. `length` (distância da
+ * origem do golpe até onde o efeito nasce) idem — só os grupos que SAEM da
+ * criatura (`EmberAttackEffect.jsx`) usam. `visualScale` (de
  * `attack.visual.scale`) é o multiplicador de TAMANHO do VFX — pedido do
  * usuário: "uma criatura grande vai ter o efeito maior do que o de uma
  * criatura pequena, mesmo os 2 usando o mesmo efeito" — cada componente
  * usa isso junto de `radius` e da própria constante de normalização do
- * rip (ver `ScratchAttackEffect.jsx`/`PunchAttackEffect.jsx`).
+ * rip (ver `tackleAttackEffect.jsx`/`PunchAttackEffect.jsx`).
  */
 export function AttackEffectView({
   entity,
@@ -33,6 +35,8 @@ export function AttackEffectView({
   effectGroup,
   revealDuration,
   visualScale,
+  length,
+  impactType,
 }) {
   const groupRef = useRef()
 
@@ -49,6 +53,8 @@ export function AttackEffectView({
         radius={radius}
         revealDuration={revealDuration}
         scale={visualScale}
+        length={length}
+        impactType={impactType}
       />
     </group>
   )
@@ -74,6 +80,8 @@ export function AttackEffectsView() {
             effectGroup={effect.effectGroup}
             revealDuration={effect.revealDuration}
             visualScale={effect.visualScale}
+            length={effect.length}
+            impactType={effect.impactType}
           />
         )
       })}

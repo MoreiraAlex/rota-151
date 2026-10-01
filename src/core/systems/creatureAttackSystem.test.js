@@ -1,11 +1,17 @@
 import { describe, it, expect, afterEach } from 'vitest'
 import { createWorld } from 'koota'
 import { getPlayerSpecies, getSpecies } from '@/core/data/species'
-import { resolveCreatureAttack } from '@/core/data/attacks'
+import { resolveCreatureAttack } from '@/core/battle/creatureAttack'
+import { resolveSkill } from '@/core/data/skills'
+import { resolveChannelTickDamage } from '@/core/battle/calculateDamage'
 import { computeAimRay } from '@/core/camera/orbitCamera'
 import { disposePhysics } from '@/core/physics/physicsWorld'
 import { createEventQueue, EVENT_TYPES } from '@/core/events'
 import { castRay } from '@/core/physics/raycast'
+import {
+  createCharacterBody,
+  verticalClearance,
+} from '@/core/physics/colliders'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import {
   calculateAttackDurationFactor,
@@ -24,6 +30,7 @@ import {
   AttackEffect,
   AttackPulse,
   CombatMode,
+  CryPulse,
   Fainted,
   Mood,
   CharacterController,
@@ -35,6 +42,7 @@ import {
   Position,
   resolveMaxStamina,
   Rotation,
+  StatStages,
   SummonedCreature,
   Vitals,
   vitalsFromSpecies,
@@ -46,18 +54,25 @@ import {
   resolveCastMode,
   resolveAttackImpactPoint,
   resolveAttackTarget,
+  resolveEffectStart,
   resolveEffectRotation,
 } from './creatureAttackSystem'
+
+// Slot (`secondary1-3`) em que o charmander tem a Brasa — achado, não fixo:
+// a ordem das skills da espécie é configuração do usuário e muda.
+const EMBER_SLOT = ['secondary1', 'secondary2', 'secondary3'].find(
+  (slot) =>
+    resolveCreatureAttack(getSpecies('charmander'), slot)?.id === 'ember',
+)
 
 const DELTA = 1 / 60
 // Espécie estável de teste (mesma usada por `test/makeWorld.js`) — o
 // ataque é exclusivo de `kind: 'pokemon'` (o treinador não ataca direto,
 // ver docs/backlog.md), então lido daqui, não de `getPlayerSpecies()`.
-// `fox` referencia `'scratch'` sem override (ver core/data/species/fox/
-// index.js) — `ATTACK` aqui é a definição JÁ RESOLVIDA
-// (`resolveCreatureAttack`, core/data/attacks/index.js), não mais um
-// bloco inline em `actions.attack`.
-const ATTACK = resolveCreatureAttack(getSpecies('fox').attacks.primary)
+// `ATTACK` é o ataque básico próprio da `fox` (`basicAttack`, ver
+// core/data/species/fox/basicAttack.js), resolvido pelo mesmo caminho do
+// system (`resolveCreatureAttack(species, 'primary')`).
+const ATTACK = resolveCreatureAttack(getSpecies('fox'), 'primary')
 const FOX_BODY = getSpecies('fox').body
 
 const spawnedWorlds = []
@@ -198,7 +213,7 @@ describe('creatureAttackSystem', () => {
     expect(creature.get(ActionState).current).toBe(null)
   })
 
-  it('espécie desconhecida (sem attacks.primary pra resolver) não ataca, sem quebrar', () => {
+  it('espécie desconhecida (sem basicAttack pra resolver) não ataca, sem quebrar', () => {
     const world = spawnWorld()
     const creature = world.spawn(
       Position({ x: 0, y: 1, z: 0 }),
@@ -242,12 +257,208 @@ describe('creatureAttackSystem', () => {
     expect(effect.get(AttackEffect).lifetime).toBeCloseTo(
       ATTACK.visual.effectVisualDuration,
     )
+    // distância da origem do golpe até onde o VFX nasce (o fim da trajetória)
+    expect(effect.get(AttackEffect).length).toBeCloseTo(ATTACK.range)
   })
 
-  it('override por criatura (ex.: charmander, range sobrescrito pra 1 em vez do 1.4 base de scratch) é respeitado de ponta a ponta', () => {
+  it('visual.positionOffset do ataque só desloca a PARTIDA: o efeito continua nascendo no impacto do range, reorientado e com o length medido da nova partida', () => {
+    const { visual } = getSpecies('fox').basicAttack
+    const original = visual.positionOffset
+    // yaw 0 (sem câmera: +Z), nível: x → +X, y → +Y, z → +Z (golpe adentro)
+    visual.positionOffset = { x: 0.5, y: 0.25, z: 0.2 }
+    try {
+      const world = spawnWorld()
+      spawnControlledCreature(world, { position: { x: 2, y: 1, z: 3 } })
+
+      tick(world, { primary: true })
+      const effect = advanceUntilEffectSpawns(world)
+
+      // o impacto NÃO se mexe: continua em origem + range
+      const pos = effect.get(Position)
+      expect(pos.x).toBeCloseTo(2)
+      expect(pos.y).toBeCloseTo(1)
+      expect(pos.z).toBeCloseTo(3 + ATTACK.range)
+
+      // a partida andou (2.5, 1.25, 3.2): o golpe agora vai dela até o impacto
+      const dx = -0.5
+      const dy = -0.25
+      const dz = ATTACK.range - 0.2
+      const length = Math.hypot(dx, dy, dz)
+      expect(effect.get(AttackEffect).length).toBeCloseTo(length)
+      const esperada = resolveEffectRotation(
+        { x: dx / length, y: dy / length, z: dz / length },
+        null,
+      )
+      expect(effect.get(Rotation).x).toBeCloseTo(esperada.x)
+      expect(effect.get(Rotation).y).toBeCloseTo(esperada.y)
+    } finally {
+      visual.positionOffset = original
+    }
+  })
+
+  it('impactType do AttackEffect: visual.impactType, senão damage.type, senão vazio', () => {
+    const { visual, damage } = getSpecies('fox').basicAttack
+    const originalVisual = visual.impactType
+    const originalType = damage.type
+    const spawnType = () => {
+      const world = spawnWorld()
+      spawnControlledCreature(world, { position: { x: 2, y: 1, z: 3 } })
+      tick(world, { primary: true })
+      return advanceUntilEffectSpawns(world).get(AttackEffect).impactType
+    }
+    try {
+      expect(spawnType()).toBe('')
+
+      damage.type = 'water'
+      expect(spawnType()).toBe('water')
+
+      visual.impactType = 'fire'
+      expect(spawnType()).toBe('fire')
+    } finally {
+      visual.impactType = originalVisual
+      damage.type = originalType
+    }
+  })
+
+  describe('direcionar durante o aviso (antes do effectAt)', () => {
+    const START = { x: 0, y: 1, z: 0 }
+    const PITCH = 0.3
+
+    // Direção horizontal que a câmera resolve pra um yaw — a mesma conta do
+    // sistema (`computeAimRay`, sem assistência: Brasa é habilidade).
+    function cameraDirection(yaw) {
+      const species = getSpecies('charmander')
+      const { direction } = computeAimRay(
+        START,
+        { yaw, pitch: PITCH, distance: 10 },
+        -1,
+        species.camera.targetHeight,
+        species.camera.shoulderOffset,
+      )
+      const length = Math.hypot(direction.x, direction.z)
+      return { x: direction.x / length, z: direction.z / length }
+    }
+
+    function setup() {
+      const world = spawnWorld()
+      const creature = spawnControlledCreature(world, {
+        speciesId: 'charmander',
+        position: START,
+      })
+      const camera = world.spawn(
+        OrbitCamera({ yaw: 0, pitch: PITCH, distance: 10 }),
+      )
+      // premissa: Brasa (slot 2) é habilidade à distância
+      expect(
+        resolveCreatureAttack(getSpecies('charmander'), EMBER_SLOT)?.id,
+      ).toBe('ember')
+      return { world, creature, camera }
+    }
+
+    function runUntilEffect(world, limit = 240) {
+      for (let i = 0; i < limit; i++) {
+        tick(world, {})
+        const [effect] = world.query(AttackEffect)
+        if (effect) return effect
+      }
+      throw new Error('AttackEffect nunca nasceu')
+    }
+
+    it('girar a câmera durante a carga reaponta a direção e o corpo; o golpe sai pra onde ela olha NO instante do golpe', () => {
+      const { world, creature, camera } = setup()
+
+      tick(world, { [EMBER_SLOT]: true })
+      const launch = cameraDirection(0)
+      expect(creature.get(ActionState).dirX).toBeCloseTo(launch.x)
+      expect(creature.get(ActionState).dirZ).toBeCloseTo(launch.z)
+
+      // vira a câmera enquanto o aviso carrega
+      camera.set(OrbitCamera, { yaw: Math.PI / 2 })
+      tick(world, {})
+      const turned = cameraDirection(Math.PI / 2)
+      expect(turned.x).not.toBeCloseTo(launch.x) // premissa: girou de verdade
+      expect(creature.get(ActionState).dirX).toBeCloseTo(turned.x)
+      expect(creature.get(ActionState).dirZ).toBeCloseTo(turned.z)
+      expect(creature.get(Rotation).y).toBeCloseTo(
+        Math.atan2(turned.x, turned.z),
+      )
+
+      // o golpe sai na direção que a câmera tinha no instante do efeito
+      const ember = resolveCreatureAttack(getSpecies('charmander'), EMBER_SLOT)
+      const effect = runUntilEffect(world)
+      const pos = effect.get(Position)
+      expect(pos.x).toBeCloseTo(START.x + turned.x * ember.range)
+      expect(pos.z).toBeCloseTo(START.z + turned.z * ember.range)
+    })
+
+    it('depois do effectAt a direção TRAVA: girar a câmera não mexe mais no golpe', () => {
+      const { world, creature, camera } = setup()
+
+      tick(world, { [EMBER_SLOT]: true })
+      camera.set(OrbitCamera, { yaw: Math.PI / 2 })
+      runUntilEffect(world)
+      const locked = { ...creature.get(ActionState) }
+
+      camera.set(OrbitCamera, { yaw: Math.PI })
+      tick(world, {})
+
+      expect(creature.get(ActionState).dirX).toBeCloseTo(locked.dirX)
+      expect(creature.get(ActionState).dirZ).toBeCloseTo(locked.dirZ)
+    })
+
+    it('ATTACK_WINDUP_STEERING desligado: a direção trava no disparo, como antes', () => {
+      const original = GAME_CONFIG.BATTLE.ATTACK_WINDUP_STEERING
+      GAME_CONFIG.BATTLE.ATTACK_WINDUP_STEERING = false
+      try {
+        const { world, creature, camera } = setup()
+
+        tick(world, { [EMBER_SLOT]: true })
+        const launch = cameraDirection(0)
+        camera.set(OrbitCamera, { yaw: Math.PI / 2 })
+        tick(world, {})
+
+        expect(creature.get(ActionState).dirX).toBeCloseTo(launch.x)
+        expect(creature.get(ActionState).dirZ).toBeCloseTo(launch.z)
+      } finally {
+        GAME_CONFIG.BATTLE.ATTACK_WINDUP_STEERING = original
+      }
+    })
+
+    it('só a criatura CONTROLADA é direcionada (quem perdeu o controle mira uma vez, no disparo)', () => {
+      const { world, creature, camera } = setup()
+
+      tick(world, { [EMBER_SLOT]: true })
+      const launch = cameraDirection(0)
+      creature.remove(InputControlled)
+      camera.set(OrbitCamera, { yaw: Math.PI / 2 })
+      tick(world, {})
+
+      expect(creature.get(ActionState).dirX).toBeCloseTo(launch.x)
+      expect(creature.get(ActionState).dirZ).toBeCloseTo(launch.z)
+    })
+
+    it('o ataque BÁSICO continua com a assistência enquanto carrega (puxa pro alvo, não só segue a câmera)', () => {
+      const world = spawnWorld()
+      const creature = spawnControlledCreature(world, { speciesId: 'fox' })
+      // alvo 40° pro lado, ao alcance: sem câmera a base é +Z
+      const side = (40 * Math.PI) / 180
+      spawnWildCreature(world, {
+        speciesId: 'charmander',
+        position: { x: Math.sin(side) * 1.2, y: 1, z: Math.cos(side) * 1.2 },
+      })
+
+      tick(world, { primary: true })
+      tick(world, {})
+
+      expect(creature.get(ActionState).dirX).toBeGreaterThan(0.3)
+    })
+  })
+
+  it('básico próprio de cada espécie (charmander, range 1 ≠ 1.4 da fox) é respeitado de ponta a ponta', () => {
     const world = spawnWorld()
     const charmanderAttack = resolveCreatureAttack(
-      getSpecies('charmander').attacks.primary,
+      getSpecies('charmander'),
+      'primary',
     )
     expect(charmanderAttack.range).toBe(1) // confere a premissa do teste
     expect(charmanderAttack.range).not.toBe(ATTACK.range) // diferente da base
@@ -260,7 +471,7 @@ describe('creatureAttackSystem', () => {
     const effect = advanceUntilEffectSpawns(world)
 
     // Sem câmera, direção cai no fallback (0,0,1) — z reflete o RANGE
-    // sobrescrito (1), não o 1.4 da definição base de 'scratch'.
+    // sobrescrito (1), não o 1.4 da definição base de 'tackle'.
     expect(effect.get(Position).z).toBeCloseTo(1)
   })
 
@@ -273,13 +484,31 @@ describe('creatureAttackSystem', () => {
 
     advanceUntilEffectSpawns(world)
     expect(creature.has(AttackPulse)).toBe(true)
+    expect(creature.get(AttackPulse).slot).toBe('primary')
   })
 
-  it('corpo a corpo sem alvo (charmander/scratch): segue o giro horizontal da câmera, mas sai reto — não inclina pro chão com a câmera olhando de cima', () => {
+  it('o AttackPulse carrega o SLOT do ataque que disparou (habilidade, não só o básico) — cada slot tem o seu som', () => {
+    const world = spawnWorld()
+    const creature = spawnControlledCreature(world, { speciesId: 'charmander' })
+    // premissa: o charmander tem uma habilidade de fogo no slot 2 (Brasa)
+    expect(
+      resolveCreatureAttack(getSpecies('charmander'), EMBER_SLOT)?.id,
+    ).toBe('ember')
+
+    tick(world, { [EMBER_SLOT]: true })
+    // `advanceUntilEffectSpawns` mede o tempo pelo básico da fox (0.5 s); o
+    // `effectAt` do Brasa do charmander é maior, então espera até 2 s.
+    for (let i = 0; i < 120 && !creature.has(AttackPulse); i++) tick(world, {})
+
+    expect(creature.has(AttackPulse)).toBe(true)
+    expect(creature.get(AttackPulse).slot).toBe(EMBER_SLOT)
+  })
+
+  it('corpo a corpo sem alvo (charmander/tackle): segue o giro horizontal da câmera, mas sai reto — não inclina pro chão com a câmera olhando de cima', () => {
     const world = spawnWorld()
     const startPos = { x: 0, y: 1, z: 0 }
     const species = getSpecies('charmander')
-    const scratch = resolveCreatureAttack(species.attacks.primary)
+    const tackle = resolveCreatureAttack(species, 'primary')
     const creature = spawnControlledCreature(world, {
       speciesId: 'charmander',
       position: startPos,
@@ -287,7 +516,7 @@ describe('creatureAttackSystem', () => {
     creature.set(Rotation, { y: 2 }) // deve ser sobrescrito pra encarar a câmera
     const orbit = { yaw: Math.PI / 4, pitch: 0.3, distance: 10 }
     world.spawn(OrbitCamera(orbit))
-    expect(scratch.aim).toBe('melee') // premissa do teste
+    expect(tackle.aim).toBe('melee') // premissa do teste
 
     tick(world, { primary: true })
 
@@ -309,9 +538,9 @@ describe('creatureAttackSystem', () => {
 
     const effect = advanceUntilEffectSpawns(world)
     const pos = effect.get(Position)
-    expect(pos.x).toBeCloseTo((direction.x / horizontalLength) * scratch.range)
+    expect(pos.x).toBeCloseTo((direction.x / horizontalLength) * tackle.range)
     expect(pos.y).toBeCloseTo(startPos.y)
-    expect(pos.z).toBeCloseTo((direction.z / horizontalLength) * scratch.range)
+    expect(pos.z).toBeCloseTo((direction.z / horizontalLength) * tackle.range)
     expect(effect.get(Rotation).y).toBeCloseTo(creature.get(Rotation).y)
     expect(effect.get(Rotation).x).toBeCloseTo(0)
   })
@@ -325,9 +554,7 @@ describe('creatureAttackSystem', () => {
     })
     const orbit = { yaw: Math.PI / 4, pitch: 0.3, distance: 10 }
     world.spawn(OrbitCamera(orbit))
-    const ember = resolveCreatureAttack(
-      getSpecies('charmander').attacks.secondary1,
-    )
+    const ember = resolveCreatureAttack(getSpecies('charmander'), 'secondary1')
     expect(ember.aim).toBe('ranged') // premissa do teste
 
     tick(world, { secondary1: true })
@@ -410,12 +637,73 @@ describe('creatureAttackSystem', () => {
     expect(rotation.z).toBe(0)
   })
 
-  it('overrides.duration da espécie é a BASE — o speed só escala em volta dela (e a animação acompanha)', () => {
+  it('positionOffset (visual.positionOffset, metros) desloca o PONTO DE PARTIDA no referencial do golpe (resolveEffectStart)', () => {
+    const ponto = { x: 2, y: 1, z: 3 }
+
+    // sem offset: o próprio ponto, sem copiar nada
+    expect(resolveEffectStart(ponto, { x: 0, y: 0, z: 1 }, null)).toBe(ponto)
+    expect(
+      resolveEffectStart(ponto, { x: 0, y: 0, z: 1 }, { x: 0, y: 0, z: 0 }),
+    ).toBe(ponto)
+
+    // yaw 0, nível: os eixos do efeito são os do mundo
+    const nivel = resolveEffectStart(
+      ponto,
+      { x: 0, y: 0, z: 1 },
+      { x: 1, y: 2, z: 3 },
+    )
+    expect(nivel.x).toBeCloseTo(3)
+    expect(nivel.y).toBeCloseTo(3)
+    expect(nivel.z).toBeCloseTo(6)
+  })
+
+  it('positionOffset acompanha a direção do golpe: +Z do offset é "golpe adentro", seja qual for o yaw', () => {
+    // golpe pra +X (yaw = 90°): "pra frente" vira +X, "pro lado" vira -Z
+    const frente = resolveEffectStart(
+      { x: 0, y: 0, z: 0 },
+      { x: 1, y: 0, z: 0 },
+      { x: 0, y: 0, z: 1 },
+    )
+    expect(frente.x).toBeCloseTo(1)
+    expect(frente.z).toBeCloseTo(0)
+
+    const lado = resolveEffectStart(
+      { x: 0, y: 0, z: 0 },
+      { x: 1, y: 0, z: 0 },
+      { x: 1, y: 0, z: 0 },
+    )
+    expect(lado.x).toBeCloseTo(0)
+    expect(lado.z).toBeCloseTo(-1)
+  })
+
+  it('positionOffset em golpe inclinado: +Z do offset segue a trajetória (pitch) e +Y não vira "frente"', () => {
+    const subindo = { x: 0, y: Math.SQRT1_2, z: Math.SQRT1_2 }
+    const frente = resolveEffectStart({ x: 0, y: 0, z: 0 }, subindo, {
+      x: 0,
+      y: 0,
+      z: 1,
+    })
+    expect(frente.x).toBeCloseTo(0)
+    expect(frente.y).toBeCloseTo(Math.SQRT1_2)
+    expect(frente.z).toBeCloseTo(Math.SQRT1_2)
+
+    // os eixos são ortonormais: o tamanho do deslocamento se preserva
+    const qualquer = resolveEffectStart(
+      { x: 0, y: 0, z: 0 },
+      { x: 0.6, y: 0.3, z: 0.74 },
+      { x: 0.4, y: 0.5, z: 0.7 },
+    )
+    expect(Math.hypot(qualquer.x, qualquer.y, qualquer.z)).toBeCloseTo(
+      Math.hypot(0.4, 0.5, 0.7),
+    )
+  })
+
+  it('duration do básico da espécie é a BASE — o speed só escala em volta dela (e a animação acompanha)', () => {
     // Regressão: antes o `speed` gerava a duração inteira (0.05–0.5s) e
-    // sobrescrevia o override em silêncio — o clipe de ataque continuava
-    // rápido mesmo com `duration` maior. Agora o override é a base.
+    // sobrescrevia a duração autorada em silêncio — o clipe de ataque
+    // continuava rápido mesmo com `duration` maior.
     const squirtle = getSpecies('squirtle')
-    const { duration } = squirtle.attacks.primary.overrides
+    const { duration } = squirtle.basicAttack
     const { REFERENCE, MIN_FACTOR, MAX_FACTOR } =
       GAME_CONFIG.BATTLE.ATTACK_SPEED
     const speed = calculateStat({
@@ -453,23 +741,26 @@ describe('creatureAttackSystem', () => {
     expect(attackSpeedWith(31)).toBeGreaterThan(attackSpeedWith(0))
   })
 
-  it('overrides.animationFrames chega no ActionState no disparo e volta a null no fim', () => {
+  it('animationFrames e animationKey do ataque chegam no ActionState no disparo e voltam a null no fim', () => {
     const world = spawnWorld()
     const creature = spawnControlledCreature(world, { speciesId: 'squirtle' })
     const species = getSpecies('squirtle')
-    const original = species.attacks.primary
-    species.attacks.primary = {
+    const original = species.basicAttack
+    species.basicAttack = {
       ...original,
-      overrides: { ...original.overrides, animationFrames: 40 },
+      animationFrames: 40,
+      animation: { clipKey: 'attackRanged' },
     }
     try {
       tick(world, { primary: true })
       expect(creature.get(ActionState).animationFrames).toBe(40)
+      expect(creature.get(ActionState).animationKey).toBe('attackRanged')
 
       advanceUntilFree(world, creature)
       expect(creature.get(ActionState).animationFrames).toBeNull()
+      expect(creature.get(ActionState).animationKey).toBeNull()
     } finally {
-      species.attacks.primary = original
+      species.basicAttack = original
     }
   })
 
@@ -508,13 +799,37 @@ describe('creatureAttackSystem', () => {
     expect(creature.get(ActionState).elapsed).toBeCloseTo(0.1)
   })
 
-  it('disparo trava AttackCooldowns.primary em ATTACK.cooldown (hoje 0 no ataque comum — no-op, só stamina trava de verdade)', () => {
-    const world = spawnWorld()
-    const creature = spawnControlledCreature(world)
+  it('cooldown só começa a contar no FIM da ação, não no disparo', () => {
+    // Regressão: a contagem começava no disparo — uma skill com `duration`
+    // >= `cooldown` (ember do charmander) saía da ação já pronta de novo.
+    const fox = getSpecies('fox')
+    const original = fox.basicAttack
+    fox.basicAttack = { ...original, cooldown: 1 }
+    try {
+      const world = spawnWorld()
+      const creature = spawnControlledCreature(world)
 
-    tick(world, { primary: true })
+      tick(world, { primary: true })
+      expect(creature.get(ActionState).current).toBe('attack')
+      expect(creature.get(AttackCooldowns).primary).toBe(0) // ainda não
 
-    expect(creature.get(AttackCooldowns).primary).toBe(ATTACK.cooldown)
+      advanceUntilFree(world, creature)
+      // Fim da ação: cooldown inteiro (menos, no máximo, o tick de agora).
+      expect(creature.get(AttackCooldowns).primary).toBeGreaterThan(
+        1 - 2 * DELTA,
+      )
+
+      // Travado até zerar...
+      tick(world, { primary: true })
+      expect(creature.get(ActionState).current).toBe(null)
+
+      // ...e liberado depois.
+      for (let t = 0; t < 1 + DELTA; t += DELTA) tick(world, {})
+      tick(world, { primary: true })
+      expect(creature.get(ActionState).current).toBe('attack')
+    } finally {
+      fox.basicAttack = original
+    }
   })
 
   it('AttackCooldowns.primary > 0 impede o disparo do mouse mesmo com stamina cheia', () => {
@@ -558,7 +873,8 @@ describe('creatureAttackSystem', () => {
       individualValues,
     })
     const vineWhip = resolveCreatureAttack(
-      getSpecies('bulbasaur').attacks.secondary1,
+      getSpecies('bulbasaur'),
+      'secondary1',
     )
     const maxStamina = resolveMaxStamina(
       getSpecies('bulbasaur'),
@@ -630,6 +946,24 @@ describe('resolveAttackImpactPoint — trajetória 2.5D acompanhando o terreno',
 
     expect(point.y).toBeCloseTo(2)
     expect(point.z).toBeCloseTo(3)
+  })
+
+  it('corpo de criatura no caminho para a trajetória — exceto com terrainOnly (canal)', async () => {
+    await initTestTerrain()
+    createCharacterBody(
+      { x: 0, y: 0.45, z: 1.5 },
+      { radius: 0.3, halfHeight: 0.15, axis: 'y' },
+    )
+    settleTerrain()
+
+    const origin = { x: 0, y: 0.45, z: 0 }
+    const blocked = resolveAttackImpactPoint(origin, FORWARD, 4, -1)
+    const through = resolveAttackImpactPoint(origin, FORWARD, 4, -1, {
+      terrainOnly: true,
+    })
+
+    expect(blocked.z).toBeLessThan(1.5) // bateu no corpo
+    expect(through.z).toBeCloseTo(4) // canal passa por ele
   })
 
   it('chão plano sem obstáculo: anda o range inteiro na mesma altura', async () => {
@@ -912,6 +1246,34 @@ describe('creatureAttackSystem — dano de verdade', () => {
     )
   })
 
+  it('VFX nasce no ponto de CONTATO quando acerta, e no fim da trajetória quando erra', () => {
+    const world = spawnWorld()
+    spawnBulbasaurAttacker(world)
+    const range = getSpecies('bulbasaur').basicAttack.range
+    spawnWildCreature(world, {
+      speciesId: 'charmander',
+      position: { x: 0, y: 1, z: range / 2 },
+    })
+
+    events.drain()
+    tick(world, { primary: true })
+    const hitEffect = advanceUntilEffectSpawns(world)
+    const [hit] = events
+      .drain()
+      .filter((event) => event.type === EVENT_TYPES.ATTACK_RESOLVED)
+    // Nasce no contato que o próprio evento reporta (no meio do caminho),
+    // não no fim do alcance.
+    expect(hit.result).toBe('hit')
+    expect(hitEffect.get(Position).z).toBeCloseTo(hit.contactPoint.z)
+    expect(hitEffect.get(Position).z).toBeLessThan(range - 0.1)
+
+    const empty = spawnWorld()
+    spawnBulbasaurAttacker(empty)
+    tick(empty, { primary: true })
+    const missEffect = advanceUntilEffectSpawns(empty)
+    expect(missEffect.get(Position).z).toBeCloseTo(range)
+  })
+
   it('WildCreature fora da trajetória não recebe dano', () => {
     const world = spawnWorld()
     spawnBulbasaurAttacker(world)
@@ -962,7 +1324,7 @@ describe('creatureAttackSystem — dano de verdade', () => {
     expect(event.result).toBe('hit')
     expect(event.attacker).toBe(attacker)
     expect(event.target).toBe(target)
-    expect(event.attackId).toBe('vine-whip')
+    expect(event.attackId).toBe('bulbasaur-basic') // básico próprio da espécie
     expect(event.slot).toBe('primary')
     expect(event.contactPoint).not.toBeNull()
     expect(event.damage).toBeCloseTo(hpBefore - target.get(Vitals).hp)
@@ -985,33 +1347,36 @@ describe('creatureAttackSystem — dano de verdade', () => {
     expect(event.damage).toBe(0)
   })
 
-  it('resolveCreatureAttack com damage=null (ataque sem poder configurado) preserva o restante da definição — o system trata isso como no-op gracioso (`if (ATTACK.damage)`)', () => {
+  it('resolveSkill com damage=null (ataque sem poder configurado) preserva o restante da definição — o system trata isso como no-op gracioso (`if (ATTACK.damage)`)', () => {
     // Cobre a decisão de design sem precisar mutar o registro real de
-    // espécies/ataques (`core/data/attacks/`) nem montar um world inteiro
+    // espécies/ataques (`core/data/skills/`) nem montar um world inteiro
     // pra exercitar um guard de uma linha: qualquer ataque referenciado
     // com `overrides: { damage: null }` continua resolvendo normalmente
     // (VFX/som), só `ATTACK.damage` fica `null` — exatamente a condição
     // que o system usa pra pular a busca de alvo.
-    const withoutDamage = resolveCreatureAttack({
+    const withoutDamage = resolveSkill({
       id: 'vine-whip',
       overrides: { damage: null },
     })
 
     expect(withoutDamage.damage).toBeNull()
-    expect(withoutDamage.range).toBe(resolveCreatureAttack('vine-whip').range)
+    expect(withoutDamage.range).toBe(resolveSkill('vine-whip').range)
   })
 })
 
 describe('creatureAttackSystem — indicador antes de lançar (castMode)', () => {
-  // bulbasaur: primary = vine-whip, secondary1 = razor-leaf — os dois com
+  // bulbasaur: básico próprio e secondary1 = razor-leaf — os dois com
   // `castMode: 'confirm'` na definição real (premissa conferida abaixo).
   function real(world, input) {
     tick(world, input, REAL_CAST_MODE)
   }
 
   it('premissa: os ataques usados aqui estão configurados como confirm', () => {
-    expect(resolveCreatureAttack('vine-whip').castMode).toBe('confirm')
-    expect(resolveCreatureAttack('razor-leaf').castMode).toBe('confirm')
+    const bulbasaur = getSpecies('bulbasaur')
+    expect(resolveCreatureAttack(bulbasaur, 'primary').castMode).toBe('confirm')
+    expect(resolveCreatureAttack(bulbasaur, 'secondary1').castMode).toBe(
+      'confirm',
+    )
   })
 
   it('1º clique só abre o indicador (sem golpe, sem gastar stamina); 2º clique lança', () => {
@@ -1049,8 +1414,10 @@ describe('creatureAttackSystem — indicador antes de lançar (castMode)', () =>
     const world = spawnWorld()
     const creature = spawnControlledCreature(world, { speciesId: 'bulbasaur' })
 
-    real(world, { secondary1: true })
-    real(world, { secondary1: true })
+    // apertar a tecla = aperto + tecla segurada no mesmo tick (como o
+    // `keyboardInput.js` manda)
+    real(world, { secondary1: true, secondary1Held: true })
+    real(world, { secondary1: true, secondary1Held: true })
 
     expect(creature.get(ActionState).pendingSlot).toBe('secondary1')
   })
@@ -1290,5 +1657,903 @@ describe('resolveAttackTarget — lado do jogador (golpe de selvagem)', () => {
     const hit = resolveAttackTarget(world, ORIGIN, IMPACT, 0.3, 0, 'player')
 
     expect(hit.entity).toBe(mine)
+  })
+})
+
+describe('creatureAttackSystem — ataque canalizado (damageMode channel)', () => {
+  // Básico da fox trocado por um canalizado só dentro do teste: dano a cada
+  // 0.25s de 0.25 até 1s (4 ticks), cone de 3m com meia-largura 1.5 na
+  // ponta, cooldown 1s. Sem câmera, a direção é +Z a partir de (0,1,0).
+  const CHANNEL = {
+    damageMode: 'channel',
+    damageInterval: 0.25,
+    duration: 1,
+    effectAt: 0.25,
+    range: 3,
+    radius: 1.5,
+    cooldown: 1,
+  }
+
+  function withChannelBasic(run) {
+    const fox = getSpecies('fox')
+    const original = fox.basicAttack
+    fox.basicAttack = { ...original, ...CHANNEL }
+    try {
+      run()
+    } finally {
+      fox.basicAttack = original
+    }
+  }
+
+  function hitsOn(target) {
+    return events
+      .drain()
+      .filter(
+        (event) =>
+          event.type === EVENT_TYPES.ATTACK_RESOLVED &&
+          event.target === target &&
+          event.result === 'hit',
+      ).length
+  }
+
+  it('segurando até o fim: dano em TODOS os alvos do cone, a cada intervalo', () => {
+    withChannelBasic(() => {
+      const world = spawnWorld()
+      spawnControlledCreature(world, { position: { x: 0, y: 1, z: 0 } })
+      const near = spawnWildCreature(world, { position: { x: 0, y: 1, z: 1 } })
+      const wide = spawnWildCreature(world, {
+        position: { x: 1, y: 1, z: 2.5 },
+      })
+      const outside = spawnWildCreature(world, {
+        position: { x: 3, y: 1, z: 1 },
+      })
+      const hpBefore = {
+        near: near.get(Vitals).hp,
+        wide: wide.get(Vitals).hp,
+        outside: outside.get(Vitals).hp,
+      }
+
+      tick(world, { primary: true, primaryHeld: true })
+      const hits = { near: 0, wide: 0, outside: 0 }
+      for (let t = 0; t < 1.1; t += DELTA) {
+        tick(world, { primaryHeld: true })
+        const resolved = events.drain()
+        for (const [key, entity] of Object.entries({ near, wide, outside })) {
+          hits[key] += resolved.filter(
+            (event) =>
+              event.type === EVENT_TYPES.ATTACK_RESOLVED &&
+              event.target === entity,
+          ).length
+        }
+      }
+
+      expect(hits.near).toBe(4)
+      expect(hits.wide).toBe(4)
+      expect(hits.outside).toBe(0)
+      expect(near.get(Vitals).hp).toBeLessThan(hpBefore.near)
+      expect(wide.get(Vitals).hp).toBeLessThan(hpBefore.wide)
+      expect(outside.get(Vitals).hp).toBe(hpBefore.outside)
+    })
+  })
+
+  function damageEventsOn(world, target) {
+    const collected = []
+    tick(world, { primary: true, primaryHeld: true })
+    for (let t = 0; t < 1.1; t += DELTA) {
+      tick(world, { primaryHeld: true })
+      collected.push(
+        ...events
+          .drain()
+          .filter(
+            (event) =>
+              event.type === EVENT_TYPES.ATTACK_RESOLVED &&
+              event.target === target,
+          ),
+      )
+    }
+    return collected
+  }
+
+  function channelBudget(target) {
+    // Orçamento do alvo = o dano de UM golpe (fator aleatório médio, sem
+    // crítico) — `weight: 1` e crítico desligado pelo chamador.
+    return resolveChannelTickDamage({
+      attackerSpecies: getSpecies('fox'),
+      attackerIndividualValues: {},
+      defenderSpecies: getSpecies('charmander'),
+      defenderIndividualValues: target.get(IndividualValues),
+      damage: getSpecies('fox').basicAttack.damage,
+      weight: 1,
+      rng: () => 0.99,
+    }).amount
+  }
+
+  function withCriticalChance(chance, run) {
+    const original = GAME_CONFIG.BATTLE.CRITICAL_HIT_CHANCE
+    GAME_CONFIG.BATTLE.CRITICAL_HIT_CHANCE = chance
+    try {
+      run()
+    } finally {
+      GAME_CONFIG.BATTLE.CRITICAL_HIT_CHANCE = original
+    }
+  }
+
+  it('o canal inteiro vale o dano de UM golpe, repartido em ticks diferentes entre si', () => {
+    withCriticalChance(0, () => {
+      withChannelBasic(() => {
+        const world = spawnWorld()
+        spawnControlledCreature(world, { position: { x: 0, y: 1, z: 0 } })
+        const target = spawnWildCreature(world, {
+          position: { x: 0, y: 1, z: 1 },
+        })
+
+        const hits = damageEventsOn(world, target)
+        const total = hits.reduce((sum, event) => sum + event.damage, 0)
+
+        expect(hits).toHaveLength(4)
+        expect(total).toBeCloseTo(channelBudget(target), 6)
+        expect(
+          new Set(hits.map((e) => e.damage.toFixed(6))).size,
+        ).toBeGreaterThan(1)
+        expect(hits.every((e) => !e.critical)).toBe(true)
+      })
+    })
+  })
+
+  it('crítico é por tick e vale o dobro da fração daquele tick (bônus)', () => {
+    withCriticalChance(1, () => {
+      withChannelBasic(() => {
+        const world = spawnWorld()
+        spawnControlledCreature(world, { position: { x: 0, y: 1, z: 0 } })
+        const target = spawnWildCreature(world, {
+          position: { x: 0, y: 1, z: 1 },
+        })
+        const budget = withCriticalChanceZero(() => channelBudget(target))
+
+        const hits = damageEventsOn(world, target)
+        const total = hits.reduce((sum, event) => sum + event.damage, 0)
+
+        expect(hits.every((e) => e.critical)).toBe(true)
+        expect(total).toBeCloseTo(2 * budget, 6)
+      })
+    })
+  })
+
+  it('soltar o botão cancela na hora: sem mais dano, ação livre e cooldown começa', () => {
+    withChannelBasic(() => {
+      const world = spawnWorld()
+      const creature = spawnControlledCreature(world, {
+        position: { x: 0, y: 1, z: 0 },
+      })
+      const target = spawnWildCreature(world, {
+        position: { x: 0, y: 1, z: 1 },
+      })
+
+      tick(world, { primary: true, primaryHeld: true })
+      // Segura até o 1º tick de dano (0.25s) e um pouco mais.
+      for (let t = 0; t < 0.3; t += DELTA) tick(world, { primaryHeld: true })
+      expect(hitsOn(target)).toBe(1)
+
+      tick(world, {}) // soltou
+      expect(creature.get(ActionState).current).toBe(null)
+      expect(creature.get(AttackCooldowns).primary).toBeGreaterThan(
+        CHANNEL.cooldown - 2 * DELTA,
+      )
+
+      for (let t = 0; t < 1; t += DELTA) tick(world, {})
+      expect(hitsOn(target)).toBe(0) // nada depois de cancelar
+    })
+  })
+
+  it('ataque normal (sem channel) não cancela ao soltar', () => {
+    const world = spawnWorld()
+    const creature = spawnControlledCreature(world)
+
+    tick(world, { primary: true })
+    tick(world, {}) // sem segurar nada
+
+    expect(creature.get(ActionState).current).toBe('attack')
+  })
+})
+
+function withCriticalChanceZero(run) {
+  const original = GAME_CONFIG.BATTLE.CRITICAL_HIT_CHANCE
+  GAME_CONFIG.BATTLE.CRITICAL_HIT_CHANCE = 0
+  try {
+    return run()
+  } finally {
+    GAME_CONFIG.BATTLE.CRITICAL_HIT_CHANCE = original
+  }
+}
+
+// O estágio e a duração do efeito vêm da própria skill (o usuário os ajusta).
+const GROWL_EFFECT = resolveSkill('growl').effects[0]
+const GROWL_STAGES = GROWL_EFFECT.stages
+const GROWL_DURATION = GROWL_EFFECT.duration
+
+describe('Growl — a primeira skill de STATUS (sem dano, baixa o ataque dos inimigos no cone)', () => {
+  // Growl no slot 1 do charmander só nestes testes (a espécie real tem o
+  // tackle ali) — restaura no fim.
+  function withGrowl(run) {
+    const charmander = getSpecies('charmander')
+    const original = charmander.skills[1]
+    charmander.skills[1] = 'growl'
+    try {
+      run()
+    } finally {
+      charmander.skills[1] = original
+    }
+  }
+
+  function setup(positions = {}) {
+    const world = spawnWorld()
+    const creature = spawnControlledCreature(world, { speciesId: 'charmander' })
+    const wild = (position) =>
+      spawnWildCreature(world, { speciesId: 'charmander', position })
+    const targets = Object.fromEntries(
+      Object.entries(positions).map(([name, position]) => [
+        name,
+        wild(position),
+      ]),
+    )
+    return { world, creature, targets }
+  }
+
+  // Dispara o Growl e avança até o `effectAt` (o pulso do grito marca o instante).
+  function castGrowl(world, creature) {
+    tick(world, { secondary1: true })
+    for (let i = 0; i < 240 && !creature.has(CryPulse); i++) tick(world, {})
+    expect(creature.has(CryPulse)).toBe(true)
+  }
+
+  const IN_CONE = { x: 0, y: 1, z: 1.5 }
+  const IN_CONE_2 = { x: 0.3, y: 1, z: 2.2 }
+  const SIDE = { x: 4, y: 1, z: 1.5 }
+  const BEHIND = { x: 0, y: 1, z: -1.5 }
+  const TOO_FAR = { x: 0, y: 1, z: 6 }
+
+  it('a skill é de STATUS: sem dano, com um efeito de estágio e forma de cone', () => {
+    const growl = resolveSkill('growl')
+
+    expect(growl.damage).toBeNull()
+    expect(growl.area).toBe('cone')
+    expect(growl.effects).toHaveLength(1)
+    expect(growl.effects[0]).toMatchObject({
+      type: 'statStage',
+      stat: 'attack',
+    })
+    expect(growl.effects[0].stages).toBeLessThan(0)
+    expect(growl.effects[0].duration).toBeGreaterThan(0)
+    expect(growl.visual.effectGroup).toBe('growl')
+    expect(growl.audio.cry).toBe(true)
+  })
+
+  it('baixa o ataque de TODOS os inimigos dentro do cone (o estágio e a duração da skill) e só deles', () => {
+    withGrowl(() => {
+      const { world, creature, targets } = setup({
+        a: IN_CONE,
+        b: IN_CONE_2,
+        side: SIDE,
+        behind: BEHIND,
+        far: TOO_FAR,
+      })
+
+      castGrowl(world, creature)
+
+      for (const name of ['a', 'b']) {
+        expect(targets[name].get(StatStages).attackStage).toBe(GROWL_STAGES)
+        expect(targets[name].get(StatStages).attackTime).toBeCloseTo(
+          GROWL_DURATION,
+          0,
+        )
+      }
+      for (const name of ['side', 'behind', 'far']) {
+        expect(targets[name].has(StatStages), name).toBe(false)
+      }
+    })
+  })
+
+  it('não causa dano nenhum', () => {
+    withGrowl(() => {
+      const { world, creature, targets } = setup({ a: IN_CONE })
+      const before = targets.a.get(Vitals).hp
+
+      castGrowl(world, creature)
+
+      expect(targets.a.get(Vitals).hp).toBe(before)
+    })
+  })
+
+  describe('precisão (sorteio de acerto)', () => {
+    // `accuracy: 0` no override: o sorteio SEMPRE erra — determinístico sem
+    // mexer no `gameplayRng`.
+    function withInaccurateGrowl(run) {
+      const charmander = getSpecies('charmander')
+      const original = charmander.skills[1]
+      charmander.skills[1] = { id: 'growl', overrides: { accuracy: 0 } }
+      try {
+        run()
+      } finally {
+        charmander.skills[1] = original
+      }
+    }
+
+    it('golpe de status que erra não aplica o efeito e emite um attackResolved `missed` por alvo', () => {
+      withInaccurateGrowl(() => {
+        const { world, creature, targets } = setup({ a: IN_CONE, b: IN_CONE_2 })
+
+        castGrowl(world, creature)
+        const emitted = events.drain()
+
+        expect(targets.a.has(StatStages)).toBe(false)
+        expect(targets.b.has(StatStages)).toBe(false)
+        expect(
+          emitted.filter((e) => e.type === EVENT_TYPES.STAT_STAGE_CHANGED),
+        ).toHaveLength(0)
+        const resolved = emitted.filter(
+          (e) => e.type === EVENT_TYPES.ATTACK_RESOLVED,
+        )
+        expect(resolved).toHaveLength(2)
+        for (const event of resolved) {
+          expect(event.missed).toBe(true)
+          expect(event.result).toBe('miss')
+          expect(event.target).toBeTruthy()
+        }
+      })
+    })
+
+    it('com a precisão do atacante no mínimo, um golpe de 100% às vezes erra (e às vezes acerta)', () => {
+      withGrowl(() => {
+        const { world, creature, targets } = setup({ a: IN_CONE })
+        creature.add(StatStages({ accuracyStage: -6, accuracyTime: 999 }))
+
+        let hits = 0
+        let misses = 0
+        for (let i = 0; i < 40; i++) {
+          // o recarregar do golpe: cada tentativa numa ação nova
+          targets.a.remove(StatStages)
+          castGrowl(world, creature)
+          for (const event of events.drain()) {
+            if (event.type !== EVENT_TYPES.ATTACK_RESOLVED) continue
+            if (event.missed) misses += 1
+            else hits += 1
+          }
+          advanceUntilFree(world, creature)
+          creature.remove(CryPulse)
+          creature.set(AttackCooldowns, { secondary1: 0 })
+        }
+
+        expect(hits).toBeGreaterThan(0)
+        expect(misses).toBeGreaterThan(0)
+      })
+    })
+
+    it('golpe com precisão normal (100%, estágio 0) nunca erra', () => {
+      withGrowl(() => {
+        const { world, creature } = setup({ a: IN_CONE })
+
+        castGrowl(world, creature)
+
+        const [resolved] = events
+          .drain()
+          .filter((e) => e.type === EVENT_TYPES.ATTACK_RESOLVED)
+        expect(resolved.missed).toBe(false)
+        expect(resolved.result).toBe('hit')
+      })
+    })
+  })
+
+  it('emite um statStageChanged por alvo e um attackResolved de STATUS (damage 0) por alvo', () => {
+    withGrowl(() => {
+      const { world, creature, targets } = setup({
+        a: IN_CONE,
+        b: IN_CONE_2,
+        far: TOO_FAR,
+      })
+
+      castGrowl(world, creature)
+      const emitted = events.drain()
+
+      const changed = emitted.filter(
+        (e) => e.type === EVENT_TYPES.STAT_STAGE_CHANGED,
+      )
+      expect(changed).toHaveLength(2)
+      expect(changed.map((e) => e.target)).toEqual(
+        expect.arrayContaining([targets.a, targets.b]),
+      )
+      expect(changed[0]).toMatchObject({
+        attacker: creature,
+        attackId: 'growl',
+        stat: 'attack',
+        delta: GROWL_STAGES,
+        stage: GROWL_STAGES,
+      })
+
+      const resolved = emitted.filter(
+        (e) => e.type === EVENT_TYPES.ATTACK_RESOLVED,
+      )
+      expect(resolved).toHaveLength(2)
+      for (const event of resolved) {
+        expect(event).toMatchObject({
+          result: 'hit',
+          status: true,
+          damage: 0,
+          critical: false,
+          attackId: 'growl',
+        })
+      }
+    })
+  })
+
+  it('o golpe normal não marca status: attackResolved comum tem status false', () => {
+    const world = spawnWorld()
+    spawnControlledCreature(world)
+    spawnWildCreature(world, { position: { x: 0, y: 1, z: 1 } })
+
+    tick(world, { primary: true })
+    advanceUntilEffectSpawns(world)
+
+    const [event] = events
+      .drain()
+      .filter((e) => e.type === EVENT_TYPES.ATTACK_RESOLVED)
+    expect(event.status).toBe(false)
+  })
+
+  it('nasce UM AttackEffect do grupo "growl" (as ondas), do tamanho do alcance', () => {
+    withGrowl(() => {
+      const { world, creature } = setup({ a: IN_CONE })
+
+      castGrowl(world, creature)
+
+      const effects = world.query(AttackEffect)
+      expect(effects).toHaveLength(1)
+      const effect = effects[0].get(AttackEffect)
+      expect(effect.effectGroup).toBe('growl')
+      expect(effect.length).toBeGreaterThan(0)
+    })
+  })
+
+  it('a criatura VOCALIZA no instante do golpe (CryPulse) — o som é o grito dela', () => {
+    withGrowl(() => {
+      const { world, creature } = setup({ a: IN_CONE })
+      tick(world, { secondary1: true })
+      expect(creature.has(CryPulse)).toBe(false) // ainda antes do `effectAt`
+
+      for (let i = 0; i < 240 && !creature.has(CryPulse); i++) tick(world, {})
+
+      expect(creature.has(CryPulse)).toBe(true)
+    })
+  })
+
+  it('o alvo desmaiado (ou sem HP) no cone não é afetado', () => {
+    withGrowl(() => {
+      const { world, creature, targets } = setup({ fainted: IN_CONE })
+      targets.fainted.add(Fainted)
+
+      castGrowl(world, creature)
+
+      expect(targets.fainted.has(StatStages)).toBe(false)
+    })
+  })
+
+  it('lançar de novo ACUMULA: o 2º Growl soma o estágio e renova o tempo', () => {
+    withGrowl(() => {
+      const { world, creature, targets } = setup({ a: IN_CONE })
+      castGrowl(world, creature)
+      advanceUntilFree(world, creature)
+      creature.remove(CryPulse)
+      // passa o cooldown (5 s) e um pouco do tempo do efeito
+      for (let i = 0; i < 400; i++) tick(world, {})
+      targets.a.set(StatStages, { attackTime: 3 })
+
+      castGrowl(world, creature)
+
+      expect(targets.a.get(StatStages).attackStage).toBe(GROWL_STAGES * 2)
+      expect(targets.a.get(StatStages).attackTime).toBeCloseTo(
+        GROWL_DURATION,
+        0,
+      )
+    })
+  })
+
+  it('o estágio realmente reduz o dano que o alvo causa (ligado à fórmula)', () => {
+    withGrowl(() => {
+      const { world, creature, targets } = setup({ a: IN_CONE })
+      const species = getSpecies('charmander')
+      const hit = (attackerStages) =>
+        resolveChannelTickDamage({
+          attackerSpecies: species,
+          attackerIndividualValues: null,
+          defenderSpecies: species,
+          defenderIndividualValues: null,
+          damage: { power: 40, category: 'physical' },
+          attackerStages,
+          weight: 1,
+          rng: () => 0.99,
+        }).amount
+
+      castGrowl(world, creature)
+      const stages = {
+        attack: targets.a.get(StatStages).attackStage,
+        defense: 0,
+        sp_atk: 0,
+        sp_def: 0,
+      }
+
+      expect(hit(stages)).toBeLessThan(hit({ attack: 0 }))
+    })
+  })
+
+  it('pelo CAMINHO COMPLETO do sistema: quem está com o ataque em -6 causa bem menos dano (golpe de poder alto, pro efeito passar do sorteio)', () => {
+    // Poder 5 (o dos básicos hoje) esconde o efeito na fórmula (o `+2` fixo
+    // domina) — aqui um golpe forte deixa o estágio aparecer. Média de várias
+    // tentativas pra absorver o fator aleatório e o crítico.
+    const fox = getSpecies('fox')
+    const original = fox.basicAttack.damage
+    fox.basicAttack.damage = { ...original, power: 100 }
+    try {
+      const averageLoss = (attackStage) => {
+        let total = 0
+        const trials = 12
+        for (let i = 0; i < trials; i++) {
+          // mundo próprio, destruído a cada tentativa (o koota limita 16)
+          const world = createWorld()
+          const attacker = spawnControlledCreature(world)
+          if (attackStage !== 0) {
+            attacker.add(StatStages({ attackStage, attackTime: 60 }))
+          }
+          const target = spawnWildCreature(world, {
+            position: { x: 0, y: 1, z: 1 },
+          })
+          const before = target.get(Vitals).hp
+
+          tick(world, { primary: true })
+          advanceUntilEffectSpawns(world)
+
+          total += before - target.get(Vitals).hp
+          world.destroy()
+        }
+        return total / trials
+      }
+
+      const normal = averageLoss(0)
+      const lowered = averageLoss(-6)
+
+      expect(normal).toBeGreaterThan(0)
+      expect(lowered).toBeLessThan(normal * 0.6)
+    } finally {
+      fox.basicAttack.damage = original
+    }
+  })
+})
+
+// Ticks até o `effectAt` do Growth (com folga) — sai da skill, que o usuário
+// balanceia à vontade.
+function ticksUntilGrowthEffect() {
+  return Math.ceil(resolveSkill('growth').effectAt / DELTA) + 10
+}
+
+// Q segurado — golpe em si mesmo exige o botão durante a carga.
+const HOLD_Q = { secondary1Held: true }
+
+describe('Growth — skill de status em SI MESMO (sobe Ataque e Ataque Especial de quem usa)', () => {
+  // Growth no slot 1 do charmander só nestes testes — restaura no fim.
+  function withGrowth(run) {
+    const charmander = getSpecies('charmander')
+    const original = charmander.skills[1]
+    charmander.skills[1] = 'growth'
+    try {
+      run()
+    } finally {
+      charmander.skills[1] = original
+    }
+  }
+
+  // Inimigo bem na frente: o Growth não pode encostar nele.
+  function setup() {
+    const world = spawnWorld()
+    const creature = spawnControlledCreature(world, { speciesId: 'charmander' })
+    const enemy = spawnWildCreature(world, {
+      speciesId: 'charmander',
+      position: { x: 0, y: 1, z: 1 },
+    })
+    return { world, creature, enemy }
+  }
+
+  // Dispara e avança até o `effectAt` (o pulso do som marca o instante; o de
+  // um disparo anterior sai antes — nos testes ninguém o consome).
+  function castGrowth(world, creature) {
+    creature.remove(AttackPulse)
+    tick(world, { secondary1: true })
+    for (
+      let i = 0;
+      i < ticksUntilGrowthEffect() && !creature.has(AttackPulse);
+      i++
+    ) {
+      tick(world, HOLD_Q)
+    }
+    expect(creature.has(AttackPulse)).toBe(true)
+  }
+
+  it('a skill: sem dano, area self, +1 em attack e sp_atk', () => {
+    const growth = resolveSkill('growth')
+
+    expect(growth.damage).toBeNull()
+    expect(growth.area).toBe('self')
+    expect(growth.effects).toEqual([
+      expect.objectContaining({ type: 'statStage', stat: 'attack', stages: 1 }),
+      expect.objectContaining({ type: 'statStage', stat: 'sp_atk', stages: 1 }),
+    ])
+    expect(growth.visual.effectGroup).toBe('statup')
+  })
+
+  it('sobe o Ataque e o Ataque Especial de QUEM USOU, pela duração da skill; o inimigo à frente não muda', () => {
+    withGrowth(() => {
+      const { world, creature, enemy } = setup()
+      const [effect] = resolveSkill('growth').effects
+
+      castGrowth(world, creature)
+
+      const stages = creature.get(StatStages)
+      expect(stages.attackStage).toBe(1)
+      expect(stages.sp_atkStage).toBe(1)
+      expect(stages.attackTime).toBeCloseTo(effect.duration, 0)
+      expect(enemy.has(StatStages)).toBe(false)
+    })
+  })
+
+  it('usar de novo acumula (+2) e não passa de +6', () => {
+    withGrowth(() => {
+      const { world, creature } = setup()
+
+      castGrowth(world, creature)
+      advanceUntilFree(world, creature)
+      creature.set(AttackCooldowns, { secondary1: 0 })
+      castGrowth(world, creature)
+      expect(creature.get(StatStages).attackStage).toBe(2)
+
+      creature.set(StatStages, { attackStage: 6, sp_atkStage: 6 })
+      advanceUntilFree(world, creature)
+      creature.set(AttackCooldowns, { secondary1: 0 })
+      creature.set(Vitals, { stamina: 100 })
+      events.drain()
+      castGrowth(world, creature)
+      expect(creature.get(StatStages).attackStage).toBe(6)
+      // já no limite: nada mudou, nenhum evento
+      expect(
+        events.drain().filter((e) => e.type === EVENT_TYPES.STAT_STAGE_CHANGED),
+      ).toHaveLength(0)
+    })
+  })
+
+  it('emite um statStageChanged por atributo, com attacker = target = quem usou, e NENHUM attackResolved', () => {
+    withGrowth(() => {
+      const { world, creature } = setup()
+
+      castGrowth(world, creature)
+      const emitted = events.drain()
+
+      const changed = emitted.filter(
+        (e) => e.type === EVENT_TYPES.STAT_STAGE_CHANGED,
+      )
+      expect(changed.map((e) => e.stat)).toEqual(['attack', 'sp_atk'])
+      for (const event of changed) {
+        expect(event).toMatchObject({
+          attacker: creature,
+          target: creature,
+          attackId: 'growth',
+          delta: 1,
+          stage: 1,
+        })
+      }
+      // sem alvo: ninguém se provoca nem defende
+      expect(
+        emitted.filter((e) => e.type === EVENT_TYPES.ATTACK_RESOLVED),
+      ).toHaveLength(0)
+    })
+  })
+
+  it('não erra, nem com a precisão no mínimo (golpe em si mesmo não sorteia)', () => {
+    withGrowth(() => {
+      const { world, creature } = setup()
+      creature.add(StatStages({ accuracyStage: -6, accuracyTime: 60 }))
+
+      castGrowth(world, creature)
+
+      expect(creature.get(StatStages).attackStage).toBe(1)
+    })
+  })
+
+  it('não gira a criatura: nem pra câmera no disparo, nem durante a ação', () => {
+    withGrowth(() => {
+      const { world, creature } = setup()
+      creature.set(Rotation, { y: 1.2 })
+      // câmera apontando pra outro lado
+      const camera = world.spawn(
+        OrbitCamera({ yaw: -2, pitch: 0.3, distance: 10 }),
+      )
+
+      tick(world, { secondary1: true })
+      expect(creature.get(ActionState).current).toBe('attack')
+      expect(creature.get(Rotation).y).toBeCloseTo(1.2)
+
+      camera.set(OrbitCamera, { yaw: 2 })
+      for (
+        let i = 0;
+        i < ticksUntilGrowthEffect() * 2 &&
+        creature.get(ActionState).current !== null;
+        i++
+      ) {
+        tick(world, HOLD_Q)
+      }
+      expect(creature.get(ActionState).current).toBeNull()
+      expect(creature.get(Rotation).y).toBeCloseTo(1.2)
+    })
+  })
+
+  it('exige o botão SEGURADO na carga: soltar antes do efeito cancela (sem efeito, cooldown começa, stamina não volta)', () => {
+    withGrowth(() => {
+      const { world, creature } = setup()
+      const growth = resolveSkill('growth')
+      const staminaBefore = creature.get(Vitals).stamina
+
+      tick(world, { secondary1: true })
+      tick(world, HOLD_Q)
+      expect(creature.get(ActionState).current).toBe('attack')
+
+      tick(world, {}) // soltou o Q
+      expect(creature.get(ActionState).current).toBeNull()
+      expect(creature.get(AttackCooldowns).secondary1).toBeGreaterThan(
+        growth.cooldown - 0.1,
+      )
+      expect(creature.get(Vitals).stamina).toBeLessThan(staminaBefore)
+
+      for (let i = 0; i < ticksUntilGrowthEffect(); i++) tick(world, {})
+      expect(creature.has(StatStages)).toBe(false)
+      // cancelar soltando não é interrupção: sem "Interrompido!"
+      expect(
+        events.drain().filter((e) => e.type === EVENT_TYPES.ATTACK_INTERRUPTED),
+      ).toHaveLength(0)
+    })
+  })
+
+  it('depois do efeito, soltar o botão não cancela: o resto da animação segue', () => {
+    withGrowth(() => {
+      const { world, creature } = setup()
+
+      castGrowth(world, creature)
+      expect(creature.get(StatStages).attackStage).toBe(1)
+
+      tick(world, {}) // soltou o Q depois do efeito
+      expect(creature.get(ActionState).current).toBe('attack')
+    })
+  })
+
+  it('o AttackEffect "statup" nasce nos PÉS de quem usou, não à frente', () => {
+    withGrowth(() => {
+      const { world, creature } = setup()
+      const pos = { ...creature.get(Position) }
+      const clearance = verticalClearance(creature.get(CharacterController))
+
+      castGrowth(world, creature)
+
+      const effects = world.query(AttackEffect)
+      expect(effects).toHaveLength(1)
+      expect(effects[0].get(AttackEffect).effectGroup).toBe('statup')
+      const at = effects[0].get(Position)
+      expect(at.x).toBeCloseTo(pos.x)
+      expect(at.z).toBeCloseTo(pos.z)
+      expect(at.y).toBeCloseTo(pos.y - clearance)
+    })
+  })
+})
+
+describe('interrupção de golpe de STATUS por dano (só na carga)', () => {
+  function withGrowth(run) {
+    const charmander = getSpecies('charmander')
+    const original = charmander.skills[1]
+    charmander.skills[1] = 'growth'
+    try {
+      run()
+    } finally {
+      charmander.skills[1] = original
+    }
+  }
+
+  // Selvagem pronta pra atacar, como o `wildCreatureSpawnSystem` cria.
+  function spawnWildAttacker(world, position) {
+    return world.spawn(
+      Position(position),
+      Rotation,
+      ActionState,
+      AttackCooldowns,
+      Mood,
+      CharacterController(getSpecies('charmander').body),
+      PhysicsBody,
+      vitalsFromSpecies(getSpecies('charmander')),
+      WildCreature({ speciesId: 'charmander' }),
+      IndividualValues,
+    )
+  }
+
+  function setup() {
+    const world = spawnWorld()
+    const mine = spawnControlledCreature(world, {
+      speciesId: 'charmander',
+      position: { x: 0.9, y: 1, z: 0 },
+    })
+    const wild = spawnWildAttacker(world, { x: 0, y: 1, z: 0 })
+    return { world, mine, wild }
+  }
+
+  // Avança até a selvagem acertar (o hp da minha cai) — devolve os eventos.
+  function runUntilHit(world, mine) {
+    const hpBefore = mine.get(Vitals).hp
+    const emitted = []
+    for (let i = 0; i < 120 && mine.get(Vitals).hp >= hpBefore; i++) {
+      tick(world, HOLD_Q)
+      emitted.push(...events.drain())
+    }
+    expect(mine.get(Vitals).hp).toBeLessThan(hpBefore)
+    return emitted
+  }
+
+  it('levar dano durante a carga corta o Growth: sem efeito, cooldown começa, stamina não volta, sai "attackInterrupted"', () => {
+    withGrowth(() => {
+      const { world, mine, wild } = setup()
+      const growth = resolveSkill('growth')
+      const staminaBefore = mine.get(Vitals).stamina
+
+      tick(world, { secondary1: true })
+      wild.add(WantsToAttack({ target: mine }))
+      const emitted = runUntilHit(world, mine)
+
+      // premissa: o golpe da selvagem chega antes do effectAt do Growth.
+      // A ação vira o atordoamento (animação de hit, sem poder fazer nada).
+      expect(mine.get(ActionState).current).toBe('hit')
+      expect(mine.has(StatStages)).toBe(false)
+      expect(mine.get(AttackCooldowns).secondary1).toBeGreaterThan(
+        growth.cooldown - 0.1,
+      )
+      expect(mine.get(Vitals).stamina).toBeLessThan(staminaBefore)
+
+      const interrupted = emitted.filter(
+        (e) => e.type === EVENT_TYPES.ATTACK_INTERRUPTED,
+      )
+      expect(interrupted).toHaveLength(1)
+      expect(interrupted[0]).toMatchObject({
+        entity: mine,
+        attackId: 'growth',
+        slot: 'secondary1',
+      })
+
+      // e não volta: o resto da ação não aplica nada
+      for (let i = 0; i < 90; i++) tick(world)
+      expect(mine.has(StatStages)).toBe(false)
+    })
+  })
+
+  it('depois do effectAt, levar dano não interrompe: o efeito já foi aplicado e a ação segue', () => {
+    withGrowth(() => {
+      const { world, mine, wild } = setup()
+
+      tick(world, { secondary1: true })
+      for (
+        let i = 0;
+        i < ticksUntilGrowthEffect() && !mine.has(StatStages);
+        i++
+      ) {
+        tick(world, HOLD_Q)
+      }
+      expect(mine.get(StatStages).attackStage).toBe(1)
+
+      wild.add(WantsToAttack({ target: mine }))
+      const emitted = runUntilHit(world, mine)
+
+      expect(
+        emitted.filter((e) => e.type === EVENT_TYPES.ATTACK_INTERRUPTED),
+      ).toHaveLength(0)
+      expect(mine.get(StatStages).attackStage).toBe(1)
+    })
   })
 })

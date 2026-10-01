@@ -1,14 +1,27 @@
 import { resolveAttackDirection } from '../battle/attackAim'
 import { getPlayerSpecies, getSpecies } from '../data/species'
-import { resolveCreatureAttack } from '../data/attacks'
+import { resolveCreatureAttack } from '../battle/creatureAttack'
 import {
   calculateAttackDurationFactor,
   calculateStat,
 } from '../data/species/stats'
 import { castRay } from '../physics/raycast'
-import { resolveDamageAmount } from '../battle/calculateDamage'
+import { verticalClearance } from '../physics/colliders'
+import {
+  resolveChannelTickDamage,
+  resolveDamageAmount,
+} from '../battle/calculateDamage'
+import {
+  countChannelTicks,
+  isChannelAttack,
+  isConeAttack,
+  isSelfAttack,
+  resolveChannelTickCount,
+  rollChannelWeights,
+} from '../battle/channelAttack'
 import {
   closestPointsOnGroundPlane,
+  isInsideAttackCone,
   isWithinCombatHeight,
   resolveAttackOrigin,
   resolveCapsuleSegment,
@@ -17,16 +30,22 @@ import {
   resolveGroundY,
 } from '../battle/attackGeometry'
 import { GAME_CONFIG } from '../gameConfig'
-import { attackResolved } from '../events'
+import { attackInterrupted, attackResolved, statStageChanged } from '../events'
+import { isInterruptible } from '../battle/attackInterrupt'
+import { isAttackCharging } from '../battle/attackTelegraph'
+import { applyStatStageEffect, readStatStages } from '../battle/statStages'
 import { entrarEmCombate } from '../actions/combat'
+import { iniciarAtordoamento } from '../actions/hitStun'
 import { isActiveCombatant } from '../battle/combatTargets'
 import { gameplayRng } from '../rng'
+import { rollHit } from '../battle/accuracy'
 import {
   ActionState,
   AttackAim,
   AttackCooldowns,
   AttackEffect,
   AttackPulse,
+  CryPulse,
   CharacterController,
   DEFAULT_ATTACK_EFFECT_GROUP,
   Fainted,
@@ -46,30 +65,21 @@ import {
 
 const DEG_TO_RAD = Math.PI / 180
 
-// Fração de `duration` em que o efeito de fato acontece — mesma
-// proporção (0.4) que já era usada quando cada espécie calculava isto
-// à mão em `attacks.primary.overrides.effectAt` (ver docs/features/029-
-// *.md). Só pro ataque BÁSICO (`primary`) — skills (secondary1-3) têm
-// `effectAt` PRÓPRIO na definição do ataque (`core/data/attacks/`), não
-// derivado de `speed`.
-const PRIMARY_EFFECT_AT_RATIO = 0.4
-
 /**
  * `duration`/`effectAt` do ataque BÁSICO (`primary`) escalados pelo
  * status `speed` da PRÓPRIA entidade — pedido original do usuário:
  * "preciso que o status speed influencie na velocidade de ataque básico
  * da criatura".
  *
- * A duração BASE é a autorada: `attacks.primary.overrides.duration` da
- * espécie (já mesclado em `attack` por `resolveCreatureAttack`), ou a do
- * próprio ataque. O `speed` só multiplica por um fator em volta de 1
+ * A BASE é a autorada no ataque básico da própria espécie
+ * (`species.basicAttack`, `core/data/species/<id>/basicAttack.js` —
+ * `duration` e `effectAt`). O `speed` só multiplica por um fator em volta de 1
  * (`calculateAttackDurationFactor`, `GAME_CONFIG.BATTLE.ATTACK_SPEED`) —
  * assim a duração escolhida pra casar com a animação continua valendo, e
  * uma criatura mais rápida só encurta o golpe. (Antes, o `speed` gerava a
  * duração inteira, 0.05–0.5s — curto demais pros clipes embutidos, e por
  * isso o override da espécie passou a ignorá-lo; ver docs/features/032-*.)
- * `effectAt` escala junto: `overrides.effectAt`, ou 40% da duração base.
- * O corte de frames e as fases da animação acompanham sozinhos (são
+ * `effectAt` escala junto. O corte de frames e as fases da animação acompanham sozinhos (são
  * proporcionais à duração).
  *
  * Retorna `null` pra espécie sem `stats.speed.base` (`fox`/`wolf` ainda
@@ -92,18 +102,15 @@ function resolvePrimaryDurationOverride(species, attack, individualValues) {
     maxFactor: MAX_FACTOR,
   })
 
-  const baseEffectAt =
-    species.attacks.primary.overrides?.effectAt ??
-    attack.duration * PRIMARY_EFFECT_AT_RATIO
   return {
     duration: attack.duration * factor,
-    effectAt: baseEffectAt * factor,
+    effectAt: attack.effectAt * factor,
   }
 }
 
 /**
  * Resolve a definição de ataque de verdade pro `slot` desta entidade —
- * `resolveCreatureAttack` (config estática, `core/data/attacks/`) +,
+ * `resolveCreatureAttack` (básico da espécie ou skill do registro) +,
  * só pra `primary`, o `duration`/`effectAt` dinâmico calculado acima.
  * Chamada duas vezes por ataque em andamento (disparo e cada tick de
  * progresso, ver `creatureAttackSystem` abaixo) — sempre com o MESMO
@@ -111,7 +118,7 @@ function resolvePrimaryDurationOverride(species, attack, individualValues) {
  * congelado pra aquela entidade (nunca muda entre as duas chamadas).
  */
 function resolveAttackForEntity(species, slot, individualValues) {
-  const attack = resolveCreatureAttack(species?.attacks?.[slot])
+  const attack = resolveCreatureAttack(species, slot)
   if (!attack) return null
   if (slot !== 'primary') return attack
 
@@ -127,7 +134,7 @@ function resolveAttackForEntity(species, slot, individualValues) {
 // aceito, pra um degrau exatamente no limite ainda ser encontrado.
 const GROUND_PROBE_MARGIN = 0.01
 
-function castSegment(from, to, excludeColliderHandle) {
+function castSegment(from, to, excludeColliderHandle, terrainOnly = false) {
   const delta = { x: to.x - from.x, y: to.y - from.y, z: to.z - from.z }
   const length = Math.hypot(delta.x, delta.y, delta.z)
   if (length < 1e-6) return null
@@ -136,7 +143,7 @@ function castSegment(from, to, excludeColliderHandle) {
     from,
     { x: delta.x / length, y: delta.y / length, z: delta.z / length },
     length,
-    { excludeColliderHandle },
+    { excludeColliderHandle, terrainOnly },
   )
   return hit?.point ?? null
 }
@@ -157,12 +164,17 @@ function castSegment(from, to, excludeColliderHandle) {
  *
  * Sem física carregada ou sem chão sob a origem: segue reto na horizontal,
  * parando no primeiro obstáculo (fallback gracioso, cobre testes headless).
+ *
+ * `terrainOnly`: só a geometria fixa do nível para a trajetória — corpo de
+ * criatura no caminho NÃO. É o caso do ataque canalizado (o leque pega
+ * todo mundo dentro dele, inclusive quem está atrás de outro).
  */
 export function resolveAttackImpactPoint(
   origin,
   direction,
   range,
   excludeColliderHandle,
+  { terrainOnly = false } = {},
 ) {
   const { ATTACK_PATH_SAMPLE_STEP, GROUND_PROBE_DISTANCE } = GAME_CONFIG.BATTLE
   const { MAX_CLIMB_STEP } = GAME_CONFIG.PATHFINDING
@@ -182,7 +194,10 @@ export function resolveAttackImpactPoint(
       y: origin.y,
       z: origin.z + dirZ * range,
     }
-    return castSegment(origin, flatEnd, excludeColliderHandle) ?? flatEnd
+    return (
+      castSegment(origin, flatEnd, excludeColliderHandle, terrainOnly) ??
+      flatEnd
+    )
   }
 
   const heightAboveGround = origin.y - originGround
@@ -215,11 +230,14 @@ export function resolveAttackImpactPoint(
         y: previous.y,
         z: z + dirZ * GROUND_PROBE_MARGIN,
       }
-      return castSegment(previous, flatNext, excludeColliderHandle) ?? previous
+      return (
+        castSegment(previous, flatNext, excludeColliderHandle, terrainOnly) ??
+        previous
+      )
     }
 
     const next = { x, y: ground + heightAboveGround, z }
-    const hit = castSegment(previous, next, excludeColliderHandle)
+    const hit = castSegment(previous, next, excludeColliderHandle, terrainOnly)
     if (hit) return hit
 
     previous = next
@@ -348,11 +366,58 @@ export function resolveAttackTarget(
 }
 
 /**
+ * Todos os alvos dentro do CONE de um ataque canalizado (`damageMode:
+ * 'channel'`) — mesmo leque do indicador (`isInsideAttackCone`), mesmos
+ * filtros do golpe normal (lado certo, com HP, não desmaiado, mesmo plano
+ * de combate 2.5D). Chamado a cada tick de dano do canal.
+ */
+export function resolveConeTargets(
+  world,
+  origin,
+  direction,
+  cone,
+  attackerElevation,
+  targetSide,
+) {
+  const targets = []
+  forEachTargetCandidate(
+    world,
+    targetSide,
+    (entity, pos, rot, controller, vitals) => {
+      if (vitals.hp <= 0 || entity.has(Fainted)) return
+      const elevation = resolveFootElevation(pos, controller)
+      if (!isWithinCombatHeight(attackerElevation, elevation)) return
+      if (
+        !isInsideAttackCone(
+          origin,
+          direction,
+          cone,
+          pos,
+          controller.capsuleRadius,
+        )
+      )
+        return
+
+      targets.push({
+        entity,
+        species: resolveCombatantSpecies(entity),
+        vitals,
+        individualValues: entity.has(IndividualValues)
+          ? entity.get(IndividualValues)
+          : null,
+        contactPoint: { x: pos.x, y: origin.y, z: pos.z },
+      })
+    },
+  )
+  return targets
+}
+
+/**
  * Orientação (Euler, radianos) do VFX do ataque a partir da direção 3D
  * completa do golpe (`direction`, já resolvida por `resolveAimDirection`)
  * mais o ajuste fino em graus da própria definição do ataque
- * (`attack.visual.rotationOffset` — ver `core/data/attacks/`). Pedido
- * explícito do usuário: "o Scratch fica limitado a uma orientação
+ * (`attack.visual.rotationOffset` — ver `core/data/skills/`). Pedido
+ * explícito do usuário: "o tackle fica limitado a uma orientação
  * horizontal [só `Rotation.y`]... quero que a orientação seja
  * configurável, permitindo rotacionar o efeito livremente" — duas partes:
  *
@@ -388,9 +453,55 @@ export function resolveEffectRotation(direction, rotationOffset) {
   }
 }
 
+/**
+ * Ponto de PARTIDA do VFX: a origem do golpe (`origin`) deslocada por
+ * `positionOffset` (metros, `attack.visual.positionOffset`) no referencial
+ * da trajetória — o mesmo que `resolveEffectRotation` desenha: +Z = direção
+ * do golpe, +Y = pra cima, +X = pro lado (esquerda de quem olha na direção
+ * do golpe). Assim `{ y: 0.2 }` sobe a saída do golpe 20 cm, seja qual for
+ * a direção do disparo. Só o VISUAL: o dano e o alcance continuam contados
+ * a partir de `origin`, e o PONTO DE IMPACTO continua sendo o do `range`
+ * — o efeito só se reorienta e se estica do novo ponto de partida até ele
+ * (ver o spawn do `AttackEffect`). Independente do `rotationOffset` (que só
+ * gira a malha): os eixos aqui são só os do yaw/pitch do golpe.
+ *
+ * Os eixos seguem a ordem de rotação que a view usa (`object.rotation.set(x,
+ * y, z)` do Three, ordem XYZ — ver `syncTransformSystem.js`): `R = Rx(pitch)
+ * · Ry(yaw)`. Sem offset (`null`/zeros) devolve `origin` como veio.
+ *
+ * Exportada — mesmo motivo de `resolveEffectRotation` (função pura, testável
+ * sem montar um world).
+ */
+export function resolveEffectStart(origin, direction, positionOffset) {
+  const offset = positionOffset ?? { x: 0, y: 0, z: 0 }
+  const ox = offset.x ?? 0
+  const oy = offset.y ?? 0
+  const oz = offset.z ?? 0
+  if (ox === 0 && oy === 0 && oz === 0) return origin
+
+  const { x: pitch, y: yaw } = resolveEffectRotation(direction, null)
+  const cosYaw = Math.cos(yaw)
+  const sinYaw = Math.sin(yaw)
+  const cosPitch = Math.cos(pitch)
+  const sinPitch = Math.sin(pitch)
+  return {
+    x: origin.x + ox * cosYaw + oz * sinYaw,
+    y:
+      origin.y +
+      ox * sinYaw * sinPitch +
+      oy * cosPitch -
+      oz * cosYaw * sinPitch,
+    z:
+      origin.z -
+      ox * sinYaw * cosPitch +
+      oy * sinPitch +
+      oz * cosYaw * cosPitch,
+  }
+}
+
 // Ordem de prioridade de disparo por tick — botão esquerdo do mouse
 // primeiro, depois Q/E/R na ordem de sempre (mesmos rótulos de
-// `resolveActionSlots`/`species.attacks.<slot>`, ver `core/data/
+// `resolveActionSlots`/`species.basicAttack`/`species.skills[N]`, ver `core/data/
 // actionSlots.js`). Reaproveita o padrão de `SLOTS` em
 // `partySummonSystem.js` (array de `{ input, slot }`, só um processado
 // por tick — segurar duas teclas juntas não empilha, só a primeira da
@@ -425,8 +536,13 @@ function resolveDirectionTo(from, to, rot) {
   const dx = to.x - from.x
   const dz = to.z - from.z
   const length = Math.hypot(dx, dz)
-  if (length < 1e-6) return { x: Math.sin(rot.y), y: 0, z: Math.cos(rot.y) }
+  if (length < 1e-6) return resolveFacingDirection(rot)
   return { x: dx / length, y: 0, z: dz / length }
+}
+
+/** Pra onde o corpo está virado agora (horizontal, unitária). */
+function resolveFacingDirection(rot) {
+  return { x: Math.sin(rot.y), y: 0, z: Math.cos(rot.y) }
 }
 
 /**
@@ -439,8 +555,7 @@ function tryStartAttack(castContext, slot, direction = null) {
   const attack = resolveCastableAttack(castContext, slot)
   if (!attack) return false
 
-  const { world, species, action, vitals, cooldowns, pos, rot, physicsBody } =
-    castContext
+  const { world, species, action, vitals, pos, rot, physicsBody } = castContext
   action.current = 'attack'
   action.pendingSlot = slot
   action.elapsed = 0
@@ -450,26 +565,39 @@ function tryStartAttack(castContext, slot, direction = null) {
   action.animationSpeed = attack.duration > 0 ? 1 / attack.duration : 1
   // Corte do clipe embutido (`overrides.animationFrames`) — ver `ActionState`.
   action.animationFrames = attack.animationFrames ?? null
+  // Qual animação este ataque toca (`animation.clipKey`) — ver `ActionState`.
+  action.animationKey = attack.animation?.clipKey ?? null
+  // Canalizado: o dano total é repartido em frações sorteadas AGORA, uma
+  // por tick (`resolveChannelTickDamage`) — ver `ActionState.channelWeights`.
+  action.channelWeights = isChannelAttack(attack)
+    ? rollChannelWeights(resolveChannelTickCount(attack), gameplayRng)
+    : null
+  action.channelTick = 0
   vitals.stamina -= attack.staminaCost
   vitals.staminaRegenDelay = vitals.staminaRegenDelayAfterUse
-  cooldowns[slot] = attack.cooldown
+  // Cooldown NÃO começa aqui — só quando a ação terminar (passo 4).
 
   // Horizontal, com assistência no corpo a corpo — ver
-  // `resolveAttackDirection` (`core/battle/attackAim.js`).
-  const aim =
-    direction ??
-    resolveAttackDirection(
-      world,
-      pos,
-      physicsBody.colliderHandle,
-      species,
-      attack,
-    )
+  // `resolveAttackDirection` (`core/battle/attackAim.js`). Golpe em SI
+  // MESMO (Growth) não mira: fica a direção pra onde o corpo já está virado.
+  const self = isSelfAttack(attack)
+  const aim = self
+    ? resolveFacingDirection(rot)
+    : (direction ??
+      resolveAttackDirection(
+        world,
+        pos,
+        physicsBody.colliderHandle,
+        species,
+        attack,
+        slot,
+      ))
   action.dirX = aim.x
   action.dirY = aim.y
   action.dirZ = aim.z
-  // O corpo encara a direção do golpe (só gira em Y).
-  rot.y = Math.atan2(aim.x, aim.z)
+  // O corpo encara a direção do golpe (só gira em Y) — menos no golpe em si
+  // mesmo, que mantém a rotação travada até o fim da ação.
+  if (!self) rot.y = Math.atan2(aim.x, aim.z)
 
   // Todo ataque lançado põe (ou mantém) a criatura em modo combate.
   entrarEmCombate(castContext.entity)
@@ -516,15 +644,308 @@ function handleAttackPress(castContext, aim, input, castModeOverride) {
   }
 }
 
+/** Fórmula de dano + `applyDamage` num alvo resolvido. */
+function damageTarget(
+  attack,
+  attackerSpecies,
+  attackerIndividualValues,
+  target,
+  attackerStages,
+) {
+  const { amount, critical } = resolveDamageAmount({
+    attackerSpecies,
+    attackerIndividualValues,
+    defenderSpecies: target.species,
+    defenderIndividualValues: target.individualValues,
+    damage: attack.damage,
+    // estágios de atributo (golpes de status): o do atacante e o do alvo
+    attackerStages,
+    defenderStages: readStatStages(target.entity),
+    rng: gameplayRng,
+  })
+  target.entity.set(
+    Vitals,
+    applyDamage(target.vitals, amount, target.vitals.hpRegenDelayAfterDamage),
+  )
+  return { amount, critical }
+}
+
 /**
- * Ataques de criatura — do time E selvagens — num system só, em quatro
+ * Um tick de dano do ataque canalizado: todos os alvos dentro do cone
+ * (`resolveConeTargets`, na trajetória de agora — para em parede) levam a
+ * FRAÇÃO deste tick do dano de um golpe (`resolveChannelTickDamage` —
+ * segurando até o fim, o total é o dano de um golpe; crítico por tick), e
+ * cada acerto emite `attackResolved`. Sem alvo, não
+ * emite nada (um "errou" por tick seria ruído).
+ */
+function applyChannelTick(world, events, context) {
+  const { entity, action, species, individualValues, attack } = context
+  const origin = resolveAttackOrigin(
+    context.pos,
+    species?.body?.attackOriginHeight,
+  )
+  const direction = { x: action.dirX, y: action.dirY, z: action.dirZ }
+  // Só estrutura/terreno encurta o canal — criatura no caminho NÃO (o
+  // ember pega todo mundo dentro do leque, inclusive quem está atrás).
+  const impactPoint = resolveAttackImpactPoint(
+    origin,
+    direction,
+    attack.range,
+    context.physicsBody.colliderHandle,
+    { terrainOnly: true },
+  )
+  const cone = {
+    length: Math.hypot(impactPoint.x - origin.x, impactPoint.z - origin.z),
+    range: attack.range,
+    radius: attack.radius,
+  }
+  const targets = resolveConeTargets(
+    world,
+    origin,
+    direction,
+    cone,
+    resolveFootElevation(context.pos, context.controller),
+    context.targetSide,
+  )
+  // Fração deste tick do dano total (sorteada no disparo); o índice avança
+  // uma vez por tick, não por alvo — todos os alvos do mesmo instante levam
+  // a mesma fração (cada um sobre o PRÓPRIO orçamento, com a própria defesa).
+  const weight = action.channelWeights?.[action.channelTick] ?? 0
+  action.channelTick += 1
+  for (const target of targets) {
+    const { amount, critical } = resolveChannelTickDamage({
+      attackerSpecies: species,
+      attackerIndividualValues: individualValues,
+      defenderSpecies: target.species,
+      defenderIndividualValues: target.individualValues,
+      damage: attack.damage,
+      attackerStages: readStatStages(entity),
+      defenderStages: readStatStages(target.entity),
+      weight,
+      rng: gameplayRng,
+    })
+    target.entity.set(
+      Vitals,
+      applyDamage(target.vitals, amount, target.vitals.hpRegenDelayAfterDamage),
+    )
+    context.damaged?.add(target.entity)
+    events.emit(
+      attackResolved({
+        attacker: entity,
+        target: target.entity,
+        attackId: attack.id,
+        slot: action.pendingSlot,
+        origin,
+        impactPoint,
+        contactPoint: target.contactPoint,
+        damage: amount,
+        critical,
+        channel: true,
+      }),
+    )
+  }
+}
+
+/**
+ * Quem um golpe SÓ de efeito (sem dano — ex.: Growl) atinge no `effectAt`:
+ * num golpe de cone (`area: 'cone'`), TODOS os inimigos dentro dele
+ * (`resolveConeTargets`, a mesma forma e os mesmos filtros do canalizado — só
+ * estrutura/terreno encurta o cone, criatura no caminho não); senão, o
+ * primeiro corpo no caminho (`resolveAttackTarget`). Lista vazia = errou.
+ */
+function resolveEffectTargets(world, context) {
+  const { attack, origin, direction, impactPoint, pos, controller } = context
+  const attackerElevation = resolveFootElevation(pos, controller)
+
+  if (isConeAttack(attack)) {
+    const coneEnd = resolveAttackImpactPoint(
+      origin,
+      direction,
+      attack.range,
+      context.physicsBody.colliderHandle,
+      { terrainOnly: true },
+    )
+    const cone = {
+      length: Math.hypot(coneEnd.x - origin.x, coneEnd.z - origin.z),
+      range: attack.range,
+      radius: attack.radius,
+    }
+    return resolveConeTargets(
+      world,
+      origin,
+      direction,
+      cone,
+      attackerElevation,
+      context.targetSide,
+    )
+  }
+
+  const target = resolveAttackTarget(
+    world,
+    origin,
+    impactPoint,
+    attack.radius,
+    attackerElevation,
+    context.targetSide,
+  )
+  return target ? [target] : []
+}
+
+/**
+ * Aplica os `effects` da skill (hoje, `statStage`) em cada alvo e emite os
+ * eventos: um `statStageChanged` por atributo que MUDOU de verdade (já no
+ * limite = nada) e um `attackResolved` com `status: true` e `damage: 0` por
+ * alvo — conta como acerto pra reação (a selvagem se provoca, o time
+ * defende), mas brilho, hit stop e número de dano o ignoram.
+ */
+function applyAttackEffects(world, events, context) {
+  const { entity, action, attack, targets, origin, impactPoint } = context
+  const accuracyStage = readStatStages(entity).accuracy
+
+  for (const target of targets) {
+    // Precisão: cada alvo do cone tem o PRÓPRIO sorteio (como no Pokémon, um
+    // golpe de status também pode errar) — errou, nenhum efeito nele.
+    if (!rollHit(attack, accuracyStage, gameplayRng)) {
+      events.emit(
+        attackResolved({
+          attacker: entity,
+          target: target.entity,
+          attackId: attack.id,
+          slot: action.pendingSlot,
+          origin,
+          impactPoint,
+          contactPoint: target.contactPoint,
+          damage: 0,
+          critical: false,
+          status: true,
+          missed: true,
+        }),
+      )
+      continue
+    }
+    // VFX no corpo de CADA alvo atingido (ex.: a fumaça do Smokescreen)
+    if (attack.visual?.targetEffectGroup && target.entity.has(Position)) {
+      const { x, y, z } = target.entity.get(Position)
+      world.spawn(
+        Position({ x, y, z }),
+        Rotation,
+        AttackEffect({
+          lifetime: attack.visual.targetEffectVisualDuration ?? 1,
+          radius: attack.radius,
+          effectGroup: attack.visual.targetEffectGroup,
+          impactType: '',
+          visualScale: attack.visual.scale ?? 1,
+          length: 0,
+        }),
+      )
+    }
+    for (const effect of attack.effects ?? []) {
+      const change = applyStatStageEffect(target.entity, effect)
+      if (!change || change.delta === 0) continue
+      events.emit(
+        statStageChanged({
+          attacker: entity,
+          target: target.entity,
+          attackId: attack.id,
+          ...change,
+        }),
+      )
+    }
+    events.emit(
+      attackResolved({
+        attacker: entity,
+        target: target.entity,
+        attackId: attack.id,
+        slot: action.pendingSlot,
+        origin,
+        impactPoint,
+        contactPoint: target.contactPoint,
+        damage: 0,
+        critical: false,
+        status: true,
+      }),
+    )
+  }
+}
+
+/**
+ * Aplica os `effects` de um golpe em SI MESMO (`area: 'self'` — ex.: Growth)
+ * no próprio atacante: um `statStageChanged` por atributo que MUDOU (já no
+ * limite = nada), com `attacker` e `target` iguais — é o que acende o brilho
+ * e o texto "Ataque ↑" nele. Sem sorteio de precisão (no Pokémon, golpe em si
+ * mesmo não erra) e sem `attackResolved`: não houve alvo, então ninguém se
+ * provoca nem defende.
+ */
+function applySelfEffects(events, { entity, attack }) {
+  for (const effect of attack.effects ?? []) {
+    const change = applyStatStageEffect(entity, effect)
+    if (!change || change.delta === 0) continue
+    events.emit(
+      statStageChanged({
+        attacker: entity,
+        target: entity,
+        attackId: attack.id,
+        ...change,
+      }),
+    )
+  }
+}
+
+/**
+ * Encerra a ação de ataque — no fim natural (`duration`) OU cancelada
+ * (canalizado solto antes). O cooldown do slot começa a contar só AGORA,
+ * nunca no disparo (pedido do usuário: contando desde o disparo, uma skill
+ * com `duration` >= `cooldown` saía da ação já pronta de novo). `cooldowns`
+ * é o objeto do trait quando quem chama já está numa query com
+ * `AttackCooldowns` (escrever via `entity.set` ali seria sobrescrito no fim
+ * do `updateEach`); senão, `entity.set`.
+ */
+function finishAttack(entity, action, attack, cooldowns = null) {
+  if (cooldowns) {
+    cooldowns[action.pendingSlot] = attack.cooldown
+  } else if (entity.has(AttackCooldowns)) {
+    entity.set(AttackCooldowns, { [action.pendingSlot]: attack.cooldown })
+  }
+  action.current = null
+  action.pendingSlot = null
+  action.animationFrames = null
+  action.animationKey = null
+  action.channelWeights = null
+  action.channelTick = 0
+}
+
+/**
+ * O golpe em andamento exige o botão do slot SEGURADO agora? O canalizado,
+ * o tempo todo (soltar corta o canal). O golpe em si mesmo (`area: 'self'`,
+ * Growth), só durante a CARGA (`isAttackCharging`) — pedido do usuário,
+ * igual ao canalizado: soltar antes do efeito cancela; depois que o efeito
+ * saiu, o resto da animação não depende do botão.
+ */
+function requiresHold(action, attack) {
+  if (isChannelAttack(attack)) return true
+  return isSelfAttack(attack) && isAttackCharging(action, attack)
+}
+
+/**
+ * O botão do slot ainda está SEGURADO? (ataque canalizado — soltar
+ * cancela). Q/E/R também aceitam o clique esquerdo segurado, já que o
+ * `castMode: 'confirm'` confirma uma skill com clique.
+ */
+function isSlotHeld(input, slot) {
+  if (input.primaryHeld) return true
+  return slot !== 'primary' && !!input[`${slot}Held`]
+}
+
+/**
+ * Ataques de criatura — do time E selvagens — num system só, em cinco
  * passadas por tick: (1) cooldowns de todo atacante; (2) disparo pelo
  * input da criatura controlada; (3) disparo da IA — selvagem ou criatura
  * do time fora do controle com `WantsToAttack` (posto pelo
  * `wildBehaviorSystem.js`/`partyBehaviorSystem.js`) lança o ataque básico
  * mirando no alvo do pedido (`tryStartAttack` com direção pronta — mesmo
  * caminho, stamina/cooldown/modo combate iguais); (4)
- * avanço do golpe de todo atacante. O golpe de criatura do time acerta
+ * avanço do golpe de todo atacante; (5) interrupção do golpe de status em
+ * carga de quem levou dano no tick. O golpe de criatura do time acerta
  * selvagens; o de selvagem acerta o lado do jogador (criaturas do time e
  * treinador) — `resolveAttackTarget`, `targetSide`.
  *
@@ -533,19 +954,22 @@ function handleAttackPress(castContext, aim, input, castModeOverride) {
  * skills — a partir da 9ª rodada de docs/features/025-ataque-comum-de-
  * criatura.md: "pode fazer as habilidades agora?"), sem precisar de
  * nenhum gatilho extra. A direção do golpe vem de
- * `resolveAttackDirection` (`core/battle/attackAim.js`): corpo a corpo
- * usa só o giro horizontal da câmera e resolve a altura pelo alvo à
- * frente; à distância segue a câmera com inclinação. Trava o corpo (`rot.y`, só
- * o componente horizontal — o corpo não inclina) e o centro da área
- * efetiva (3D completo, incluindo altura) — resolvida uma vez no disparo
- * (`action.dirX/dirY/dirZ`), não recalculada no `effectAt`: a câmera é
- * livre pra girar durante o gesto, mesmo motivo de sempre
- * (`beginSummon`/`resolveThrowLaunch`, docs/features/024-esfera-de-
+ * `resolveAttackDirection` (`core/battle/attackAim.js`): sempre horizontal, a
+ * partir do giro horizontal da câmera; a assistência de mira (puxar pro alvo
+ * à frente) só entra no ataque BÁSICO. Trava o corpo (`rot.y`, só o
+ * componente horizontal — o corpo não inclina) e a trajetória do golpe
+ * (`action.dirX/dirY/dirZ`). A direção é resolvida no disparo e, na criatura
+ * CONTROLADA, de novo a cada tick até o `effectAt` ("direcionar durante o
+ * aviso", `GAME_CONFIG.BATTLE.ATTACK_WINDUP_STEERING`): o jogador pode
+ * redirecionar o golpe enquanto o aviso vermelho carrega, e a direção trava
+ * no instante do golpe, que é quando o efeito/dano de fato acontecem — depois
+ * disso a câmera é livre pra girar (mesmo motivo de sempre,
+ * `beginSummon`/`resolveThrowLaunch`, docs/features/024-esfera-de-
  * invocar.md).
  *
  * **Um único slot dispara por vez** (`ATTACK_SLOTS`, acima): a cada tick
  * livre (`action.current === null`), percorre mouse→Q→E→R na ordem, e o
- * PRIMEIRO com tecla pressionada + `species.attacks.<slot>` resolvido +
+ * PRIMEIRO com tecla pressionada + `species.basicAttack`/`species.skills[N]` resolvido +
  * stamina/cooldown livres ganha — os outros três nem são considerados
  * naquele tick (mesmo padrão de "só um por tick" de `partySummonSystem.js`).
  * `action.pendingSlot` (reaproveitado do mesmo campo que invocar/recolher
@@ -553,7 +977,7 @@ function handleAttackPress(castContext, aim, input, castModeOverride) {
  * QUAL slot ganhou, porque `action.current` vira só `'attack'` pras
  * quatro fontes (mouse e as três teclas) — sem o slot, o `effectAt`/
  * `duration` no meio do gesto não saberia se deve reler
- * `attacks.primary` ou `attacks.secondary1`, por exemplo.
+ * `basicAttack` ou `skills[1]`, por exemplo.
  *
  * **Respeita o trajeto, não só o destino** (`resolveAttackImpactPoint`,
  * acima): com um `range` grande (simulando o alcance de um golpe tipo
@@ -563,14 +987,14 @@ function handleAttackPress(castContext, aim, input, castModeOverride) {
  * slot (mouse ou skill) — mecanismo genérico, sem branch nenhum por id/
  * grupo de efeito.
  *
- * **Config vem de `core/data/attacks/`, não mais inline na espécie**
+ * **Config vem de `core/data/skills/`, não mais inline na espécie**
  * (reorganização pedida pelo usuário — ver docs/features/025-ataque-
  * comum-de-criatura.md, seção "reorganização da config"):
- * `getSpecies(id).attacks.<slot>` é só uma REFERÊNCIA (string id, ou
- * `{ id, overrides }`); `resolveCreatureAttack` (`core/data/attacks/
+ * `resolveCreatureAttack(getSpecies(id), slot)` é só uma REFERÊNCIA (string id, ou
+ * `{ id, overrides }`); `resolveCreatureAttack` (`core/data/skills/
  * index.js`) resolve a definição de verdade, mesclando overrides da
  * criatura por cima da base do ataque quando houver. Sem
- * `species.attacks.<slot>` configurado, ou id desconhecido, aquele slot
+ * `species.basicAttack`/`species.skills[N]` configurado, ou id desconhecido, aquele slot
  * simplesmente não é candidato a disparar — mesmo fallback gracioso de
  * sempre (hoje só `primary` é universal; `secondary1` só as 3 espécies
  * iniciais configuram, `secondary2`/`secondary3` nenhuma ainda).
@@ -600,7 +1024,7 @@ function handleAttackPress(castContext, aim, input, castModeOverride) {
  * já usado alhures pra "isto é uma criatura, não o treinador": só uma
  * `SummonedCreature` de verdade chega a ter
  * `InputControlled`+`ActionState`+`Position`+`Rotation` juntos por essa
- * via (o treinador nunca tem `SummonedCreature`). `attacks.<slot>` é
+ * via (o treinador nunca tem `SummonedCreature`). `basicAttack`/`skills[N]` é
  * exclusivo de espécie `kind: 'pokemon'` (o treinador não tem — sem arma
  * direta no design, ver docs/backlog.md).
  *
@@ -619,7 +1043,7 @@ function handleAttackPress(castContext, aim, input, castModeOverride) {
  * (combate 2.5D) e, se achar,
  * `resolveDamageAmount` (`core/battle/calculateDamage.js`) calcula o
  * dano a partir de `ATTACK.damage` (`power`/`category`/`type` —
- * `core/data/attacks/<id>/index.js`) e dos status de ambos
+ * `core/data/skills/<id>/index.js`) e dos status de ambos
  * (`resolveCreatureStats`), aplicado via `applyDamage` (contrato único
  * de qualquer fonte de dano, `core/traits/components/vitals.js`). Sem
  * `ATTACK.damage` configurado (`null`), nenhum dano é calculado — mesmo
@@ -639,7 +1063,8 @@ function handleAttackPress(castContext, aim, input, castModeOverride) {
  * `AttackCooldowns.<slot>`, `core/traits/components/attackEffect.js`):
  * decrementado TODO tick, POR SLOT, não só enquanto aquele slot está em
  * andamento — corre em paralelo a qualquer outra coisa que a criatura
- * esteja fazendo. Travado em `attack.cooldown` no disparo DAQUELE slot;
+ * esteja fazendo. Travado em `attack.cooldown` no FIM da ação daquele
+ * slot (não no disparo — a contagem só começa depois da `duration`);
  * enquanto `> 0`, só aquele slot específico não dispara, mesmo com
  * stamina de sobra — os outros três continuam livres (pedido implícito
  * da 9ª rodada: skills de verdade configuram cooldown > 0, então um
@@ -655,7 +1080,7 @@ function handleAttackPress(castContext, aim, input, castModeOverride) {
  * — este system não sabe nada de áudio de verdade, só marca O INSTANTE.
  * **Limitação conhecida (9ª rodada)**: o pulso não carrega QUAL slot
  * disparou, e `attackAudioSystem.js`/`resolveAttackSound` ainda só
- * resolvem `attacks.primary` — uma skill nova (`vine-whip`/`ember`/
+ * resolvem `basicAttack` — uma skill nova (`vine-whip`/`ember`/
  * `whirlpool`, todas com `audio.group: null` de propósito) não tem som
  * PRÓPRIO ainda; até a rodada de áudio generalizar isso (quando o usuário
  * trouxer os arquivos), o pulso de uma skill só reaproveita o som que já
@@ -719,6 +1144,22 @@ export function creatureAttackSystem(context) {
           pos,
           rot,
           physicsBody,
+        }
+
+        // Golpe que exige o botão segurado (`requiresHold`): soltar o botão
+        // do slot cancela (e o cooldown começa, como no fim normal).
+        if (action.current === 'attack') {
+          const running = resolveAttackForEntity(
+            castContext.species,
+            action.pendingSlot,
+            individualValues,
+          )
+          if (
+            requiresHold(action, running) &&
+            !isSlotHeld(input, action.pendingSlot)
+          ) {
+            finishAttack(entity, action, running, cooldowns)
+          }
         }
 
         // Botão direito cancela o indicador aberto (como no LoL).
@@ -799,6 +1240,10 @@ export function creatureAttackSystem(context) {
   // Fora do `updateEach`: remover trait muda a query iterada.
   for (const entity of requested) entity.remove(WantsToAttack)
 
+  // Quem levou dano neste tick (alvo de golpe ou de tick de canal) — o
+  // passo 5 interrompe o golpe de status que eles estavam carregando.
+  const damaged = new Set()
+
   // 4. Avanço do golpe de TODO atacante: impacto no `effectAt`, fim em
   // `duration`. O golpe de uma criatura do time acerta selvagens; o de
   // uma selvagem acerta o lado do jogador (criaturas do time e treinador).
@@ -808,10 +1253,14 @@ export function creatureAttackSystem(context) {
       CharacterController,
       PhysicsBody,
       Position,
+      Rotation,
       IndividualValues,
     )
     .updateEach(
-      ([action, controller, physicsBody, pos, individualValues], entity) => {
+      (
+        [action, controller, physicsBody, pos, rot, individualValues],
+        entity,
+      ) => {
         if (action.current !== 'attack') return
 
         const species = getSpecies(resolveCreatureSpeciesId(entity))
@@ -823,6 +1272,34 @@ export function creatureAttackSystem(context) {
         )
         const previousElapsed = action.elapsed
         action.elapsed += delta
+        // Canalizado: dano no CONE a cada `damageInterval`, do `effectAt`
+        // até o fim — o impacto único no fim da trajetória não se aplica.
+        const channel = isChannelAttack(ATTACK)
+
+        // Direcionar enquanto o aviso carrega: antes do `effectAt` a criatura
+        // CONTROLADA (a IA mira uma vez, no disparo) reaponta pra onde a
+        // câmera olha agora — o aviso vermelho (`AttackTelegraphView`) lê
+        // `action.dir*` a cada frame, então acompanha. No tick que cruza o
+        // `effectAt` a direção já é a mais recente e daí trava pro golpe.
+        if (
+          GAME_CONFIG.BATTLE.ATTACK_WINDUP_STEERING &&
+          !isSelfAttack(ATTACK) &&
+          previousElapsed < ATTACK.effectAt &&
+          entity.has(InputControlled)
+        ) {
+          const aim = resolveAttackDirection(
+            world,
+            pos,
+            physicsBody.colliderHandle,
+            species,
+            ATTACK,
+            action.pendingSlot,
+          )
+          action.dirX = aim.x
+          action.dirY = aim.y
+          action.dirZ = aim.z
+          rot.y = Math.atan2(aim.x, aim.z)
+        }
 
         if (
           previousElapsed < ATTACK.effectAt &&
@@ -853,21 +1330,64 @@ export function creatureAttackSystem(context) {
             z: impactPoint.z - origin.z,
           }
           const pathLength = Math.hypot(path.x, path.y, path.z)
-          const effectRotation = resolveEffectRotation(
+          const pathDirection =
             pathLength > 1e-6
               ? {
                   x: path.x / pathLength,
                   y: path.y / pathLength,
                   z: path.z / pathLength,
                 }
-              : direction,
+              : direction
+          // Ponto de partida VISUAL (`visual.positionOffset`): só a saída do
+          // golpe anda; o impacto continua o do `range`. O efeito é
+          // reorientado da nova partida até o impacto.
+          const effectStart = resolveEffectStart(
+            origin,
+            pathDirection,
+            ATTACK.visual.positionOffset,
+          )
+          const startPath = {
+            x: impactPoint.x - effectStart.x,
+            y: impactPoint.y - effectStart.y,
+            z: impactPoint.z - effectStart.z,
+          }
+          const startPathLength = Math.hypot(
+            startPath.x,
+            startPath.y,
+            startPath.z,
+          )
+          const effectDirection =
+            startPathLength > 1e-6
+              ? {
+                  x: startPath.x / startPathLength,
+                  y: startPath.y / startPathLength,
+                  z: startPath.z / startPathLength,
+                }
+              : pathDirection
+          const effectRotation = resolveEffectRotation(
+            effectDirection,
             ATTACK.visual.rotationOffset,
           )
 
-          // Dano — ver docstring acima ("Dano"). `ATTACK.damage: null`
-          // (ataque ainda sem poder/categoria configurado) é um no-op
-          // gracioso, sem procurar alvo nenhum.
-          if (ATTACK.damage) {
+          // Onde o VFX nasce: no ponto de CONTATO quando o golpe acerta
+          // alguém no meio do caminho, no fim da trajetória quando erra —
+          // antes nascia sempre no fim, "atrás" do alvo, e o acerto
+          // parecia acidental.
+          let effectPoint = impactPoint
+
+          // Golpe em SI MESMO (`area: 'self'` — ex.: Growth): os efeitos vão
+          // no atacante e o VFX nasce nos pés dele, não na trajetória.
+          if (isSelfAttack(ATTACK)) {
+            applySelfEffects(events, { entity, attack: ATTACK })
+            effectPoint = {
+              x: pos.x,
+              y: pos.y - verticalClearance(controller),
+              z: pos.z,
+            }
+          } else if (ATTACK.damage && !channel) {
+            // Dano — ver docstring acima ("Dano"). `ATTACK.damage: null`
+            // (ataque ainda sem poder/categoria configurado) é um no-op
+            // gracioso, sem procurar alvo nenhum.
             const target = resolveAttackTarget(
               world,
               origin,
@@ -876,27 +1396,26 @@ export function creatureAttackSystem(context) {
               resolveFootElevation(pos, controller),
               targetSide,
             )
-            let amount = 0
-            let critical = false
-            if (target) {
-              const resolved = resolveDamageAmount({
-                attackerSpecies: species,
-                attackerIndividualValues: individualValues,
-                defenderSpecies: target.species,
-                defenderIndividualValues: target.individualValues,
-                damage: ATTACK.damage,
-                rng: gameplayRng,
-              })
-              amount = resolved.amount
-              critical = resolved.critical
-              target.entity.set(
-                Vitals,
-                applyDamage(
-                  target.vitals,
-                  amount,
-                  target.vitals.hpRegenDelayAfterDamage,
-                ),
-              )
+            // Sorteio de PRECISÃO (regra do Pokémon, `core/battle/accuracy.js`):
+            // o alvo estava na forma, mas o golpe pode errar — mais provável
+            // com a precisão do atacante baixa (Smokescreen). Errou: sem dano,
+            // e o efeito visual cai no fim da trajetória, não no corpo.
+            const attackerStages = readStatStages(entity)
+            const missed =
+              !!target && !rollHit(ATTACK, attackerStages.accuracy, gameplayRng)
+            const { amount, critical } =
+              target && !missed
+                ? damageTarget(
+                    ATTACK,
+                    species,
+                    individualValues,
+                    target,
+                    attackerStages,
+                  )
+                : { amount: 0, critical: false }
+            if (target && !missed) damaged.add(target.entity)
+            if (target?.contactPoint && !missed) {
+              effectPoint = target.contactPoint
             }
 
             // Impacto resolvido (acertou ou não) — efeitos de acerto
@@ -913,22 +1432,69 @@ export function creatureAttackSystem(context) {
                 contactPoint: target?.contactPoint,
                 damage: amount,
                 critical,
+                missed,
+              }),
+            )
+            // golpe com dano E efeito (ex.: dano + baixar defesa): o efeito
+            // vai no alvo que levou o dano
+            if (target && !missed && ATTACK.effects?.length) {
+              applyAttackEffects(world, events, {
+                entity,
+                action,
+                attack: ATTACK,
+                targets: [target],
+                origin,
+                impactPoint,
+              })
+            }
+          } else if (ATTACK.effects?.length && !channel) {
+            // Golpe SÓ de efeito (sem dano — ex.: Growl): acha os alvos (cone
+            // ou primeiro corpo) e aplica os efeitos neles.
+            applyAttackEffects(world, events, {
+              entity,
+              action,
+              attack: ATTACK,
+              targets: resolveEffectTargets(world, {
+                attack: ATTACK,
+                origin,
+                direction,
+                impactPoint,
+                pos,
+                controller,
+                physicsBody,
+                targetSide,
+              }),
+              origin,
+              impactPoint,
+            })
+          }
+
+          // `effectGroup: 'none'` = golpe sem efeito visual de impacto (ex.: Growl,
+          // que só baixa atributo e é mostrado por texto + tremor no alvo).
+          if (ATTACK.visual.effectGroup !== 'none') {
+            world.spawn(
+              Position(effectPoint),
+              Rotation(effectRotation),
+              AttackEffect({
+                lifetime: ATTACK.visual.effectVisualDuration,
+                radius: ATTACK.radius,
+                effectGroup:
+                  ATTACK.visual.effectGroup ?? DEFAULT_ATTACK_EFFECT_GROUP,
+                revealDuration: ATTACK.visual.revealDuration ?? 0,
+                impactType:
+                  ATTACK.visual.impactType ?? ATTACK.damage?.type ?? '',
+                visualScale: ATTACK.visual.scale ?? 1,
+                // da PARTIDA do golpe (origem + `positionOffset`) até onde o VFX
+                // nasce — um VFX que sai da criatura (Brasa) precisa saber o
+                // quanto andar
+                length: Math.hypot(
+                  effectPoint.x - effectStart.x,
+                  effectPoint.y - effectStart.y,
+                  effectPoint.z - effectStart.z,
+                ),
               }),
             )
           }
-
-          world.spawn(
-            Position(impactPoint),
-            Rotation(effectRotation),
-            AttackEffect({
-              lifetime: ATTACK.visual.effectVisualDuration,
-              radius: ATTACK.radius,
-              effectGroup:
-                ATTACK.visual.effectGroup ?? DEFAULT_ATTACK_EFFECT_GROUP,
-              revealDuration: ATTACK.visual.revealDuration ?? 0,
-              visualScale: ATTACK.visual.scale ?? 1,
-            }),
-          )
           // Som do impacto (ver docstring acima, "Som do impacto") —
           // pulso de um tick na CRIATURA (não no `AttackEffect`),
           // consumido por `attackAudioSystem.js`. Sem `attack.audio`
@@ -936,14 +1502,83 @@ export function creatureAttackSystem(context) {
           // (`useAnimatedModel.js` só registra o nó de áudio se
           // `resolveAttackSound` resolver algo) — no-op gracioso, mesmo
           // espírito de sempre.
-          entity.add(AttackPulse)
+          // `slot`: qual ataque disparou (cada um tem o seu som). Se o pulso
+          // anterior ainda não foi consumido, só troca o slot.
+          if (entity.has(AttackPulse)) {
+            entity.set(AttackPulse, { slot: action.pendingSlot })
+          } else {
+            entity.add(AttackPulse({ slot: action.pendingSlot }))
+          }
+          // `audio.cry`: a criatura VOCALIZA agora (o grito dela, com a boca
+          // sincronizada) — pulso consumido por `voiceAudioSystem.js`.
+          if (ATTACK.audio?.cry && !entity.has(CryPulse)) {
+            entity.add(CryPulse)
+          }
+        }
+
+        if (channel && ATTACK.damage) {
+          const ticks = countChannelTicks(
+            previousElapsed,
+            action.elapsed,
+            ATTACK,
+          )
+          for (let tick = 0; tick < ticks; tick++) {
+            applyChannelTick(world, events, {
+              entity,
+              action,
+              species,
+              individualValues,
+              attack: ATTACK,
+              pos,
+              controller,
+              physicsBody,
+              targetSide,
+              damaged,
+            })
+          }
         }
 
         if (action.elapsed >= ATTACK.duration) {
-          action.current = null
-          action.pendingSlot = null
-          action.animationFrames = null
+          finishAttack(entity, action, ATTACK)
         }
       },
     )
+
+  // 5. Quem levou dano neste tick e estava CARREGANDO um golpe de status
+  // perde o golpe — fora do `updateEach` acima, pra não mexer na ação de
+  // outra entidade no meio da passada.
+  interruptStatusAttacks(events, damaged)
+}
+
+/**
+ * Interrompe o golpe de STATUS em carga de cada entidade que levou dano no
+ * tick (`isInterruptible`, `core/battle/attackInterrupt.js`): a ação acaba
+ * (`finishAttack` — o cooldown do slot começa), a stamina gasta no disparo
+ * não volta (decisão do usuário: interromper é punição), a criatura fica
+ * ATORDOADA (`iniciarAtordoamento` — a ação `'hit'`, com a animação de hit,
+ * sem poder fazer nada pela duração) e sai um `attackInterrupted` pro texto
+ * "Interrompido!". Golpe de dano, ou status
+ * que já passou do `effectAt`, segue normal.
+ */
+function interruptStatusAttacks(events, damaged) {
+  for (const entity of damaged) {
+    if (!entity.isAlive() || !entity.has(ActionState)) continue
+    const action = entity.get(ActionState)
+    if (action.current !== 'attack') continue
+
+    const species = getSpecies(resolveCreatureSpeciesId(entity))
+    const slot = action.pendingSlot
+    const attack = resolveAttackForEntity(
+      species,
+      slot,
+      entity.get(IndividualValues),
+    )
+    if (!isInterruptible(action, attack)) continue
+
+    finishAttack(entity, action, attack)
+    // e fica atordoada: animação de hit, sem poder fazer nada pela duração
+    iniciarAtordoamento(action, species)
+    entity.set(ActionState, action)
+    events.emit(attackInterrupted({ entity, attackId: attack.id, slot }))
+  }
 }

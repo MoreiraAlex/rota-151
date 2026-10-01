@@ -1,6 +1,8 @@
 import Image from 'next/image'
 import { CREATURE_TINTS } from '@/view/creatureTints'
 import { ATTACK_COLORS } from '@/view/attackColors'
+import { resolveFeedbackColor, resolveSide } from '@/view/vfx/feedbackColors'
+import { useStatStages } from './useStatStages'
 
 /**
  * Formatação/UI compartilhadas entre "onde mostrar nome/nível/vida/
@@ -83,6 +85,59 @@ export function VitalBar({ height, value, max, colorClass, activeValue }) {
             <span>{Math.floor(value)}/{max}</span>
           )}
       </div>
+    </div>
+  )
+}
+
+const STAT_LABELS = {
+  attack: 'ATQ',
+  defense: 'DEF',
+  sp_atk: 'ATQ.E',
+  sp_def: 'DEF.E',
+  accuracy: 'PREC',
+}
+
+/**
+ * Indicador dos atributos ALTERADOS de uma criatura (golpes de status, ex.:
+ * Growl — `core/battle/statStages.js`): uma etiqueta por atributo, "ATQ ↓2" ou
+ * "DEF ↑1", perto da barra de vida. Só aparece ENQUANTO houver atributo
+ * alterado — sem nenhum, não renderiza nada; quando o estágio expira
+ * (`statStageSystem`), some sozinho. A cor é a do feedback de status do LADO da
+ * criatura (`GAME_CONFIG.FEEDBACK.FEEDBACK_COLORS`: laranja/verde no oponente,
+ * violeta/ciano no aliado), a mesma do brilho no modelo e do texto na cabeça.
+ * `entity` pode ser `undefined` (criatura que não está em campo). `compact`:
+ * etiquetas menores (etiqueta flutuante, cartão compacto). `align`: `'center'`
+ * (padrão, etiqueta flutuante) ou `'start'` (HUDs, texto à esquerda).
+ */
+export function StatStageBadges({ entity, compact = false, align = 'center' }) {
+  const stages = useStatStages(entity)
+  if (stages.length === 0) return null
+
+  const side = resolveSide(entity)
+  return (
+    <div
+      className={`flex flex-wrap items-center gap-0.5 ${
+        align === 'start' ? 'justify-start' : 'justify-center'
+      }`}
+    >
+      {stages.map(({ stat, stage }) => {
+        const color = resolveFeedbackColor(stage < 0 ? 'debuff' : 'buff', side)
+        return (
+          <span
+            key={stat}
+            className="rounded px-1 font-mono font-bold leading-tight"
+            style={{
+              color,
+              backgroundColor: `${color}26`,
+              border: `1px solid ${color}`,
+              fontSize: compact ? '8px' : '10px',
+            }}
+          >
+            {STAT_LABELS[stat]} {stage < 0 ? '↓' : '↑'}
+            {Math.abs(stage)}
+          </span>
+        )
+      })}
     </div>
   )
 }
@@ -212,7 +267,7 @@ export function SpritePortrait({ species, size = 48, xpPercent = 0 }) {
  * `SlotPreview kind="attack"` já usava, só ganha uma imagem de verdade
  * por cima quando existir).
  *
- * `attack.sprite.path`/`.scale` (opcionais, `core/data/attacks/
+ * `attack.sprite.path`/`.scale` (opcionais, `core/data/skills/
  * _template/index.js`) — mesmo formato/raciocínio de `species.sprite`
  * (ver docstring de `SpritePortrait` acima): objeto com `path` +
  * `scale` opcional (default 1) pra compensar margem inconsistente

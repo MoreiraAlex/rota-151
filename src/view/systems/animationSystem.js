@@ -11,6 +11,7 @@ import {
   resolveClipSpeed,
 } from '@/core/animation/applyAnimationClip'
 import { getAnimatedBonesEntry } from '@/view/registry/animationRegistry'
+import { resolveHitStopScale } from '@/view/registry/hitStopRegistry'
 import {
   advanceNativeAnimation,
   advanceNativePhase,
@@ -108,11 +109,15 @@ const EMPTY_CLIP = { bones: {} }
  * Fase: presentation (passo variável).
  */
 export function animationSystem(context) {
-  const { world, delta } = context
+  const { world } = context
 
   world.query(AnimationState, ActionState).forEach((entity) => {
     const entry = getAnimatedBonesEntry(entity)
     if (!entry) return
+
+    // Hit stop (`hitStopSystem.js`): no instante do acerto, o relógio da
+    // animação desta entidade não anda — congela o golpe/a reação.
+    const delta = context.delta * resolveHitStopScale(entity)
 
     const anim = entity.get(AnimationState)
     const action = entity.get(ActionState)
@@ -161,12 +166,17 @@ function updateShownState(entry, targetId, action) {
     oneShot,
     restart: restarted || reentering,
     frames: oneShot ? action.animationFrames : null,
+    animationKey: oneShot ? action.animationKey : null,
     duration: oneShot ? 1 / (action.animationSpeed || 1) : null,
   })
 }
 
-function enterState(entry, stateId, { oneShot, restart, frames, duration }) {
-  const clipId = resolveClipId(entry, stateId)
+function enterState(
+  entry,
+  stateId,
+  { oneShot, restart, frames, duration, animationKey },
+) {
+  const clipId = resolveClipId(entry, stateId, animationKey)
   const previousClipId = entry.clipId
   entry.stateId = stateId
 
@@ -198,11 +208,14 @@ function enterState(entry, stateId, { oneShot, restart, frames, duration }) {
 }
 
 /**
- * Qual animação toca pro estado: a dele, se a espécie tiver (embutida ou
- * procedural); senão a do `fallback` declarado em `animationStates.js`
- * (ex.: battleIdle → idle); senão o próprio id (pose de descanso).
+ * Qual animação toca pro estado: a chave pedida pela ação
+ * (`ActionState.animationKey` — ex.: `'attackRanged'` de uma skill), se a
+ * espécie tiver; senão a do próprio estado (embutida ou procedural); senão
+ * a do `fallback` declarado em `animationStates.js` (ex.: battleIdle →
+ * idle); senão o próprio id (pose de descanso).
  */
-function resolveClipId(entry, stateId) {
+function resolveClipId(entry, stateId, animationKey = null) {
+  if (animationKey && hasAnimation(entry, animationKey)) return animationKey
   if (hasAnimation(entry, stateId)) return stateId
   const fallback = resolveAnimationFallback(stateId)
   return fallback && hasAnimation(entry, fallback) ? fallback : stateId

@@ -18,6 +18,9 @@ const SCAN_BLOCKED_FLAGS = [
   'secondary1', // Q — skill/invocar/recolher
   'secondary2', // E
   'secondary3', // R
+  'secondary1Held', // Q/E/R segurados (ataque canalizado)
+  'secondary2Held',
+  'secondary3Held',
 ]
 
 /**

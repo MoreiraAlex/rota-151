@@ -4,7 +4,6 @@ import RUN_CLIP from './clips/run.json'
 import THROW_CLIP from './clips/throw.json'
 import RECALL_CLIP from './clips/recall.json'
 
-
 export const BOT = {
   id: 'bot',
   dexNumber: null,
@@ -257,7 +256,7 @@ export const BOT = {
     },
     recall: {
       clips: ['/assets/audio/recall/recall-01.wav'],
-      volume: 0.4, 
+      volume: 0.4,
       refDistance: 1,
     },
   },

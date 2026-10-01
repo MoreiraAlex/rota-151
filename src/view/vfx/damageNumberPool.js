@@ -22,13 +22,24 @@ export function createDamageNumberPool(size) {
     z: 0,
     text: '',
     critical: false,
+    kind: 'damage',
+    color: '#ffffff',
+    glow: '#ffffff',
   }))
   let next = 0
   let serial = 0
 
   return {
     slots,
-    spawn({ position, text, critical, lifetime }) {
+    spawn({
+      position,
+      text,
+      critical,
+      lifetime,
+      kind = 'damage',
+      color = '#ffffff',
+      glow = color,
+    }) {
       const slot = slots[next]
       next = (next + 1) % size
       serial += 1
@@ -41,6 +52,12 @@ export function createDamageNumberPool(size) {
       slot.z = position.z
       slot.text = text
       slot.critical = critical
+      // 'damage' (número de dano), 'debuff' ou 'buff' (texto de status)
+      slot.kind = kind
+      // cor do texto (`view/vfx/feedbackColors.js`: tipo × lado do alvo)
+      slot.color = color
+      // cor do contorno brilhante e do rótulo do crítico (a cor de DANO do lado)
+      slot.glow = glow
       return slot
     },
     advance(delta) {

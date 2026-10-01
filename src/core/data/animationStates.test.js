@@ -133,6 +133,17 @@ describe('battleIdle e appeal', () => {
     expect(isOneShotAnimationState('appeal')).toBe(true)
   })
 
+  it('ação "hit" (atordoada, golpe interrompido) é one-shot e vence a locomoção e o combate', () => {
+    const ctx = {
+      speed: RUN_MIN_SPEED + 1,
+      grounded: true,
+      inCombat: true,
+      action: 'hit',
+    }
+    expect(resolveAnimationState(ctx)).toBe('hit')
+    expect(isOneShotAnimationState('hit')).toBe(true)
+  })
+
   it('estado sem fallback declarado não tem substituto', () => {
     expect(resolveAnimationFallback('walk')).toBeNull()
   })

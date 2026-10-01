@@ -29,7 +29,7 @@ function hitEvent(target, attacker = 'jogador', damage = 5) {
   return attackResolved({
     attacker,
     target,
-    attackId: 'scratch',
+    attackId: 'tackle',
     slot: 'primary',
     origin: { x: 0, y: 0, z: 0 },
     impactPoint: { x: 0, y: 0, z: 1 },
@@ -95,7 +95,7 @@ describe('wildReactionSystem', () => {
     const wild = spawnWild(world, 'hostile')
     const miss = attackResolved({
       attacker: 'jogador',
-      attackId: 'scratch',
+      attackId: 'tackle',
       slot: 'primary',
       origin: { x: 0, y: 0, z: 0 },
       impactPoint: { x: 0, y: 0, z: 1 },

@@ -9,6 +9,11 @@ import { RecallBeamsView } from './RecallBeamView'
 import { ConsumeEffectsView } from './ConsumeEffectView'
 import { AttackEffectsView } from './AttackEffectView'
 import { AttackIndicatorView } from './AttackIndicatorView'
+import { AttackTelegraphView } from './AttackTelegraphView'
+import { DashEffectsView } from './DashEffectsView'
+import { ChargeEffectsView } from './ChargeEffectsView'
+import { JumpDustView } from './JumpDustView'
+import { ActionTimerRingView } from './ActionTimerRingView'
 import { CreaturesView, WildCreaturesView } from './CreatureView'
 import { NameplatesView } from './NameplateView'
 import { DamageNumbersView } from './DamageNumbersView'
@@ -97,6 +102,11 @@ export function GameScene({ children }) {
       <ConsumeEffectsView />
       <AttackEffectsView />
       <AttackIndicatorView />
+      <AttackTelegraphView />
+      <DashEffectsView />
+      <ChargeEffectsView />
+      <JumpDustView />
+      <ActionTimerRingView />
       <CreaturesView />
       <WildCreaturesView />
       <NameplatesView />

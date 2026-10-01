@@ -204,4 +204,35 @@ describe('pointerInput', () => {
     expect(doc.count('mousemove')).toBe(0)
     expect(win.count('blur')).toBe(0)
   })
+
+  it('clique esquerdo segurado: `primary` pulsa uma vez, `primaryHeld` dura até o mouseup', () => {
+    const pointer = createPointerInput()
+    pointer.start(element)
+    lock()
+
+    element.dispatch('mousedown', { button: 0 })
+    const first = pointer.snapshot()
+    expect(first.primary).toBe(true)
+    expect(first.primaryHeld).toBe(true)
+
+    const second = pointer.snapshot()
+    expect(second.primary).toBe(false)
+    expect(second.primaryHeld).toBe(true)
+
+    element.dispatch('mouseup', { button: 0 })
+    expect(pointer.snapshot().primaryHeld).toBe(false)
+    pointer.stop()
+  })
+
+  it('perder o foco da janela solta o clique esquerdo segurado', () => {
+    const pointer = createPointerInput()
+    pointer.start(element)
+    lock()
+
+    element.dispatch('mousedown', { button: 0 })
+    win.dispatch('blur')
+
+    expect(pointer.snapshot().primaryHeld).toBe(false)
+    pointer.stop()
+  })
 })

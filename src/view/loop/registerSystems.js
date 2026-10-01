@@ -11,9 +11,11 @@ import { creatureAttackSystem } from '@/core/systems/creatureAttackSystem'
 import { combatModeSystem } from '@/core/systems/combatModeSystem'
 import { faintSystem } from '@/core/systems/faintSystem'
 import { attackEffectSystem } from '@/core/systems/attackEffectSystem'
+import { statStageSystem } from '@/core/systems/statStageSystem'
 import { partySummonSystem } from '@/core/systems/partySummonSystem'
 import { summonBallSystem } from '@/core/systems/summonBallSystem'
 import { creatureAppealSystem } from '@/core/systems/creatureAppealSystem'
+import { creatureHitStunSystem } from '@/core/systems/creatureHitStunSystem'
 import { creatureFollowSystem } from '@/core/systems/creatureFollowSystem'
 import { wildCreatureSpawnSystem } from '@/core/systems/wildCreatureSpawnSystem'
 import { wildWanderSystem } from '@/core/systems/wildWanderSystem'
@@ -31,6 +33,7 @@ import { animationStateSystem } from '@/core/systems/animationStateSystem'
 import { syncTransformSystem } from '@/view/systems/syncTransformSystem'
 import { cameraFollowSystem } from '@/view/systems/cameraFollowSystem'
 import { animationSystem } from '@/view/systems/animationSystem'
+import { hitStopSystem } from '@/view/systems/hitStopSystem'
 import { heldItemViewSystem } from '@/view/systems/heldItemViewSystem'
 import { tailFireSystem } from '@/view/systems/tailFireSystem'
 import { audioListenerSystem } from '@/view/systems/audioListenerSystem'
@@ -158,6 +161,9 @@ export function registerGameSystems() {
   registerSystem(GAME_PHASES.SIMULATION, playerActionSystem)
   registerSystem(GAME_PHASES.SIMULATION, scannerModeSystem)
   registerSystem(GAME_PHASES.SIMULATION, creatureAttackSystem)
+  // Logo depois do ataque: avança o atordoamento de quem teve um golpe de
+  // status interrompido (a ação `'hit'`, iniciada pelo ataque).
+  registerSystem(GAME_PHASES.SIMULATION, creatureHitStunSystem)
   // Logo depois do ataque: quem zerou o HP desmaia no mesmo tick do golpe
   // (e antes do partySummonSystem, que recolhe a do time desmaiada).
   registerSystem(GAME_PHASES.SIMULATION, faintSystem)
@@ -166,6 +172,7 @@ export function registerGameSystems() {
   registerSystem(GAME_PHASES.SIMULATION, projectileSystem)
   registerSystem(GAME_PHASES.SIMULATION, consumeEffectSystem)
   registerSystem(GAME_PHASES.SIMULATION, attackEffectSystem)
+  registerSystem(GAME_PHASES.SIMULATION, statStageSystem)
   registerSystem(GAME_PHASES.SIMULATION, summonEffectsSystem)
   registerSystem(GAME_PHASES.SIMULATION, partySummonSystem)
   registerSystem(GAME_PHASES.SIMULATION, summonBallSystem)
@@ -193,6 +200,8 @@ export function registerGameSystems() {
 
   registerSystem(GAME_PHASES.PRESENTATION, syncTransformSystem)
   registerSystem(GAME_PHASES.PRESENTATION, cameraFollowSystem)
+  // Antes da animação: o acerto deste frame já congela o clipe agora.
+  registerSystem(GAME_PHASES.PRESENTATION, hitStopSystem)
   registerSystem(GAME_PHASES.PRESENTATION, animationSystem)
   registerSystem(GAME_PHASES.PRESENTATION, heldItemViewSystem)
   registerSystem(GAME_PHASES.PRESENTATION, tailFireSystem)

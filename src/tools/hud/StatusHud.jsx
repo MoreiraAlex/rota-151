@@ -11,6 +11,7 @@ import {
   KeyHint,
   resolveXpPercent,
   SpritePortrait,
+  StatStageBadges,
   VitalBar,
 } from '@/view/shared/statusDisplay'
 import { InputControlled, SummonedCreature, Vitals } from '@/core/traits'
@@ -136,6 +137,7 @@ export function StatusHud() {
         <StatusCard
           key={mainLayoutId}
           layoutId={mainLayoutId}
+          entity={controlled}
           species={species}
           vitals={vitals}
           size={48}
@@ -144,6 +146,7 @@ export function StatusHud() {
           <StatusCard
             key="status-trainer-compact"
             layoutId={statusLayoutId('trainer')}
+            entity={playerEntity}
             species={getPlayerSpecies()}
             vitals={trainerVitals}
             size={32}
@@ -155,7 +158,14 @@ export function StatusHud() {
   )
 }
 
-function StatusCard({ species, vitals, size, compact = false, layoutId }) {
+function StatusCard({
+  entity,
+  species,
+  vitals,
+  size,
+  compact = false,
+  layoutId,
+}) {
   return (
     <motion.div
       layout
@@ -179,7 +189,9 @@ function StatusCard({ species, vitals, size, compact = false, layoutId }) {
           {species.level != null && (
             <span className="shrink-0 text-white/50">Lv.{species.level}</span>
           )}
-          {compact && <KeyHint keyLabel="4" icon={ArrowLeftRight} variant="accent" />}
+          {compact && (
+            <KeyHint keyLabel="4" icon={ArrowLeftRight} variant="accent" />
+          )}
         </div>
         <VitalBar
           height={compact ? 2 : 5}
@@ -194,6 +206,7 @@ function StatusCard({ species, vitals, size, compact = false, layoutId }) {
           max={vitals.maxStamina}
           colorClass="bg-sky-400"
         />
+        <StatStageBadges entity={entity} compact={compact} align="start" />
       </div>
     </motion.div>
   )

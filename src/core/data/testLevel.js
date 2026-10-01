@@ -25,8 +25,8 @@ const WILD_CREATURE_COUNT = 5
 
 const WILD_CREATURE_SPECIES = [
   'bulbasaur',
-  'charmander',
-  'squirtle',
+  // 'charmander',
+  // 'squirtle',
   // 'fox',
   // 'wolf',
 ]
@@ -38,13 +38,8 @@ const generateWildCreatures = (count) =>
       WILD_CREATURE_SPECIES[
         Math.floor(Math.random() * WILD_CREATURE_SPECIES.length)
       ],
-    position: [
-      Math.random() * 120 - 60,
-      1,
-      Math.random() * 120 - 60,
-    ],
+    position: [Math.random() * 120 - 60, 1, Math.random() * 120 - 60],
   }))
-
 
 export const TEST_LEVEL = {
   ambientSound: {
@@ -403,5 +398,3 @@ export const TEST_LEVEL = {
   // ],
   wildCreatures: generateWildCreatures(WILD_CREATURE_COUNT),
 }
-
-

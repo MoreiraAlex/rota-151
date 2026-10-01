@@ -15,7 +15,11 @@ import {
   Vitals,
   WildCreature,
 } from '@/core/traits'
-import { formatSpeciesName, VitalBar } from '../shared/statusDisplay'
+import {
+  formatSpeciesName,
+  StatStageBadges,
+  VitalBar,
+} from '../shared/statusDisplay'
 
 // Margem (m) além do topo da cápsula (`verticalClearance`,
 // `core/physics/colliders.js`) — sem isso a etiqueta ficaria colada
@@ -218,6 +222,7 @@ function NameplateView({ entity, species }) {
             max={vitals.maxStamina}
             colorClass="bg-sky-400"
           />
+          <StatStageBadges entity={entity} compact />
         </div>
       </Html>
     </group>

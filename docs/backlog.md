@@ -149,6 +149,18 @@ de puxar ela pra frente.
       Parâmetros do character controller (rampa/degrau) e `GROUNDED_STICK`
       continuam globais — não são atributo de criatura.
 
+## Combate
+
+- [ ] **Círculo do corpo dos alvos** (em espera) — o acerto soma o raio do
+      ataque ao raio da CÁPSULA do alvo, mas nada mostra esse tamanho; o LoL
+      desenha o círculo de seleção de cada unidade no chão, e é por ele que
+      se julga "encosta ou não". Ideia: círculo discreto nos pés de cada
+      criatura (ou só dos inimigos em combate), com `capsuleRadius`. Saiu da
+      revisão de precisão dos ataques (docs/features/033-skills-de-combate-
+      e-vfx.md, Parte 1).
+- [ ] **Regra de altura visível** — quem está no ar/em outro plano não é
+      acertado (`isWithinCombatHeight`), sem pista visual nenhuma.
+
 ## Criaturas
 
 - [X] **Criaturas selvagens no mundo** — entregue em

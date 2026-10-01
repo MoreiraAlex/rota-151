@@ -29,7 +29,7 @@ export const GAME_CONFIG = {
   BATTLE: {
     // Velocidade do ataque básico pelo status `speed` (ver
     // `calculateAttackDurationFactor`, core/data/species/stats.js): a
-    // duração autorada (`attacks.primary.overrides.duration`, ou a do
+    // duração autorada (`basicAttack.duration`, ou a do
     // próprio ataque) é multiplicada por √(REFERENCE / speed), limitado a
     // [MIN_FACTOR, MAX_FACTOR]. REFERENCE é o `speed` CALCULADO (base + IV
     // + nível) que toca a duração autorada exata — 10 ≈ base 45 no nível 5
@@ -72,9 +72,19 @@ export const GAME_CONFIG = {
     // alvo ao alcance e no mesmo plano de combate "puxa" o giro do golpe.
     // 45° = cone de 90° no total. Valor de partida, ajustar jogando.
     MELEE_AIM_HALF_ANGLE: Math.PI / 4,
+    // Direcionar o golpe ENQUANTO O AVISO CARREGA: do disparo até o `effectAt`,
+    // a criatura controlada acompanha a câmera (a direção só trava no instante
+    // do golpe). `false` = trava no disparo, como antes. Só vale pra criatura
+    // controlada (a IA mira uma vez, no disparo).
+    ATTACK_WINDUP_STEERING: true,
     // Segundos sem lançar ataque até a criatura sair do modo combate
     // (`CombatMode`, `combatModeSystem.js`) — cada ataque reinicia a conta.
     COMBAT_MODE_TIMEOUT: 10,
+    // Atordoamento (ação `'hit'`, `core/actions/hitStun.js`) de quem teve um
+    // golpe de status interrompido por dano: segundos em que toca a animação
+    // de hit e não faz nada. 0.67 = a `hit` dos iniciais na velocidade
+    // original. Por espécie: `actions.hit.duration`.
+    HIT_STUN_DURATION: 0.67,
     // Combate 2.5D (`core/battle/attackGeometry.js`): diferença máxima
     // (m) entre as elevações dos pés de atacante e alvo, cada uma medida
     // em relação ao terreno logo abaixo dela. Acima disso, o alvo está
@@ -90,12 +100,41 @@ export const GAME_CONFIG = {
   },
   // Retorno visual de combate (view — consome eventos de `core/events/`).
   FEEDBACK: {
-    // Brilho rápido no modelo de quem toma dano (`hitFlashSystem.js`):
-    // acende na cor/intensidade abaixo e apaga ao longo de DURATION (s).
+    // Brilho rápido no modelo de quem foi atingido (`hitFlashSystem.js`): acende
+    // na cor do acontecimento (`FEEDBACK_COLORS`, abaixo) e apaga ao longo de
+    // DURATION (s). INTENSITY (0-1) é o quanto o brilho cobre a textura.
     HIT_FLASH: {
       DURATION: 0.15,
-      COLOR: '#ffffff',
       INTENSITY: 0.8,
+    },
+    // Cores do feedback por LADO e por TIPO de acontecimento — a mesma paleta
+    // pro brilho do modelo (`hitFlashSystem.js`) e pros textos acima da cabeça
+    // (`damageNumberSystem.js` + `DamageNumbersView.jsx`):
+    // - DAMAGE: tomou dano; CRIT: o número do dano CRÍTICO (o brilho do contorno
+    //   continua na cor de DAMAGE); DEBUFF: status negativo (atributo baixou);
+    //   BUFF: status positivo (atributo subiu).
+    // - OPPONENT (selvagens e quem não é do jogador): vermelho / laranja / verde.
+    // - ALLY (o treinador e as criaturas do time): tons frios — rosa / violeta /
+    //   ciano —, pra bater o olho e saber de que lado foi.
+    // Cor do texto "Errou!" (golpe que falhou no sorteio de precisão): cinza
+    // claro, igual pros dois lados — não é dano nem status.
+    MISS_COLOR: '#d9d9d9',
+    // Cor do texto "Interrompido!" (golpe de status cortado na carga por
+    // dano): amarelo, igual pros dois lados — não é dano nem status.
+    INTERRUPT_COLOR: '#ffd54f',
+    FEEDBACK_COLORS: {
+      OPPONENT: {
+        DAMAGE: '#ff3b30',
+        CRIT: '#ffd23f',
+        DEBUFF: '#ff9f0a',
+        BUFF: '#32d74b',
+      },
+      ALLY: {
+        DAMAGE: '#ff5c8a',
+        CRIT: '#ffc4e1',
+        DEBUFF: '#b57bff',
+        BUFF: '#4dd0e1',
+      },
     },
     // Número de dano subindo acima de quem apanhou (`damageNumberSystem.js`
     // + `DamageNumbersView.jsx`). Crítico fica mais tempo, maior e com
@@ -130,6 +169,80 @@ export const GAME_CONFIG = {
       // também aparece através de parede/obstáculo/terraço. `false` volta
       // ao normal (tampado por quem estiver na frente).
       ALWAYS_ON_TOP: true,
+    },
+    // Aviso de golpe (`view/scene/AttackTelegraphView.jsx`): durante a
+    // execução de QUALQUER ataque (time e selvagens), o leque da área
+    // aparece no chão e se preenche do ápice até a borda, completando no
+    // instante do dano — dá pra ver onde vai acertar e desviar. Usa a
+    // mesma altura (`GROUND_LIFT`) do indicador acima, mas respeita
+    // profundidade (não é desenhado por cima de corpos/obstáculos).
+    ATTACK_TELEGRAPH: {
+      FILL_COLOR: '#ff7043',
+      FILL_OPACITY: 0.35,
+      EDGE_COLOR: '#ffab91',
+      EDGE_OPACITY: 0.9,
+      // Carga de golpe em SI MESMO (Growth): círculo nos pés, que ainda pode
+      // ser interrompido por dano — cor própria, não o vermelho de ataque.
+      SELF_FILL_COLOR: '#9ccc65',
+      SELF_EDGE_COLOR: '#dcedc8',
+      // Quantos avisos simultâneos no máximo (pool fixo de leques).
+      POOL_SIZE: 16,
+    },
+    // Efeito visual do dash (`view/vfx/dashVfx.js`, `view/scene/
+    // DashEffectsView.jsx`): linhas de velocidade enquanto dura o dash e poeira
+    // no chão na saída. SCALE multiplica tamanho e raio (1 = o do Cobblemon, grande
+    // pras criaturas daqui; valor de partida, ajustar jogando).
+    DASH_EFFECT: {
+      ENABLED: true,
+      SCALE: 0.6,
+      // Linhas de velocidade: quantas saem por SEGUNDO enquanto o dash dura
+      // (vivem 0.2 s, então ~LINE_RATE × 0.2 na tela de cada vez; 0 = sem
+      // linhas), e o tamanho de cada uma em metros, antes da escala.
+      LINE_RATE: 25,
+      LINE_LENGTH: 0.6,
+      LINE_THICKNESS: 0.05,
+      // Nuvens de poeira na saída do dash (0 = sem poeira).
+      DUST_COUNT: 5,
+    },
+    // Poeira do pulo (`view/scene/JumpDustView.jsx`, `view/vfx/jumpDustVfx.js`):
+    // anel de nuvens no chão na decolagem de um pulo (TAKEOFF_COUNT nuvens) e na
+    // aterrissagem de qualquer queda — a quantidade vai de LANDING_COUNT_MIN a
+    // _MAX conforme a velocidade da queda (m/s): abaixo de MIN_FALL_SPEED não
+    // solta nada (degrau, rampa) e em MAX_FALL_SPEED é a força total. SCALE
+    // multiplica tamanho e raio. Valores de partida, ajustar jogando.
+    JUMP_DUST: {
+      ENABLED: true,
+      SCALE: 0.5,
+      MIN_FALL_SPEED: 2,
+      MAX_FALL_SPEED: 10,
+      TAKEOFF_COUNT: 2,
+      LANDING_COUNT_MIN: 2,
+      LANDING_COUNT_MAX: 4,
+    },
+    // Hit stop (`view/systems/hitStopSystem.js`): no acerto, a ANIMAÇÃO
+    // do atacante e do alvo congela por um instante — dá "peso" ao golpe.
+    // Só visual (a simulação segue); ticks de ataque canalizado não
+    // disparam (travaria o canal a cada tick).
+    HIT_STOP: {
+      DURATION: 0.07,
+      CRIT_DURATION: 0.12,
+    },
+    // Anel de tempo da ação de ataque (`view/scene/ActionTimerRingView.jsx`),
+    // estilo stamina do Valheim: no chão, em volta da criatura CONTROLADA,
+    // só enquanto ela executa um ataque — começa cheio e esvazia até o fim
+    // da `duration` (quando ela fica livre de novo).
+    ACTION_TIMER_RING: {
+      COLOR: '#ffd54f',
+      OPACITY: 0.9,
+      // Anel de fundo (a parte já gasta).
+      TRACK_COLOR: '#000000',
+      TRACK_OPACITY: 0.35,
+      // Folga (m) entre o corpo (`capsuleRadius`) e a borda interna do anel.
+      PADDING: 0.12,
+      // Espessura (m) do anel.
+      THICKNESS: 0.06,
+      // Segmentos do círculo — mais = arco mais liso.
+      SEGMENTS: 64,
     },
   },
   // Modo scanner (item categoria `scanner`, ex.: Pokédex) —

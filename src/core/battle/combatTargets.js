@@ -1,4 +1,4 @@
-import { resolveCreatureAttack } from '../data/attacks'
+import { resolveCreatureAttack } from './creatureAttack'
 import {
   CharacterController,
   Fainted,
@@ -109,7 +109,7 @@ export function listWildsFightingParty(world) {
  * se a espécie não tem ataque básico.
  */
 export function resolveAttackReach(species, targetBody) {
-  const attack = resolveCreatureAttack(species?.attacks?.primary)
+  const attack = resolveCreatureAttack(species, 'primary')
   if (!attack) return null
   return attack.range + attack.radius + targetBody.capsuleRadius
 }

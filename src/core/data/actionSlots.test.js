@@ -11,7 +11,7 @@ describe('resolveActionSlots', () => {
     })
   })
 
-  it("'pokemon' resolve primary como ataque comum e secondary1-3 como papéis genéricos de skill (Q/E/R, conteúdo real vem de species.attacks.<slot>)", () => {
+  it("'pokemon' resolve primary como ataque comum e secondary1-3 como papéis genéricos de skill (Q/E/R, conteúdo real vem de species.skills[N])", () => {
     expect(resolveActionSlots('pokemon')).toEqual({
       primary: 'attack',
       secondary1: 'skill1',

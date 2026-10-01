@@ -1,4 +1,4 @@
-import { Fainted } from '@/core/traits'
+import { CryPulse, Fainted } from '@/core/traits'
 import { getVoiceAudioEntries } from '@/view/registry/voiceAudioRegistry'
 import { pickRandomVariation } from '@/view/audio/pickRandomVariation'
 
@@ -37,6 +37,23 @@ export function voiceAudioSystem(context) {
       if (entry.audio.isPlaying) entry.audio.stop()
       continue
     }
+
+    // `CryPulse` (skill com `audio.cry`, ex.: Growl): vocaliza AGORA, cortando
+    // o que estiver tocando; a boca acompanha (`mouthSyncSystem` lê
+    // `audio.isPlaying`). Sem buffer carregado ainda, só consome o pulso.
+    if (entity.has(CryPulse)) {
+      entity.remove(CryPulse)
+      if (entry.buffers.length > 0) {
+        if (entry.audio.isPlaying) entry.audio.stop()
+        entry.audio.setBuffer(pickRandomVariation(entry.buffers))
+        entry.audio.play()
+        entry.timer =
+          entry.minInterval +
+          Math.random() * (entry.maxInterval - entry.minInterval)
+      }
+      continue
+    }
+
     if (entry.audio.isPlaying) continue
 
     entry.timer -= delta

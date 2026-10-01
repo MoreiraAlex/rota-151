@@ -12,7 +12,7 @@ import * as THREE from 'three'
  * não existe no `.mtl` de origem).
  *
  * Segundo consumidor de "carrega efeito + refaz material aditivo"
- * (`ScratchAttackEffect.jsx` foi o primeiro, `PunchAttackEffect.jsx` o
+ * (`tackleAttackEffect.jsx` foi o primeiro, `PunchAttackEffect.jsx` o
  * segundo) — extraído aqui pra não duplicar o mesmo `useMemo`/traverse.
  *
  * Clonado por INSTÂNCIA (`useMemo`, não o cache de `useGLTF`) — cada
@@ -38,7 +38,7 @@ import * as THREE from 'three'
  * correção.
  *
  * `options.reveal` (opcional, `false` por padrão) — pedido do usuário
- * pro grupo `'scratch'`: em vez de aparecer inteiro de uma vez, o efeito
+ * pro grupo `'tackle'`: em vez de aparecer inteiro de uma vez, o efeito
  * é REVELADO progressivamente (0% a 100% do "traço" visível), dando a
  * sensação de golpe partindo de um ponto até outro. Implementado via
  * `onBeforeCompile` (técnica padrão do Three.js pra ajustar um shader
@@ -63,18 +63,18 @@ import * as THREE from 'three'
  * revelação que o jogo original provavelmente fazia via animação de UV.
  *
  * `revealUniforms` (um `{ value: number }` por material, na mesma ordem
- * de `materials`) é o que `ScratchAttackEffect.jsx` muta em `useFrame`
+ * de `materials`) é o que `tackleAttackEffect.jsx` muta em `useFrame`
  * pra controlar a revelação — mutar `.value` direto (não recriar o
  * objeto) é o jeito correto de atualizar um uniform por frame sem forçar
  * recompilação do shader (o Three.js lê `.value` de novo a cada render).
  *
  * `options.alignForwardTip` (opcional, `false` por padrão) — bug real,
- * relatado jogando: "o efeito do Scratch está atravessando o muro".
+ * relatado jogando: "o efeito do tackle está atravessando o muro".
  * `AttackEffect` nasce no PONTO DE IMPACTO (`impactPoint`,
  * `creatureAttackSystem.js` — já parado na parede/obstáculo mais
  * próximo, se houver um no caminho) e a malha aponta na direção do golpe
  * via `Rotation` (eixo local +Z = direção do golpe, mesma convenção de
- * `resolveEffectRotation`/`rot.y` do corpo). O rip `EffCommonScratch`,
+ * `resolveEffectRotation`/`rot.y` do corpo). O rip `EffCommontackle`,
  * porém, NÃO nasce centrado nem "puxado pra trás" da própria origem —
  * conferido inspecionando o `.glb` gerado (accessor de posição:
  * Z ∈ [-0.9, +3.68], a MAIORIA da malha em Z positivo). Como "positivo"

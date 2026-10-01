@@ -77,16 +77,18 @@ function findMeleeAimPoint(world, pos, attackerElevation, forward, attack) {
 }
 
 /**
- * Direção do golpe, travada no disparo por `creatureAttackSystem.js` e
- * reusada pelo indicador de alcance (`AttackIndicatorView.jsx`), pros dois
- * nunca divergirem. **Sempre horizontal** (`y: 0`) — combate 2.5D, sem
+ * Direção do golpe (travada no `effectAt` por `creatureAttackSystem.js` e
+ * reusada pelo indicador de alcance, `AttackIndicatorView.jsx`, pros dois
+ * nunca divergirem). **Sempre horizontal** (`y: 0`) — combate 2.5D, sem
  * mira vertical: a altura quem resolve é a trajetória, acompanhando o
- * terreno (`resolveAttackImpactPoint`). Depende de `attack.aim`
- * (`core/data/attacks/<id>/index.js`):
+ * terreno (`resolveAttackImpactPoint`). Parte do giro horizontal da câmera.
  *
- * - `'melee'`: giro horizontal da câmera, puxado pro alvo dentro do cone
- *   à frente (`findMeleeAimPoint`) quando houver.
- * - `'ranged'` (ou ausente): giro horizontal da câmera, sem assistência.
+ * **A assistência de mira só entra no ataque BÁSICO** (`slot === 'primary'`
+ * E `attack.aim === 'melee'`): o golpe é puxado pro alvo dentro do cone à
+ * frente (`findMeleeAimPoint`). As habilidades (`secondary1-3`) sempre
+ * saem exatamente pra onde a câmera olha, qualquer que seja o `aim` delas —
+ * quem mira uma habilidade é o jogador (e pode redirecioná-la enquanto o
+ * aviso carrega, ver `creatureAttackSystem.js`).
  */
 export function resolveAttackDirection(
   world,
@@ -94,6 +96,7 @@ export function resolveAttackDirection(
   excludeColliderHandle,
   species,
   attack,
+  slot,
 ) {
   const forward = horizontalOf(
     resolveAimDirection(
@@ -104,7 +107,8 @@ export function resolveAttackDirection(
       species?.camera?.shoulderOffset,
     ),
   )
-  if (attack.aim !== 'melee') return forward
+  // Assistência: só o básico, e só se ele for corpo a corpo.
+  if (slot !== 'primary' || attack.aim !== 'melee') return forward
 
   const aimPoint = findMeleeAimPoint(
     world,

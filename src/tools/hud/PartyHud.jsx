@@ -22,6 +22,7 @@ import {
   KeyHint,
   resolveXpPercent,
   SpritePortrait,
+  StatStageBadges,
   VitalBar,
 } from '@/view/shared/statusDisplay'
 import { CARD_TRANSITION, statusLayoutId } from './statusMotion'
@@ -338,6 +339,7 @@ function PartySlotCard({
           max={maxStamina}
           colorClass="bg-sky-400"
         />
+        <StatStageBadges entity={activeEntity} compact align="start" />
       </div>
     </motion.div>
   )

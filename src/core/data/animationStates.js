@@ -44,6 +44,9 @@ export const ANIMATION_STATES = [
   // Apresentação ao ser invocada (`creatureAppealSystem.js`) — a
   // criatura fica parada enquanto a ação dura.
   { id: 'appeal', oneShot: true, when: (ctx) => ctx.action === 'appeal' },
+  // Atordoada (`core/actions/hitStun.js`): golpe de status interrompido por
+  // dano — toca a animação de hit enquanto a ação `'hit'` dura.
+  { id: 'hit', oneShot: true, when: (ctx) => ctx.action === 'hit' },
   { id: 'dash', oneShot: true, when: (ctx) => ctx.action === 'dash' },
   // 'summon' (invocar criatura, ver docs/features/017-locomocao-e-
   // recolhimento-de-criaturas.md) reusa o MESMO clipe/id do arremesso —

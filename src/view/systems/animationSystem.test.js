@@ -10,6 +10,7 @@ import {
   getAnimatedBonesEntry,
 } from '@/view/registry/animationRegistry'
 import { createNativeAnimationPlayer } from '@/view/animation/nativeAnimationPlayer'
+import { clearHitStops, startHitStop } from '@/view/registry/hitStopRegistry'
 import { animationSystem } from './animationSystem'
 
 const { BLEND_DURATION } = GAME_CONFIG.ANIMATION
@@ -59,6 +60,10 @@ function setup(world) {
     native,
   })
   return { entity, hip, native, entry: getAnimatedBonesEntry(entity) }
+}
+
+function ctxClipName(native) {
+  return native.action?.getClip().name
 }
 
 function tick(world, delta = 0.1) {
@@ -313,6 +318,62 @@ describe('animationSystem — animações embutidas', () => {
 
     for (let i = 0; i < 6; i++) tick(world, 0.05) // passou de 0.5s
     expect(hip.position.y).toBeCloseTo(2)
+  })
+
+  it('ActionState.animationKey troca a animação do ataque (ex.: skill à distância), com fallback pra `attack`', () => {
+    world = createWorld()
+    const root = new THREE.Object3D()
+    const hip = new THREE.Bone()
+    hip.name = 'hip'
+    root.add(hip)
+    const native = createNativeAnimationPlayer(
+      root,
+      [hipY('idle', 1, 0, 0), hipY('attack', 1, 1, 1), hipY('ranged', 1, 2, 2)],
+      { idle: 'idle', attack: 'attack', attackRanged: 'ranged' },
+    )
+    entity = world.spawn(AnimationState, ActionState)
+    registerAnimatedBones(entity, {
+      bones: resolveBones({ bones: [hip] }),
+      clips: {},
+      native,
+    })
+    tick(world)
+
+    entity.set(AnimationState, { id: 'attack' })
+    entity.set(ActionState, {
+      current: 'attack',
+      elapsed: 0,
+      animationSpeed: 1,
+      animationKey: 'attackRanged',
+    })
+    tick(world)
+    expect(ctxClipName(native)).toBe('ranged')
+
+    // Ataque seguinte sem chave própria que a espécie tenha → `attack`.
+    entity.set(ActionState, { elapsed: 0, animationKey: 'nao-existe' })
+    entity.set(AnimationState, { id: 'idle' })
+    tick(world)
+    entity.set(AnimationState, { id: 'attack' })
+    tick(world)
+    expect(ctxClipName(native)).toBe('attack')
+  })
+
+  it('hit stop congela o relógio da animação da entidade enquanto durar', () => {
+    world = createWorld()
+    const ctx = setup(world)
+    entity = ctx.entity
+
+    entity.set(AnimationState, { id: 'idle' })
+    tick(world, 0.1)
+    const timeBefore = ctx.native.action.time
+
+    startHitStop(entity, 0.15)
+    tick(world, 0.1)
+    expect(ctx.native.action.time).toBeCloseTo(timeBefore)
+
+    clearHitStops()
+    tick(world, 0.1)
+    expect(ctx.native.action.time).toBeCloseTo(timeBefore + 0.1)
   })
 
   it('cyclePhase vem do motor que estiver tocando (pros passos)', () => {

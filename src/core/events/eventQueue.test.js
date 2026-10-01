@@ -48,7 +48,7 @@ describe('createEventQueue — eventos do passo (gameplay)', () => {
 describe('attackResolved', () => {
   const base = {
     attacker: 1,
-    attackId: 'scratch',
+    attackId: 'tackle',
     slot: 'primary',
     origin: { x: 0, y: 0, z: 0 },
     impactPoint: { x: 0, y: 0, z: 1 },

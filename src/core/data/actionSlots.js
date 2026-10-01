@@ -16,12 +16,12 @@ const TRAINER_ACTION_SLOTS = {
 
 // 'pokemon' (ver docs/features/025-ataque-comum-de-criatura.md): `primary`
 // e `secondary1-3` (Q/E/R) já resolvem de verdade
-// (`creatureAttackSystem.js` + `attacks.<slot>` por espécie, referenciando
-// `core/data/attacks/`) — desde a 9ª rodada, quando as 3 primeiras skills
+// (`creatureAttackSystem.js` + `basicAttack`/`skills[N]` por espécie, referenciando
+// `core/data/skills/`) — desde a 9ª rodada, quando as 3 primeiras skills
 // (`vine-whip`/`ember`/`whirlpool`) ganharam conteúdo. Os rótulos aqui são
 // PAPÉIS genéricos ("1º/2º/3º slot de skill configurável"), não um id
 // fixo — cada espécie referencia o que quiser (ou nada) em
-// `attacks.secondary1-3`; `stats`/`moves` da espécie continuam vazios
+// `skills[1-3]`; `stats`/`moves` da espécie continuam vazios
 // (sem dano ainda — ver docs/features/018-troca-de-controle-treinador-
 // criatura.md).
 const CREATURE_ACTION_SLOTS = {

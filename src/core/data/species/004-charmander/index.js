@@ -1,6 +1,7 @@
 import CRY_CLIP from './clips/cry.json'
+import { BASIC_ATTACK } from './basicAttack'
 
-const LEVEL = 5
+const LEVEL = 100
 
 const HP = 39
 const ATTACK = 52
@@ -26,7 +27,7 @@ export const CHARMANDER = {
   },
   model: {
     path: '/assets/models/004-charmander.glb',
-    scale: 1.3,
+    scale: 1.2,
     texture: {
       0: {
         path: '/assets/textures/004-charmander/default/pm0004_00_00_body_alb.png',
@@ -47,10 +48,23 @@ export const CHARMANDER = {
     cry: CRY_CLIP,
   },
   nativeAnimations: {
+    // Growl (skill de status): o rugido
+    roar: 'roar',
     idle: 'idle',
     walk: 'walk',
     run: 'run',
-    attack: 'attack',
+    attack: {
+      start: 'attackAltStart',
+      loop: 'attackAltLoop',
+      end: 'attackAltEnd',
+    },
+    attackAlt: 'attack',
+    attackRanged: 'attackRanged',
+    attackRangedAlt: {
+      start: 'attackRangedAltStart',
+      loop: 'attackRangedAltLoop',
+      // end: 'attackRangedAltEnd',
+    },
     faint: {
       start: 'faintStart',
       loop: 'faintLoop',
@@ -58,9 +72,11 @@ export const CHARMANDER = {
     },
     fall: 'fallLoop',
     jump: 'jumpLoop',
-    dash: { sequence: ['stepIn', { animation: 'stepInEnd', frames: 10 }], },
+    dash: { sequence: ['stepIn', { animation: 'stepInEnd', frames: 10 }] },
     battleIdle: 'battleIdle',
     appeal: 'appeal',
+    // atordoada por golpe interrompido (ação `'hit'`)
+    hit: 'hit',
   },
   nativeBlink: { animation: 'blink', minInterval: 2, maxInterval: 6 },
   actions: {
@@ -69,9 +85,9 @@ export const CHARMANDER = {
 
   body: {
     capsuleRadius: 0.25,
-    capsuleHalfHeight: 0.12,
+    capsuleHalfHeight: 0.09,
     capsuleAxis: 'y',
-    modelOffset: [0, -0.38, 0],
+    modelOffset: [0, -0.35, 0],
   },
   movement: {
     walkSpeed: 1.5,
@@ -103,57 +119,18 @@ export const CHARMANDER = {
     dashGroup: 'default',
     jumpGroup: 'default',
   },
-  // Fogo de partícula na ponta da cauda (ver docs/features/022-fogo-de-
-  // cauda-do-charmander.md) — encaixado no osso `Tail6`
-  // (`TAIL_BONE_BY_SPECIES`, `useAnimatedModel.js`), acompanha a animação
-  // sozinho. `width`/`height`/`density` bem menores que o default de
-  // `createFlame` (calibrado pra uma fogueira ~1 unidade) — uma chama de
-  // cauda é bem menor, ver `view/vfx/flameParticles.js`.
-  // vfx: {
-  //   tailFire: {
-  //     shape: 'cone',
-  //     width: 0.05,
-  //     height: 2,
-  //     density: 1,
-  //     turbulence: 0,
-  //     scale: 0.3,
-  //     // Rotação LOCAL fixa (graus) por cima da orientação herdada do osso
-  //     // — o fogo saía "deitado" na cauda porque `bone.add()` também herda
-  //     // a orientação de repouso do rig, não só a posição (ver
-  //     // tailFireSystem.js). Ajusta x/y/z olhando o resultado no jogo.
-  //     rotation: { x: 90, y: 180, z: 90 },
-  //     // Deslocamento LOCAL (unidades de mundo) a partir da origem do osso
-  //     // — ajusta na mão se a chama não nascer exatamente onde deveria em
-  //     // relação à ponta da cauda (ver tailFireSystem.js).
-  //     position: { x: 0.1, y: 0, z: 0 },
-  //     // Luz de verdade (`THREE.PointLight`, filha do mesmo grupo — já
-  //     // acompanha escala/rotação/posição acima de graça, ver docstring de
-  //     // `createFlame` em flameParticles.js). `distance` bem menor que o
-  //     // default de fogueira (3) — chama de cauda não devia iluminar uma
-  //     // área grande.
-  //     light: {
-  //       color: '#ff8a3d',
-  //       distance: 8,
-  //       decay: 0.2,
-  //       baseIntensity: 5,
-  //       // Sombra dinâmica (cubemap de PointLight, mais caro que uma luz
-  //       // sem sombra) — liga pra ver o Charmander/objetos por perto
-  //       // reagirem ao flicker da chama.
-  //       castShadow: false,
-  //     },
-  //   },
-  // },
-  attacks: {
-    primary: {
-      id: 'scratch',
+  basicAttack: BASIC_ATTACK,
+  skills: {
+    1: { id: 'growl' },
+    2: { id: 'tackle', overrides: { range: 1, duration: 1, effectAt: 0.4 } },
+    3: {
+      id: 'ember',
       overrides: {
-        range: 1,
-        duration: 0.8,
-        effectAt: 0.3,
-        visual: { rotationOffset: { x: 0, y: 0, z: -15 } },
+        duration: 1,
+        effectAt: 0.8,
+        visual: { positionOffset: { x: 0, y: 0, z: 0.5 } },
       },
     },
-    secondary1: 'ember',
   },
   stats: {
     hp: { base: HP, ev: HP_EV, regenPercent: 2, regenDelay: 5 },
@@ -164,5 +141,8 @@ export const CHARMANDER = {
     sp_def: { base: SP_DEF, ev: SP_DEF_EV },
     speed: { base: SPEED, ev: SPEED_EV },
   },
-  moves: [],
+  moves: [
+    { id: 'smokescreen', overrides: { range: 2.5, radius: 2, duration: 2, effectAt: 0.6, visual: { positionOffset: { x: 0, y: 0, z: 0.5 }, scale: 3 } } },
+    { id: 'flamethrower', overrides: { range: 2.5, radius: 2, duration: 2, effectAt: 0.6, visual: { positionOffset: { x: 0, y: 0, z: 0.5 }, scale: 3 } } },
+  ],
 }

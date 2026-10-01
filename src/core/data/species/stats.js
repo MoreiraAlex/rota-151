@@ -46,16 +46,13 @@ export function calculateStat({ base, iv, ev, level, nature = 1 }) {
 }
 
 export function calculateCP({ SomaStatus, SomaIV, SomaEV, level }) {
-  const goPower = SomaIV + Math.trunc(SomaEV / 4);
+  const goPower = SomaIV + Math.trunc(SomaEV / 4)
 
-  return (
-    Math.min(
-      Math.trunc(
-        (SomaStatus - goPower) * level * 0.06 +
-        goPower * (level * 0.04 + 2)
-      ),
-      10000
-    )
+  return Math.min(
+    Math.trunc(
+      (SomaStatus - goPower) * level * 0.06 + goPower * (level * 0.04 + 2),
+    ),
+    10000,
   )
 }
 

@@ -6,7 +6,7 @@ import {
   registrarAmeaca,
   voltarAVagar,
 } from '../actions/wildBehavior'
-import { resolveCreatureAttack } from '../data/attacks'
+import { resolveCreatureAttack } from '../battle/creatureAttack'
 import { getPlayerSpecies, getSpecies } from '../data/species'
 import { GAME_CONFIG } from '../gameConfig'
 import {
@@ -222,10 +222,10 @@ describe('wildBehaviorSystem — pacífica', () => {
 })
 
 describe('wildBehaviorSystem — atacando e gastando fôlego', () => {
-  // charmander: scratch com range 1 (override), radius 0.3; alvo com o
+  // charmander: tackle com range 1 (override), radius 0.3; alvo com o
   // mesmo corpo (raio 0.3) → alcance 1.6m centro a centro.
-  const scratch = resolveCreatureAttack(SPECIES.attacks.primary)
-  const REACH = scratch.range + scratch.radius + SPECIES.body.capsuleRadius
+  const tackle = resolveCreatureAttack(SPECIES, 'primary')
+  const REACH = tackle.range + tackle.radius + SPECIES.body.capsuleRadius
 
   it('perseguindo com o alvo ao alcance: pede golpe e respeita o intervalo', () => {
     const { wild, player, tick, movePlayer } = setup()

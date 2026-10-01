@@ -39,7 +39,7 @@ import { trait } from 'koota'
  * `speed: 3.33` — e nem o COMENTÁRIO ao lado do `duration` batia com
  * nenhum dos dois, `2.5`). Agora `duration` (já a única fonte de
  * verdade de "quanto tempo a ação trava a entidade", configurada em
- * `attacks.<slot>`/`actions.<id>`) é também a ÚNICA fonte da
+ * `basicAttack`/`skills[N]`/`actions.<id>`) é também a ÚNICA fonte da
  * velocidade de playback: quem DISPARA a ação (`playerActionSystem`/
  * `partySummonSystem`/`creatureAttackSystem`, os mesmos donos de
  * escrita de `current`/`elapsed` abaixo) grava `1 / duration` aqui, no
@@ -54,9 +54,20 @@ import { trait } from 'koota'
  * `animationFrames` — quantos frames do clipe EMBUTIDO (`.glb`) a ação
  * toca, a partir do início (`null` = todos). Pra cortar um final que não
  * serve: o trecho que sobra é que é esticado pra caber em `duration`.
- * Hoje só o ataque usa (`attacks.<slot>.overrides.animationFrames`):
+ * Hoje só o ataque usa (`skills[N].overrides.animationFrames`):
  * `creatureAttackSystem` grava no disparo e volta pra `null` ao fim da
  * ação. Lê: `animationSystem.js` (view).
+ *
+ * `animationKey` — chave de animação do ataque em andamento
+ * (`animation.clipKey` da definição: `'attack'`, `'attackRanged'`...),
+ * `null` fora de ataque. `creatureAttackSystem` grava no disparo e volta
+ * pra `null` no fim; `animationSystem.js` (view) toca essa chave no lugar
+ * da `'attack'` quando a espécie a tiver (docs/features/033-skills-de-combate-e-vfx.md).
+ *
+ * `channelWeights`/`channelTick` — só em ataque CANALIZADO
+ * (`damageMode: 'channel'`): as frações do dano total, uma por tick,
+ * sorteadas no disparo (`rollChannelWeights`, somam 1), e o índice do
+ * próximo tick. `null`/`0` fora disso. Dono: `creatureAttackSystem`.
  *
  * `pendingSlot` guarda QUAL slot a ação em andamento diz respeito, com
  * significado diferente por ação (mesmo campo reaproveitado, não um por
@@ -68,11 +79,11 @@ import { trait } from 'koota'
  * - ataque/skill de criatura (`creatureAttackSystem.js`, desde a 9ª
  *   rodada de docs/features/025-ataque-comum-de-criatura.md): qual botão
  *   disparou (`'primary' | 'secondary1' | 'secondary2' | 'secondary3'`,
- *   mesmos rótulos de `species.attacks.<slot>`) — precisa disso porque
+ *   mesmos rótulos de `species.basicAttack`/`species.skills[N]`) — precisa disso porque
  *   `current` some diz "attack" pras duas fontes (mouse e Q/E/R), sem
  *   dizer QUAL ataque resolver durante o progresso (`effectAt`/
  *   `duration`); sem o slot, `creatureAttackSystem` não saberia se deve
- *   reler `attacks.primary` ou `attacks.secondary1` no meio do gesto.
+ *   reler `basicAttack` ou `skills[1]` no meio do gesto.
  *
  * `null` quando não há ação relevante em andamento.
  *
@@ -94,6 +105,9 @@ export const ActionState = trait({
   elapsed: 0,
   animationSpeed: 1,
   animationFrames: null,
+  animationKey: null,
+  channelWeights: null,
+  channelTick: 0,
   dirX: 0,
   dirY: 0,
   dirZ: 0,

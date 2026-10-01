@@ -37,6 +37,9 @@ describe('keyboardInput', () => {
       secondary1: false,
       secondary2: false,
       secondary3: false,
+      secondary1Held: false,
+      secondary2Held: false,
+      secondary3Held: false,
       switchSlot1: false,
       switchSlot2: false,
       switchSlot3: false,
@@ -142,6 +145,9 @@ describe('keyboardInput', () => {
       secondary1: false,
       secondary2: false,
       secondary3: false,
+      secondary1Held: false,
+      secondary2Held: false,
+      secondary3Held: false,
       switchSlot1: false,
       switchSlot2: false,
       switchSlot3: false,
@@ -317,5 +323,23 @@ describe('keyboardInput', () => {
     expect(win.count('keyup')).toBe(0)
     expect(win.count('blur')).toBe(0)
     expect(keyboard.snapshot().forward).toBe(false)
+  })
+
+  it('Q/E/R segurados: pulso só no 1º snapshot, `secondaryNHeld` até soltar', () => {
+    const keyboard = createKeyboardInput()
+    keyboard.start()
+
+    press('KeyE')
+    const first = keyboard.snapshot()
+    expect(first.secondary2).toBe(true)
+    expect(first.secondary2Held).toBe(true)
+
+    const second = keyboard.snapshot()
+    expect(second.secondary2).toBe(false) // pulso drenado
+    expect(second.secondary2Held).toBe(true) // continua segurando
+
+    release('KeyE')
+    expect(keyboard.snapshot().secondary2Held).toBe(false)
+    keyboard.stop()
   })
 })

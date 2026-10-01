@@ -39,10 +39,12 @@ export { ConsumeEffect } from './components/consumeEffect'
 export {
   AttackEffect,
   AttackPulse,
+  CryPulse,
   AttackCooldowns,
   AttackAim,
   DEFAULT_ATTACK_EFFECT_GROUP,
 } from './components/attackEffect'
+export { StatStages } from './components/statStages'
 export { SummonedCreature } from './components/summonedCreature'
 export { SummonBall } from './components/summonBall'
 export { SummonFlash } from './components/summonFlash'

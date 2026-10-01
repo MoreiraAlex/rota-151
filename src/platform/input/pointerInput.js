@@ -41,6 +41,11 @@ export function createPointerInput() {
   let pitchDelta = 0
   let zoomDelta = 0
   let primaryPressed = false
+  // Estado contínuo do clique esquerdo (do `mousedown` ao `mouseup`) —
+  // ataque canalizado exige segurar até o fim; soltar cancela (ver
+  // docs/features/033-skills-de-combate-e-vfx.md). `primary` segue
+  // sendo o pulso de um tick.
+  let primaryHeld = false
   let secondaryHeld = false
   let secondaryReleased = false
 
@@ -61,6 +66,7 @@ export function createPointerInput() {
   // soltar o botão direito FORA da janela (perde o `mouseup`) deixaria o
   // modo scanner preso ligado pra sempre, sem jeito de sair.
   const resetHeldState = () => {
+    primaryHeld = false
     secondaryHeld = false
     secondaryReleased = false
   }
@@ -100,11 +106,14 @@ export function createPointerInput() {
     // `mousedown` do botão direito, não esperam o `contextmenu`.
     if (event.button === 2) event.preventDefault?.()
     if (!locked) return
-    if (event.button === 0) primaryPressed = true
-    else if (event.button === 2) secondaryHeld = true
+    if (event.button === 0) {
+      primaryPressed = true
+      primaryHeld = true
+    } else if (event.button === 2) secondaryHeld = true
   }
 
   const onMouseUp = (event) => {
+    if (event.button === 0) primaryHeld = false
     if (event.button === 2 && secondaryHeld) {
       secondaryHeld = false
       secondaryReleased = true
@@ -162,6 +171,7 @@ export function createPointerInput() {
         cameraPitch: pitchDelta,
         zoom: zoomDelta,
         primary: primaryPressed,
+        primaryHeld,
         secondaryHeld,
         secondaryReleased,
       }

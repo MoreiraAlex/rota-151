@@ -16,7 +16,10 @@ import { resolveDashSound } from '@/core/data/audio/dashSound'
 import { resolveJumpSound } from '@/core/data/audio/jumpSound'
 import { resolveSummonSound } from '@/core/data/audio/summonSound'
 import { resolveRecallSound } from '@/core/data/audio/recallSound'
-import { resolveAttackSound } from '@/core/data/audio/attackSound'
+import {
+  resolveAttackChargeSounds,
+  resolveAttackSounds,
+} from '@/core/data/audio/attackSound'
 import { createFlame } from '@/view/vfx/flameParticles'
 import {
   createNativeAnimationPlayer,
@@ -76,7 +79,6 @@ import {
 import {
   registerAttackAudio,
   unregisterAttackAudio,
-  getAttackAudioEntry,
 } from '../registry/attackAudioRegistry'
 
 const DEFAULT_FOOTSTEP_VOLUME = 0.6
@@ -153,6 +155,65 @@ function setupPositionalActionSound(
   return () => {
     cancelled = true
     unregister(entity)
+  }
+}
+
+/**
+ * Cria/carrega/registra os sons de ataque da criatura: um
+ * `THREE.PositionalAudio` PRÓPRIO por parte de som de cada slot
+ * (`sounds`: `{ [slot]: [{ clips, volume?, refDistance?, delay }] }`, ver
+ * `resolveAttackSounds`) — duas partes (ex.: som do atacante e do alvo)
+ * podem se sobrepor no tempo, e um nó só toca um buffer por vez. Mais um nó
+ * por slot com som de CARGA (`chargeSounds`, `resolveAttackChargeSounds`).
+ * Devolve a função de cleanup. Quem decide QUANDO tocar é
+ * `attackAudioSystem.js`.
+ */
+function setupAttackAudio(entity, groupRef, sounds, chargeSounds) {
+  const listener = getAudioListener()
+  const createVoice = (part) => {
+    const audio = new THREE.PositionalAudio(listener)
+    audio.setVolume(part.volume ?? DEFAULT_ACTION_SOUND_VOLUME)
+    audio.setRefDistance(part.refDistance ?? DEFAULT_ACTION_SOUND_REF_DISTANCE)
+    groupRef.current.add(audio)
+    return { audio, delay: part.delay ?? 0, buffers: [] }
+  }
+  const voices = {}
+  for (const [slot, parts] of Object.entries(sounds)) {
+    voices[slot] = parts.map(createVoice)
+  }
+  const charge = {}
+  for (const [slot, part] of Object.entries(chargeSounds)) {
+    charge[slot] = createVoice(part)
+  }
+  registerAttackAudio(entity, voices, charge)
+
+  // Mesmo esquema de `setupPositionalActionSound`: carrega cada variação em
+  // paralelo e preenche `buffers` IN PLACE; `cancelled` evita empurrar
+  // buffer pra uma entidade já desregistrada.
+  let cancelled = false
+  for (const [slot, parts] of Object.entries(sounds)) {
+    parts.forEach((part, index) => {
+      const voice = voices[slot][index]
+      for (const path of part.clips ?? []) {
+        loadAudioBuffer(path).then((buffer) => {
+          if (cancelled || !buffer) return
+          voice.buffers.push(buffer)
+        })
+      }
+    })
+  }
+  for (const [slot, part] of Object.entries(chargeSounds)) {
+    for (const path of part.clips ?? []) {
+      loadAudioBuffer(path).then((buffer) => {
+        if (cancelled || !buffer) return
+        charge[slot].buffers.push(buffer)
+      })
+    }
+  }
+
+  return () => {
+    cancelled = true
+    unregisterAttackAudio(entity)
   }
 }
 
@@ -660,23 +721,19 @@ export function useAnimatedModel(entity, species) {
   }, [entity, species])
 
   useEffect(() => {
-    const attack = resolveAttackSound(species)
-    if (!attack) return
+    // Um conjunto de sons por slot de ataque (básico + habilidades), cada um
+    // com uma ou mais partes (ver `core/data/audio/attackSound.js`).
+    // E, à parte, o som de CARGA de cada slot que tiver um.
+    const sounds = resolveAttackSounds(species)
+    const chargeSounds = resolveAttackChargeSounds(species)
+    if (
+      Object.keys(sounds).length === 0 &&
+      Object.keys(chargeSounds).length === 0
+    ) {
+      return
+    }
 
-    return setupPositionalActionSound(
-      entity,
-      groupRef,
-      attack,
-      {
-        volume: DEFAULT_ACTION_SOUND_VOLUME,
-        refDistance: DEFAULT_ACTION_SOUND_REF_DISTANCE,
-      },
-      {
-        register: registerAttackAudio,
-        unregister: unregisterAttackAudio,
-        get: getAttackAudioEntry,
-      },
-    )
+    return setupAttackAudio(entity, groupRef, sounds, chargeSounds)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entity, species])
 

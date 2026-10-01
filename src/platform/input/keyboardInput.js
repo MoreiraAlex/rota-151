@@ -43,9 +43,16 @@ const EDGE_KEY_MAP = {
   Digit4: 'returnToBot',
 }
 
+// Botões de ataque que TAMBÉM expõem estado contínuo ("está segurando"),
+// além do pulso — ataque canalizado (`damageMode: 'channel'`, ver
+// docs/features/033-skills-de-combate-e-vfx.md) exige segurar a tecla
+// até o fim; soltar cancela.
+const HELD_EDGE_ACTIONS = new Set(['secondary1', 'secondary2', 'secondary3'])
+
 export function createKeyboardInput() {
   const pressed = new Set()
   const justPressed = new Set()
+  const heldEdge = new Set()
 
   const onKeyDown = (event) => {
     const action = KEY_MAP[event.code]
@@ -55,16 +62,20 @@ export function createKeyboardInput() {
     event.preventDefault()
     if (action) pressed.add(action)
     if (edgeAction && !event.repeat) justPressed.add(edgeAction)
+    if (HELD_EDGE_ACTIONS.has(edgeAction)) heldEdge.add(edgeAction)
   }
 
   const onKeyUp = (event) => {
     const action = KEY_MAP[event.code]
     if (action) pressed.delete(action)
+    const edgeAction = EDGE_KEY_MAP[event.code]
+    if (edgeAction) heldEdge.delete(edgeAction)
   }
 
   const clear = () => {
     pressed.clear()
     justPressed.clear()
+    heldEdge.clear()
   }
 
   return {
@@ -78,8 +89,7 @@ export function createKeyboardInput() {
       window.removeEventListener('keydown', onKeyDown)
       window.removeEventListener('keyup', onKeyUp)
       window.removeEventListener('blur', clear)
-      pressed.clear()
-      justPressed.clear()
+      clear()
     },
     snapshot() {
       const snapshot = {
@@ -93,6 +103,9 @@ export function createKeyboardInput() {
         secondary1: justPressed.has('secondary1'),
         secondary2: justPressed.has('secondary2'),
         secondary3: justPressed.has('secondary3'),
+        secondary1Held: heldEdge.has('secondary1'),
+        secondary2Held: heldEdge.has('secondary2'),
+        secondary3Held: heldEdge.has('secondary3'),
         switchSlot1: justPressed.has('switchSlot1'),
         switchSlot2: justPressed.has('switchSlot2'),
         switchSlot3: justPressed.has('switchSlot3'),

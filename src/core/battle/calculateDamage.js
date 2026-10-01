@@ -1,5 +1,6 @@
 import { GAME_CONFIG } from '../gameConfig'
 import { resolveCreatureStats } from '../data/species/stats'
+import { stageMultiplier } from './statStages'
 
 /**
  * Fórmula de dano de ataque — convenção clássica de Pokémon, pedido
@@ -108,7 +109,7 @@ export function resolveCombatStats(species, individualValues) {
 
 /**
  * Monta os parâmetros de `calculateDamage` a partir de atacante, alvo e
- * `attack.damage` (definição do golpe — `core/data/attacks/<id>/
+ * `attack.damage` (definição do golpe — `core/data/skills/<id>/
  * index.js`) e devolve `{ amount, critical }` — o dano final e se o
  * crítico saiu (pro retorno visual diferenciar). Ponto único que
  * decide `attack`/`sp_atk` vs `defense`/`sp_def` pela `category` do
@@ -122,20 +123,103 @@ export function resolveDamageAmount({
   defenderSpecies,
   defenderIndividualValues,
   damage,
+  attackerStages,
+  defenderStages,
   rng,
 }) {
-  const attacker = resolveCombatStats(attackerSpecies, attackerIndividualValues)
-  const defender = resolveCombatStats(defenderSpecies, defenderIndividualValues)
-  const isSpecial = damage?.category === 'special'
-  const attackerTypes = attackerSpecies?.types ?? null
-  const defenderTypes = defenderSpecies?.types ?? []
+  const context = {
+    attackerSpecies,
+    attackerIndividualValues,
+    defenderSpecies,
+    defenderIndividualValues,
+    damage,
+    attackerStages,
+    defenderStages,
+  }
   // Sorteado antes do `random` — mesma ordem de consumo do `rng` de antes.
   const critical = rollCriticalMultiplier(rng)
+  const amount = computeDamage(context, {
+    critical,
+    random: rollDamageRandomFactor(rng),
+  })
+  return { amount, critical: critical > 1 }
+}
 
-  const amount = calculateDamage({
+/**
+ * Dano de UM tick de um ataque canalizado (`damageMode: 'channel'`, ver
+ * `core/battle/channelAttack.js`) — pedido do usuário: o canal não repete o
+ * dano cheio a cada tick; o canal INTEIRO vale o dano de um golpe, repartido.
+ *
+ * - "Orçamento" do alvo = o dano do golpe com o fator aleatório MÉDIO
+ *   (`(DAMAGE_RANDOM_MIN + DAMAGE_RANDOM_MAX) / 2`) e sem crítico — o que um
+ *   golpe único renderia em média.
+ * - Cada tick leva a sua fração do orçamento (`weight`, sorteado no disparo
+ *   por `rollChannelWeights` — frações diferentes que somam 1, então os
+ *   ticks variam entre si e o total, segurando até o fim com o alvo no
+ *   cone, é EXATAMENTE o orçamento).
+ * - Crítico sorteado POR TICK: o tick crítico vale o dobro da sua fração,
+ *   bônus por cima do orçamento.
+ */
+export function resolveChannelTickDamage({
+  attackerSpecies,
+  attackerIndividualValues,
+  defenderSpecies,
+  defenderIndividualValues,
+  damage,
+  attackerStages,
+  defenderStages,
+  weight,
+  rng,
+}) {
+  const { DAMAGE_RANDOM_MIN, DAMAGE_RANDOM_MAX } = GAME_CONFIG.BATTLE
+  const budget = computeDamage(
+    {
+      attackerSpecies,
+      attackerIndividualValues,
+      defenderSpecies,
+      defenderIndividualValues,
+      damage,
+      attackerStages,
+      defenderStages,
+    },
+    { critical: 1, random: (DAMAGE_RANDOM_MIN + DAMAGE_RANDOM_MAX) / 2 },
+  )
+  const critical = rollCriticalMultiplier(rng) > 1
+  return {
+    amount: budget * weight * (critical ? 2 : 1),
+    critical,
+  }
+}
+
+/** Monta os parâmetros da fórmula (status, STAB, tipo) e calcula. */
+function computeDamage(context, { critical, random }) {
+  const attacker = resolveCombatStats(
+    context.attackerSpecies,
+    context.attackerIndividualValues,
+  )
+  const defender = resolveCombatStats(
+    context.defenderSpecies,
+    context.defenderIndividualValues,
+  )
+  const { damage } = context
+  const isSpecial = damage?.category === 'special'
+  // Estágios de atributo (golpes de status, `core/battle/statStages.js`):
+  // multiplicam o atributo do ataque do atacante e o de defesa do alvo.
+  const attackKey = isSpecial ? 'sp_atk' : 'attack'
+  const defenseKey = isSpecial ? 'sp_def' : 'defense'
+  const attackMultiplier = stageMultiplier(
+    context.attackerStages?.[attackKey] ?? 0,
+  )
+  const defenseMultiplier = stageMultiplier(
+    context.defenderStages?.[defenseKey] ?? 0,
+  )
+  const attackerTypes = context.attackerSpecies?.types ?? null
+  const defenderTypes = context.defenderSpecies?.types ?? []
+
+  return calculateDamage({
     level: attacker.level,
-    attack: isSpecial ? attacker.sp_atk : attacker.attack,
-    defense: isSpecial ? defender.sp_def : defender.defense,
+    attack: attacker[attackKey] * attackMultiplier,
+    defense: defender[defenseKey] * defenseMultiplier,
     power: damage?.power ?? 1,
     critical,
     stab: resolveStab(damage?.type, attackerTypes),
@@ -147,8 +231,6 @@ export function resolveDamageAmount({
       damage?.type,
       defenderTypes[1] ?? null,
     ),
-    random: rollDamageRandomFactor(rng),
+    random,
   })
-
-  return { amount, critical: critical > 1 }
 }

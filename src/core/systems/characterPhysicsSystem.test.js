@@ -17,6 +17,7 @@ import {
   MovementBlocked,
   Jumped,
   Jumping,
+  ActionState,
 } from '@/core/traits'
 import {
   initPhysics,
@@ -198,6 +199,20 @@ describe('characterPhysicsSystem + integração Rapier', () => {
     // uma cápsula bem alongada e deitada tem mais folga de contato ao
     // assentar do que uma quase esférica em pé.
     expect(Math.abs(player.get(Position).y - yGround)).toBeLessThan(0.15)
+  })
+
+  it('atordoada (ação "hit", golpe interrompido) não pula', () => {
+    const { world, player } = makeWorld({
+      playerPosition: { x: 0, y: 1, z: 0 },
+    })
+    run(world, 30)
+    player.set(ActionState, { current: 'hit' })
+
+    tick(world, { jump: true })
+
+    expect(player.has(Jumped)).toBe(false)
+    // este arquivo não destrói os worlds, e o koota aceita no máximo 16
+    world.destroy()
   })
 
   it('pulo de verdade adiciona o pulso `Jumped` — sem tentar pular, ou sem conseguir, não adiciona', () => {

@@ -4,7 +4,7 @@ import { useGLTF } from '@react-three/drei'
 import { useAdditiveEffectMesh } from './useAdditiveEffectMesh'
 
 // Mesmo valor de `visual.effectVisualDuration` da definição de ataque
-// (`core/data/attacks/whirlpool/index.js`, 0.45 — um pouco mais longo que
+// (`core/data/skills/whirlpool/index.js`, 0.45 — um pouco mais longo que
 // as demais skills, o vórtice "gira" antes de esvair).
 const IMPACT_DURATION = 0.45
 const WHIRLPOOL_MODEL_PATH = '/assets/effects/whirlpool.glb'
@@ -16,8 +16,8 @@ const WHIRLPOOL_COLOR = '#4fc3f7'
 // que já orienta o grupo pai pra direção do golpe).
 const SPIN_SPEED = 6
 // Constante de NORMALIZAÇÃO do rip (`EffCommonWhirlwindL`, malha original
-// ~22 unidades de diâmetro — mesmo espírito de `SCRATCH_BASE_SCALE`, ver
-// docstring completa em `ScratchAttackEffect.jsx`) — NÃO é o
+// ~22 unidades de diâmetro — mesmo espírito de `tackle_BASE_SCALE`, ver
+// docstring completa em `tackleAttackEffect.jsx`) — NÃO é o
 // multiplicador de tamanho por criatura (`WHIRLPOOL_ATTACK.visual.scale`
 // cuida disso). Valor de PARTIDA, ajustar olhando o resultado em jogo.
 const WHIRLPOOL_BASE_SCALE = 0.11
@@ -30,15 +30,15 @@ const WHIRLPOOL_BASE_SCALE = 0.11
  * tornado, radialmente simétrica no plano XZ) tingida de AZUL
  * (`WHIRLPOOL_COLOR`) — escolhida em vez de `EffCommonIce` porque o
  * `.mtl` do Ice referencia uma textura QUEBRADA (arquivo inexistente,
- * ~26% da malha) — ver docstring completa em `core/data/attacks/
+ * ~26% da malha) — ver docstring completa em `core/data/skills/
  * whirlpool/index.js`.
  *
  * Simétrica no plano XZ (X e Z de -11 a +11 nos dois materiais de anel,
  * conferido no `.glb` gerado) — livre do bug de "atravessar parede" que
- * o `'scratch'` teve (nenhum vértice sobra além da origem na direção do
+ * o `'tackle'` teve (nenhum vértice sobra além da origem na direção do
  * golpe), sem precisar de `alignForwardTip`.
  *
- * Mesma técnica de material/clone de `ScratchAttackEffect.jsx`/
+ * Mesma técnica de material/clone de `tackleAttackEffect.jsx`/
  * `PunchAttackEffect.jsx` (`useAdditiveEffectMesh.js`, compartilhado).
  * Cresce/esvai como os outros grupos, mais uma ROTAÇÃO própria em Y
  * (`SPIN_SPEED`) — a única diferença estrutural entre os 4 grupos de
@@ -46,7 +46,7 @@ const WHIRLPOOL_BASE_SCALE = 0.11
  *
  * `scale` (de `attack.visual.scale`) é o tamanho FINAL configurável,
  * mesmo mecanismo de todos os outros grupos — ver docstring completa em
- * `ScratchAttackEffect.jsx`.
+ * `tackleAttackEffect.jsx`.
  */
 export function WhirlpoolAttackEffect({ radius, scale = 1 }) {
   const whirlpool = useAdditiveEffectMesh(WHIRLPOOL_MODEL_PATH, WHIRLPOOL_COLOR)
