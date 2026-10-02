@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import {
+  isAttackChanneling,
   isAttackCharging,
+  isAttackPastEffect,
   resolveAttackHitTime,
   resolveAttackTelegraphProgress,
 } from './attackTelegraph'
@@ -84,5 +86,29 @@ describe('isAttackCharging', () => {
 
   it('fora de ataque não', () => {
     expect(isAttackCharging({ current: null }, ATTACK)).toBe(false)
+  })
+})
+
+describe('isAttackChanneling', () => {
+  const CHANNEL = { ...ATTACK, damageMode: 'channel' }
+
+  it('canalizado: do effectAt até a ação acabar', () => {
+    expect(isAttackChanneling(action(0.3), CHANNEL)).toBe(false)
+    expect(isAttackChanneling(action(0.4), CHANNEL)).toBe(true)
+    expect(isAttackChanneling(action(0.9), CHANNEL)).toBe(true)
+    expect(isAttackChanneling({ current: null }, CHANNEL)).toBe(false)
+  })
+
+  it('golpe que não é canalizado nunca', () => {
+    expect(isAttackChanneling(action(0.9), ATTACK)).toBe(false)
+  })
+})
+
+describe('isAttackPastEffect', () => {
+  it('qualquer golpe: do effectAt até a ação acabar', () => {
+    expect(isAttackPastEffect(action(0.39), ATTACK)).toBe(false)
+    expect(isAttackPastEffect(action(0.4), ATTACK)).toBe(true)
+    expect(isAttackPastEffect(action(0.9), ATTACK)).toBe(true)
+    expect(isAttackPastEffect({ current: null }, ATTACK)).toBe(false)
   })
 })

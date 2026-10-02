@@ -15,8 +15,8 @@
  */
 export const BASIC_ATTACK = {
   id: 'bulbasaur-basic',
-  duration: 1.2,
-  effectAt: 0.6,
+  duration: 0.8,
+  effectAt: 0.3,
   range: 1,
   aim: 'melee',
   castMode: 'instant',

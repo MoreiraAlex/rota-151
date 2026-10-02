@@ -8,6 +8,17 @@ import { SCRATCH_EMITTERS } from './scratchVfx'
 import { DASH_EMITTERS } from './dashVfx'
 import { ABSORB_CHARGE_EMITTERS } from './absorbChargeVfx'
 import { STATUP_EMITTERS } from './statupVfx'
+import {
+  LEECH_DRAIN_EMITTERS,
+  LEECH_DRAIN_SOLO_EMITTERS,
+  LEECH_SEED_EMITTERS,
+} from './leechSeedVfx'
+import {
+  WATER_GUN_EMITTERS,
+  WATER_GUN_HIT_EMITTERS,
+  WATER_JET_EMITTERS,
+} from './waterGunVfx'
+import { TAIL_WHIP_EMITTERS, TAIL_WHIP_PIVOT } from './tailWhipVfx'
 
 // Textura sem imagem — o sistema só mexe em `offset`/`repeat`/filtros, e o
 // `clone()` por sprite funciona sem WebGL.
@@ -21,6 +32,14 @@ function fakeTextures() {
     scratch: new THREE.Texture(),
     lines: new THREE.Texture(),
     smoke: new THREE.Texture(),
+    seed: new THREE.Texture(),
+    orbLite: new THREE.Texture(),
+    sprout: new THREE.Texture(),
+    sparkle: new THREE.Texture(),
+    drainOrb: new THREE.Texture(),
+    splash: new THREE.Texture(),
+    foam: new THREE.Texture(),
+    swipe: new THREE.Texture(),
   }
 }
 
@@ -445,7 +464,10 @@ describe('createParticleSystem — efeito que acompanha quem se move (dash)', ()
 
   it('a face da linha vira pra câmera: mudar a posição da câmera muda a orientação', () => {
     const orientationFor = (cameraPosition) => {
-      const system = buildDash({ emitters: linesOnly, random: seededRandom(3) })
+      const system = buildDash({
+        emitters: linesOnly,
+        random: seededRandom(3),
+      })
       system.setCameraPosition(cameraPosition)
       run(system, 0.1)
       const beam = liveSprites(system)[0]
@@ -569,5 +591,232 @@ describe('createParticleSystem — carga "absorb" (orbes se fechando no corpo)',
       liveSprites(system).map((s) => s.material.map.offset.y),
     )
     expect([...offsets].sort()).toEqual([0, 0.5])
+  })
+})
+
+describe('createParticleSystem — Leech Seed', () => {
+  // alvo na origem, quem lançou/plantou a 4 m atrás (0, 0, -4)
+  function buildLeech(emitters) {
+    return build({ emitters, length: 4, radius: 0.4, scale: 1 })
+  }
+
+  it('lançamento: as sementes saem de quem lançou e chegam no alvo', () => {
+    const system = buildLeech(
+      LEECH_SEED_EMITTERS.filter((e) => e.id === 'seeds'),
+    )
+    run(system, 0.1)
+    const first = liveSprites(system).map((s) => s.position.z)
+    expect(first.length).toBeGreaterThan(0)
+    expect(Math.min(...first)).toBeLessThan(-3) // nasceu perto de quem lançou
+
+    run(system, 0.3)
+    const zs = liveSprites(system).map((s) => s.position.z)
+    expect(Math.max(...zs)).toBeGreaterThan(-1) // a mais velha quase no alvo
+  })
+
+  it('lançamento: estouro e broto só no pouso (0.35 s), no alvo; termina sozinho', () => {
+    const system = buildLeech(LEECH_SEED_EMITTERS)
+    run(system, 0.3)
+    expect(liveSprites(system).every((s) => s.position.z < -0.3)).toBe(true)
+
+    run(system, 0.1)
+    expect(liveSprites(system).some((s) => Math.abs(s.position.z) < 0.6)).toBe(
+      true,
+    )
+
+    run(system, 2)
+    expect(system.isDone()).toBe(true)
+  })
+
+  it('drenagem: os orbes viajam do alvo até quem plantou', () => {
+    const system = buildLeech(
+      LEECH_DRAIN_EMITTERS.filter((e) => e.id === 'stream'),
+    )
+    run(system, 0.6)
+    const zs = liveSprites(system).map((s) => s.position.z)
+    expect(Math.min(...zs)).toBeLessThan(-2) // os mais velhos já perto dele
+  })
+
+  it('drenagem sem quem plantou: sem orbes viajando; termina sozinho', () => {
+    expect(LEECH_DRAIN_SOLO_EMITTERS.map((e) => e.id)).not.toContain('stream')
+    const system = buildLeech(LEECH_DRAIN_SOLO_EMITTERS)
+    run(system, 0.3)
+    expect(liveSprites(system).length).toBeGreaterThan(5)
+    run(system, 2)
+    expect(system.isDone()).toBe(true)
+  })
+})
+
+describe('createParticleSystem — Water Gun', () => {
+  // alvo na origem, quem atacou a 4 m atrás (0, 0, -4)
+  const only = (id) => WATER_GUN_EMITTERS.filter((e) => e.id === id)
+  const buildWater = (emitters) =>
+    build({ emitters, length: 4, radius: 0.35, scale: 1 })
+
+  it('o jato sai da boca e as gotas mais velhas passam um pouco do alvo', () => {
+    const system = buildWater(only('jet'))
+    run(system, 0.1)
+    const early = liveSprites(system).map((s) => s.position.z)
+    expect(Math.min(...early)).toBeLessThan(-3)
+
+    run(system, 0.6)
+    const late = liveSprites(system).map((s) => s.position.z)
+    expect(Math.max(...late)).toBeGreaterThan(0) // 10% além do alvo
+    expect(Math.max(...late)).toBeLessThan(0.5)
+  })
+
+  it('o borrifo fica na boca; respingo e espuma ficam no alvo', () => {
+    const near = (id, z) => {
+      const system = buildWater(only(id))
+      run(system, 0.15)
+      return liveSprites(system).every((s) => Math.abs(s.position.z - z) < 1.6)
+    }
+    expect(near('spray', -4)).toBe(true)
+    expect(near('splash', 0)).toBe(true)
+    expect(near('foam', 0)).toBe(true)
+  })
+
+  it('termina sozinho dentro do effectVisualDuration da skill (1.2 s)', () => {
+    const system = buildWater(WATER_GUN_EMITTERS)
+    run(system, 1.2)
+    expect(system.isDone()).toBe(true)
+  })
+})
+
+describe('createParticleSystem — Water Gun canalizado (jato seguindo a mira)', () => {
+  // quadro na boca em (0, 0.4, 0), virado pra +Z; o feixe bate a `length` m
+  function buildJet(length) {
+    const system = build({
+      emitters: WATER_JET_EMITTERS,
+      length: 0,
+      radius: 0.35,
+      scale: 1,
+    })
+    system.setFrame({ origin: [0, 0.4, 0], yaw: 0, height: 0, length })
+    return system
+  }
+
+  it('o jato vai da boca até onde o feixe bate (o `length` do quadro), sem passar', () => {
+    const system = buildJet(3)
+    run(system, 0.8)
+    const zs = liveSprites(system).map((s) => s.position.z)
+    expect(Math.max(...zs)).toBeGreaterThan(2.5)
+    expect(Math.max(...zs)).toBeLessThan(3.1)
+  })
+
+  it('o feixe encurtou (bateu em alguém mais perto): as gotas novas param antes', () => {
+    const system = buildJet(3)
+    run(system, 0.8)
+    system.setFrame({ origin: [0, 0.4, 0], yaw: 0, height: 0, length: 1 })
+    run(system, 0.8)
+    const zs = liveSprites(system).map((s) => s.position.z)
+    expect(Math.max(...zs)).toBeLessThan(1.1)
+  })
+
+  it('mirar pro lado (yaw) leva o jato junto', () => {
+    const system = buildJet(3)
+    system.setFrame({
+      origin: [0, 0.4, 0],
+      yaw: Math.PI / 2,
+      height: 0,
+      length: 3,
+    })
+    run(system, 0.8)
+    const xs = liveSprites(system).map((s) => s.position.x)
+    expect(Math.max(...xs)).toBeGreaterThan(2.5)
+  })
+
+  it('solta enquanto o canal durar; para no endEmission e termina sozinho', () => {
+    const system = buildJet(3)
+    run(system, 2)
+    expect(system.liveCount).toBeGreaterThan(10)
+    system.endEmission()
+    run(system, 1)
+    expect(system.isDone()).toBe(true)
+  })
+
+  it('o respingo de cada tick termina sozinho em menos de 0.9 s', () => {
+    const system = build({
+      emitters: WATER_GUN_HIT_EMITTERS,
+      length: 0,
+      radius: 0.35,
+      scale: 1,
+    })
+    run(system, 0.9)
+    expect(system.isDone()).toBe(true)
+  })
+})
+
+describe('createParticleSystem — Tail Whip (ação inteira, preso à criatura)', () => {
+  // criatura na origem do mundo, olhando pra +Z, corpo de 0.5 m; o quadro
+  // fica no pivô, à frente (como o `ContinuousAttackEffectsView` monta)
+  function buildTailWhip(emitters = TAIL_WHIP_EMITTERS, frame = {}) {
+    const system = build({ emitters, length: 0, radius: 1.5, scale: 1 })
+    system.setFrame({
+      origin: [0, 0, TAIL_WHIP_PIVOT],
+      yaw: 0,
+      height: 0.5,
+      ...frame,
+    })
+    return system
+  }
+  const isSwipe = (sprite) => Math.abs(sprite.material.map.repeat.x) === 1 / 8
+
+  it('a varrida nasce NO PIVÔ, na frente da criatura, com o alfa do original', () => {
+    const system = buildTailWhip([TAIL_WHIP_EMITTERS[0]])
+    run(system, 0.06)
+    const [swipe] = liveSprites(system)
+    expect(liveSprites(system)).toHaveLength(1)
+    expect(swipe.position.x).toBeCloseTo(0, 6)
+    expect(swipe.position.z).toBeCloseTo(TAIL_WHIP_PIVOT, 6)
+    expect(swipe.material.opacity).toBeCloseTo(0.56, 2)
+  })
+
+  it('`roll` do quadro (rotationOffset.z) gira a varrida no plano da tela, sem mexer na posição', () => {
+    const system = buildTailWhip([TAIL_WHIP_EMITTERS[0]], { roll: Math.PI })
+    run(system, 0.06)
+    const [swipe] = liveSprites(system)
+    expect(swipe.material.rotation).toBeCloseTo(Math.PI, 6)
+    expect(swipe.position.x).toBeCloseTo(0, 6)
+    expect(swipe.position.z).toBeCloseTo(TAIL_WHIP_PIVOT, 6)
+  })
+
+  it('os brilhos nascem na frente e voam PRA FRENTE (na direção do alvo)', () => {
+    const system = buildTailWhip([TAIL_WHIP_EMITTERS[1]])
+    run(system, 0.05)
+    const first = liveSprites(system).map((s) => s.position.z)
+    run(system, 0.1)
+    const later = liveSprites(system).map((s) => s.position.z)
+    expect(Math.min(...first)).toBeGreaterThan(0)
+    expect(Math.max(...later)).toBeGreaterThan(Math.max(...first))
+  })
+
+  it('girar o quadro 180° (rotationOffset.y) vira a direção EM VOLTA do pivô, sem tirar o efeito do lugar', () => {
+    const system = buildTailWhip([TAIL_WHIP_EMITTERS[1]], { yaw: Math.PI })
+    run(system, 0.05)
+    const first = liveSprites(system).map((s) => s.position.z)
+    run(system, 0.1)
+    const later = liveSprites(system).map((s) => s.position.z)
+    // nascem em volta do pivô (à frente da criatura), não atrás dela
+    for (const z of first)
+      expect(Math.abs(z - TAIL_WHIP_PIVOT)).toBeLessThan(0.3)
+    // e voam pra trás (pra -Z)
+    expect(Math.min(...later)).toBeLessThan(Math.min(...first))
+  })
+
+  it('UMA abanada só (o golpe acontece no effectAt): uma varrida e tudo termina sozinho', () => {
+    // conta quantas vezes uma varrida NASCE (o sprite volta pro pool)
+    const system = buildTailWhip()
+    let born = 0
+    let previous = 0
+    for (let frame = 0; frame < 90; frame++) {
+      system.update(1 / 60)
+      const now = liveSprites(system).filter(isSwipe).length
+      if (now > previous) born += 1
+      previous = now
+    }
+    expect(born).toBe(1)
+    expect(liveSprites(system)).toHaveLength(0)
+    expect(system.isDone()).toBe(true)
   })
 })

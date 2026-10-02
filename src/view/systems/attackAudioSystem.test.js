@@ -168,7 +168,7 @@ describe('attackAudioSystem — som de CARGA', () => {
       ActionState,
       SummonedCreature({ slot: 'slot1', speciesId: 'charmander' }),
     )
-    const charge = voice(0)
+    const charge = { ...voice(0), phase: 'charge' }
     registerAttackAudio(entity, {}, { secondary1: charge })
     return charge
   }
@@ -214,5 +214,71 @@ describe('attackAudioSystem — som de CARGA', () => {
     attackAudioSystem({ delta: 1 / 60 })
 
     expect(charge.audio.isPlaying).toBe(false)
+  })
+})
+
+describe('attackAudioSystem — som da AÇÃO (audio.actionGroup)', () => {
+  let world
+  let entity
+
+  afterEach(() => {
+    unregisterAttackAudio(entity)
+    world.destroy()
+  })
+
+  function setup() {
+    world = createWorld()
+    entity = world.spawn(
+      ActionState,
+      SummonedCreature({ slot: 'slot1', speciesId: 'charmander' }),
+    )
+    const loop = { ...voice(0), phase: 'action' }
+    registerAttackAudio(entity, {}, { secondary1: loop })
+    return loop
+  }
+
+  function attacking(elapsed) {
+    entity.set(ActionState, {
+      current: 'attack',
+      pendingSlot: 'secondary1',
+      elapsed,
+      animationSpeed: 1,
+    })
+  }
+
+  // o secondary1 do Charmander (Growl): effectAt 0.5 de 1.2 s → ~0.42 s numa
+  // ação de 1 s
+  it('antes do effectAt não toca', () => {
+    const loop = setup()
+    attacking(0.05)
+    attackAudioSystem({ delta: 1 / 60 })
+    attacking(0.4)
+    attackAudioSystem({ delta: 1 / 60 })
+
+    expect(loop.audio.plays).toBe(0)
+    expect(loop.audio.isPlaying).toBe(false)
+  })
+
+  it('toca em LOOP do effectAt até o fim da ação', () => {
+    const loop = setup()
+    attacking(0.45)
+    attackAudioSystem({ delta: 1 / 60 })
+    attacking(0.95)
+    attackAudioSystem({ delta: 1 / 60 })
+
+    expect(loop.audio.plays).toBe(1)
+    expect(loop.audio.isPlaying).toBe(true)
+    expect(loop.audio.loop).toBe(true)
+  })
+
+  it('para quando a ação acaba', () => {
+    const loop = setup()
+    attacking(0.5)
+    attackAudioSystem({ delta: 1 / 60 })
+
+    entity.set(ActionState, { current: null, pendingSlot: null })
+    attackAudioSystem({ delta: 1 / 60 })
+
+    expect(loop.audio.isPlaying).toBe(false)
   })
 })

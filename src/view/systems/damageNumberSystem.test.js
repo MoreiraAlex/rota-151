@@ -4,6 +4,7 @@ import { createWorld } from 'koota'
 import {
   attackInterrupted,
   attackResolved,
+  leechSeedDrained,
   statStageChanged,
 } from '@/core/events'
 import { GAME_CONFIG } from '@/core/gameConfig'
@@ -215,6 +216,27 @@ describe('damageNumberSystem — golpes de status (Growl)', () => {
       expect(slot.kind).toBe('buff')
       expect(slot.y).toBeCloseTo(0.9 + HEAD_MARGIN)
     }
+  })
+
+  it('drenagem do Leech Seed: dano no alvo e "+N" de cura em quem plantou', () => {
+    const target = spawnTarget({ x: 0, y: 0.45, z: 0 })
+    const source = spawnTarget({ x: 3, y: 0.45, z: 0 })
+
+    run([leechSeedDrained({ target, source, damage: 10, healed: 10 })])
+
+    const slots = activeSlots()
+    expect(slots.map((slot) => slot.text)).toEqual(['10', '+10'])
+    expect(slots[0].kind).toBe('damage')
+    expect(slots[1].kind).toBe('buff')
+    expect(slots[1].x).toBeCloseTo(3, 0)
+  })
+
+  it('drenagem sem cura (quem plantou cheio ou recolhido): só o dano', () => {
+    const target = spawnTarget({ x: 0, y: 0.45, z: 0 })
+
+    run([leechSeedDrained({ target, source: null, damage: 10, healed: 0 })])
+
+    expect(activeSlots().map((slot) => slot.text)).toEqual(['10'])
   })
 
   it('golpe de status interrompido: "Interrompido!" acima de quem perdeu o golpe', () => {

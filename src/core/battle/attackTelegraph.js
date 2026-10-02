@@ -1,3 +1,5 @@
+import { isChannelAttack } from './channelAttack'
+
 /**
  * Instante (segundos desde o disparo) em que o golpe em andamento ACONTECE —
  * o `effectAt` real da ENTIDADE. O básico tem `duration`/`effectAt`
@@ -49,4 +51,24 @@ export function resolveAttackTelegraphProgress(action, attack) {
  */
 export function isAttackCharging(action, attack) {
   return resolveAttackTelegraphProgress(action, attack) !== null
+}
+
+/**
+ * O canal do golpe está RODANDO agora — golpe canalizado (`damageMode:
+ * 'channel'`), já passado o instante do efeito (a carga acabou) e a ação ainda
+ * em andamento (soltar o botão encerra a ação)? É quando roda o visual de canal
+ * (`visual.channelGroup` — ex.: o jato do Water Gun seguindo a mira).
+ */
+export function isAttackChanneling(action, attack) {
+  return isChannelAttack(attack) && isAttackPastEffect(action, attack)
+}
+
+/**
+ * O golpe já passou do instante do efeito (`effectAt`) e a ação ainda está em
+ * andamento? Qualquer golpe — é quando roda o visual da ação
+ * (`visual.actionGroup` — ex.: a abanada do Tail Whip).
+ */
+export function isAttackPastEffect(action, attack) {
+  const hitAt = resolveAttackHitTime(action, attack)
+  return hitAt !== null && action.elapsed >= hitAt
 }

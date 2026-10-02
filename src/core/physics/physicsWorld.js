@@ -14,6 +14,7 @@ import { GAME_CONFIG } from '../gameConfig'
 let rapier = null
 let rapierWorld = null
 let characterController = null
+let characterAvoidanceController = null
 let ready = false
 let levelBuilt = false
 let wasmPromise = null
@@ -53,6 +54,11 @@ export async function initPhysics() {
     characterController.enableSnapToGround(char.SNAP_TO_GROUND)
     characterController.setMaxSlopeClimbAngle(char.MAX_SLOPE_CLIMB)
     characterController.setMinSlopeSlideAngle(char.MIN_SLOPE_SLIDE)
+    // Desvio de OUTROS personagens, numa consulta à parte (sem o chão) — ver
+    // `getCharacterAvoidanceController`.
+    characterAvoidanceController = rapierWorld.createCharacterController(
+      char.CONTROLLER_OFFSET,
+    )
 
     ready = true
     initPromise = null
@@ -75,6 +81,37 @@ export function getRapierWorld() {
 
 export function getCharacterController() {
   return characterController
+}
+
+/**
+ * Character controller só pra desviar de OUTROS personagens (corpos
+ * cinemáticos), sem autostep nem snap — o `characterPhysicsSystem.js` move
+ * em duas passadas: este, contra os personagens (`charactersOnlyFilterFlags`),
+ * e depois o de sempre (`getCharacterController`), contra o terreno
+ * (`terrainOnlyFilterFlags`).
+ *
+ * Por quê: no Rapier (0.20 e 0.21, medido isolado), um personagem apoiado no
+ * chão (a base dentro da folga do controller — o estado normal parado) com
+ * OUTRO corpo cinemático a poucos cm não consegue andar nem pra longe nem pra
+ * perto dele, só de lado — sem sobreposição nenhuma, e só com o chão na mesma
+ * consulta (corpo fixo no lugar do cinemático, ou sem o chão, anda normal).
+ * Era o "preso colado no oponente, só sai com pulo/dash" do combate: o pulo
+ * tira a base da folga do chão. Com o chão e os personagens em consultas
+ * separadas, o defeito não aparece. Ver
+ * docs/features/033-skills-de-combate-e-vfx.md (Parte 8).
+ */
+export function getCharacterAvoidanceController() {
+  return characterAvoidanceController
+}
+
+/**
+ * Filtro de consulta que só enxerga PERSONAGENS (corpos cinemáticos) — tira a
+ * geometria fixa do nível. Usado pela passada de desvio
+ * (`getCharacterAvoidanceController`). `undefined` sem física carregada.
+ */
+export function charactersOnlyFilterFlags() {
+  if (!rapier) return undefined
+  return rapier.QueryFilterFlags.EXCLUDE_FIXED
 }
 
 /**
@@ -113,6 +150,7 @@ export function disposePhysics() {
   if (rapierWorld) rapierWorld.free()
   rapierWorld = null
   characterController = null
+  characterAvoidanceController = null
   ready = false
   levelBuilt = false
   initPromise = null

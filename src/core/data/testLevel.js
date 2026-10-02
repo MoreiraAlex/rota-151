@@ -25,10 +25,8 @@ const WILD_CREATURE_COUNT = 5
 
 const WILD_CREATURE_SPECIES = [
   'bulbasaur',
-  // 'charmander',
-  // 'squirtle',
-  // 'fox',
-  // 'wolf',
+  'charmander',
+  'squirtle',
 ]
 
 const generateWildCreatures = (count) =>
@@ -380,21 +378,6 @@ export const TEST_LEVEL = {
       size: [5, 7.2, 14],
     },
   ],
-  // Espalhadas pela área nova, longe do spawn do jogador (perto da origem)
-  // e da trilha de teste — ver docstring do campo lá em cima.
-  // wildCreatures: [
-  //   // { id: 'wolf-1', speciesId: 'wolf', position: [35, 1, 35] },
-  //   // { id: 'wild-fox-2', speciesId: 'fox-red', position: [-35, 1, -30] },
-  //   // { id: 'wild-fox-3', speciesId: 'fox-green', position: [40, 1, -45] },
-  //   // { id: 'wild-fox-4', speciesId: 'fox-blue', position: [-50, 1, 40] },
-  //   // { id: 'wild-fox-5', speciesId: 'fox', position: [50, 1, 50] },
-  //   // { id: 'wild-fox-6', speciesId: 'fox-red', position: [-55, 1, -50] },
-  //   { id: 'wild-bulbasaur-1', speciesId: 'bulbasaur', position: [-50, 1, 40] },
-  //   { id: 'wild-bulbasaur-2', speciesId: 'bulbasaur', position: [50, 1, 50] },
-  //   { id: 'wild-charmander-1', speciesId: 'charmander', position: [-35, 1, -30] },
-  //   { id: 'wild-charmander-2', speciesId: 'charmander', position: [40, 1, -45] },
-  //   { id: 'wild-squirtle-1', speciesId: 'squirtle', position: [-55, 1, -50] },
-  //   { id: 'wild-squirtle-2', speciesId: 'squirtle', position: [-40, 1, -50] },
-  // ],
+
   wildCreatures: generateWildCreatures(WILD_CREATURE_COUNT),
 }

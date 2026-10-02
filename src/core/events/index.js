@@ -4,6 +4,7 @@ export const EVENT_TYPES = {
   ATTACK_RESOLVED: 'attackResolved',
   STAT_STAGE_CHANGED: 'statStageChanged',
   ATTACK_INTERRUPTED: 'attackInterrupted',
+  LEECH_SEED_DRAINED: 'leechSeedDrained',
 }
 
 /**
@@ -143,4 +144,37 @@ export function statStageChanged({
  */
 export function attackInterrupted({ entity, attackId, slot }) {
   return { type: EVENT_TYPES.ATTACK_INTERRUPTED, entity, attackId, slot }
+}
+
+/**
+ * @typedef {object} LeechSeedDrainedEvent
+ * @property {'leechSeedDrained'} type
+ * @property {import('koota').Entity} target quem tem a semente (perdeu HP)
+ * @property {import('koota').Entity | null} source quem plantou (ganhou HP), ou
+ *   `null` se já não existe (recolhido, destruído)
+ * @property {number} damage HP tirado do alvo
+ * @property {number} healed HP que quem plantou de fato recuperou (0 sem
+ *   `source`, desmaiado ou já cheio)
+ */
+
+/**
+ * Uma drenagem do Leech Seed aconteceu (o estado — `Vitals` dos dois — já foi
+ * aplicado; o evento é só o aviso).
+ *
+ * - Quem emite: `leechSeedSystem.js`, a cada `interval` da semente.
+ * - Quem consome: `view/systems/damageNumberSystem.js` (número de dano no alvo
+ *   e "+N" de cura em quem plantou). Drenado uma vez por frame; sem
+ *   consumidor, some. Não provoca reação (não é `attackResolved`) nem
+ *   interrompe golpe de status.
+ *
+ * @returns {LeechSeedDrainedEvent}
+ */
+export function leechSeedDrained({ target, source, damage, healed }) {
+  return {
+    type: EVENT_TYPES.LEECH_SEED_DRAINED,
+    target,
+    source: source ?? null,
+    damage,
+    healed,
+  }
 }

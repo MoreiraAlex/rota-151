@@ -23,8 +23,8 @@
 export const GROWTH_SKILL = {
   id: 'growth',
   // `charge` do Bulbasaur dura 1 s; o atributo sobe no meio dela
-  duration: 5,
-  effectAt: 4.5,
+  duration: 3,
+  effectAt: 3,
   range: 0,
   castMode: 'instant',
   area: 'self',

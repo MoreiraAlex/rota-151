@@ -11,7 +11,7 @@ import { AttackEffectsView } from './AttackEffectView'
 import { AttackIndicatorView } from './AttackIndicatorView'
 import { AttackTelegraphView } from './AttackTelegraphView'
 import { DashEffectsView } from './DashEffectsView'
-import { ChargeEffectsView } from './ChargeEffectsView'
+import { ContinuousAttackEffectsView } from './ContinuousAttackEffectsView'
 import { JumpDustView } from './JumpDustView'
 import { ActionTimerRingView } from './ActionTimerRingView'
 import { CreaturesView, WildCreaturesView } from './CreatureView'
@@ -104,7 +104,7 @@ export function GameScene({ children }) {
       <AttackIndicatorView />
       <AttackTelegraphView />
       <DashEffectsView />
-      <ChargeEffectsView />
+      <ContinuousAttackEffectsView />
       <JumpDustView />
       <ActionTimerRingView />
       <CreaturesView />

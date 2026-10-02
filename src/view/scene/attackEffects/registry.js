@@ -8,6 +8,15 @@ import { EmberAttackEffect } from './EmberAttackEffect'
 import { FlamethrowerAttackEffect } from './FlamethrowerAttackEffect'
 import { GrowlAttackEffect } from './GrowlAttackEffect'
 import { StatupAttackEffect } from './StatupAttackEffect'
+import {
+  LeechDrainAttackEffect,
+  LeechDrainSoloAttackEffect,
+  LeechSeedAttackEffect,
+} from './LeechSeedAttackEffect'
+import {
+  WaterGunAttackEffect,
+  WaterGunHitAttackEffect,
+} from './WaterGunAttackEffect'
 import { SmokescreenAttackEffect } from './SmokescreenAttackEffect'
 import { SmokescreenTargetAttackEffect } from './SmokescreenTargetAttackEffect'
 import { WhirlpoolAttackEffect } from './WhirlpoolAttackEffect'
@@ -48,6 +57,11 @@ const ATTACK_EFFECT_COMPONENTS = {
   whirlpool: WhirlpoolAttackEffect,
   growl: GrowlAttackEffect,
   statup: StatupAttackEffect,
+  'leech-seed': LeechSeedAttackEffect,
+  'leech-drain': LeechDrainAttackEffect,
+  'leech-drain-solo': LeechDrainSoloAttackEffect,
+  'water-gun': WaterGunAttackEffect,
+  'water-gun-hit': WaterGunHitAttackEffect,
   smokescreen: SmokescreenAttackEffect,
   'smokescreen-target': SmokescreenTargetAttackEffect,
 }

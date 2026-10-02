@@ -16,33 +16,24 @@
 export const BASIC_ATTACK = {
   id: 'squirtle-basic',
   duration: 0.8,
-  effectAt: 0.6,
+  effectAt: 0.4,
   range: 1,
   aim: 'melee',
   castMode: 'instant',
   radius: 0.3,
   staminaCost: 0.25,
   cooldown: 0,
-  // Só os 30 primeiros frames do clipe embutido `attack` (ver
-  // `ActionState.animationFrames`).
-  animationFrames: 30,
+  animationFrames: 25,
   visual: {
-    effectGroup: 'tackle',
+    effectGroup: 'impact',
     effectVisualDuration: 0.6,
-    scale: 1,
+    scale: 0.6,
     revealDuration: 0.2,
     rotationOffset: { x: 0, y: 0, z: 0 },
     positionOffset: { x: 0, y: 0, z: 0 },
   },
-  sprite: {
-    path: '/assets/sprites/abilities/tackle.png',
-    scale: 1,
-  },
-  audio: {
-    group: 'tackle',
-  },
-  animation: {
-    clipKey: 'attack',
-  },
+  sprite: { path: '/assets/sprites/abilities/tackle.png', scale: 1 },
+  audio: { group: 'impact' },
+  animation: { clipKey: 'attackAlt' },
   damage: { power: 5, category: 'physical', type: null },
 }

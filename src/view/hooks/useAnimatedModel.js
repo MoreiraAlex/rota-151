@@ -17,7 +17,7 @@ import { resolveJumpSound } from '@/core/data/audio/jumpSound'
 import { resolveSummonSound } from '@/core/data/audio/summonSound'
 import { resolveRecallSound } from '@/core/data/audio/recallSound'
 import {
-  resolveAttackChargeSounds,
+  resolveAttackLoopSounds,
   resolveAttackSounds,
 } from '@/core/data/audio/attackSound'
 import { createFlame } from '@/view/vfx/flameParticles'
@@ -164,11 +164,11 @@ function setupPositionalActionSound(
  * (`sounds`: `{ [slot]: [{ clips, volume?, refDistance?, delay }] }`, ver
  * `resolveAttackSounds`) — duas partes (ex.: som do atacante e do alvo)
  * podem se sobrepor no tempo, e um nó só toca um buffer por vez. Mais um nó
- * por slot com som de CARGA (`chargeSounds`, `resolveAttackChargeSounds`).
+ * por slot com som em LOOP — carga ou ação inteira (`loopSounds`, `resolveAttackLoopSounds`).
  * Devolve a função de cleanup. Quem decide QUANDO tocar é
  * `attackAudioSystem.js`.
  */
-function setupAttackAudio(entity, groupRef, sounds, chargeSounds) {
+function setupAttackAudio(entity, groupRef, sounds, loopSounds) {
   const listener = getAudioListener()
   const createVoice = (part) => {
     const audio = new THREE.PositionalAudio(listener)
@@ -181,11 +181,11 @@ function setupAttackAudio(entity, groupRef, sounds, chargeSounds) {
   for (const [slot, parts] of Object.entries(sounds)) {
     voices[slot] = parts.map(createVoice)
   }
-  const charge = {}
-  for (const [slot, part] of Object.entries(chargeSounds)) {
-    charge[slot] = createVoice(part)
+  const loops = {}
+  for (const [slot, part] of Object.entries(loopSounds)) {
+    loops[slot] = { ...createVoice(part), phase: part.phase }
   }
-  registerAttackAudio(entity, voices, charge)
+  registerAttackAudio(entity, voices, loops)
 
   // Mesmo esquema de `setupPositionalActionSound`: carrega cada variação em
   // paralelo e preenche `buffers` IN PLACE; `cancelled` evita empurrar
@@ -202,11 +202,11 @@ function setupAttackAudio(entity, groupRef, sounds, chargeSounds) {
       }
     })
   }
-  for (const [slot, part] of Object.entries(chargeSounds)) {
+  for (const [slot, part] of Object.entries(loopSounds)) {
     for (const path of part.clips ?? []) {
       loadAudioBuffer(path).then((buffer) => {
         if (cancelled || !buffer) return
-        charge[slot].buffers.push(buffer)
+        loops[slot].buffers.push(buffer)
       })
     }
   }
@@ -723,17 +723,17 @@ export function useAnimatedModel(entity, species) {
   useEffect(() => {
     // Um conjunto de sons por slot de ataque (básico + habilidades), cada um
     // com uma ou mais partes (ver `core/data/audio/attackSound.js`).
-    // E, à parte, o som de CARGA de cada slot que tiver um.
+    // E, à parte, o som em LOOP (carga ou ação inteira) de cada slot que tiver um.
     const sounds = resolveAttackSounds(species)
-    const chargeSounds = resolveAttackChargeSounds(species)
+    const loopSounds = resolveAttackLoopSounds(species)
     if (
       Object.keys(sounds).length === 0 &&
-      Object.keys(chargeSounds).length === 0
+      Object.keys(loopSounds).length === 0
     ) {
       return
     }
 
-    return setupAttackAudio(entity, groupRef, sounds, chargeSounds)
+    return setupAttackAudio(entity, groupRef, sounds, loopSounds)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entity, species])
 

@@ -105,6 +105,8 @@ export const SKILL_TEMPLATE = {
   //   indicador) a cada `damageInterval` segundos, do `effectAt` até o fim
   //   da `duration`. Exige SEGURAR o botão do slot até o fim — soltar
   //   cancela a ação (e o cooldown começa). Ver `core/battle/channelAttack.js`.
+  //   Com `area: 'line'` (abaixo) vira FEIXE: só o primeiro corpo na linha leva
+  //   cada tick, e a criatura controlada mira o canal inteiro (ex.: Water Gun).
   // damageMode: 'channel',
   // damageInterval: 0.25,
 
@@ -162,9 +164,24 @@ export const SKILL_TEMPLATE = {
     // targetEffectVisualDuration: 3,
     // Opcional — efeito de CARGA: roda em volta da criatura do disparo até o
     // `effectAt` (a janela do aviso no chão) e acaba no efeito ou se o golpe
-    // for interrompido. Grupos em `view/scene/ChargeEffectsView.jsx`
+    // for interrompido. Grupos em `view/scene/ContinuousAttackEffectsView.jsx`
     // ('absorb' = orbes verdes se fechando no corpo). Usa `radius` e `scale`.
     // chargeGroup: 'absorb',
+    // Opcional — só no canalizado: efeito do CANAL, do `effectAt` até a ação
+    // acabar, saindo da boca e seguindo a mira (`'water-jet'`, mesmos grupos da
+    // carga); e `channelHitGroup` = o efeito de CADA tick do feixe, onde ele
+    // bate (`channelHitVisualDuration` = quanto dura).
+    // channelGroup: 'water-jet',
+    // channelHitGroup: 'water-gun-hit',
+    // channelHitVisualDuration: 0.9,
+    // Opcional — efeito da AÇÃO: do `effectAt` até a ação acabar (qualquer
+    // golpe, não só canalizado), preso à criatura e virado pra onde ela olha
+    // (`'tail-whip'`, mesmos grupos da carga). Aqui `positionOffset` desloca o
+    // pivô do efeito (na frente do corpo), `rotationOffset.y` gira o efeito em
+    // volta do PRÓPRIO pivô (não sai do lugar) e `rotationOffset.z` gira as
+    // partículas no plano da tela. Combina com
+    // `effectGroup: 'none'` quando o golpe não tem visual de impacto.
+    // actionGroup: 'tail-whip',
   },
 
   // === Áudio (core/data/audio/attackSound.js) ===
@@ -190,6 +207,10 @@ export const SKILL_TEMPLATE = {
     // efeito ou se o golpe for interrompido). Um grupo simples de
     // ATTACK_SOUND_GROUPS (ex.: 'absorb-charge', o do Growth).
     // chargeGroup: 'absorb-charge',
+    // Opcional — som da AÇÃO, em LOOP do `effectAt` até a ação acabar
+    // (cortado no fim da `duration`; para se o golpe for interrompido). Combina
+    // com `group: null` (ex.: 'tail-whip', o do Tail Whip).
+    // actionGroup: 'tail-whip',
     // Alternativa a `group` — som PRÓPRIO deste ataque, sem grupo (nunca
     // os dois juntos): { clips: ['/assets/audio/attack/.../x.wav', ...],
     // volume: 0.6, refDistance: 6 }.
@@ -247,12 +268,18 @@ export const SKILL_TEMPLATE = {
   //   // segundos (jogo em tempo real) e usar de novo ACUMULA o estágio e
   //   // RENOVA o tempo.
   //   { type: 'statStage', stat: 'attack', stages: -1, duration: 15 },
+  //   // `leechSeed` — planta uma semente no alvo: a cada `interval` segundos
+  //   // drena `fraction` do HP máximo dele e cura quem plantou o mesmo valor,
+  //   // por `duration` segundos (renovável). Ex.: o Leech Seed.
+  //   { type: 'leechSeed', fraction: 1 / 8, interval: 2, duration: 10 },
   // ],
   // Quem é atingido por um golpe SÓ de efeito: `area: 'cone'` (abaixo) = todos
   // os inimigos no cone à frente; sem ele, o primeiro corpo no caminho.
   // `area: 'cone'` — o golpe atinge um CONE (indicador, aviso vermelho e alvos
   // com a mesma forma do canalizado, aberto por `radius / range`) em vez da
-  // cápsula; um canalizado já é sempre cone.
+  // cápsula; um canalizado já é cone, a menos que seja `'line'`.
+  // `area: 'line'` — só pro canalizado: FEIXE em vez de cone (a cápsula do golpe
+  // normal, primeiro corpo só, mirando durante o canal — `isBeamAttack`).
   // `area: 'self'` — o golpe age em QUEM USOU (ex.: Growth, `../growth/`): os
   // `effects` vão no atacante, sem sorteio de precisão e sem provocar
   // ninguém; sem indicador nem aviso; o VFX nasce nos pés dele.

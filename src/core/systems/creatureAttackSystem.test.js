@@ -4,6 +4,7 @@ import { getPlayerSpecies, getSpecies } from '@/core/data/species'
 import { resolveCreatureAttack } from '@/core/battle/creatureAttack'
 import { resolveSkill } from '@/core/data/skills'
 import { resolveChannelTickDamage } from '@/core/battle/calculateDamage'
+import { isConeAttack } from '@/core/battle/channelAttack'
 import { computeAimRay } from '@/core/camera/orbitCamera'
 import { disposePhysics } from '@/core/physics/physicsWorld'
 import { createEventQueue, EVENT_TYPES } from '@/core/events'
@@ -36,12 +37,14 @@ import {
   CharacterController,
   IndividualValues,
   InputControlled,
+  LeechSeed,
   OrbitCamera,
   Party,
   PhysicsBody,
   Position,
   resolveMaxStamina,
   Rotation,
+  SeededBy,
   StatStages,
   SummonedCreature,
   Vitals,
@@ -49,14 +52,14 @@ import {
   WantsToAttack,
   WildCreature,
 } from '@/core/traits'
+import { creatureAttackSystem } from './creatureAttackSystem'
+import { resolveCastMode } from '@/core/battle/attackCasting'
+import { resolveAttackImpactPoint } from '@/core/battle/attackTrajectory'
+import { resolveAttackTarget } from '@/core/battle/attackTargets'
 import {
-  creatureAttackSystem,
-  resolveCastMode,
-  resolveAttackImpactPoint,
-  resolveAttackTarget,
   resolveEffectStart,
   resolveEffectRotation,
-} from './creatureAttackSystem'
+} from '@/core/battle/attackEffectPlacement'
 
 // Slot (`secondary1-3`) em que o charmander tem a Brasa — achado, não fixo:
 // a ordem das skills da espécie é configuração do usuário e muda.
@@ -146,9 +149,13 @@ function advanceUntilFree(world, creature) {
   }
 }
 
-/** Avança até o `AttackEffect` nascer (instante `effectAt`) e o devolve. */
+/**
+ * Avança até o `AttackEffect` nascer (instante `effectAt`) e o devolve. Folga
+ * fixa de 5 s — não a duração de um ataque específico: as espécies usadas nos
+ * testes têm o básico balanceado pelo usuário (e escalado pelo `speed`).
+ */
 function advanceUntilEffectSpawns(world) {
-  const totalTicks = Math.ceil(ATTACK.duration / DELTA) + 2
+  const totalTicks = Math.ceil(5 / DELTA)
   for (let i = 0; i < totalTicks; i++) {
     tick(world, {})
     const [effect] = world.query(AttackEffect)
@@ -2419,6 +2426,13 @@ describe('Growth — skill de status em SI MESMO (sobe Ataque e Ataque Especial 
 
   it('depois do efeito, soltar o botão não cancela: o resto da animação segue', () => {
     withGrowth(() => {
+      // efeito antes do fim da ação, seja qual for o balanceamento atual do
+      // Growth (com `effectAt` = `duration` não sobra animação depois)
+      const charmander = getSpecies('charmander')
+      charmander.skills[1] = {
+        id: 'growth',
+        overrides: { duration: 2, effectAt: 1 },
+      }
       const { world, creature } = setup()
 
       castGrowth(world, creature)
@@ -2555,5 +2569,179 @@ describe('interrupção de golpe de STATUS por dano (só na carga)', () => {
       ).toHaveLength(0)
       expect(mine.get(StatStages).attackStage).toBe(1)
     })
+  })
+})
+
+describe('Leech Seed — planta a semente no alvo (quem drena é o leechSeedSystem)', () => {
+  function withLeechSeed(reference, run) {
+    const charmander = getSpecies('charmander')
+    const original = charmander.skills[1]
+    charmander.skills[1] = reference
+    try {
+      run()
+    } finally {
+      charmander.skills[1] = original
+    }
+  }
+
+  function setup() {
+    const world = spawnWorld()
+    const creature = spawnControlledCreature(world, { speciesId: 'charmander' })
+    const target = spawnWildCreature(world, {
+      speciesId: 'charmander',
+      position: { x: 0, y: 1, z: 1.5 },
+    })
+    return { world, creature, target }
+  }
+
+  function cast(world, creature) {
+    tick(world, { secondary1: true })
+    for (let i = 0; i < 240 && !creature.has(AttackPulse); i++) tick(world, {})
+    expect(creature.has(AttackPulse)).toBe(true)
+  }
+
+  it('acertando: o alvo ganha a semente, ligada a quem plantou, e não leva dano na hora', () => {
+    // precisão `null` (nunca erra) só aqui: o sorteio de 90% fica de fora
+    withLeechSeed({ id: 'leech-seed', overrides: { accuracy: null } }, () => {
+      const { world, creature, target } = setup()
+      const hp = target.get(Vitals).hp
+      cast(world, creature)
+
+      expect(target.has(LeechSeed)).toBe(true)
+      expect(target.targetFor(SeededBy)).toBe(creature)
+      const [effect] = resolveSkill('leech-seed').effects
+      expect(target.get(LeechSeed)).toMatchObject({
+        timeLeft: effect.duration,
+        interval: effect.interval,
+      })
+      expect(target.get(Vitals).hp).toBe(hp)
+    })
+  })
+
+  it('errando no sorteio de precisão: sem semente', () => {
+    withLeechSeed({ id: 'leech-seed', overrides: { accuracy: 0 } }, () => {
+      const { world, creature, target } = setup()
+      cast(world, creature)
+      expect(target.has(LeechSeed)).toBe(false)
+    })
+  })
+})
+
+describe('creatureAttackSystem — canalizado em FEIXE (area line)', () => {
+  // Básico da fox trocado por um feixe só dentro do teste: 4 ticks (0.25 a
+  // 1 s), cápsula de 3 m de alcance. Sem física, a trajetória vai até o alcance.
+  const BEAM = {
+    damageMode: 'channel',
+    damageInterval: 0.25,
+    area: 'line',
+    duration: 1,
+    effectAt: 0.25,
+    range: 3,
+    radius: 0.35,
+    cooldown: 1,
+  }
+
+  // `speciesId`: a fox não tem `camera` (a mira pela câmera precisa) — o teste
+  // de mirar usa o charmander
+  function withBeamBasic(overrides, run, speciesId = 'fox') {
+    const fox = getSpecies(speciesId)
+    const original = fox.basicAttack
+    fox.basicAttack = {
+      ...original,
+      ...BEAM,
+      ...overrides,
+      visual: { ...original.visual, ...overrides.visual },
+    }
+    try {
+      run()
+    } finally {
+      fox.basicAttack = original
+    }
+  }
+
+  const damageOn = (resolved, target) =>
+    resolved.filter(
+      (e) =>
+        e.type === EVENT_TYPES.ATTACK_RESOLVED &&
+        e.target === target &&
+        e.result === 'hit',
+    ).length
+
+  it('só o PRIMEIRO corpo na linha leva cada tick (o de trás, não)', () => {
+    withBeamBasic({}, () => {
+      const world = spawnWorld()
+      spawnControlledCreature(world, { position: { x: 0, y: 1, z: 0 } })
+      const front = spawnWildCreature(world, { position: { x: 0, y: 1, z: 1 } })
+      const behind = spawnWildCreature(world, {
+        position: { x: 0, y: 1, z: 2.2 },
+      })
+
+      tick(world, { primary: true, primaryHeld: true })
+      const resolved = []
+      for (let t = 0; t < 1.1; t += DELTA) {
+        tick(world, { primaryHeld: true })
+        resolved.push(...events.drain())
+      }
+
+      expect(damageOn(resolved, front)).toBe(4)
+      expect(damageOn(resolved, behind)).toBe(0)
+    })
+  })
+
+  it('a forma é a cápsula, não o cone (indicador, aviso e alvos)', () => {
+    expect(isConeAttack({ ...BEAM })).toBe(false)
+    expect(isConeAttack({ ...BEAM, area: undefined })).toBe(true)
+  })
+
+  it('a criatura controlada continua mirando com a câmera DEPOIS do effectAt (o cone, não)', () => {
+    const steeredAfterEffect = (overrides) => {
+      let turned = false
+      withBeamBasic(
+        overrides,
+        () => {
+          const world = spawnWorld()
+          const creature = spawnControlledCreature(world, {
+            speciesId: 'charmander',
+            position: { x: 0, y: 1, z: 0 },
+          })
+          const camera = world.spawn(
+            OrbitCamera({ yaw: 0, pitch: 0.3, distance: 10 }),
+          )
+          tick(world, { primary: true, primaryHeld: true })
+          for (let i = 0; i < 30; i++) tick(world, { primaryHeld: true }) // passou do effectAt
+          const before = creature.get(ActionState).dirX
+
+          camera.set(OrbitCamera, { yaw: Math.PI / 2 })
+          tick(world, { primaryHeld: true })
+          turned = Math.abs(creature.get(ActionState).dirX - before) > 0.5
+        },
+        'charmander',
+      )
+      return turned
+    }
+
+    expect(steeredAfterEffect({})).toBe(true)
+    expect(steeredAfterEffect({ area: undefined })).toBe(false)
+  })
+
+  it('cada tick solta o efeito de impacto do feixe (`channelHitGroup`) onde bateu', () => {
+    withBeamBasic(
+      { visual: { effectGroup: 'none', channelHitGroup: 'water-gun-hit' } },
+      () => {
+        const world = spawnWorld()
+        spawnControlledCreature(world, { position: { x: 0, y: 1, z: 0 } })
+        spawnWildCreature(world, { position: { x: 0, y: 1, z: 1 } })
+
+        tick(world, { primary: true, primaryHeld: true })
+        for (let t = 0; t < 1.1; t += DELTA) tick(world, { primaryHeld: true })
+
+        const hits = world
+          .query(AttackEffect)
+          .filter((e) => e.get(AttackEffect).effectGroup === 'water-gun-hit')
+        expect(hits.length).toBeGreaterThanOrEqual(3)
+        // no corpo da frente, não no fim do alcance (3 m)
+        expect(hits[0].get(Position).z).toBeLessThan(1.5)
+      },
+    )
   })
 })

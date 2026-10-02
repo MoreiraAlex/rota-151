@@ -41,6 +41,13 @@ export const ATTACK_SOUND_GROUPS = {
     refDistance: 2,
     clips: ['/assets/audio/attack/statup/attack-01.ogg'],
   },
+  // Tail Whip — o `move.tailwhip.actor` do Cobblemon (`sounds/move/tailwhip/
+  // tailwhip_actor.ogg`, volume 0.8 lá); só tem o som de quem usa.
+  'tail-whip': {
+    volume: 0.18,
+    refDistance: 2,
+    clips: ['/assets/audio/attack/tail-whip/attack-01.ogg'],
+  },
   // CARGA de absorver energia (`audio.chargeGroup` — toca em loop enquanto o
   // golpe carrega, ver `resolveAttackChargeSounds`): o `gigadrain_actor` do
   // Cobblemon (`sounds/move/gigadrain/`, 1.8 s).
@@ -82,7 +89,13 @@ for (const type of IMPACT_TYPES) {
 // (`move/<golpe>/<golpe>_actor.ogg`). Cada golpe tem os seus: não existe um
 // som genérico de fogo. Arquivos em
 // `public/assets/audio/attack/<golpe>-<actor|target>/attack-01.ogg`.
-for (const move of ['ember', 'flamethrower', 'smokescreen']) {
+for (const move of [
+  'ember',
+  'flamethrower',
+  'smokescreen',
+  'leech-seed',
+  'water-gun',
+]) {
   for (const part of ['actor', 'target']) {
     ATTACK_SOUND_GROUPS[`${move}-${part}`] = {
       volume: 0.18,
@@ -115,6 +128,17 @@ export const ATTACK_SOUND_COMPOSITES = {
   smokescreen: [
     { group: 'smokescreen-actor', delay: 0 },
     { group: 'smokescreen-target', delay: 0 },
+  ],
+  // O do alvo espera a semente pousar (o voo do visual, `leechSeedVfx.js`) —
+  // aqui o efeito não é dano instantâneo, a 1ª drenagem só vem depois.
+  'leech-seed': [
+    { group: 'leech-seed-actor', delay: 0 },
+    { group: 'leech-seed-target', delay: 0.35 },
+  ],
+  // O do alvo junto do jato: o golpe é instantâneo (no Cobblemon, 0.3 s depois).
+  'water-gun': [
+    { group: 'water-gun-actor', delay: 0 },
+    { group: 'water-gun-target', delay: 0 },
   ],
 }
 
@@ -190,18 +214,28 @@ export function resolveAttackSounds(species) {
 }
 
 /**
- * Som de CARGA do ataque de cada slot que tem um (`audio.chargeGroup`, um
- * grupo simples de `ATTACK_SOUND_GROUPS`): `{ [slot]: { clips, volume?,
- * refDistance? } }`. Toca em LOOP do disparo até o `effectAt` (enquanto
- * `isAttackCharging`) e para quando a carga acaba — no efeito ou numa
- * interrupção. Quem toca é `view/systems/attackAudioSystem.js`.
+ * Sons em LOOP do ataque de cada slot (um grupo simples de
+ * `ATTACK_SOUND_GROUPS`): `{ [slot]: { clips, volume?, refDistance?, phase } }`.
+ * `phase` diz QUANDO toca:
+ *
+ * - `'charge'` (`audio.chargeGroup`, ex.: o Growth): do disparo até o
+ *   `effectAt` (enquanto `isAttackCharging`) — para no efeito ou numa
+ *   interrupção.
+ * - `'action'` (`audio.actionGroup`, ex.: o Tail Whip): do `effectAt` até a
+ *   ação ACABAR (fim da `duration`) — cortado no fim se for mais longo,
+ *   repetido se for mais curto.
+ *
+ * Um slot tem no máximo um; com os dois configurados, vale o de carga. Quem
+ * toca é `view/systems/attackAudioSystem.js`.
  */
-export function resolveAttackChargeSounds(species) {
+export function resolveAttackLoopSounds(species) {
   const sounds = {}
   for (const slot of ATTACK_AUDIO_SLOTS) {
-    const group = resolveCreatureAttack(species, slot)?.audio?.chargeGroup
+    const audio = resolveCreatureAttack(species, slot)?.audio
+    const phase = audio?.chargeGroup ? 'charge' : 'action'
+    const group = audio?.chargeGroup ?? audio?.actionGroup
     const spec = group ? getAttackSoundGroup(group) : null
-    if (spec) sounds[slot] = spec
+    if (spec) sounds[slot] = { ...spec, phase }
   }
   return sounds
 }

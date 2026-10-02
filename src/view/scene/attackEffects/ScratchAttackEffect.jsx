@@ -3,8 +3,8 @@ import { SCRATCH_EMITTERS, SCRATCH_TEXTURE_PATHS } from '@/view/vfx/scratchVfx'
 import { useParticleAttackEffect } from './useParticleAttackEffect'
 
 /**
- * Visual do grupo `'scratch'` (arranhão — ver docs/features/034-vfx-de-
- * ataque-por-particulas.md): o IMPACTO do Scratch do Cobblemon em
+ * Visual do grupo `'scratch'` (arranhão — ver docs/features/
+ * 033-skills-de-combate-e-vfx.md, Parte 2): o IMPACTO do Scratch do Cobblemon em
  * partículas — uma marca de arranhão amarela de 7 quadros e 7 faíscas que
  * saltam e caem (config em `view/vfx/scratchVfx.js`). Pra usar num ataque:
  * `visual.effectGroup: 'scratch'`.

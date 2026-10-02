@@ -5,7 +5,10 @@ import {
 } from '@/core/traits'
 import { getSpecies } from '@/core/data/species'
 import { resolveCreatureAttack } from '@/core/battle/creatureAttack'
-import { isAttackCharging } from '@/core/battle/attackTelegraph'
+import {
+  isAttackCharging,
+  isAttackPastEffect,
+} from '@/core/battle/attackTelegraph'
 import { getAttackAudioEntries } from '@/view/registry/attackAudioRegistry'
 import { pickRandomVariation } from '@/view/audio/pickRandomVariation'
 
@@ -30,10 +33,12 @@ import { pickRandomVariation } from '@/view/audio/pickRandomVariation'
  * do atacante) esperam em `entry.pending` e tocam quando o atraso, contado
  * pelo `delta` do frame, zera.
  *
- * Som de CARGA (`entry.charge`, `audio.chargeGroup` da skill): toca em
- * LOOP enquanto a criatura carrega o golpe daquele slot (`isAttackCharging` —
- * do disparo até o `effectAt`, a mesma janela do aviso no chão) e para quando
- * a carga acaba, no efeito ou numa interrupção (a ação some).
+ * Sons em LOOP (`entry.loops`, `resolveAttackLoopSounds`), pela fase de cada
+ * um: o de CARGA (`audio.chargeGroup`) toca enquanto a criatura carrega o golpe
+ * daquele slot (`isAttackCharging` — do disparo até o `effectAt`, a mesma
+ * janela do aviso no chão); o da AÇÃO (`audio.actionGroup`) toca do `effectAt`
+ * até a ação daquele slot acabar (`isAttackPastEffect` — cortado no fim da
+ * `duration`). Os dois param numa interrupção (a ação some).
  *
  * Vive na view. Fase: presentation, perto de `dashAudioSystem`/
  * `jumpAudioSystem`/`summonAudioSystem` (mesma família — sem dependência
@@ -43,10 +48,10 @@ export function attackAudioSystem(context) {
   const delta = context?.delta ?? 0
 
   for (const [entity, entry] of getAttackAudioEntries()) {
-    const chargingSlot = resolveChargingSlot(entity)
-    for (const [slot, voice] of Object.entries(entry.charge)) {
-      if (slot === chargingSlot) playChargeVoice(voice)
-      else stopChargeVoice(voice)
+    const playing = resolveLoopingSlots(entity)
+    for (const [slot, voice] of Object.entries(entry.loops)) {
+      if (slot === playing[voice.phase]) playLoopVoice(voice)
+      else stopLoopVoice(voice)
     }
 
     if (entity.has(AttackPulse)) {
@@ -79,24 +84,30 @@ function playVoice({ audio, buffers }) {
   audio.play()
 }
 
-/** Slot do golpe que a criatura está CARREGANDO agora, ou `null`. */
-function resolveChargingSlot(entity) {
+/**
+ * Slot de cada fase de som em loop agora: `action` = o golpe em andamento já
+ * passado do `effectAt`, `charge` = o golpe que está CARREGANDO (ou `null`).
+ */
+function resolveLoopingSlots(entity) {
   const action = entity.has(ActionState) ? entity.get(ActionState) : null
-  if (action?.current !== 'attack') return null
+  if (action?.current !== 'attack') return { action: null, charge: null }
   const attack = resolveCreatureAttack(
     getSpecies(resolveCreatureSpeciesId(entity)),
     action.pendingSlot,
   )
-  return isAttackCharging(action, attack) ? action.pendingSlot : null
+  return {
+    action: isAttackPastEffect(action, attack) ? action.pendingSlot : null,
+    charge: isAttackCharging(action, attack) ? action.pendingSlot : null,
+  }
 }
 
-function playChargeVoice({ audio, buffers }) {
+function playLoopVoice({ audio, buffers }) {
   if (audio.isPlaying || buffers.length === 0) return
   audio.setBuffer(pickRandomVariation(buffers))
   audio.setLoop(true)
   audio.play()
 }
 
-function stopChargeVoice({ audio }) {
+function stopLoopVoice({ audio }) {
   if (audio.isPlaying) audio.stop()
 }

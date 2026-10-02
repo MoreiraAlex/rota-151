@@ -1,5 +1,10 @@
 import { TEST_LEVEL } from '../data/testLevel'
-import { quaternionFromAxisAngle } from '../math'
+import { GAME_CONFIG } from '../gameConfig'
+import {
+  multiplyQuaternions,
+  quaternionFromAxisAngle,
+  wrapAngle,
+} from '../math'
 import { getRapier, getRapierWorld } from './physicsWorld'
 
 /**
@@ -146,4 +151,103 @@ export function setCharacterColliderEnabled(colliderHandle, enabled) {
   const collider = world?.getCollider(colliderHandle)
   if (!collider) return
   collider.setEnabled(enabled)
+}
+
+// Resto numérico (m) tolerado ao comparar distâncias.
+const CLEARANCE_EPSILON = 1e-4
+// Passos da busca binária pelo maior giro livre — 6 passos = 1/64 do giro
+// pedido (menos de 3° num giro de 180°).
+const TURN_SEARCH_STEPS = 6
+
+/**
+ * Distância (m) da cápsula do personagem `colliderHandle`, posta em
+ * `position` e virada pra `yaw`, até o OUTRO personagem mais próximo —
+ * negativa = sobreposta (o quanto entrou). Só olha até `margin`: sem ninguém
+ * mais perto que isso, devolve `margin`. Só personagens contam (chão e
+ * paredes são corpos fixos); collider desligado (desmaiado) não conta.
+ * `axis` é o `capsuleAxis` (a cápsula deitada gira junto com o corpo).
+ */
+export function characterClearance(
+  colliderHandle,
+  position,
+  yaw,
+  axis,
+  margin,
+) {
+  const world = getRapierWorld()
+  const collider = world.getCollider(colliderHandle)
+  if (!collider) return margin
+
+  const shape = collider.shape
+  const tilt = CAPSULE_TILT[axis]
+  const rotation = tilt
+    ? multiplyQuaternions(quaternionFromAxisAngle('y', yaw), tilt())
+    : quaternionFromAxisAngle('y', yaw)
+  const reach = shape.radius + shape.halfHeight + margin
+
+  let nearest = margin
+  world.collidersWithAabbIntersectingAabb(
+    position,
+    { x: reach, y: reach, z: reach },
+    (other) => {
+      if (other.handle === collider.handle || !other.isEnabled()) return true
+      if (other.parent()?.isFixed() !== false) return true
+      const contact = shape.contactShape(
+        position,
+        rotation,
+        other.shape,
+        other.translation(),
+        other.rotation(),
+        margin,
+      )
+      if (contact) nearest = Math.min(nearest, contact.distance)
+      return true
+    },
+  )
+  return nearest
+}
+
+/**
+ * Até onde o personagem pode GIRAR, de `fromYaw` (a rotação que o corpo tem
+ * agora) na direção de `toYaw` (a pedida), sem chegar perto demais de outro
+ * personagem. Quem move o corpo é o character controller, que confere
+ * colisão no DESLOCAMENTO mas não na rotação — uma cápsula deitada (corpo de
+ * quadrúpede, `capsuleAxis` `'x'`/`'z'`) que vira colada noutra criatura
+ * varre a ponta pra dentro dela, e o controller não sabe sair de uma
+ * sobreposição: bloqueia até o movimento de se afastar (medido: 1 mm já
+ * basta). Ver docs/features/033-skills-de-combate-e-vfx.md (Parte 8).
+ *
+ * Regra: o giro não pode deixar a cápsula mais perto de outro personagem que
+ * a folga do controller (`CONTROLLER_OFFSET`, a mesma distância que ele
+ * mantém ao andar) — ou, se já estiver mais perto que isso, mais perto do que
+ * está (pode girar pra se afastar, nunca pra entrar). Se o giro inteiro não
+ * cabe, busca o maior pedaço que cabe. Cápsula em pé (`'y'`) é igual de
+ * qualquer lado: gira sempre, sem consulta. Devolve o yaw a aplicar.
+ */
+export function resolveFreeTurn(
+  colliderHandle,
+  position,
+  fromYaw,
+  toYaw,
+  axis,
+) {
+  if (!CAPSULE_TILT[axis]) return toYaw
+  const delta = wrapAngle(toYaw - fromYaw)
+  if (Math.abs(delta) < 1e-6) return toYaw
+
+  const margin = GAME_CONFIG.PHYSICS.CHARACTER.CONTROLLER_OFFSET
+  const clearance = (yaw) =>
+    characterClearance(colliderHandle, position, yaw, axis, margin)
+  const required = Math.min(clearance(fromYaw), margin) - CLEARANCE_EPSILON
+  const fits = (fraction) => clearance(fromYaw + delta * fraction) >= required
+  if (fits(1)) return toYaw
+
+  let free = 0
+  let blocked = 1
+  for (let i = 0; i < TURN_SEARCH_STEPS; i++) {
+    const middle = (free + blocked) / 2
+    if (fits(middle)) free = middle
+    else blocked = middle
+  }
+  return wrapAngle(fromYaw + delta * free)
 }

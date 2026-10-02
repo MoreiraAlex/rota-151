@@ -4,7 +4,9 @@ Versão **0.0.33**. Consolida, numa feature só, sete rodadas de trabalho que
 estavam em docs separados (033 a 039) e nunca tinham sido commitadas: o
 redesenho dos ataques das criaturas em básico + habilidades, as skills de status
 (com precisão, golpe em si mesmo, interrupção e carga) e os efeitos visuais em
-partículas traduzidos do Cobblemon (golpes, dash, pulo, carga).
+partículas traduzidos do Cobblemon (golpes, dash, pulo, carga) —, mais o que veio
+depois do commit da 0.0.33: uma correção de colisão (Parte 8), o Leech Seed
+(Parte 9) e o Water Gun (Parte 10).
 
 ## Resumo
 
@@ -17,6 +19,11 @@ partículas traduzidos do Cobblemon (golpes, dash, pulo, carga).
 | 5 — Precisão e Smokescreen | Sorteio de precisão do Pokémon, estágio de precisão, "Errou!", fumaça no cone e no alvo |
 | 6 — VFX de pulo | Poeira na decolagem e na aterrissagem |
 | 7 — Skills do Bulbasaur | Growth (`area: 'self'`), interrupção de golpe de status por dano (com atordoamento), carga com visual e som, botão segurado na carga |
+| 8 — Correção: presos no oponente | Personagens colados no combate não ficam mais presos: movimento em duas passadas (contorna um defeito do character controller do Rapier) e giro conferido antes de aplicar |
+| 9 — Leech Seed | Primeiro golpe que age ao longo do tempo: a semente drena uma fração do HP do alvo a cada intervalo e cura quem plantou; sementes em arco, brotos e orbes indo do alvo até quem plantou |
+| 10 — Water Gun | Jato de água do Squirtle canalizado em feixe: segura pra manter, pega só o primeiro corpo e dá pra mirar durante o canal (modo `area: 'line'`, genérico) |
+| 11 — Divisão do `creatureAttackSystem` | O arquivo de ~1.640 linhas virou o system (só as 5 passadas) + 7 módulos em `core/battle/`, sem mudar comportamento |
+| 12 — Tail Whip | Skill de status do Squirtle (baixa a Defesa no cone), com varridas e brilhos na cauda e o som do Cobblemon durando a ação inteira (`visual.actionGroup`/`audio.actionGroup`); o `positionOffset` passa a valer no jato do Water Gun |
 
 Todos os números de balanceamento são valores de PARTIDA (ou já ajustados pelo
 usuário) e nada visual foi conferido em navegador pelo assistente — cada parte
@@ -29,9 +36,9 @@ partes contam a história de como cada peça entrou):
 
 | Espécie | Q (`skills[1]`) | E (`skills[2]`) | R (`skills[3]`) |
 |---|---|---|---|
-| Bulbasaur | `growth` | `tackle` (overrides) | `vine-whip` (overrides) |
+| Bulbasaur | `leech-seed` (o `growth` comentado) | `tackle` (overrides) | `vine-whip` (overrides) |
 | Charmander | `growl` | `tackle` (overrides) | `ember` |
-| Squirtle | `whirlpool` | `smokescreen` | — |
+| Squirtle | `tackle` (overrides) | `water-gun` (overrides) | `tail-whip` |
 | Fox, Wolf | — | — | — |
 
 O `vine-whip` foi configurado pelo usuário pro visual e o som de impacto por
@@ -1282,7 +1289,7 @@ Pedido do usuário: com a carga longa (o Growth foi pra `duration 5`, `effectAt
 - **Janela**: a mesma do aviso no chão e da interrupção — `isAttackCharging`
   (`core/battle/attackTelegraph.js`), do disparo até o `effectAt`. Acaba no efeito
   ou quando o golpe é interrompido (a ação some).
-- **Visual** (`visual.chargeGroup` da skill): `ChargeEffectsView` roda o efeito do
+- **Visual** (`visual.chargeGroup` da skill): `ChargeEffectsView` (hoje `ContinuousAttackEffectsView`, ver Parte 10) roda o efeito do
   grupo em volta de quem carrega, com o quadro nos pés, e encerra no fim da carga
   (as partículas vivas terminam sozinhas). Grupo `'absorb'`
   (`view/vfx/absorbChargeVfx.js`): orbes verdes girando num anel em volta do corpo
@@ -1353,7 +1360,524 @@ do `effectAt` não interrompe; o Growth não gira a criatura) e
 **Não testado em jogo** (sem navegador): tamanho do statup no Bulbasaur, a `charge`
 com o golpe, os dois textos "↑" ao mesmo tempo e o volume do som.
 
+
 ---
+
+## Parte 8 — Correção: personagens presos colados no oponente
+
+### Resumo
+
+Problema relatado jogando: no meio do combate, colado no oponente e clicando
+golpes, a criatura ficava **presa** nele — não conseguia andar pra longe; só
+saía com pulo ou dash.
+
+Eram duas causas, as duas no movimento dos personagens
+(`characterPhysicsSystem.js`), e as duas medidas antes de corrigir — com o
+Rapier isolado e com os systems reais do jogo numa simulação de combate:
+
+| Causa | Quem pega | Sintoma |
+|---|---|---|
+| **Defeito do character controller do Rapier** com outro corpo cinemático por perto | todo personagem | preso sem sobreposição nenhuma |
+| **Giro aplicado sem conferir colisão** | cápsula deitada (Bulbasaur, Fox) | a ponta da cápsula entra no oponente |
+
+### Causa 1 — o character controller do Rapier prende quem está colado noutro personagem
+
+Medido isolado (Rapier 0.20, o do projeto, e 0.21, o mais novo): um personagem
+**apoiado no chão** — a base dentro da folga do controller (`CONTROLLER_OFFSET`,
+3 cm), que é o estado normal de quem está parado — com **outro corpo cinemático**
+a poucos centímetros não anda **nem pra longe nem pra perto** dele, só de lado.
+Sem sobreposição nenhuma.
+
+| Situação (vizinho a 4 cm) | Afastar | De lado | Aproximar |
+|---|---|---|---|
+| Vizinho cinemático (personagem), com o chão na consulta | **0** | anda | **0** |
+| Vizinho fixo (parede), com o chão | anda | anda | para na folga |
+| Vizinho cinemático, sem o chão na consulta | anda | anda | para na folga |
+| Personagem sozinho, com o chão | anda | anda | — |
+
+O controller deixa as criaturas que se encostam exatamente a essa distância (a
+folga dele), então no combate corpo a corpo isso acontecia o tempo todo. O
+pulo solta porque tira a base da folga do chão. Nos testes isolados o resultado
+variava com a posição no mundo (em alguns pontos travava só um lado), o que
+explica o "às vezes" do jogo. Não depende de autostep nem de snap ao chão.
+Atualizar pro 0.21 não resolve.
+
+**Correção — duas passadas**: o movimento pedido passa primeiro por um segundo
+controller (`getCharacterAvoidanceController`, `core/physics/physicsWorld.js`:
+mesma folga, sem autostep nem snap) que só enxerga os OUTROS personagens
+(`charactersOnlyFilterFlags`, sem o chão), e o resultado passa pelo controller
+de sempre, que só enxerga o terreno (`terrainOnlyFilterFlags`) e dá a palavra
+final (autostep, snap, `grounded`). Com chão e personagens em consultas
+separadas, o defeito não aparece:
+
+- afastar, andar de lado e aproximar funcionam em todas as posições testadas;
+- andar contra outro personagem continua parando na folga, sem entrar;
+- a passada de personagens leva o movimento inteiro, inclusive o vertical (cair
+  em cima de outro continua respeitando ele);
+- parado no chão ou desmaiado continua só com o terreno, como antes;
+- a ordem (personagens antes do terreno) deixa o terreno com a palavra final:
+  desviar de uma criatura nunca empurra pra dentro de uma parede.
+
+### Causa 2 — o giro não passava pela física
+
+O controller confere colisão no **deslocamento**; a **rotação** era aplicada
+direto (`setNextKinematicRotation`). Cápsula em pé é igual de qualquer lado, mas
+a do Bulbasaur (1 m) e a do Fox (1,7 m) são **deitadas**, compridas pra frente:
+ao virar colada noutra criatura, a ponta varre pra dentro dela. No combate isso
+é constante — o golpe vira o corpo de uma vez pra mira no disparo
+(`tryStartAttack`), a assistência de mira puxa pro alvo, a carga acompanha a
+câmera, a caminhada vira a 10 rad/s.
+
+Na simulação de combate (Bulbasaur controlado chegando no oponente na diagonal
+ou de lado e clicando), o log mostrou a sobreposição começando no tick do golpe,
+com o corpo girando 0,65 rad de uma vez: até **51 cm** de sobreposição, em até
+1096 de 1200 ticks. Com cápsula em pé (Charmander controlado), nenhuma.
+
+**Correção — `resolveFreeTurn`** (`core/physics/colliders.js`): antes de girar,
+mede a distância da cápsula, na rotação nova, até o outro personagem mais
+próximo (`characterClearance` — só personagens, só cápsula deitada). O giro não
+pode deixar a cápsula mais perto que a folga do controller — ou, se ela já está
+mais perto, mais perto do que está (pode girar pra sair, nunca pra entrar). Se
+o giro inteiro não cabe, uma busca binária acha o maior pedaço que cabe. O
+`characterPhysicsSystem` aplica esse giro e devolve o `rot.y` real pro ECS
+(corpo e modelo iguais; quem pediu o giro tenta de novo no próximo tick) — o
+único caso em que ele escreve `Rotation`.
+
+Duas armadilhas encontradas no caminho, e evitadas:
+
+- uma folga de "não piorou" a cada tick se acumula (1 mm por giro pequeno) — já
+  sobreposto, não há folga nenhuma;
+- deixar o giro chegar a encostar (sem a folga do controller) já basta pra
+  prender: a regra usa a folga, não "não sobrepor".
+
+### Resultado na simulação de combate
+
+Systems reais, 20 s por cenário, chegando no oponente de frente, na diagonal e
+de lado, clicando golpes com a câmera balançando e tentando ir embora a cada
+4 s:
+
+| | Antes | Depois |
+|---|---|---|
+| Pior sobreposição (Bulbasaur) | 51 cm | nenhuma |
+| Ticks sobrepostos | até 1096/1200 | 0 |
+| Consegue ir embora | não (travado) | sim, em todo ciclo |
+
+### Não muda
+
+- O pulo e o dash continuam como estavam.
+- Desvio proativo (`creatureFollowSystem`) e a regra de que personagens não se
+  atravessam continuam iguais.
+- O custo: a passada extra de personagens e, só pra cápsula deitada que está
+  girando, até 8 consultas de distância por tick.
+
+### Testes
+
+- `characterPhysicsSystem.test.js` — "colado noutro personagem": encostado e
+  apoiado no chão, consegue se afastar, em 5 posições do mundo (física nova em
+  cada uma); conferido **falhando** com a passada única antiga (afastava 13 cm
+  em vez de andar). Andar contra o outro para na folga, sem entrar.
+- `colliders.test.js` (novo) — `resolveFreeTurn`: o giro que enfiaria a ponta é
+  cortado onde ainda cabe; com o vizinho na frente, virar de lado é livre;
+  meia-volta é livre; sem ninguém perto gira tudo; cápsula em pé gira sempre;
+  já sobreposto, gira pra sair e não pra entrar mais.
+- `creatureAttackSystem.test.js` — "depois do efeito, soltar o botão não
+  cancela" passou a usar um Growth com efeito antes do fim (override só no
+  teste): com o balanceamento atual (`effectAt` = `duration`) não sobra
+  animação depois do efeito.
+
+---
+
+## Parte 9 — Leech Seed (dreno ao longo do tempo)
+
+Skill do Bulbasaur: o primeiro golpe que age **ao longo do
+tempo**. Planta uma semente no alvo; a cada drenagem ela tira HP dele e cura
+quem plantou.
+
+Decisões do usuário (perguntadas antes de implementar):
+
+| Pergunta | Decisão |
+|---|---|
+| Drenagem | **1/8 do HP máximo a cada 2 s** (a regra do Pokémon, com 2 s no lugar do turno) |
+| Duração | **Tempo fixo, renovável** (10 s = 5 drenagens = 62,5% do HP); acaba antes se o alvo desmaiar |
+
+Valores atuais, rebalanceados pelo usuário depois: **1/16 do HP a cada 2 s, por
+6 s** (3 drenagens = 18,75% do HP). Os números abaixo são os do lançamento.
+| Cura | **O mesmo valor drenado** volta pra quem plantou |
+| Visual da drenagem | **Orbes do alvo até quem plantou**, mais o estouro e os brotos no alvo; número de dano no alvo e "+N" de cura em quem plantou |
+
+O resto segue os padrões do projeto: alvo único (o primeiro corpo na trajetória,
+como o básico), sorteio de precisão de 90% (como no Pokémon), interrompível na
+carga (golpe de status). As espécies ainda não têm tipo, então a imunidade das
+plantas não existe aqui.
+
+### Como funciona
+
+- **Efeito novo de skill** — `{ type: 'leechSeed', fraction, interval, duration }`
+  em `effects`, aplicado no acerto por `applyAttackEffects` como os estágios de
+  atributo: `plantarSemente` (`core/actions/leechSeed.js`) põe no alvo o trait
+  `LeechSeed` (`timeLeft`, `tickTimer`, `fraction`, `interval`) e a relação
+  `SeededBy(quem plantou)` (`core/traits/components/leechSeed.js`). Plantar de
+  novo renova o tempo, mantém o ritmo e troca quem recebe a cura.
+- **Relação separada da semente, de propósito**: se quem plantou some (criatura
+  recolhida = entidade destruída), o Koota tira `SeededBy` sozinho e a semente
+  continua drenando, só sem curar ninguém. Quem plantou desmaiado também não é
+  curado.
+- **`leechSeedSystem`** (simulation, logo depois do `creatureHitStunSystem` e
+  antes do `faintSystem`): conta o tempo; a cada `interval` drena
+  `resolveLeechDrain` (1/8 do máximo, mínimo 1, até o HP que sobra), cura quem
+  plantou (`applyHeal`, até o máximo dele), emite `leechSeedDrained` e solta o
+  visual da drenagem. Alvo desmaiado ou zerado perde a semente na hora; quem a
+  drenagem zerar desmaia no mesmo tick.
+- **A drenagem é dano passivo**: não provoca a selvagem (não sai
+  `attackResolved`) nem interrompe golpe de status do alvo. O acerto em si (o
+  plantio) conta como golpe de status e provoca, como o Growl.
+- **Números** (`damageNumberSystem`): o dano no alvo, na cor de dano do lado
+  dele, e "+N" em quem plantou, na cor de atributo que sobe do lado dele (só se
+  recuperou algo).
+
+### O Leech Seed
+
+`core/data/skills/leech-seed/index.js` (valores de PARTIDA, sem validação em
+jogo): `range 5`, `radius 0.4`, `aim: 'ranged'`, `duration 1.2`, `effectAt 0.6`,
+`staminaCost 3`, `cooldown 1`, `accuracy 90`, `damage: null`, efeito
+`{ type: 'leechSeed', fraction: 1/8, interval: 2, duration: 10 }`. Animação
+`clipKey: 'attackRanged'` (o Bulbasaur já mapeia). Som: grupo composto
+`'leech-seed'` — `leechseed_actor` na hora e `leechseed_target` 0,35 s depois,
+quando a semente pousa. Ícone `public/assets/sprites/abilities/leech-seed.png`
+(gerado: uma semente com um broto; troque pelo seu). O usuário já o colocou no
+slot 1 do Bulbasaur (o `growth` ficou comentado).
+
+### Visual (Cobblemon → partículas) — `view/vfx/leechSeedVfx.js`
+
+| Grupo | t | Emissor | O que é |
+|---|---|---|---|
+| `'leech-seed'` (o lançamento, nasce no alvo) | 0.00 | `seeds` | ~4 sementes voando em arco de quem lançou até o alvo (0,35 s) |
+| | 0.35 | `burst` | 4 orbes estourando no alvo |
+| | 0.35 | `sprout` | um broto no alvo |
+| | 0.35 | `sparkle` | brilhos subindo em volta |
+| `'leech-drain'` (cada drenagem, nasce no alvo) | 0.00 | `hit` | 20 orbes estourando no alvo (o `megadrain_actorhit`) |
+| | 0.00 | `sprouts` | brotos num anel em volta do alvo |
+| | 0.00 | `stream` | orbes em espiral indo do alvo até quem plantou |
+| `'leech-drain-solo'` | | `hit`, `sprouts` | a drenagem sem quem plantou: não há pra onde puxar |
+
+- Tradução de `leechseed_actor`, `leechseed_target`, `leechseed_sprout`,
+  `leechseed_sproutpassive`, `leechseed_targetsparkle` e `megadrain_actorhit`
+  (o Cobblemon usa os dois últimos no dano por turno do Leech Seed). Os orbes
+  indo até quem plantou são escolha do usuário — o Cobblemon não tem —, com o
+  giro do Giga Drain.
+- As sementes **voam** (0,35 s) em vez de nascer no alvo, como manda a regra dos
+  golpes de dano (Parte 2): aqui nada acontece no `effectAt` além do plantio, a
+  1ª drenagem só vem 2 s depois.
+- O visual da drenagem é um `AttackEffect` que o `leechSeedSystem` solta no
+  alvo, girado de quem plantou pro alvo, com `length` = a distância entre os
+  dois (a convenção de sempre: "a criatura" em (0, 0, -length)). Duração em
+  `GAME_CONFIG.BATTLE.LEECH_DRAIN_EFFECT_DURATION` (1,6 s).
+- O motor ganhou `length` no que o `path` enxerga (`particle.emitter.length`) —
+  as sementes e os orbes viajam pelo comprimento do golpe.
+- Texturas em `public/assets/effects/leech-seed/` (e o orbe do Giga Drain, já em
+  `effects/absorb/`); sons em `public/assets/audio/attack/leech-seed-actor/` e
+  `leech-seed-target/`.
+
+### Testes
+
+- `leechSeed.test.js` (action): plantar (tempo, ritmo, 1ª drenagem depois de um
+  intervalo, relação), renovar (mantém o ritmo, troca quem cura), efeito de
+  outro tipo; `resolveLeechDrain` (1/8 arredondado, mínimo 1, até o HP que sobra).
+- `leechSeedSystem.test.js`: drena e cura a cada 2 s; 10 s = 5 drenagens e seca;
+  cura limitada ao máximo; quem plantou sumiu → drena sem curar; quem plantou
+  desmaiado → não cura; visual `'leech-drain'` com o `length` certo e
+  `'leech-drain-solo'` sem quem plantou; alvo desmaiado perde a semente.
+- `creatureAttackSystem.test.js`: acertando, o alvo ganha a semente ligada a
+  quem lançou, sem dano na hora; errando no sorteio, sem semente.
+- `damageNumberSystem.test.js` (dano e "+N"; sem cura, só o dano),
+  `particleEmitter.test.js` (sementes saem de quem lançou e chegam no alvo;
+  estouro e broto só no pouso; orbes da drenagem chegam perto de quem plantou;
+  sem quem plantou, sem orbes viajando; tudo termina sozinho),
+  `attackSound.test.js` (atrasos do composto e os arquivos), `skills/index.test.js`
+  (registro e ícone).
+
+**Não testado em jogo** (sem navegador): o arco e o tamanho das sementes, os
+brotos no Bulbasaur/alvos pequenos, e os números de cura.
+
+---
+
+## Parte 10 — Water Gun (jato de água canalizado em feixe)
+
+Skill de dano à distância do Squirtle (slot 2, E). Primeiro saiu como impacto
+único (como no Pokémon); em seguida o usuário pediu uma **modalidade nova**:
+canalizado como a Brasa, mas sem o cone — continua com o formato do golpe normal
+e pega **só o primeiro corpo**, e **dá pra mirar enquanto segura**.
+
+### Canalizado em feixe (`area: 'line'`)
+
+Modo genérico, pra qualquer skill: `damageMode: 'channel'` + `area: 'line'`
+(`isBeamAttack`, `core/battle/channelAttack.js`).
+
+| | Canalizado em cone (Brasa) | Canalizado em feixe (Water Gun) |
+|---|---|---|
+| Forma (indicador, aviso, alvos) | cone | a cápsula do golpe normal (`isConeAttack` é falso pro feixe) |
+| Quem leva cada tick | todos no cone | só o **primeiro corpo** na linha (`resolveAttackTarget`); a trajetória para nele |
+| Mira | só na carga (até o `effectAt`) | **o canal inteiro**: a criatura controlada reaponta pra câmera a cada tick, e o corpo junto |
+| Visual | estático, nasce no `effectAt` | o jato segue a mira (`visual.channelGroup`) e respinga onde bate a cada tick (`visual.channelHitGroup`) |
+
+O resto é o canalizado de sempre: segurar o botão, soltar corta (o cooldown
+começa, a stamina não volta), o canal inteiro vale o dano de UM golpe repartido
+em frações sorteadas por tick, crítico por tick, sem sorteio de precisão. Trocar
+de alvo no meio do canal: cada um leva as frações dos ticks em que esteve na
+frente. Golpe de dano: não é interrompido.
+
+- **`creatureAttackSystem`**: a mira da carga (`ATTACK_WINDUP_STEERING`) segue
+  valendo depois do `effectAt` quando o golpe é feixe; o tick de canal
+  (`applyChannelTick`) usa a trajetória normal e o primeiro corpo, e solta o
+  efeito de impacto do tick (`spawnChannelHitEffect`) no ponto de contato — ou no
+  fim da trajetória, se não pegou ninguém.
+- **`isAttackChanneling`** (`core/battle/attackTelegraph.js`): o canal está
+  rodando (do `effectAt` até a ação acabar).
+- **`ContinuousAttackEffectsView`** (era a `ChargeEffectsView` da Parte 7): os
+  efeitos que duram uma fase do golpe — a carga (`chargeGroup`, nos pés) e agora
+  o canal (`channelGroup`): quadro na **boca** (`resolveAttackOrigin`), virado
+  pra direção do golpe de agora, com `length` = até onde a trajetória bate agora
+  (`resolveAttackImpactPoint`, a mesma do dano). Cada fase tem a própria chave
+  (`<entidade>:charge`/`:channel`), então a passagem de uma pra outra cria
+  sistemas separados.
+- **Motor de partículas**: o quadro (`setFrame`) pode trazer `length` — o
+  comprimento de agora vale pra partícula que nasce (o feixe muda de tamanho a
+  cada frame); o `followEffectManager` repassa.
+
+### O Water Gun
+
+`core/data/skills/water-gun/index.js` (valores de PARTIDA): `damageMode:
+'channel'`, `area: 'line'`, `damageInterval 0.25`, `duration 2.5` (o canal),
+`effectAt 0.6`, `range 5`, `radius 0.35`, `aim: 'ranged'`, `staminaCost 2`,
+`cooldown 1`, `damage: { power: 40, category: 'special', type: null }` (o total
+de segurar até o fim com o alvo na frente). Visual: `effectGroup: 'none'`,
+`channelGroup: 'water-jet'`, `channelHitGroup: 'water-gun-hit'` (0,9 s). Som:
+grupo composto `'water-gun'` (`watergun_actor` e `watergun_target` juntos, no
+começo do canal). Animação `clipKey: 'attackRangedAlt'` — no Squirtle,
+`{ start: 'attackRangedAltStart', loop: 'attackRangedAltLoop', end:
+'attackRangedAltEnd' }` (0,67 s / 0,63 s em loop / 0,9 s): o loop repete
+enquanto o botão está segurado. O `.glb` também tinha a `attackRanged` sem
+mapeamento — mapeada. Ícone `public/assets/sprites/abilities/water-gun.png`
+(gerado; troque pelo seu).
+
+### Visual (Cobblemon → partículas) — `view/vfx/waterGunVfx.js`
+
+| Conjunto | Emissores | Onde |
+|---|---|---|
+| `WATER_JET_EMITTERS` (grupo `'water-jet'`, o canal) | `spray` (borrifo na boca), `jet` (gotas da boca até onde o feixe bate, ondulando) — contínuos até o canal acabar | quadro na boca, seguindo a mira |
+| `WATER_GUN_HIT_EMITTERS` (grupo `'water-gun-hit'`, cada tick) | `splash` (respingo), `foam` (espuma azul) | onde o feixe bateu |
+| `WATER_GUN_EMITTERS` (grupo `'water-gun'`, o tiro único) | os quatro juntos | sem uso hoje (fica pra uma skill de impacto único) |
+
+- Tradução de `watergun_spray`, `watergun_actor`, `watergun_target` e
+  `watergun_targetfoam`. Texturas em `public/assets/effects/water-gun/`.
+- Cada gota do jato sai na direção da mira do instante em que nasceu e segue
+  reto: mirar varre o jato num arco, e o fim dele acompanha a mira em ~0,7 s.
+- No canal, o jato termina onde bate (o tiro único passa 10% do alvo, como no
+  original).
+- Velocidades das gotas × 0,5 (criaturas menores que as do Minecraft); sem
+  colisão com o chão; as cores do Bedrock (`#AARRGGBB`) entram só pelo RGB.
+
+### Testes
+
+- `creatureAttackSystem.test.js` ("canalizado em FEIXE"): só o primeiro corpo
+  na linha leva os 4 ticks (o de trás, nenhum); a forma é a cápsula; a criatura
+  controlada continua mirando depois do `effectAt` (o cone, não); cada tick solta
+  o efeito de impacto no corpo atingido.
+- `channelAttack.test.js` (`isBeamAttack`; feixe não é cone),
+  `attackTelegraph.test.js` (`isAttackChanneling`),
+  `followEffectManager.test.js` (o `length` vai pro quadro).
+- `particleEmitter.test.js`: o jato vai até o `length` do quadro sem passar; o
+  feixe encurtou → as gotas novas param antes; o yaw leva o jato junto; solta até
+  o `endEmission` e termina; o respingo termina em menos de 0,9 s. Do tiro único:
+  o jato sai da boca e passa um pouco do alvo; borrifo na boca, respingo e
+  espuma no alvo.
+- `attackSound.test.js` (o composto e os arquivos), `skills/index.test.js`
+  (registro: canalizado em feixe, com os grupos de canal; ícone).
+
+**Não testado em jogo** (sem navegador): a sensação de varrer o jato, a
+espessura dele, o respingo por tick e a `attackRangedAlt` no Squirtle.
+
+---
+
+## Parte 11 — Divisão do `creatureAttackSystem`
+
+Refactor sem mudança de comportamento: `core/systems/creatureAttackSystem.js`
+tinha ~1.640 linhas (bem acima do guia de ~300–500 das regras) e misturava
+trajetória, busca de alvo, disparo, impacto, canal e efeitos de status. O system
+ficou só com o docstring e as 5 passadas por tick (~460 linhas); o resto foi
+movido em blocos, sem reescrever, pra `core/battle/`:
+
+| Módulo | Responde |
+|---|---|
+| `attackTrajectory.js` | Onde a trajetória 2.5D termina (`resolveAttackImpactPoint`) |
+| `attackTargets.js` | Quem o golpe atinge — alvo único, cone, alvos de golpe só de efeito |
+| `attackEffectPlacement.js` | Partida e rotação do VFX (`resolveEffectRotation`, `resolveEffectStart`, `resolveEffectPlacement` — este extraído do meio do system) |
+| `attackCasting.js` | Disparo e término: `resolveAttackForEntity`, `ATTACK_SLOTS`, `tryStartAttack`, `resolveCastMode`, `handleAttackPress`, `finishAttack`, botão segurado |
+| `attackImpact.js` | O instante `effectAt` (`resolveAttackImpact`, antes inline no passo 4): dano, VFX, pulsos de som/grito |
+| `attackChannelTick.js` | Um tick do canalizado (cone ou feixe) |
+| `attackStatusEffects.js` | Efeitos de status, golpe em si mesmo, interrupção por dano |
+
+`AttackShape.jsx` e `ContinuousAttackEffectsView.jsx` passaram a importar
+`resolveAttackImpactPoint` de `attackTrajectory.js`; o
+`creatureAttackSystem.test.js` importa as funções puras dos módulos novos (os
+testes continuam no mesmo arquivo). Testes relacionados: mesmas 9 falhas
+antigas de antes do refactor, nenhuma nova.
+
+## Parte 12 — Tail Whip (e o `positionOffset` no jato do Water Gun)
+
+### `positionOffset` no efeito de canal
+
+O override `visual.positionOffset` do Water Gun no Squirtle não fazia nada. A
+mescla do override estava certa (`resolveSkill` mescla `visual` campo a campo),
+mas o jato é um efeito de CANAL (`visual.channelGroup`), desenhado por
+`channelFollower` (`ContinuousAttackEffectsView.jsx`), que partia sempre da boca
+— o `positionOffset` só era lido no VFX de impacto único (`effectGroup`), que o
+Water Gun não tem (`'none'`). Agora o canal também passa por
+`resolveEffectStart`: o jato parte da boca deslocada, no mesmo referencial dos
+outros golpes (+Z = pra frente, +Y = pra cima, em METROS), e o comprimento é
+medido da nova partida até onde o feixe bate. O dano e o respingo continuam
+contados da boca.
+
+### O Tail Whip
+
+Criado pelo usuário a partir do Growl; revisado:
+
+- **Regra**: `effects` baixa `defense` em 1 estágio por 60 s no cone, igual ao
+  Pokémon (todos os inimigos à frente). `accuracy: 100` explícito (passa pelo
+  sorteio, como o Smokescreen). O texto "Defesa ↓", o rótulo `DEF` da HUD e a
+  defesa na fórmula de dano já existiam — nada novo no core.
+- **Visual** (`view/vfx/tailWhipVfx.js`, grupo `'tail-whip'`): antes reusava as
+  ondas do Growl. Tradução de `tailwhip_actor` (varrida em flipbook, 8 quadros,
+  alfa 0.56) e `tailwhip_actorsparkle` (brilhos azul → rosa → lilás), nos tempos
+  da `animation.tailwhip.actor` menos 0.375 s (o efeito nasce no `effectAt`):
+  2 varridas e 4 levas de brilhos em ~1.5 s. Nascem ATRÁS da criatura, na
+  cauda — o +Z do Bedrock é pra trás, e aqui o corpo não dá as costas como no
+  Cobblemon (`TAIL_SIDE` troca o lado). O `emitter_transform_xy` da varrida
+  virou billboard.
+- **Motor**: spec ganhou `opacity` (alfa fixo do `tinting` do Bedrock), multiplicado
+  pelo fade de sempre.
+- **Som**: antes `'statup'` (o som de atributo SUBINDO, errado pra um golpe que
+  baixa). Agora o `tailwhip_actor.ogg` do Cobblemon (`audio.group: 'tail-whip'`).
+- **Fica como estava**: `animation.clipKey: 'attack'` (o `.glb` do Squirtle não
+  tem animação de abanar a cauda) e o ícone `growl.png` (sem ícone próprio).
+
+### Testes
+
+- `particleEmitter.test.js`: a varrida nasce atrás de quem usou com alfa 0.56;
+  duas varridas e o efeito termina em ~1.5 s.
+- `attackSound.test.js`: o grupo `'tail-whip'` existe e o arquivo está em `public/`.
+
+### Segunda rodada: o efeito e o som duram a ação inteira
+
+Testando em jogo, o usuário viu três problemas:
+
+- **`rotationOffset` jogava o efeito pra longe**: o VFX era um `AttackEffect` de
+  impacto, que num golpe de cone nasce na PONTA do cone (3 m à frente) — e o
+  `rotationOffset` gira em volta desse ponto, levando a criatura (a -3 m no
+  espaço local) pro outro lado.
+- **Efeito invertido**: nem trocar o lado da cauda resolvia.
+- **Duração e som**: tinham que ir até o fim da `duration`, não só do
+  `effectAt` em diante (o efeito nascia em 0.6 s de uma ação de 1 s).
+
+O que mudou:
+
+- **`visual.actionGroup`** (novo, `ContinuousAttackEffectsView.jsx`): terceiro
+  tipo de efeito contínuo, ao lado da carga e do canal — do DISPARO até a ação
+  acabar (interrompida, acaba junto), preso à criatura (origem no centro do
+  corpo, virado pra onde ela olha). Ali `positionOffset` desloca e
+  `rotationOffset.y` gira o efeito EM VOLTA da criatura. O Tail Whip passou pra
+  `effectGroup: 'none'` + `actionGroup: 'tail-whip'`, e o
+  `TailWhipAttackEffect.jsx` (impacto) foi removido.
+- **Motor — `every`** (`particleEmitter.js`): um emissor repete a própria linha
+  do tempo a cada `every` s até `endEmission()`. A abanada (varrida aos 0.04 s +
+  brilhos aos 0 e 0.25 s) se repete a cada 0.54 s enquanto a ação dura.
+- **Motor — `mirror`** (removido na rodada seguinte): espelhava o flipbook. A
+  altura passou a usar a altura real do corpo (`0.33 ×` acima dos pés, como no
+  original).
+- **`audio.actionGroup`** (novo): som em LOOP do disparo até a ação acabar
+  (cortado no fim da `duration`). O som de carga e este viraram "sons em loop"
+  com uma `phase` (`'charge'` | `'action'`): `resolveAttackChargeSounds` →
+  `resolveAttackLoopSounds`, `entry.charge` → `entry.loops` no
+  `attackAudioRegistry`. O Tail Whip usa `group: null` + `actionGroup:
+  'tail-whip'`.
+- `_template/index.js` documenta `visual.actionGroup` e `audio.actionGroup`.
+
+Testes: varrida atrás e espelhada; uma varrida por abanada (3 em 1.5 s); depois
+de `endEmission` não começa abanada nova e o sistema termina; som da ação em
+loop até o fim e parando com ela; fase `'charge'`/`'action'` no resolver.
+
+### Terceira rodada: na frente, apontando pro alvo
+
+Em jogo o efeito continuava ATRÁS do Squirtle e apontando pra trás (os brilhos
+voando pra trás), e havia dois lugares mexendo em direção (`TAIL_SIDE`/`MIRROR`
+no VFX e `rotationOffset` na skill). Olhando os quadros da varrida (arco
+simétrico, da direita pra esquerda e de volta), espelhar não mudava nada — o
+"invertido" era a direção. Agora:
+
+- o padrão é NA FRENTE, com os brilhos voando PRA FRENTE (na direção do alvo);
+- `TAIL_SIDE`, `MIRROR` e o `mirror` do motor saíram — posição e direção se
+  ajustam só na skill: `positionOffset` desloca, `rotationOffset.y` gira o
+  efeito inteiro (posição e direção) em volta da criatura.
+
+Testes: varrida na frente; brilhos na frente indo pra frente; quadro girado 180°
+leva tudo pra trás, apontando pra trás.
+
+### Quarta rodada: girar no lugar e o arco virado
+
+Em jogo a posição na frente estava certa, mas a varrida parecia vir NA DIREÇÃO
+do Squirtle (como se outra criatura à frente usasse o golpe nele), e girar pelo
+`rotationOffset.y` tirava o efeito do lugar. Dois problemas de transformação:
+
+- **Pivô errado**: o quadro do efeito tinha origem no CENTRO do corpo e os
+  emissores ficavam 0.525 m à frente — o `yaw` extra fazia o efeito ORBITAR a
+  criatura (90° = do lado, 180° = atrás). E a varrida é billboard: girar em Y
+  nunca mudava o desenho dela, só onde ela nascia.
+- **Eixo invertido = o V da textura**: o arco é um "U" (côncavo pra cima). Da
+  câmera (atrás e acima), o "U" lê como um arco no chão com as pontas pra
+  frente e o meio encostado no corpo — onda vindo. Espelhar na horizontal (a
+  segunda rodada) não mudava isso; o que vira a leitura é o giro de 180° no
+  plano da tela ("∩" = onda saindo).
+
+O que mudou:
+
+- `TAIL_WHIP_PIVOT` (`tailWhipVfx.js`, 0.525 m): o follower da ação põe a
+  origem do quadro no pivô (`ACTION_PIVOTS` em
+  `ContinuousAttackEffectsView.jsx`, somado ao `positionOffset` sem passar pelo
+  `rotationOffset`) e os offsets dos emissores são contados dele — em 0° a
+  posição é a mesma de antes, e `rotationOffset.y` gira no lugar.
+- **Motor — `roll`** (`frame.roll`, `particleSimulation.js`/`particleEmitter.js`):
+  `rotationOffset.z` gira as partículas no plano da tela (somado ao `spin`).
+- Skill: `rotationOffset: { x: 0, y: 0, z: 180 }` (antes `y: 90`).
+
+Testes: com o pivô à frente, varrida e brilhos nascem lá; quadro girado 180° em
+Y não tira os brilhos do pivô e os manda pra trás; `roll` gira a varrida.
+
+### Quinta rodada: o efeito volta pro `effectAt`
+
+O visual tinha passado a durar a ação inteira (segunda rodada); o usuário quis
+de volta só no `effectAt`, mantendo o `scale: 3`, o `rotationOffset.z: 180` e o
+`positionOffset.z: 1` que ajustou na skill.
+
+- `isAttackPastEffect` (`attackTelegraph.js`): do `effectAt` até a ação acabar,
+  pra qualquer golpe (`isAttackChanneling` passou a usá-lo). O follower da ação
+  (`visual.actionGroup`) só fica ativo nessa janela — interrompido antes do
+  `effectAt`, o efeito não aparece.
+- `tailWhipVfx.js`: sem `every`/`WAG_PERIOD` — UMA abanada (varrida aos 0.04 s,
+  brilhos aos 0 e 0.25 s), que termina sozinha. O `every` continua no motor,
+  sem uso por enquanto.
+- O som (`audio.actionGroup`, fase `'action'` em `attackAudioSystem.js`) também
+  passou a usar `isAttackPastEffect`: loop do `effectAt` até a ação acabar
+  (cortado no fim da `duration`).
+
+Testes: `isAttackPastEffect`; uma varrida só e o sistema termina sozinho; som
+da ação não toca antes do `effectAt` e toca em loop dali até o fim.
+
+### A conferir em jogo
+
+Se o arco "∩" (`rotationOffset.z: 180`) lê como o Squirtle abanando pra frente; altura e
+distância das varridas (`BODY_WIDTH`), o ritmo da abanada (`WAG_PERIOD`), o
+volume do som, e o `positionOffset` do Water Gun no Squirtle — hoje `y: 10`
+(10 METROS acima da boca; provavelmente queria `0.1`).
 
 ## Fora de escopo / pendências
 
@@ -1383,14 +1907,18 @@ Juntadas das sete partes, sem as que foram resolvidas dentro da própria versão
 
 ## Gates
 
-- `npm test`: 1064 passam, **61 falham, todas já existentes** e fora desta
+- `npm test`: 1117 passam, **60 falham, todas já existentes** e fora desta
   feature — `applyAnimationClip` (5), `orbitCamera` (10), `world` (3),
   `items/index` (1), `species/index` (1), `stats` (1), `footstepGroups` (1),
   `faintSystem` (6), `partySummonSystem` (15), `partyVitals` (5),
-  `summonBallSystem` (3) e `creatureAttackSystem` (10: indicador `castMode:
-  'confirm'` cuja premissa não vale mais com a configuração atual, alvo de lado,
-  cápsula deitada e `speed` por IV). Ligadas a espécies removidas/trocadas,
-  câmera, itens e dados ajustados pelo usuário.
+  `summonBallSystem` (3) e `creatureAttackSystem` (9: indicador `castMode:
+  'confirm'` cuja premissa não vale mais com a configuração atual, alvo de lado e
+  cápsula deitada). Ligadas a espécies removidas/trocadas, câmera, itens e dados
+  ajustados pelo usuário.
+- Testes desacoplados do balanceamento: o helper `advanceUntilEffectSpawns` tem
+  folga fixa de 5 s (o básico do Bulbasaur rebalanceado não cabia no tempo do
+  básico do Fox); os testes do Leech Seed e do Growth leem os números da própria
+  skill ou usam override.
 - `npm run lint`: os arquivos desta feature estão limpos. Ficam erros que já
   existiam em arquivos fora dela (formatação/`camelcase`): `001-bulbasaur/index.js`,
   `004-charmander/index.js`, `stats.js`, `ActionSlotHud.jsx`, `PokemonsTab.jsx`,

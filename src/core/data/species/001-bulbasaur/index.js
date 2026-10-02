@@ -1,7 +1,7 @@
 import CRY_CLIP from './clips/cry.json'
 import { BASIC_ATTACK } from './basicAttack'
 
-const LEVEL = 100
+const LEVEL = 5
 
 const HP = 45
 const ATTACK = 49
@@ -74,9 +74,7 @@ export const BULBASAUR = {
     dash: { sequence: ['stepIn', { animation: 'stepInEnd', frames: 10 }] },
     battleIdle: 'battleIdle',
     appeal: 'appeal',
-    // atordoada por golpe interrompido (ação `'hit'`)
     hit: 'hit',
-    // skill Growth (`animation.clipKey: 'growth'`)
     charge: { loop: 'charge' },
   },
 
@@ -95,7 +93,7 @@ export const BULBASAUR = {
     walkSpeed: 1.5,
     runSpeed: 4,
     turnSpeed: 10,
-    jumpSpeed: 9,
+    jumpSpeed: 6,
   },
   camera: {
     targetHeight: 0.5,
@@ -122,32 +120,35 @@ export const BULBASAUR = {
   },
   basicAttack: BASIC_ATTACK,
   skills: {
-    1: { id: 'growth' },
-    2: {
-      id: 'tackle',
-      overrides: {
-        range: 1,
-        duration: 1,
-        effectAt: 0.4,
-        // animationFrames: 30,
-        animation: { clipKey: 'attackBasicAlt' },
-      },
+    1: { 
+      id: 'growl', 
+      overrides: { 
+        audio: { 
+          cry: false,
+          clips: ['/assets/audio/voices/001-bulbasaur/cry-02.wav'], 
+          volume: 2,
+          refDistance: 4,
+        } 
+      } 
     },
+    2: { id: 'leech-seed' },
+    // 2: {
+    //   id: 'tackle',
+    //   overrides: {
+    //     range: 1.4,
+    //     duration: 1,
+    //     effectAt: 0.4,
+    //     animation: { clipKey: 'attackBasicAlt' },
+    //   },
+    // },
     3: {
       id: 'vine-whip',
       overrides: {
         range: 2,
         duration: 0.8,
-        effectAt: 0.6,
+        effectAt: 0.4,
       },
-      // overrides: {
-      //   range: 1.8,
-      //   duration: 0.8,
-      //   effectAt: 0.6,
-      //   animationFrames: 30,
-      // },
     },
-    // 2: { id: 'razor-leaf', overrides: { range: 4, duration: 2, effectAt: 1 } },
   },
   stats: {
     hp: { base: HP, ev: HP_EV, regenPercent: 2, regenDelay: 5 },
@@ -158,5 +159,7 @@ export const BULBASAUR = {
     sp_def: { base: SP_DEF, ev: SP_DEF_EV },
     speed: { base: SPEED, ev: SPEED_EV },
   },
-  moves: [],
+  moves: [
+    { id: 'leech-seed' },
+  ],
 }

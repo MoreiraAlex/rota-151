@@ -27,6 +27,9 @@ import { FLAMETHROWER_SKILL } from './flamethrower'
 import { GROWL_SKILL } from './growl'
 import { SMOKESCREEN_SKILL } from './smokescreen'
 import { GROWTH_SKILL } from './growth'
+import { LEECH_SEED_SKILL } from './leech-seed'
+import { WATER_GUN_SKILL } from './water-gun'
+import { TAIL_WHIP_SKILL } from './tail-whip'
 
 export const SKILL_REGISTRY = {
   [TACKLE_SKILL.id]: TACKLE_SKILL,
@@ -37,8 +40,11 @@ export const SKILL_REGISTRY = {
   [GROWL_SKILL.id]: GROWL_SKILL,
   [SMOKESCREEN_SKILL.id]: SMOKESCREEN_SKILL,
   [GROWTH_SKILL.id]: GROWTH_SKILL,
+  [LEECH_SEED_SKILL.id]: LEECH_SEED_SKILL,
+  [WATER_GUN_SKILL.id]: WATER_GUN_SKILL,
   [WHIRLPOOL_SKILL.id]: WHIRLPOOL_SKILL,
   [RAZOR_LEAF_SKILL.id]: RAZOR_LEAF_SKILL,
+  [TAIL_WHIP_SKILL.id]: TAIL_WHIP_SKILL,
 }
 
 export function getSkill(id, registry = SKILL_REGISTRY) {

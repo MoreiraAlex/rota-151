@@ -18,9 +18,12 @@ import {
   isPhysicsReady,
   getRapierWorld,
   getCharacterController,
+  getCharacterAvoidanceController,
+  charactersOnlyFilterFlags,
   terrainOnlyFilterFlags,
 } from '../physics/physicsWorld'
 import { quaternionFromAxisAngle } from '../math'
+import { resolveFreeTurn } from '../physics/colliders'
 
 // Deslocamento horizontal pedido (m, no tick) abaixo do qual o personagem
 // conta como parado — `Velocity` zerada por quem controla, com folga pra
@@ -51,6 +54,17 @@ const STILL_REQUEST_EPSILON = 1e-6
  * (`CharacterController.capsuleAxis` 'x'/'z') deixa de ser simétrica, e sem
  * isso ficaria travada num eixo do mundo em vez de acompanhar a frente da
  * criatura ao virar).
+ *
+ * Esse giro NÃO passa pelo character controller (que só confere colisão no
+ * deslocamento): colada noutra criatura, a cápsula deitada varreria a ponta
+ * pra dentro dela ao virar (o golpe vira o corpo de uma vez pra mira, a
+ * caminhada vira aos poucos), e o controller não sabe sair de uma
+ * sobreposição — a criatura ficava presa, só soltando com pulo/dash. Por
+ * isso só vale o pedaço do giro que não sobrepõe outro personagem
+ * (`resolveFreeTurn`, `core/physics/colliders.js`), e este system corrige
+ * `Rotation.y` pro giro que de fato aplicou — o único caso em que ele
+ * escreve `Rotation` (quem pede o giro: `movementSystem`,
+ * `creatureAttackSystem`, IA).
  *
  * `GROUNDED_STICK`/gravidade vêm do config global (epsilon técnico do
  * algoritmo de snap-to-ground, igual pra toda entidade); a força do pulo
@@ -107,6 +121,7 @@ export function characterPhysicsSystem(context) {
   const cfg = GAME_CONFIG.PHYSICS
   const rapierWorld = getRapierWorld()
   const controller = getCharacterController()
+  const avoidanceController = getCharacterAvoidanceController()
 
   world
     .query(
@@ -117,7 +132,7 @@ export function characterPhysicsSystem(context) {
       Velocity,
       Rotation,
     )
-    .updateEach(([, stats, vitals, body, vel, rot], entity) => {
+    .updateEach(([character, stats, vitals, body, vel, rot], entity) => {
       if (body.bodyHandle < 0) return
 
       const rigidBody = rapierWorld.getRigidBody(body.bodyHandle)
@@ -160,18 +175,44 @@ export function characterPhysicsSystem(context) {
       const standingStill =
         wasGrounded && requestedDistance < STILL_REQUEST_EPSILON
       const terrainOnly = entity.has(Fainted) || standingStill
+      // Duas passadas (ver `getCharacterAvoidanceController`): primeiro o
+      // movimento pedido contra os OUTROS personagens (sem o chão na
+      // consulta), depois o que sobrou contra o terreno — que dá a palavra
+      // final (autostep, snap, `grounded`). Juntos numa consulta só, o
+      // controller do Rapier prende quem está colado noutro personagem.
+      let desired = { x: requestedX, y: vel.y * delta, z: requestedZ }
+      if (!terrainOnly) {
+        avoidanceController.computeColliderMovement(
+          collider,
+          desired,
+          charactersOnlyFilterFlags(),
+        )
+        desired = avoidanceController.computedMovement()
+      }
       controller.computeColliderMovement(
         collider,
-        { x: requestedX, y: vel.y * delta, z: requestedZ },
-        terrainOnly ? terrainOnlyFilterFlags() : undefined,
+        desired,
+        terrainOnlyFilterFlags(),
       )
       const movement = controller.computedMovement()
       const translation = rigidBody.translation()
-      rigidBody.setNextKinematicTranslation({
+      const nextTranslation = {
         x: translation.x + movement.x,
         y: translation.y + movement.y,
         z: translation.z + movement.z,
-      })
+      }
+      rigidBody.setNextKinematicTranslation(nextTranslation)
+      // O giro não passa pelo controller: só vale o pedaço que não enfia a
+      // cápsula (deitada) em outro personagem — ver `resolveFreeTurn`. Se não
+      // coube inteiro, `rot.y` volta pro que foi aplicado (corpo e modelo
+      // iguais; quem pediu o giro tenta de novo no próximo tick).
+      rot.y = resolveFreeTurn(
+        body.colliderHandle,
+        nextTranslation,
+        currentYaw(rigidBody),
+        rot.y,
+        character.capsuleAxis,
+      )
       rigidBody.setNextKinematicRotation(quaternionFromAxisAngle('y', rot.y))
 
       const isGrounded = controller.computedGrounded()
@@ -193,4 +234,10 @@ export function characterPhysicsSystem(context) {
         entity.remove(MovementBlocked)
       }
     })
+}
+
+/** Yaw (rad) que o corpo tem agora — a rotação dele é só em torno de Y. */
+function currentYaw(rigidBody) {
+  const q = rigidBody.rotation()
+  return 2 * Math.atan2(q.y, q.w)
 }

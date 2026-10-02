@@ -7,7 +7,7 @@ import {
   ATTACK_SOUND_GROUPS,
   getAttackSoundGroup,
   resolveAttackSound,
-  resolveAttackChargeSounds,
+  resolveAttackLoopSounds,
   resolveAttackSounds,
 } from './attackSound'
 import { resolveCreatureAttack } from '../../battle/creatureAttack'
@@ -186,25 +186,82 @@ describe('som de atributo subiu (statup)', () => {
   })
 })
 
+describe('som do Tail Whip', () => {
+  it('o grupo "tail-whip" tem 1 arquivo, e ele existe em public/', () => {
+    const { clips } = getAttackSoundGroup('tail-whip')
+    expect(clips).toHaveLength(1)
+    expect(existsSync(join(PUBLIC, clips[0]))).toBe(true)
+  })
+})
+
 describe('som de carga (audio.chargeGroup)', () => {
   it('o slot com chargeGroup ganha o som de carga; os outros não', () => {
     const species = {
       basicAttack: { audio: { group: 'tackle' }, visual: {} },
       skills: {},
     }
-    expect(resolveAttackChargeSounds(species)).toEqual({})
+    expect(resolveAttackLoopSounds(species)).toEqual({})
 
     species.basicAttack.audio.chargeGroup = 'absorb-charge'
-    const sounds = resolveAttackChargeSounds(species)
+    const sounds = resolveAttackLoopSounds(species)
     expect(Object.keys(sounds)).toEqual(['primary'])
     expect(sounds.primary.clips).toEqual(
       ATTACK_SOUND_GROUPS['absorb-charge'].clips,
     )
   })
 
+  it('o som de carga vem marcado com a fase "charge"', () => {
+    const species = {
+      basicAttack: { audio: { chargeGroup: 'absorb-charge' }, visual: {} },
+      skills: {},
+    }
+    expect(resolveAttackLoopSounds(species).primary.phase).toBe('charge')
+  })
+
+  it('o som da AÇÃO inteira (audio.actionGroup) vem marcado com a fase "action"', () => {
+    const species = {
+      basicAttack: { audio: { actionGroup: 'tail-whip' }, visual: {} },
+      skills: {},
+    }
+    const { primary } = resolveAttackLoopSounds(species)
+    expect(primary.phase).toBe('action')
+    expect(primary.clips).toEqual(ATTACK_SOUND_GROUPS['tail-whip'].clips)
+  })
+
   it('o arquivo do som de carga existe em public/', () => {
     for (const clip of ATTACK_SOUND_GROUPS['absorb-charge'].clips) {
       expect(existsSync(join(PUBLIC, clip))).toBe(true)
+    }
+  })
+})
+
+describe('sons do Leech Seed', () => {
+  it('grupo composto: o de quem lança na hora, o do alvo quando a semente pousa', () => {
+    const parts = resolveAttackSound({
+      basicAttack: { audio: { group: 'leech-seed' }, visual: {} },
+    })
+    expect(parts.map((p) => p.delay)).toEqual([0, 0.35])
+  })
+
+  it('os arquivos existem em public/', () => {
+    for (const group of ['leech-seed-actor', 'leech-seed-target']) {
+      for (const clip of ATTACK_SOUND_GROUPS[group].clips) {
+        expect(existsSync(join(PUBLIC, clip)), clip).toBe(true)
+      }
+    }
+  })
+})
+
+describe('sons do Water Gun', () => {
+  it('o de quem atira e o do alvo juntos (golpe instantâneo); os arquivos existem', () => {
+    const parts = resolveAttackSound({
+      basicAttack: { audio: { group: 'water-gun' }, visual: {} },
+    })
+    expect(parts.map((p) => p.delay)).toEqual([0, 0])
+    for (const group of ['water-gun-actor', 'water-gun-target']) {
+      for (const clip of ATTACK_SOUND_GROUPS[group].clips) {
+        expect(existsSync(join(PUBLIC, clip)), clip).toBe(true)
+      }
     }
   })
 })

@@ -85,6 +85,10 @@ export const GAME_CONFIG = {
     // de hit e não faz nada. 0.67 = a `hit` dos iniciais na velocidade
     // original. Por espécie: `actions.hit.duration`.
     HIT_STUN_DURATION: 0.67,
+    // Quanto tempo (s) o visual de cada drenagem do Leech Seed fica na cena
+    // (`leechSeedSystem.js`, grupo `'leech-drain'`) — cobre os orbes indo do
+    // alvo até quem plantou e o estouro no alvo.
+    LEECH_DRAIN_EFFECT_DURATION: 1.6,
     // Combate 2.5D (`core/battle/attackGeometry.js`): diferença máxima
     // (m) entre as elevações dos pés de atacante e alvo, cada uma medida
     // em relação ao terreno logo abaixo dela. Acima disso, o alvo está

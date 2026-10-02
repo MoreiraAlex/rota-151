@@ -62,6 +62,10 @@ export function damageNumberSystem(context) {
       spawnInterruptText(event, cameraRight)
       continue
     }
+    if (event.type === EVENT_TYPES.LEECH_SEED_DRAINED) {
+      spawnLeechNumbers(event, cameraRight)
+      continue
+    }
     if (event.type !== EVENT_TYPES.ATTACK_RESOLVED) continue
     if (event.missed) {
       spawnMissText(event, cameraRight)
@@ -94,6 +98,48 @@ export function damageNumberSystem(context) {
     slot.x += cameraRight.x * side
     slot.z += cameraRight.z * side
   }
+}
+
+/**
+ * Uma drenagem do Leech Seed: o número de dano no alvo (cor de dano do lado
+ * dele) e "+N" na cor de atributo que sobe em quem plantou, se ele recuperou
+ * alguma coisa (já cheio, recolhido ou desmaiado: nada).
+ */
+function spawnLeechNumbers(event, right) {
+  const { target, source, damage, healed } = event
+  spawnHeadNumber(target, {
+    text: formatDamage(damage),
+    kind: 'damage',
+    color: resolveFeedbackColor('damage', resolveSide(target)),
+    right,
+  })
+  if (healed > 0 && source) {
+    spawnHeadNumber(source, {
+      text: `+${formatDamage(healed)}`,
+      kind: 'buff',
+      color: resolveFeedbackColor('buff', resolveSide(source)),
+      right,
+    })
+  }
+}
+
+// Número acima da cabeça (sem crítico), espalhado pro lado como os de dano.
+function spawnHeadNumber(entity, { text, kind, color, right }) {
+  if (!entity?.isAlive() || !entity.has(Position)) return
+  const pos = entity.get(Position)
+  const body = entity.get(CharacterController)
+  const top = pos.y + verticalClearance(body) + HEAD_MARGIN
+  const slot = damageNumberPool.spawn({
+    position: { x: pos.x, y: top, z: pos.z },
+    text,
+    critical: false,
+    lifetime: LIFETIME,
+    kind,
+    color,
+  })
+  const side = SPREAD_PATTERN[slot.serial % SPREAD_PATTERN.length] * SPREAD
+  slot.x += right.x * side
+  slot.z += right.z * side
 }
 
 /** Texto "Ataque ↓" logo acima da cabeça de quem teve o atributo alterado. */

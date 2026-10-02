@@ -15,3 +15,4 @@ export {
   isHitStunned,
   resolveHitStunDuration,
 } from './hitStun'
+export { plantarSemente, resolveLeechDrain } from './leechSeed'

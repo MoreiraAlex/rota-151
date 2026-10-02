@@ -3,6 +3,7 @@ import { createRng } from '../rng'
 import {
   countChannelTicks,
   isChannelAttack,
+  isBeamAttack,
   isConeAttack,
   isSelfAttack,
   resolveChannelTickCount,
@@ -92,5 +93,19 @@ describe('isSelfAttack', () => {
 
   it('golpe em si mesmo não é cone', () => {
     expect(isConeAttack({ area: 'self' })).toBe(false)
+  })
+})
+
+describe('isBeamAttack', () => {
+  it('canalizado com area "line" é feixe (e não é cone)', () => {
+    const beam = { damageMode: 'channel', area: 'line' }
+    expect(isBeamAttack(beam)).toBe(true)
+    expect(isConeAttack(beam)).toBe(false)
+  })
+
+  it('area "line" sem canal, ou canal sem area, não é feixe', () => {
+    expect(isBeamAttack({ area: 'line' })).toBe(false)
+    expect(isBeamAttack({ damageMode: 'channel' })).toBe(false)
+    expect(isConeAttack({ damageMode: 'channel' })).toBe(true)
   })
 })

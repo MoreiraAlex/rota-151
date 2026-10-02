@@ -1,7 +1,7 @@
 /**
  * Liga um efeito de partículas a cada coisa que fica ATIVA por um tempo e
  * pode se mover nesse meio-tempo — a criatura dando dash (`DashEffectsView.jsx`),
- * a criatura carregando um golpe (`ChargeEffectsView.jsx`): nasce quando fica
+ * a criatura carregando um golpe (`ContinuousAttackEffectsView.jsx`): nasce quando fica
  * ativo, acompanha enquanto dura, para de emitir quando acaba (ou some) e é
  * descartado quando as últimas partículas morrem. Separado do componente
  * React pra ser testável sem WebGL — `createSystem` é injetado.
@@ -9,7 +9,8 @@
  * `followers` (todos os candidatos, a cada frame): `{ key, active, origin:
  * [x, y, z], yaw, height, ... }` — `key` identifica o seguidor entre frames
  * (a entidade), `origin` é de onde as partículas saem, `yaw` pra onde ele vai
- * e `height` a altura do corpo (os specs leem em `ctx.height`). O seguidor
+ * (`roll`, opcional: giro das partículas no plano da tela) e `height` a altura
+ * do corpo (os specs leem em `ctx.height`). O seguidor
  * inteiro vai pro `createSystem(follower)` quando o efeito nasce — campos a
  * mais (ex.: o grupo e o raio da carga) servem pra montar o sistema certo.
  * `root` é o grupo da cena (espaço do mundo) onde os sistemas são pendurados.
@@ -41,14 +42,14 @@ export function createFollowEffectManager({ createSystem, root }) {
       const seen = new Set()
 
       for (const follower of followers) {
-        const { key, active, origin, yaw, height } = follower
+        const { key, active, origin, yaw, roll, height, length } = follower
         seen.add(key)
         if (!active) {
           end(key)
           continue
         }
         const system = following.get(key) ?? begin(follower)
-        system.setFrame({ origin, yaw, height })
+        system.setFrame({ origin, yaw, roll, height, length })
       }
 
       // seguidor que sumiu (criatura recolhida, destruída) no meio do efeito

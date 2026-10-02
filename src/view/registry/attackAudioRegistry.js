@@ -8,21 +8,21 @@
  * porque duas partes podem se sobrepor no tempo e um nó só toca um buffer
  * por vez.
  *
- * Entrada: `{ voices, pending, charge }`.
+ * Entrada: `{ voices, pending, loops }`.
  * - `voices`: `{ [slot]: [{ audio, delay, buffers }] }` — `audio` é o
  *   `THREE.PositionalAudio`, `delay` os segundos depois do impacto em que
  *   toca, `buffers` as variações já carregadas (preenchido IN PLACE conforme
  *   cada uma termina de carregar).
  * - `pending`: sons já disparados e esperando o atraso, `[{ voice,
  *   remaining }]` — estado do `attackAudioSystem.js`.
- * - `charge`: `{ [slot]: { audio, buffers } }` — o som de CARGA do slot
- *   (`resolveAttackChargeSounds`), em loop enquanto o golpe carrega; nó
- *   próprio, porque toca junto com os outros.
+ * - `loops`: `{ [slot]: { audio, buffers, phase } }` — o som em LOOP do slot
+ *   (`resolveAttackLoopSounds`): na carga (`phase: 'charge'`) ou na ação
+ *   inteira (`'action'`); nó próprio, porque toca junto com os outros.
  */
 const entries = new Map()
 
-export function registerAttackAudio(entity, voices, charge = {}) {
-  entries.set(entity, { voices, pending: [], charge })
+export function registerAttackAudio(entity, voices, loops = {}) {
+  entries.set(entity, { voices, pending: [], loops })
 }
 
 export function unregisterAttackAudio(entity) {
@@ -30,7 +30,7 @@ export function unregisterAttackAudio(entity) {
   if (!entry) return
   const allVoices = [
     ...Object.values(entry.voices).flat(),
-    ...Object.values(entry.charge),
+    ...Object.values(entry.loops),
   ]
   for (const { audio } of allVoices) {
     if (audio.isPlaying) audio.stop()

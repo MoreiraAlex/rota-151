@@ -37,11 +37,14 @@ const FADE_OUT_FRACTION = 0.15
  * no espaço local do efeito (impacto na origem, +Z na direção do golpe).
  *
  * **Efeito que acompanha quem se move** (o dash): `setFrame({ origin, yaw,
- * height })` define de onde os emissores soltam as partículas A PARTIR DE
+ * height, length? })` define de onde os emissores soltam as partículas A PARTIR DE
  * AGORA; elas nascem no MUNDO (o `group` fica na raiz da cena) e ficam pra
  * trás conforme a criatura anda — ver `ctx.frame` em `particleSimulation.js`.
  * Emissor `continuous: true` solta até `endEmission()` (o dash acabou); depois
- * disso o que já existe termina sozinho.
+ * disso o que já existe termina sozinho. Emissor com `every` (segundos) REPETE
+ * a própria linha do tempo (`start`, `duration`/`burst`) a cada `every` s, também
+ * até `endEmission()` — o padrão que se repete enquanto o golpe dura (o abanar
+ * de cauda do Tail Whip).
  *
  * **Linha de velocidade** (`facing: 'direction'`, o `lookat_direction` do
  * Bedrock): em vez de um sprite que sempre encara a câmera, um quadro esticado
@@ -66,6 +69,7 @@ export function createParticleSystem({
     carry: 0,
     emittedUntil: 0,
     burstDone: false,
+    cycle: 0,
   }))
   const live = []
   const pools = new Map()
@@ -143,7 +147,9 @@ export function createParticleSystem({
       progress: spec.duration
         ? Math.min(Math.max(emitterAge / spec.duration, 0), 1)
         : 0,
-      length,
+      // o quadro pode trazer o comprimento de agora (o feixe que segue a mira
+      // muda de tamanho a cada frame); senão, o do sistema
+      length: frame?.length ?? length,
       radius,
       scale,
       frame,
@@ -159,8 +165,20 @@ export function createParticleSystem({
   function runEmitters() {
     for (const runtime of runtimes) {
       const { spec } = runtime
-      const age = time - spec.start
+      let age = time - spec.start
       if (age < 0) continue
+
+      // `every`: a linha do tempo recomeça a cada ciclo, até `endEmission()`
+      if (spec.every) {
+        if (emissionEnded) continue
+        const cycle = Math.floor(age / spec.every)
+        if (cycle !== runtime.cycle) {
+          runtime.cycle = cycle
+          runtime.burstDone = false
+          runtime.emittedUntil = 0
+        }
+        age -= cycle * spec.every
+      }
 
       // rajada instantânea (`burst`: nº de partículas, de uma vez)
       // `burst` presente (inclusive 0): rajada, mesmo sem nenhuma partícula
@@ -210,9 +228,11 @@ export function createParticleSystem({
     const tintT = spec.tintAt ? spec.tintAt(t, state.rnd) : t
     const [r, g, b] = sampleGradient(spec.tint, tintT)
     sprite.material.color.setRGB(r, g, b, THREE.SRGBColorSpace)
-    sprite.material.opacity = Math.min(1, (1 - t) / FADE_OUT_FRACTION)
+    // `opacity` (opcional): o alfa fixo do `tinting` do Bedrock (ex.: 0.56)
+    sprite.material.opacity =
+      (spec.opacity ?? 1) * Math.min(1, (1 - t) / FADE_OUT_FRACTION)
     if (spec.facing !== 'direction') {
-      sprite.material.rotation = state.spin * (Math.PI / 2)
+      sprite.material.rotation = state.spin * (Math.PI / 2) + (state.roll ?? 0)
     }
     const frame = frameAt(state.age, spec.frames, state.life)
     if (spec.vertical) {
@@ -249,6 +269,7 @@ export function createParticleSystem({
 
   function isEmitting() {
     return runtimes.some(({ spec, burstDone }) => {
+      if (spec.every) return !emissionEnded
       if (spec.burst !== undefined) return !burstDone
       if (spec.continuous) return !emissionEnded
       return time < spec.start + spec.duration
@@ -275,7 +296,7 @@ export function createParticleSystem({
     },
     /**
      * Onde (e pra onde) os emissores soltam as partículas daqui pra frente:
-     * `{ origin: [x, y, z], yaw, height }` no MUNDO — ver o cabeçalho.
+     * `{ origin: [x, y, z], yaw, roll?, height }` no MUNDO — ver o cabeçalho.
      */
     setFrame(next) {
       frame = next

@@ -166,11 +166,13 @@ function anchorPoint(anchor, ctx) {
  * `ctx`: `{ age, progress, length, scale, radius, frame }` — idade do emissor,
  * fração (0..1) já percorrida da janela de emissão, comprimento do golpe,
  * multiplicador de tamanho, raio do golpe e, opcional, o QUADRO do emissor
- * (`frame: { origin: [x, y, z], yaw, height }`): quando presente, tudo o que o
+ * (`frame: { origin: [x, y, z], yaw, roll?, height }`): quando presente, tudo o que o
  * spec calcula (posição, velocidade, aceleração) é no referencial LOCAL da
  * criatura (+Z = pra onde ela olha) e a partícula nasce no MUNDO, na origem e
  * girada pelo `yaw` do quadro — o jeito de um efeito acompanhar quem se move
  * (o dash). `height` (altura do corpo) fica em `ctx.height` pros specs.
+ * `roll` (radianos, opcional) gira o sprite no plano da tela, somado ao `spin`
+ * — o único giro que muda o desenho de um billboard.
  *
  * Spec com `path` (o `particle_motion_parametric` do Bedrock): em vez de
  * velocidade e aceleração, a posição é uma FUNÇÃO da idade — ver
@@ -239,13 +241,19 @@ export function spawnParticle(spec, ctx, random) {
         : spec.spin
           ? Math.floor(random() * 4)
           : 0,
+    roll: ctx.frame?.roll ?? 0,
   }
   if (parametric) {
     // ponto de nascimento no MUNDO e o referencial pra girar o `path`
     particle.anchor = position
     particle.yaw = ctx.frame?.yaw ?? 0
     // o que o `path` pode ler do emissor no instante em que nasceu
-    particle.emitter = { age: ctx.age, radius: ctx.radius, height: ctx.height }
+    particle.emitter = {
+      age: ctx.age,
+      radius: ctx.radius,
+      height: ctx.height,
+      length: ctx.length,
+    }
     placeOnPath(spec, particle)
   }
   return particle
@@ -257,7 +265,7 @@ export function spawnParticle(spec, ctx, random) {
  * pela escala. `spec.path(age, particle)` devolve `[x, y, z]` em metros, no
  * referencial LOCAL (+Z = frente), a partir de onde a partícula nasceu —
  * lê `particle.age`/`life`/`rnd` e `particle.emitter` (`age` do emissor no
- * nascimento, `radius`, `height`). Devolve `false` quando a vida acabou.
+ * nascimento, `radius`, `height`, `length`). Devolve `false` quando a vida acabou.
  */
 export function stepPathParticle(spec, particle, dt) {
   particle.age += dt

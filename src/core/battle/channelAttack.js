@@ -14,13 +14,27 @@ export function isChannelAttack(attack) {
 
 /**
  * O ataque atinge um CONE (todos os alvos dentro dele) em vez de uma
- * cápsula (o primeiro corpo no caminho)? Todo canalizado é cone; um golpe de
+ * cápsula (o primeiro corpo no caminho)? Todo canalizado é cone, menos o feixe
+ * (`isBeamAttack`, cápsula); um golpe de
  * impacto único também pode ser, com `area: 'cone'` (ex.: Growl, que baixa o
  * ataque de TODOS os inimigos à frente). Decide a forma do indicador e do
  * aviso (`AttackShape.jsx`) e quem é atingido (`resolveConeTargets`).
  */
 export function isConeAttack(attack) {
+  if (isBeamAttack(attack)) return false
   return isChannelAttack(attack) || attack?.area === 'cone'
+}
+
+/**
+ * Canalizado em FEIXE (`damageMode: 'channel'` + `area: 'line'` — ex.: Water
+ * Gun): em vez do cone que pega todo mundo, a cada tick só o PRIMEIRO corpo na
+ * linha (a mesma cápsula do golpe normal, `resolveAttackTarget`) leva a fração
+ * do tick; e a criatura controlada continua mirando com a câmera durante o
+ * canal inteiro, não só na carga. O resto é o canalizado de sempre: segurar o
+ * botão, soltar corta, o canal inteiro vale o dano de um golpe.
+ */
+export function isBeamAttack(attack) {
+  return isChannelAttack(attack) && attack?.area === 'line'
 }
 
 /**

@@ -160,3 +160,50 @@ describe('growth', () => {
     ).toBe(true)
   })
 })
+
+describe('leech-seed', () => {
+  it('está no registro: sem dano, com um efeito de semente, precisão 90', () => {
+    const seed = getSkill('leech-seed')
+    expect(seed).toBe(SKILL_REGISTRY['leech-seed'])
+    expect(seed.damage).toBeNull()
+    expect(seed.accuracy).toBe(90)
+    // a forma do efeito; os números são balanceamento do usuário
+    expect(seed.effects).toHaveLength(1)
+    const [effect] = seed.effects
+    expect(effect.type).toBe('leechSeed')
+    expect(effect.fraction).toBeGreaterThan(0)
+    expect(effect.interval).toBeGreaterThan(0)
+    expect(effect.duration).toBeGreaterThan(0)
+  })
+
+  it('o ícone existe em public/', () => {
+    expect(
+      existsSync(
+        join(process.cwd(), 'public', getSkill('leech-seed').sprite.path),
+      ),
+    ).toBe(true)
+  })
+})
+
+describe('water-gun', () => {
+  it('está no registro: dano especial, à distância, canalizado em feixe', () => {
+    const gun = getSkill('water-gun')
+    expect(gun).toBe(SKILL_REGISTRY['water-gun'])
+    expect(gun.damage).toMatchObject({ category: 'special' })
+    expect(gun.aim).toBe('ranged')
+    expect(gun.damageMode).toBe('channel')
+    expect(gun.area).toBe('line')
+    expect(gun.visual).toMatchObject({
+      channelGroup: 'water-jet',
+      channelHitGroup: 'water-gun-hit',
+    })
+  })
+
+  it('o ícone existe em public/', () => {
+    expect(
+      existsSync(
+        join(process.cwd(), 'public', getSkill('water-gun').sprite.path),
+      ),
+    ).toBe(true)
+  })
+})

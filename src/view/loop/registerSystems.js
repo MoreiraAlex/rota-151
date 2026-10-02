@@ -16,6 +16,7 @@ import { partySummonSystem } from '@/core/systems/partySummonSystem'
 import { summonBallSystem } from '@/core/systems/summonBallSystem'
 import { creatureAppealSystem } from '@/core/systems/creatureAppealSystem'
 import { creatureHitStunSystem } from '@/core/systems/creatureHitStunSystem'
+import { leechSeedSystem } from '@/core/systems/leechSeedSystem'
 import { creatureFollowSystem } from '@/core/systems/creatureFollowSystem'
 import { wildCreatureSpawnSystem } from '@/core/systems/wildCreatureSpawnSystem'
 import { wildWanderSystem } from '@/core/systems/wildWanderSystem'
@@ -164,6 +165,8 @@ export function registerGameSystems() {
   // Logo depois do ataque: avança o atordoamento de quem teve um golpe de
   // status interrompido (a ação `'hit'`, iniciada pelo ataque).
   registerSystem(GAME_PHASES.SIMULATION, creatureHitStunSystem)
+  // Antes do desmaio: quem a drenagem do Leech Seed zerar desmaia no mesmo tick.
+  registerSystem(GAME_PHASES.SIMULATION, leechSeedSystem)
   // Logo depois do ataque: quem zerou o HP desmaia no mesmo tick do golpe
   // (e antes do partySummonSystem, que recolhe a do time desmaiada).
   registerSystem(GAME_PHASES.SIMULATION, faintSystem)

@@ -1,7 +1,7 @@
 import CRY_CLIP from './clips/cry.json'
 import { BASIC_ATTACK } from './basicAttack'
 
-const LEVEL = 100
+const LEVEL = 5
 
 const HP = 39
 const ATTACK = 52
@@ -93,7 +93,7 @@ export const CHARMANDER = {
     walkSpeed: 1.5,
     runSpeed: 4,
     turnSpeed: 10,
-    jumpSpeed: 9,
+    jumpSpeed: 6,
   },
   camera: {
     targetHeight: 0.5,
@@ -121,8 +121,18 @@ export const CHARMANDER = {
   },
   basicAttack: BASIC_ATTACK,
   skills: {
-    1: { id: 'growl' },
-    2: { id: 'tackle', overrides: { range: 1, duration: 1, effectAt: 0.4 } },
+    1: { 
+      id: 'growl', 
+      overrides: { 
+        audio: { 
+          cry: false,
+          clips: ['/assets/audio/voices/004-charmander/cry-02.wav'], 
+          volume: 2,
+          refDistance: 4,
+        } 
+      } 
+    },
+    2: { id: 'tackle', overrides: { range: 1.4, duration: 1, effectAt: 0.4 } },
     3: {
       id: 'ember',
       overrides: {

@@ -403,6 +403,86 @@ describe('characterPhysicsSystem + integração Rapier', () => {
     expect(creature.get(Position).x).toBeCloseTo(3, 1)
   })
 
+  describe('colado noutro personagem', () => {
+    const CHARMANDER = getSpecies('charmander')
+
+    // Personagem (em pé) parado logo à direita de onde o jogador vai
+    // encostar. Nível montado antes (mesmo motivo de `spawnCreatureAhead`).
+    function spawnNeighbor(world, at) {
+      run(world, 1)
+      const neighbor = world.spawn(
+        Position(at),
+        Rotation,
+        Velocity,
+        MovementStats(CHARMANDER.movement),
+        Vitals,
+        PhysicsBody,
+        CharacterController(CHARMANDER.body),
+      )
+      neighbor.set(
+        PhysicsBody,
+        createCharacterBody(at, {
+          radius: CHARMANDER.body.capsuleRadius,
+          halfHeight: CHARMANDER.body.capsuleHalfHeight,
+          axis: CHARMANDER.body.capsuleAxis,
+        }),
+      )
+      return neighbor
+    }
+
+    // O defeito do controller do Rapier depende da posição no mundo — por
+    // isso várias (ver `getCharacterAvoidanceController`). Faixa z = -30: livre
+    // dos obstáculos do nível de teste (z = 20 tem a escadaria).
+    const STARTS = [-30, -7.5, 0, 10.3, 25]
+    const LANE_Z = -30
+
+    it('encostado e apoiado no chão, consegue se afastar (não fica preso no vizinho)', async () => {
+      for (const x0 of STARTS) {
+        // física nova a cada posição (corpos da anterior não podem sobrar)
+        disposePhysics()
+        await initPhysics()
+        const { world, player } = makeWorld({
+          playerPosition: { x: x0, y: 1, z: LANE_Z },
+        })
+        try {
+          spawnNeighbor(world, { x: x0 + 1.5, y: 1, z: LANE_Z })
+          run(world, 30) // assenta no chão
+          run(world, 90, { right: true }) // anda até encostar nele
+          const touching = player.get(Position).x
+          expect(touching, `x0=${x0}: premissa, chegou perto`).toBeGreaterThan(
+            x0 + 0.3,
+          )
+
+          run(world, 30, { left: true }) // tenta ir embora
+
+          expect(
+            touching - player.get(Position).x,
+            `x0=${x0}: se afastou`,
+          ).toBeGreaterThan(0.3)
+        } finally {
+          world.destroy()
+        }
+      }
+    })
+
+    it('andar contra ele para na folga do controller, sem entrar', () => {
+      const { world, player } = makeWorld({
+        playerPosition: { x: 0, y: 1, z: 0 },
+      })
+      const neighbor = spawnNeighbor(world, { x: 1.5, y: 1, z: 0 })
+      run(world, 30)
+      run(world, 120, { right: true })
+
+      const rapier = getRapierWorld()
+      const mine = rapier.getCollider(player.get(PhysicsBody).colliderHandle)
+      const theirs = rapier.getCollider(
+        neighbor.get(PhysicsBody).colliderHandle,
+      )
+      expect(mine.contactCollider(theirs, 1).distance).toBeGreaterThan(0)
+      world.destroy()
+    })
+  })
+
   describe('criatura desmaiada no caminho', () => {
     // Nível montado ANTES de criar o corpo dela na mão: o
     // `physicsBootstrapSystem` cria um corpo pra todo `CharacterController`

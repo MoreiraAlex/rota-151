@@ -1,7 +1,7 @@
 import CRY_CLIP from './clips/cry.json'
 import { BASIC_ATTACK } from './basicAttack'
 
-const LEVEL = 100
+const LEVEL = 5
 
 const HP = 44
 const ATTACK = 48
@@ -50,12 +50,17 @@ export const SQUIRTLE = {
     cry: CRY_CLIP,
   },
   nativeAnimations: {
-    // Growl (skill de status): o rugido
     roar: 'roar',
     idle: 'idle',
     walk: 'walk',
     run: 'run',
-    attack: 'attack',
+    attack: { sequence: [{ animation: 'attack', frames: 30 }] },
+    attackRanged: 'attackRanged',
+    attackAlt: { sequence: ['attackAltStart', { animation: 'attackAltEnd', frames: 30 }] },
+    attackRangedAlt: {
+      start: 'attackRangedAltStart',
+      loop: 'attackRangedAltLoop',
+    },
     faint: {
       start: 'faintStart',
       loop: 'faintLoop',
@@ -66,7 +71,6 @@ export const SQUIRTLE = {
     dash: { sequence: ['stepIn', { animation: 'stepInEnd', frames: 10 }] },
     battleIdle: 'battleIdle',
     appeal: 'appeal',
-    // atordoada por golpe interrompido (ação `'hit'`)
     hit: 'hit',
   },
 
@@ -85,7 +89,7 @@ export const SQUIRTLE = {
     walkSpeed: 1.5,
     runSpeed: 4,
     turnSpeed: 10,
-    jumpSpeed: 9,
+    jumpSpeed: 6,
   },
   camera: {
     targetHeight: 0.5,
@@ -111,13 +115,16 @@ export const SQUIRTLE = {
     dashGroup: 'default',
     jumpGroup: 'default',
   },
-  // Ataque básico (mouse) — próprio desta espécie, ver ./basicAttack.js.
   basicAttack: BASIC_ATTACK,
-  // Habilidades (Q/E/R) — referências ao registro compartilhado
-  // (`core/data/skills/`), com `{ id, overrides }` opcional.
   skills: {
-    1: 'whirlpool',
-    2: 'smokescreen',
+    1: { id: 'tackle', overrides: { range: 1.4, duration: 1, effectAt: 0.6, animation: { clipKey: 'attackAlt' } } },
+    2: {
+      id: 'water-gun',
+      overrides: {
+        visual: { positionOffset: { x: 0, y: 0, z: 0.5 }, scale: 1.5 }
+      },
+    },
+    3: { id: 'tail-whip' },
   },
 
   stats: {

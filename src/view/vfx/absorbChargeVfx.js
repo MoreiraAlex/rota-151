@@ -2,7 +2,7 @@ import { compileGradient, sampleCurve } from './particleSimulation'
 
 /**
  * CARGA de "absorver energia" — o que aparece enquanto um golpe de status
- * carrega (do disparo até o `effectAt`, ver `ChargeEffectsView.jsx`): orbes
+ * carrega (do disparo até o `effectAt`, ver `ContinuousAttackEffectsView.jsx`): orbes
  * verdes girando em volta do corpo e se fechando no centro. Grupo de carga
  * `'absorb'` (`visual.chargeGroup` da skill — hoje o Growth).
  *

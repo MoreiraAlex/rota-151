@@ -9,7 +9,7 @@ import {
   resolveRoundedCone,
 } from '@/core/battle/attackGeometry'
 import { isConeAttack, isSelfAttack } from '@/core/battle/channelAttack'
-import { resolveAttackImpactPoint } from '@/core/systems/creatureAttackSystem'
+import { resolveAttackImpactPoint } from '@/core/battle/attackTrajectory'
 
 const { GROUND_LIFT } = GAME_CONFIG.FEEDBACK.ATTACK_INDICATOR
 

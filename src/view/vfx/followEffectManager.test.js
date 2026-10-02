@@ -177,3 +177,37 @@ describe('createFollowEffectManager', () => {
     expect(manager.activeCount).toBe(0)
   })
 })
+
+describe('createFollowEffectManager — comprimento no quadro', () => {
+  it('o `length` do seguidor vai pro quadro (o feixe que segue a mira)', () => {
+    const frames = []
+    const manager = createFollowEffectManager({
+      root: { add: () => {}, remove: () => {} },
+      createSystem: () => ({
+        group: {},
+        setFrame: (frame) => frames.push(frame),
+        setCameraPosition: () => {},
+        update: () => {},
+        isDone: () => false,
+        emissionEnded: false,
+        endEmission: () => {},
+        dispose: () => {},
+      }),
+    })
+    manager.update(
+      [
+        {
+          key: 'a',
+          active: true,
+          origin: [0, 0, 0],
+          yaw: 0,
+          height: 0,
+          length: 2.5,
+        },
+      ],
+      1 / 60,
+      { x: 0, y: 0, z: 0 },
+    )
+    expect(frames[0].length).toBe(2.5)
+  })
+})
