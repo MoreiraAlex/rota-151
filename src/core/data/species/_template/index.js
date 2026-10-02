@@ -2,7 +2,7 @@
  * Molde de uma espécie. Copia esta pasta inteira pra `<dexNumber>-<id>/`
  * (ex.: `001-bulbasaur/`) — um `index.js` com os dados abaixo, mais uma pasta
  * `clips/` com um .json por ação (`idle.json`, `walk.json`, `run.json`, ...).
- * Ver `../fox/` como exemplo completo e funcional.
+ * Ver `../004-charmander/` como exemplo completo e funcional.
  *
  * `stats` e `moves` ainda não têm formato fechado — o sistema de batalha
  * ainda não foi desenhado. Preenche do jeito que fizer sentido por enquanto;
@@ -56,7 +56,7 @@ export const SPECIES_TEMPLATE = {
     // Opcional — sem isso, usa a própria textura já embutida no `.glb`
     // (se houver). Duas formas (`useAnimatedModel.js`):
     // 1) string — uma textura pra TODO mesh do modelo, pra `.glb` com um
-    //    material só (ver `../fox/index.js`):
+    //    material só:
     // texture: '/assets/textures/nome/diffuse.png',
     // 2) `{ materialIndex: { path, ... } }` — um diffuse por material, pra
     //    `.glb` com vários materiais (corpo/olhos/etc. separados — ver
@@ -81,7 +81,7 @@ export const SPECIES_TEMPLATE = {
     // olhos.md), troca `pan` por `eyeStates` (mutuamente exclusivos — uma
     // entrada usa um ou outro, nunca os dois): um objeto por humor, cada
     // um com uma célula `open` e uma `closed` (mesmo formato de `pan`).
-    // `blink` (opcional, defaults 2-6s aberto / 0.12s fechado) ajusta o
+    // `blink` (opcional, defaults em `eyeBlinkSystem.js`) ajusta o
     // ritmo de piscar. `view/systems/eyeBlinkSystem.js` cuida do resto —
     // sem código nenhum além da config.
     // texture: {
@@ -182,8 +182,8 @@ export const SPECIES_TEMPLATE = {
     // global (`GAME_CONFIG.CAMERA.SHOULDER_OFFSET`) se omitido.
     shoulderOffset: 0.4,
   },
-  // Opcional — sem isso, o spawn usa os defaults do trait Vitals (100/100,
-  // regen 2%/10%, delays/custos abaixo). Só declare se esta criatura
+  // Opcional — sem isso, o spawn usa os defaults do trait Vitals
+  // (`core/traits/components/vitals.js`). Só declare se esta criatura
   // precisar de números próprios.
   vitals: {
     maxHp: 100,
@@ -203,7 +203,7 @@ export const SPECIES_TEMPLATE = {
   // `actions.throw`/`.consume`/`.summon`/`.recall` e `party` (arremesso,
   // consumo, invocar/recolher, distâncias de seguir o time) são exclusivos
   // do TREINADOR — não declare isso aqui pra uma criatura nova. Ver
-  // `../bot/index.js` se algum dia existir uma segunda espécie `kind:
+  // `../boy/index.js` se algum dia existir uma segunda espécie `kind:
   // 'trainer'`.
   //
   // `basicAttack` + `skills` (opcionais — ver `../004-charmander/`,
@@ -255,7 +255,7 @@ export const SPECIES_TEMPLATE = {
   // `sounds.voice` (opcional, independente do passo) — vocalização
   // periódica (grito/som ambiente da criatura, tipo "cry"), sorteada
   // entre variações e tocada de novo em intervalos aleatórios (ver
-  // `core/data/audio/voiceSound.js`/`../fox/index.js` pro formato de
+  // `core/data/audio/voiceSound.js`/`../004-charmander/index.js` pro formato de
   // verdade em uso):
   //      sounds: {
   //        voice: {
@@ -282,7 +282,7 @@ export const SPECIES_TEMPLATE = {
   //        dash: { clips: ['/assets/audio/dash/.../dash-01.wav', ...], volume: 0.6 },
   //        jump: { clips: ['/assets/audio/jump/.../jump-01.wav', ...], volume: 0.6 },
   //      },
-  // `sounds.summon`/`sounds.recall` (opcionais, SÓ FAZEM SENTIDO em `../bot/
+  // `sounds.summon`/`sounds.recall` (opcionais, SÓ FAZEM SENTIDO em `../boy/
   // index.js` — ver comentário "exclusivos do TREINADOR" acima; nenhuma
   // criatura nova declara isso) — mesmo formato de `dash`/`jump` acima
   // (sem grupo, um array de variações), tocado no INSTANTE em que a
@@ -350,7 +350,7 @@ export const SPECIES_TEMPLATE = {
   moves: [],
   // Opcional — tipo(s) elemental(is) da espécie (1 ou 2, ex.:
   // `['grass', 'poison']`), usado hoje só pro STAB (`resolveStab`,
-  // `core/battle/calculateDamage.js`) — `1.5` de dano quando o
+  // `core/battle/calculateDamage.js`) — bônus de dano quando o
   // `damage.type` do ataque (`core/data/skills/<id>/index.js`) bate com
   // um destes. Ausente = sem STAB pra esta espécie (cai em `1`, mesmo
   // fallback gracioso de sempre) — NENHUMA espécie declara isto ainda,

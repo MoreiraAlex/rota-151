@@ -8,7 +8,7 @@ import { pickRandomVariation } from '@/view/audio/pickRandomVariation'
  * resolvido, ver `useAnimatedModel.js`/`core/data/audio/dashSound.js`).
  *
  * `ActionState.current` fica `'dash'` durante toda a DURAÇÃO da ação
- * (`GAME_CONFIG.PLAYER_ACTIONS.dash.DURATION`, ~0.25s — vários ticks) —
+ * (`GAME_CONFIG.PLAYER_ACTIONS.dash.DURATION` — vários ticks) —
  * detecta a BORDA DE SUBIDA (`previousAction` guardado no registro, mesmo
  * princípio de `previousBeat` em `footstepAudioSystem.js`) pra tocar só
  * uma vez por dash, não todo tick enquanto a ação dura.

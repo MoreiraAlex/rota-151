@@ -9,8 +9,8 @@ import { compileGradient } from './particleSimulation'
  * criatura), então os dois emissores nascem no ponto de impacto, no
  * instante em que o efeito nasce (`effectAt` do ataque):
  *
- *   0.00  `hit`     — clarão amarelo, um quadro de 5 ao longo de 0.2 s
- *   0.00  `sparks`  — 7 faíscas que saltam e caem
+ *   - `hit`     — clarão amarelo (flipbook)
+ *   - `sparks`  — faíscas que saltam e caem
  *
  * As texturas são empilhadas na VERTICAL (quadro 0 = o de cima).
  * Sem a colisão com o chão (`expire_on_contact`) do original.

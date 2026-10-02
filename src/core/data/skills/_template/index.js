@@ -39,7 +39,7 @@ export const SKILL_TEMPLATE = {
   // até acabar. Devia bater com a duração de verdade do clipe de
   // animação quando existir (ver `animation.clipKey` abaixo) — clipes de
   // AÇÃO usam `speed` como `1/duração`, mesma convenção de
-  // `actions.throw`/`.summon` do bot (core/data/species/bot/index.js).
+  // `actions.throw`/`.summon` do treinador (core/data/species/boy/index.js).
   duration: 0.5,
   // Opcional (no básico da espécie, ou numa skill via
   // `skills[N].overrides`):
@@ -83,21 +83,21 @@ export const SKILL_TEMPLATE = {
   // creatureAttackSystem.js — geométrica, soma este raio ao
   // `capsuleRadius` do alvo, sem shape-query do Rapier).
   radius: 0.3,
-  // Custo de stamina, descontado uma vez no disparo (não por segundo) —
-  // mesmo padrão de GAME_CONFIG.PLAYER_ACTIONS.dash.STAMINA_COST/
-  // actions.throw.staminaCost do bot. Sem stamina suficiente, o ataque
-  // simplesmente não dispara.
-  staminaCost: 2,
-  // Segundos de espera ALÉM da stamina, contados a partir do FIM da ação —
-  // independente de a stamina já ter regenerado (`AttackCooldowns.<slot>`,
-  // um campo por slot — `primary`/`secondary1-3` —, decrementado todo
-  // tick, ver core/traits/components/attackEffect.js). `0` = sem cooldown
-  // (a única trava é ter stamina). Começa a contar só quando a AÇÃO
-  // termina (depois de `duration`), não no disparo. Comportamento do ataque comum
-  // (`primary`); skills de verdade (`secondary1-3`) tipicamente
-  // configuram um valor > 0, já que não competem pelo mesmo "orçamento"
-  // do ataque básico (cada slot tem seu PRÓPRIO cooldown).
-  cooldown: 0,
+  // Custo de energia (descontado uma vez no disparo) e recarga (segundos,
+  // contados a partir do FIM da ação — `AttackCooldowns.<slot>`, um campo
+  // por slot, decrementado todo tick): NÃO se escrevem — saem da fórmula
+  // (`core/battle/actionCost.js`, docs/features/035-balanceamento-
+  // de-acoes-e-correcoes.md) pelo PESO do golpe (`damage.power` + o peso de cada efeito,
+  // × bônus de cone e de alcance):
+  //   custo   = (2·nível/5 + 2) × peso / ACTION_COST.COST_DIVISOR
+  //   recarga = peso × ACTION_COST.COOLDOWN_PER_WEIGHT × fator de speed
+  // O básico (`primary`) não tem recarga (o ritmo vem da `duration`). Pra
+  // fugir da fórmula numa skill, escreva o valor aqui (ou no override da
+  // espécie, `skills[N].overrides`) — escrito sempre ganha:
+  // staminaCost: 2,
+  // cooldown: 3,
+  //
+  // `ai.weight` (mais abaixo) mexe só na nota da IA, não no preço.
   // Como o dano é aplicado:
   // - ausente/`'impact'` (padrão): UMA vez, no `effectAt`, no primeiro alvo
   //   da trajetória (`resolveAttackTarget`).
@@ -309,7 +309,7 @@ export const SKILL_TEMPLATE = {
 // formas (o `basicAttack` não — é uma definição completa, da espécie):
 //   skills: { 1: 'tackle' },                    // sem override
 //   skills: { 1: { id: 'tackle', overrides: {   // com override
-//     staminaCost: 10,
+//     staminaCost: 10,                      // foge da fórmula de custo
 //     visual: { rotationOffset: { x: 0, y: 90, z: 0 }, positionOffset: { x: 0, y: 0.2, z: 0 } },
 //   } } },
 // `resolveSkill` (core/data/skills/index.js) mescla a definição

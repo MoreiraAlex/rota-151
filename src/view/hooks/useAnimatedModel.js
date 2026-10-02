@@ -231,7 +231,7 @@ function setupAttackAudio(entity, groupRef, sounds, loopSounds) {
  * tingir uma instância sem afetar as outras que carregam o mesmo `.glb`
  * precisa clonar o material antes de mudar a cor (ver `CreatureView.jsx`).
  * Textura por espécie (`species.model.texture`, opcional — string pra
- * modelo de material único como FOX/WOLF, ou `{ [materialIndex]: path }`
+ * modelo de material único, ou `{ [materialIndex]: path }`
  * pra modelo com vários materiais como Bulbasaur — ver docs/features/020-
  * fox-selvagens-cena-e-texturas.md) segue o mesmo cuidado, aplicada aqui
  * mesmo (não só em `CreatureView`) porque é config de `species.model`, no
@@ -301,8 +301,8 @@ export function useAnimatedModel(entity, species) {
     if (!texture) return
 
     // Duas formas de `species.model.texture`:
-    // - string: UMA textura pra TODO mesh do modelo (caso FOX/WOLF — `.glb`
-    //   com um material só, a textura cobre o modelo inteiro).
+    // - string: UMA textura pra TODO mesh do modelo (`.glb` com um
+    //   material só, a textura cobre o modelo inteiro).
     // - `{ [materialIndex]: { path, ... } }`: um objeto por material, pra
     //   modelo com vários materiais (caso Bulbasaur — corpo/folha/olhos são
     //   materiais diferentes, cada um com seu diffuse; ver
@@ -354,7 +354,7 @@ export function useAnimatedModel(entity, species) {
           // QUALQUER textura carregada por ali. Só sobrescreve `flipY`
           // aqui quando a espécie parametrizar explicitamente (ex.: uma
           // textura que FOI extraída de dentro de um `.glb`, que segue a
-          // convenção de UV oposta — ver `species/fox/index.js`).
+          // convenção de UV oposta).
           if (obj.flipY !== undefined) {
             loaded.flipY = obj.flipY
           }

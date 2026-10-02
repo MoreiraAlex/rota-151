@@ -1,4 +1,9 @@
-import { avancarDash, iniciarDash } from '../actions/dash'
+import {
+  avancarDash,
+  iniciarDash,
+  isDashReady,
+  travarRecargaDoDash,
+} from '../actions/dash'
 import { resolveMoveSpeed } from '../actions/movementSpeed'
 import { resolveDashCost, tentarCorrer } from '../actions/stamina'
 import { getSpecies } from '../data/species'
@@ -108,13 +113,14 @@ function findIncomingAttack(pos, bodyRadius, enemies) {
 }
 
 /**
- * Pode dar dash agora: sem descansar, no chão, ação livre, intervalo do dash
- * vencido e, depois de pagar, sobrando a reserva de energia da IA
- * (`AI_ENERGY.SKILL_RESERVE_FRACTION` — dash gasta energia como golpe).
+ * Pode dar dash agora: sem descansar, no chão, ação livre, fora da recarga do
+ * dash (`isDashReady` — a mesma do jogador, 035) e, depois de pagar, sobrando
+ * a reserva de energia da IA (`AI_ENERGY.SKILL_RESERVE_FRACTION` — dash gasta
+ * energia como golpe).
  */
-function canDash(entity, vitals, movement, resting) {
+function canDash(entity, vitals, resting) {
   const { SKILL_RESERVE_FRACTION } = GAME_CONFIG.AI_ENERGY
-  if (resting || movement.dashTimer > 0) return false
+  if (resting || !isDashReady(entity)) return false
   if (!entity.has(Grounded)) return false
   if (entity.get(ActionState).current !== null) return false
   return (
@@ -136,13 +142,13 @@ export function faceMovement(rot, stats, dirX, dirZ, delta) {
 // `entity.get` de trait de valores devolve uma CÓPIA: o que muda aqui volta
 // com `entity.set` (`ActionState` e `AiMovement` não estão na query de quem
 // chama).
-function startAiDash(entity, vitals, moving, movement, dirX, dirZ, delta) {
+function startAiDash(entity, vitals, moving, dirX, dirZ, delta) {
   const action = entity.get(ActionState)
   iniciarDash(action, vitals, dirX, dirZ)
   avancarDash(action, moving.vel, 0, 0)
   entity.set(ActionState, action)
+  travarRecargaDoDash(entity)
   faceMovement(moving.rot, moving.stats, dirX, dirZ, delta)
-  movement.dashTimer = GAME_CONFIG.AI_MOVEMENT.DASH_INTERVAL
 }
 
 /**
@@ -194,7 +200,6 @@ function decideFightMove(entity, movement, fight, rng) {
   const { pos, rot, vel, stats, vitals, target, plan, stopDistance } = fight
   const { enemies, resting, waiting, delta } = fight
   const config = GAME_CONFIG.AI_MOVEMENT
-  movement.dashTimer = Math.max(0, movement.dashTimer - delta)
 
   const targetPos = target.get(Position)
   const toX = targetPos.x - pos.x
@@ -223,15 +228,11 @@ function decideFightMove(entity, movement, fight, rng) {
     if (movement.dodgeReact && incoming.elapsed >= config.DODGE_REACTION_TIME) {
       const runTime =
         incoming.exitDistance / resolveMoveSpeed(stats, vitals, true)
-      if (
-        runTime > incoming.timeLeft &&
-        canDash(entity, vitals, movement, resting)
-      ) {
+      if (runTime > incoming.timeLeft && canDash(entity, vitals, resting)) {
         startAiDash(
           entity,
           vitals,
           moving,
-          movement,
           incoming.dodgeX,
           incoming.dodgeZ,
           delta,
@@ -261,9 +262,9 @@ function decideFightMove(entity, movement, fight, rng) {
   if (distance > stopDistance) {
     if (
       distance - stopDistance > config.DASH_CLOSE_DISTANCE &&
-      canDash(entity, vitals, movement, resting)
+      canDash(entity, vitals, resting)
     ) {
-      startAiDash(entity, vitals, moving, movement, ux, uz, delta)
+      startAiDash(entity, vitals, moving, ux, uz, delta)
       return 'dash'
     }
     steerTowards(entity, moving, targetPos, runOrWalk(), delta)

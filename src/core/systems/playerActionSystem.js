@@ -1,4 +1,9 @@
-import { avancarDash, iniciarDash } from '../actions/dash'
+import {
+  avancarDash,
+  iniciarDash,
+  isDashReady,
+  travarRecargaDoDash,
+} from '../actions/dash'
 import { resolveMoveSpeed } from '../actions/movementSpeed'
 import { resolveDashCost } from '../actions/stamina'
 import { getItem } from '../data/items'
@@ -154,8 +159,9 @@ export function playerActionSystem(context) {
   // manipular via menu de configurações (ver
   // docs/features/015-menu-de-pausa-e-configuracoes.md) valer na hora.
   // O dash (`core/actions/dash.js`, `PLAYER_ACTIONS.dash`) é global —
-  // funciona igual pra qualquer entidade controlada, sem variar por espécie,
-  // com o custo pela vida (`resolveDashCost`). `THROW`/`CONSUME` são
+  // funciona igual pra qualquer entidade controlada; o custo é da entidade
+  // × vida (`resolveDashCost`) e a recarga é a mesma pra todos
+  // (`isDashReady`/`travarRecargaDoDash`, 035). `THROW`/`CONSUME` são
   // exclusivos do treinador (`getPlayerSpecies().actions`, ver
   // docs/features/018-troca-de-controle-treinador-criatura.md) — só ele
   // arremessa/consome de verdade (item real só existe nele).
@@ -177,10 +183,12 @@ export function playerActionSystem(context) {
         const canDash =
           input.dash &&
           entity.has(Grounded) &&
+          isDashReady(entity) &&
           vitals.stamina >= resolveDashCost(vitals)
 
         if (canDash) {
           iniciarDash(action, vitals, Math.sin(rot.y), Math.cos(rot.y))
+          travarRecargaDoDash(entity)
         } else if (input.primary) {
           const item = heldItem.itemId ? getItem(heldItem.itemId) : null
 

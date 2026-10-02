@@ -9,15 +9,15 @@ import { compileGradient, sampleCurve } from './particleSimulation'
  * Espaço local: o `AttackEffect` nasce no alvo (impacto), quem atacou fica em
  * (0, 0, -length), +Z na direção do golpe (o Z do Bedrock é invertido).
  *
- *   0.00  `spray`  — gotas espirrando da boca (0.4 s)
- *   0.00  `jet`    — o jato: gotas da boca até um pouco além do alvo, com uma
- *                    leve ondulação (0.4 s de emissão, 0.675 s de voo cada)
- *   0.00  `splash` — respingo de gotas no alvo
- *   0.00  `foam`   — espuma azul no alvo
+ *   - `spray`  — gotas espirrando da boca
+ *   - `jet`    — o jato: gotas da boca até um pouco além do alvo, com uma
+ *                leve ondulação
+ *   - `splash` — respingo de gotas no alvo
+ *   - `foam`   — espuma azul no alvo
  *
  * Diferenças pro original:
  * - impacto único (decisão do usuário): o jato e o borrifo do Cobblemon duram
- *   1.1–1.25 s (um fluxo); aqui 0.4 s, com mais gotas por segundo pra o jato não
+ *   1.1–1.25 s (um fluxo); aqui bem menos, com mais gotas por segundo pra o jato não
  *   ficar ralo; o respingo e a espuma (1 s a 100/s) viram rajadas curtas;
  * - o respingo e a espuma saem no `effectAt` (no Cobblemon, 0.3 s depois,
  *   esperando o jato) — a regra dos golpes de dano (Parte 2): dano e impacto

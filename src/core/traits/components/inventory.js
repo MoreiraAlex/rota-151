@@ -12,7 +12,7 @@ import { trait } from 'koota'
  * itens de `core/data/items/`), só pra validar o menu de equipamento/
  * inventário (ver docs/features/015-menu-de-pausa-e-configuracoes.md,
  * docs/features/017-inventario-em-grade.md) sem depender de outra feature
- * primeiro. `pebble` vem numa pilha grande (20) de propósito, pra dar pra
+ * primeiro. `pebble` vem numa pilha grande de propósito, pra dar pra
  * testar o consumo de verdade — arremessar várias vezes seguidas, ver a
  * contagem cair a cada uma, e o item sumir do inventário quando chega a
  * zero — sem só 1 unidade sumindo no primeiro arremesso. `pokedex`

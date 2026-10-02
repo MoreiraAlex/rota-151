@@ -22,20 +22,18 @@ export const SMOKESCREEN_SKILL = {
   aim: 'ranged',
   castMode: 'instant',
   area: 'cone',
-  // abertura do cone: `radius / range` (0.5 = ~27° pra cada lado)
+  // abertura do cone: `radius / range` (tangente do meio-ângulo)
   radius: 1.5,
-  staminaCost: 3,
-  cooldown: 1,
   accuracy: 100,
   // Sem dano: nada "apanha", e `attackResolved` sai com `status: true`.
   damage: null,
   effects: [{ type: 'statStage', stat: 'accuracy', stages: -1, duration: 30 }],
   visual: {
     effectGroup: 'smokescreen',
-    // sopro (0.7 s) + a vida da fumaça (até ~1.5 s)
+    // sopro + a vida da fumaça (`view/vfx/smokescreenVfx.js`)
     effectVisualDuration: 2.5,
     targetEffectGroup: 'smokescreen-target',
-    // fumaça do alvo: 0.8 s de emissão + vida das partículas (até ~2.1 s)
+    // fumaça do alvo: emissão + vida das partículas
     targetEffectVisualDuration: 3,
     scale: 1,
     revealDuration: 0,

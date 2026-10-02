@@ -52,30 +52,19 @@ describe('resolveFootstepSound', () => {
     expect(resolveFootstepSound(species)).toBe(individual)
   })
 
-  it('bot e fox (espécies reais do projeto) resolvem o grupo que cada um declara', async () => {
+  it('boy e charmander (espécies reais do projeto) resolvem o grupo que cada um declara', async () => {
     // Compara contra o grupo que a PRÓPRIA espécie aponta (`sounds.
-    // footstepGroup`), não um id fixo — bot/fox podem compartilhar o
+    // footstepGroup`), não um id fixo — as espécies podem compartilhar o
     // mesmo grupo ou não, isso é decisão de conteúdo/ajuste ao vivo, não
     // algo que este teste deva travar.
-    const { BOT } = await import('../species/bot')
-    const { FOX } = await import('../species/fox')
-    expect(resolveFootstepSound(BOT)).toBe(
-      getFootstepGroup(BOT.sounds.footstepGroup),
+    const { BOY } = await import('../species/boy')
+    const { CHARMANDER } = await import('../species/004-charmander')
+    expect(resolveFootstepSound(BOY)).toBe(
+      getFootstepGroup(BOY.sounds.footstepGroup),
     )
-    expect(resolveFootstepSound(FOX)).toBe(
-      getFootstepGroup(FOX.sounds.footstepGroup),
+    expect(resolveFootstepSound(CHARMANDER)).toBe(
+      getFootstepGroup(CHARMANDER.sounds.footstepGroup),
     )
-  })
-
-  it('fox-red/green/blue herdam o mesmo grupo de fox via spread', async () => {
-    const { FOX } = await import('../species/fox')
-    const { FOX_RED } = await import('../species/fox-red')
-    const { FOX_GREEN } = await import('../species/fox-green')
-    const { FOX_BLUE } = await import('../species/fox-blue')
-    const foxSound = resolveFootstepSound(FOX)
-    expect(resolveFootstepSound(FOX_RED)).toBe(foxSound)
-    expect(resolveFootstepSound(FOX_GREEN)).toBe(foxSound)
-    expect(resolveFootstepSound(FOX_BLUE)).toBe(foxSound)
   })
 })
 

@@ -6,8 +6,6 @@ export const RAZOR_LEAF_SKILL = {
   aim: 'ranged',
   castMode: 'instant',
   radius: 0.4,
-  staminaCost: 2,
-  cooldown: 2,
   // Canalizado: dano em toda a área do cone a cada `damageInterval` s,
   // do `effectAt` até o fim; segurar o botão até o fim, soltar cancela
   // (ver `core/battle/channelAttack.js`). Intervalo de partida — a definir.
@@ -33,7 +31,7 @@ export const RAZOR_LEAF_SKILL = {
   animation: {
     clipKey: 'attackRanged',
   },
-  // Físico, poder 55 — mesmo valor de "Razor Leaf" nos jogos originais
+  // Físico, poder de referência: o de "Razor Leaf" nos jogos originais
   // (golpe físico apesar do tipo Grass). Ver comentário sobre `type:
   // null` em `../tackle/index.js`.
   damage: { power: 55, category: 'physical', type: null },

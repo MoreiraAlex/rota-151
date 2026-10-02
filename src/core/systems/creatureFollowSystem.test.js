@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { afterEach, describe, it, expect } from 'vitest'
 import { createWorld } from 'koota'
 import { makeWorld } from '@/test/makeWorld'
 import { getSpecies, getPlayerSpecies } from '@/core/data/species'
@@ -17,15 +17,20 @@ import {
   WildCreature,
 } from '@/core/traits'
 import { GAME_CONFIG } from '@/core/gameConfig'
-import { creatureFollowSystem } from './creatureFollowSystem'
+import { creatureFollowSystem, resolveFollowGait } from './creatureFollowSystem'
 
 // `party` é exclusivo do treinador (`getPlayerSpecies()`, ver
 // docs/features/018-troca-de-controle-treinador-criatura.md) — sempre a
-// espécie `bot` de verdade, não a `fox` usada pro player de teste abaixo.
-const { followMinDistance: FOLLOW_MIN_DISTANCE, runDistance: RUN_DISTANCE } =
-  getPlayerSpecies().party
+// espécie do treinador de verdade, não a usada pras criaturas abaixo.
+const {
+  followMinDistance: FOLLOW_MIN_DISTANCE,
+  runDistance: RUN_DISTANCE,
+  followResumeDistance: FOLLOW_RESUME_DISTANCE,
+  avoidanceRadius: AVOIDANCE_RADIUS,
+  avoidanceStartRadius: AVOIDANCE_START_RADIUS,
+} = getPlayerSpecies().party
 const { walkSpeed: WALK_SPEED, runSpeed: RUN_SPEED } =
-  getSpecies('fox').movement
+  getSpecies('charmander').movement
 
 function spawnCreature(world, position) {
   return world.spawn(
@@ -33,7 +38,7 @@ function spawnCreature(world, position) {
     Rotation,
     Velocity,
     SummonedCreature({ slot: 'slot1' }),
-    MovementStats(getSpecies('fox').movement),
+    MovementStats(getSpecies('charmander').movement),
     PathState,
     PhysicsBody, // toda SummonedCreature real também tem (ver partySummonSystem.js)
     // A query de seguidores agora é por CharacterController, não mais por
@@ -115,7 +120,7 @@ describe('creatureFollowSystem', () => {
 
     const vel = creature.get(Velocity)
     expect(Math.hypot(vel.x, vel.z)).toBeCloseTo(
-      getSpecies('fox').movement.walkSpeed,
+      getSpecies('charmander').movement.walkSpeed,
     )
   })
 
@@ -316,8 +321,8 @@ describe('creatureFollowSystem', () => {
       Position({ x: 10, y: 1, z: 0 }),
       Rotation,
       Velocity,
-      WildCreature({ speciesId: 'fox' }),
-      MovementStats(getSpecies('fox').movement),
+      WildCreature({ speciesId: 'charmander' }),
+      MovementStats(getSpecies('charmander').movement),
       PathState,
       PhysicsBody,
       CharacterController,
@@ -334,5 +339,160 @@ describe('creatureFollowSystem', () => {
     expect(wild.get(PathState).waypoints).toEqual([])
 
     world.destroy()
+  })
+})
+
+describe('resolveFollowGait — histerese da marcha', () => {
+  const bands = {
+    stopDistance: FOLLOW_MIN_DISTANCE,
+    resumeDistance: FOLLOW_RESUME_DISTANCE,
+    runDistance: RUN_DISTANCE,
+  }
+  const between = (FOLLOW_MIN_DISTANCE + FOLLOW_RESUME_DISTANCE) / 2
+  const upper = (FOLLOW_RESUME_DISTANCE + RUN_DISTANCE) / 2
+
+  it('fora da folga decide só pela distância', () => {
+    for (const previous of ['stop', 'walk', 'run']) {
+      expect(resolveFollowGait(previous, FOLLOW_MIN_DISTANCE, bands)).toBe(
+        'stop',
+      )
+      expect(resolveFollowGait(previous, RUN_DISTANCE + 0.01, bands)).toBe(
+        'run',
+      )
+    }
+  })
+
+  it('parada continua parada até passar de followResumeDistance', () => {
+    expect(resolveFollowGait('stop', between, bands)).toBe('stop')
+    expect(resolveFollowGait('stop', FOLLOW_RESUME_DISTANCE, bands)).toBe(
+      'stop',
+    )
+    expect(resolveFollowGait('stop', upper, bands)).toBe('walk')
+  })
+
+  it('correndo continua correndo até chegar em followResumeDistance', () => {
+    expect(resolveFollowGait('run', upper, bands)).toBe('run')
+    expect(resolveFollowGait('run', FOLLOW_RESUME_DISTANCE, bands)).toBe('walk')
+  })
+
+  it('andando continua andando na faixa toda', () => {
+    expect(resolveFollowGait('walk', between, bands)).toBe('walk')
+    expect(resolveFollowGait('walk', upper, bands)).toBe('walk')
+  })
+})
+
+describe('creatureFollowSystem — sem oscilar no limiar', () => {
+  // O treinador se afastando aos poucos (passo menor que o da criatura):
+  // antes, cada tick em que passava de FOLLOW_MIN_DISTANCE virava um tick
+  // de andar — para, anda, para.
+  it('parada, não volta a andar com o alvo se afastando pouco do limiar', () => {
+    const { world, player } = makeWorld({
+      playerPosition: { x: 0, y: 1, z: 0 },
+    })
+    const creature = spawnCreature(world, {
+      x: FOLLOW_MIN_DISTANCE - 0.1,
+      y: 1,
+      z: 0,
+    })
+    tick(world)
+    expect(creature.get(PathState).gait).toBe('stop')
+
+    player.set(Position, { x: -0.3, y: 1, z: 0 })
+    tick(world)
+
+    const vel = creature.get(Velocity)
+    expect(Math.hypot(vel.x, vel.z)).toBe(0)
+
+    world.destroy()
+  })
+
+  // O treinador andando (entre o andar e o correr da criatura): antes, ela
+  // passava a andar assim que caía abaixo de RUN_DISTANCE e voltava a
+  // correr ao ficar pra trás — trocando quase todo tick.
+  it('correndo, continua correndo logo abaixo de RUN_DISTANCE', () => {
+    const { world } = makeWorld({ playerPosition: { x: 0, y: 1, z: 0 } })
+    const creature = spawnCreature(world, { x: RUN_DISTANCE + 1, y: 1, z: 0 })
+    tick(world)
+    creature.set(Position, { x: RUN_DISTANCE - 0.1, y: 1, z: 0 })
+
+    tick(world)
+
+    const vel = creature.get(Velocity)
+    expect(Math.hypot(vel.x, vel.z)).toBeCloseTo(RUN_SPEED)
+
+    world.destroy()
+  })
+
+  // Vazia, o primeiro pouco regenerado pagava um tick de corrida e
+  // reiniciava o atraso do regen — um tranco de corrida a cada ~2s.
+  it('sem energia, descansa: não corre com o pouco que regenerou', () => {
+    const { world } = makeWorld({ playerPosition: { x: 0, y: 1, z: 0 } })
+    const creature = spawnCreature(world, { x: RUN_DISTANCE + 5, y: 1, z: 0 })
+    creature.set(Vitals, { stamina: 0 })
+    tick(world)
+    expect(creature.get(PathState).resting).toBe(true)
+
+    // Regenerou o bastante pra pagar alguns ticks de corrida, longe do fim
+    // do descanso (`REST_EXIT_FRACTION`).
+    const { maxStamina } = creature.get(Vitals)
+    creature.set(Vitals, { stamina: maxStamina * 0.1 })
+    tick(world)
+
+    const vel = creature.get(Velocity)
+    expect(Math.hypot(vel.x, vel.z)).toBeCloseTo(WALK_SPEED)
+    expect(creature.get(Vitals).stamina).toBeCloseTo(maxStamina * 0.1)
+
+    world.destroy()
+  })
+
+  // Parada, com outro chegando devagar: antes andava um tick, saía de
+  // avoidanceRadius, parava e ele entrava de novo — mini-passos.
+  describe('desvio parada com histerese', () => {
+    const between = (AVOIDANCE_START_RADIUS + AVOIDANCE_RADIUS) / 2
+    let world
+    afterEach(() => world.destroy())
+
+    function parkedPair(gap) {
+      // As duas a FOLLOW_MIN_DISTANCE do treinador (parada), separadas
+      // por `gap` ao longo de z.
+      const x = Math.sqrt(FOLLOW_MIN_DISTANCE ** 2 - (gap / 2) ** 2) - 0.01
+      const a = spawnCreature(world, { x, y: 1, z: -gap / 2 })
+      const b = spawnCreature(world, { x, y: 1, z: gap / 2 })
+      return [a, b]
+    }
+
+    it('alguém entre os dois raios não tira da parada', () => {
+      ;({ world } = makeWorld({ playerPosition: { x: 0, y: 1, z: 0 } }))
+      const [a] = parkedPair(between)
+      a.set(PathState, { gait: 'stop' })
+
+      tick(world)
+
+      const vel = a.get(Velocity)
+      expect(Math.hypot(vel.x, vel.z)).toBe(0)
+    })
+
+    it('já se afastando, continua até sair de avoidanceRadius', () => {
+      ;({ world } = makeWorld({ playerPosition: { x: 0, y: 1, z: 0 } }))
+      const [a] = parkedPair(between)
+      a.set(PathState, { gait: 'stop', separating: true })
+
+      tick(world)
+
+      const vel = a.get(Velocity)
+      expect(Math.hypot(vel.x, vel.z)).toBeCloseTo(WALK_SPEED)
+      expect(a.get(PathState).separating).toBe(true)
+    })
+
+    it('alguém dentro de avoidanceStartRadius tira da parada', () => {
+      ;({ world } = makeWorld({ playerPosition: { x: 0, y: 1, z: 0 } }))
+      const [a] = parkedPair(AVOIDANCE_START_RADIUS - 0.3)
+      a.set(PathState, { gait: 'stop' })
+
+      tick(world)
+
+      const vel = a.get(Velocity)
+      expect(Math.hypot(vel.x, vel.z)).toBeCloseTo(WALK_SPEED)
+    })
   })
 })

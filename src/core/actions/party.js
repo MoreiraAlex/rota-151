@@ -21,8 +21,8 @@ import {
  * criatura persistente pra saber "é a mesma de antes", ver
  * docs/features/029-*.md).
  *
- * Sem sorteio pra espécie sem `stats.hp.base` (`fox`/`wolf` ainda não
- * migrados, ou id desconhecido) — `PartyIndividualValues[slot]` fica
+ * Sem sorteio pra espécie sem `stats.hp.base` (não migrada, ou id
+ * desconhecido) — `PartyIndividualValues[slot]` fica
  * `null`, mesmo fallback gracioso de sempre (`resolveCreatureStats`
  * já trata isso).
  *

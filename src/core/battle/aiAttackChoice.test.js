@@ -226,11 +226,11 @@ describe('planAiAttack — com uma espécie de verdade', () => {
   })
 
   it('espécie sem habilidades: só o básico', () => {
-    const FOX = getSpecies('fox')
+    const noSkills = { ...CHARMANDER, skills: {} }
     const { wild, trainer } = spawnCharmanders()
-    expect(planAiAttack(wild, FOX, trainer, [], null, () => 0.99).slot).toBe(
-      'primary',
-    )
+    expect(
+      planAiAttack(wild, noSkills, trainer, [], null, () => 0.99).slot,
+    ).toBe('primary')
   })
 
   it('energia baixa: golpes mais caros que o mais barato ficam de fora (reserva)', () => {

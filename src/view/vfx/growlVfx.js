@@ -31,7 +31,7 @@ export const WAVE_LIFETIME = 0.5
 // Altura do arco na boca (m) e espessura (comprimento ao longo do movimento)
 const MIN_HEIGHT = 0.35
 const THICKNESS = 0.45
-// Altura do arco na ponta do cone (m): 2 × `radius` do Growl (1.5). O spec de
+// Altura do arco na ponta do cone (m): 2 × `radius` do Growl. O spec de
 // tamanho não enxerga o `ctx`, então o valor fica aqui — ajuste junto do `radius`.
 const TIP_HEIGHT = 3
 

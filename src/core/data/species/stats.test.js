@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { createRng } from '../../rng'
 import {
   calculateAttackDurationFactor,
+  calculateEnergyStat,
   calculateHpStat,
   calculateStat,
   resolveCreatureStats,
@@ -90,10 +91,15 @@ describe('resolveCreatureStats', () => {
     }
     const resolved = resolveCreatureStats(species, individualValues)
 
-    const expectedEnergy = Math.trunc(
-      (resolved.hp.stat + resolved.defense.stat + resolved.sp_def.stat) / 3,
+    // Pela própria fórmula (ainda em ajuste) — o teste é que a entrada são
+    // os status já recalculados, não os números da conta.
+    expect(resolved.energy.stat).toBe(
+      calculateEnergyStat({
+        hp: resolved.hp.stat,
+        defense: resolved.defense.stat,
+        sp_def: resolved.sp_def.stat,
+      }),
     )
-    expect(resolved.energy.stat).toBe(expectedEnergy)
   })
 
   it('cp sai calculado quando os seis status estão presentes', () => {
@@ -107,16 +113,27 @@ describe('resolveCreatureStats', () => {
     expect(resolveCreatureStats(species, {})).toBeNull()
   })
 
-  it('espécie sem stats nenhum (ex.: fox/wolf ainda não migrados) retorna null', () => {
+  it('espécie sem stats nenhum (ex.: espécie ainda não migrada) retorna null', () => {
     expect(resolveCreatureStats({ stats: {} }, {})).toBeNull()
   })
 })
 
-describe('calculateStat (referência pra checagem cruzada)', () => {
-  it('bate com a fórmula clássica', () => {
-    expect(calculateStat({ base: 49, iv: 31, ev: 0, level: 5 })).toBe(
-      Math.trunc((Math.trunc(((2 * 49 + 31) * 5) / 100) + 5) * 1),
-    )
+describe('calculateStat', () => {
+  // Sem copiar a fórmula (ainda em ajuste): só o que ela tem que respeitar.
+  const BASE = { base: 49, iv: 15, ev: 0, level: 50 }
+
+  it('cresce com base, IV e nível', () => {
+    const stat = calculateStat(BASE)
+    expect(calculateStat({ ...BASE, base: 100 })).toBeGreaterThan(stat)
+    expect(calculateStat({ ...BASE, iv: 31 })).toBeGreaterThan(stat)
+    expect(calculateStat({ ...BASE, level: 100 })).toBeGreaterThan(stat)
+  })
+
+  it('natureza: bônus aumenta, penalidade diminui, neutra é o padrão', () => {
+    const stat = calculateStat(BASE)
+    expect(calculateStat({ ...BASE, nature: 1 })).toBe(stat)
+    expect(calculateStat({ ...BASE, nature: 1.1 })).toBeGreaterThan(stat)
+    expect(calculateStat({ ...BASE, nature: 0.9 })).toBeLessThan(stat)
   })
 })
 

@@ -16,12 +16,12 @@ export function resolveMovementCostMultiplier(vitals) {
   return 1 + (MAX_MULTIPLIER - 1) * (1 - fraction) ** EXPONENT
 }
 
-/** Custo de energia de um dash agora (`PLAYER_ACTIONS.dash.STAMINA_COST` × vida). */
+/**
+ * Custo de energia de um dash agora: o da entidade (`Vitals.dashStaminaCost`
+ * — nas criaturas, pelo nível; ver `resolveMovementCosts`) × vida baixa.
+ */
 export function resolveDashCost(vitals) {
-  return (
-    GAME_CONFIG.PLAYER_ACTIONS.dash.STAMINA_COST *
-    resolveMovementCostMultiplier(vitals)
-  )
+  return vitals.dashStaminaCost * resolveMovementCostMultiplier(vitals)
 }
 
 /**

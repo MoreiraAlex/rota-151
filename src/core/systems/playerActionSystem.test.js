@@ -14,6 +14,8 @@ import {
   Grounded,
   InputState,
   MovementStats,
+  DashCooldown,
+  resolveMovementCosts,
 } from '@/core/traits'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import { getItem } from '@/core/data/items'
@@ -21,17 +23,18 @@ import { getSpecies, getPlayerSpecies } from '@/core/data/species'
 import { computeAimRay } from '@/core/camera/orbitCamera'
 import { resolveDashCost } from '../actions/stamina'
 import { playerActionSystem, resolveDashSpeed } from './playerActionSystem'
+import { dashCooldownSystem } from './dashCooldownSystem'
 
 // DASH continua global (GAME_CONFIG) — THROW/CONSUME são exclusivos do
 // treinador (`getPlayerSpecies().actions`, ver docs/features/018-troca-
-// de-controle-treinador-criatura.md), sempre a espécie `bot` de verdade,
-// não a `fox` que este arquivo usa pro player de teste (ver
+// de-controle-treinador-criatura.md), sempre a espécie do treinador de
+// verdade, não a que este arquivo usa pro player de teste (ver
 // `test/makeWorld.js`).
-const { DURATION, SPEED, STAMINA_COST } = GAME_CONFIG.PLAYER_ACTIONS.dash
+const { DURATION, SPEED, COOLDOWN } = GAME_CONFIG.PLAYER_ACTIONS.dash
 const { throw: THROW, consume: CONSUME } = getPlayerSpecies().actions
-// Vitals do PLAYER de teste (espécie 'fox', ver `test/makeWorld.js`) —
-// diferente de THROW/CONSUME acima, que são sempre do treinador 'bot'.
-const PLAYER_VITALS = getSpecies('fox').vitals
+// Custo do dash do player de teste — por entidade desde a 035
+// (`Vitals.dashStaminaCost`, `resolveMovementCosts`).
+const DASH_COST = resolveMovementCosts(getSpecies('boy')).dashStaminaCost
 
 function tick(world, input = {}, delta = 1 / 60) {
   playerActionSystem({ world, delta, input })
@@ -100,13 +103,13 @@ describe('playerActionSystem — dash', () => {
     expect(Math.hypot(vel.x, vel.z)).toBeCloseTo(SPEED)
   })
 
-  it('ferido, o dash custa mais (STAMINA_COST × o multiplicador da vida)', () => {
+  it('ferido, o dash custa mais (o custo da entidade × o multiplicador da vida)', () => {
     const { world, player } = spawnWorld()
     player.add(Grounded)
     const { maxHp } = player.get(Vitals)
     player.set(Vitals, { hp: maxHp * 0.25, stamina: 100 })
     const cost = resolveDashCost(player.get(Vitals))
-    expect(cost).toBeGreaterThan(STAMINA_COST)
+    expect(cost).toBeGreaterThan(DASH_COST)
 
     tick(world, { dash: true })
 
@@ -117,13 +120,14 @@ describe('playerActionSystem — dash', () => {
     const { world, player } = spawnWorld()
     player.add(Grounded)
     player.set(Rotation, { y: 0 })
+    const { maxStamina } = player.get(Vitals)
 
     tick(world, { dash: true })
-    expect(player.get(Vitals).stamina).toBeCloseTo(100 - STAMINA_COST)
+    expect(player.get(Vitals).stamina).toBeCloseTo(maxStamina - DASH_COST)
 
     // continuar no meio do dash não desconta de novo
     tick(world, {})
-    expect(player.get(Vitals).stamina).toBeCloseTo(100 - STAMINA_COST)
+    expect(player.get(Vitals).stamina).toBeCloseTo(maxStamina - DASH_COST)
   })
 
   it('reseta o delay de regeneração de stamina ao disparar', () => {
@@ -134,19 +138,39 @@ describe('playerActionSystem — dash', () => {
     tick(world, { dash: true })
 
     expect(player.get(Vitals).staminaRegenDelay).toBeCloseTo(
-      PLAYER_VITALS.staminaRegenDelayAfterUse,
+      player.get(Vitals).staminaRegenDelayAfterUse,
     )
   })
 
   it('não dispara sem stamina suficiente', () => {
     const { world, player } = spawnWorld()
     player.add(Grounded)
-    player.set(Vitals, { stamina: STAMINA_COST - 1 })
+    player.set(Vitals, { stamina: DASH_COST / 2 })
 
     tick(world, { dash: true })
 
     expect(player.get(ActionState).current).toBe(null)
-    expect(player.get(Vitals).stamina).toBe(STAMINA_COST - 1) // não descontou
+    expect(player.get(Vitals).stamina).toBe(DASH_COST / 2) // não descontou
+  })
+
+  it('recarga: depois de um dash, outro só depois de COOLDOWN (mesma regra da IA)', () => {
+    const { world, player } = spawnWorld()
+    player.add(Grounded)
+    const run = (input) => {
+      dashCooldownSystem({ world, delta: 1 / 60 })
+      tick(world, input)
+    }
+
+    run({ dash: true })
+    expect(player.get(DashCooldown).timeLeft).toBeCloseTo(COOLDOWN)
+    // Termina o dash e tenta de novo antes da recarga: não sai.
+    for (let t = 0; t < DURATION + 0.1; t += 1 / 60) run({})
+    run({ dash: true })
+    expect(player.get(ActionState).current).toBe(null)
+
+    for (let t = 0; t < COOLDOWN; t += 1 / 60) run({})
+    run({ dash: true })
+    expect(player.get(ActionState).current).toBe('dash')
   })
 
   it('lê GAME_CONFIG.PLAYER_ACTIONS.dash a cada tick — mudar SPEED em tempo real já vale no próximo disparo', () => {
@@ -363,16 +387,21 @@ describe('playerActionSystem — arremesso (item throwable)', () => {
   it('desconta o custo de stamina do arremesso uma única vez, no disparo, e reseta o delay de regeneração', () => {
     const { world, player } = spawnWorld()
     player.set(HeldItem, { itemId: 'pebble' })
+    const { maxStamina } = player.get(Vitals)
 
     tick(world, { primary: true })
-    expect(player.get(Vitals).stamina).toBeCloseTo(100 - THROW.staminaCost)
+    expect(player.get(Vitals).stamina).toBeCloseTo(
+      maxStamina - THROW.staminaCost,
+    )
     expect(player.get(Vitals).staminaRegenDelay).toBeCloseTo(
-      PLAYER_VITALS.staminaRegenDelayAfterUse,
+      player.get(Vitals).staminaRegenDelayAfterUse,
     )
 
     // continuar no meio do arremesso não desconta de novo
     tick(world, {})
-    expect(player.get(Vitals).stamina).toBeCloseTo(100 - THROW.staminaCost)
+    expect(player.get(Vitals).stamina).toBeCloseTo(
+      maxStamina - THROW.staminaCost,
+    )
   })
 
   it('sem stamina suficiente, o arremesso não dispara', () => {

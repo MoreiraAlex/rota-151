@@ -283,8 +283,8 @@ const finder = new PF.AStarFinder({
  *
  * Sem esse limite (o que `PF.Util.smoothenPath` sozinho faz), um trecho
  * reto e andável célula a célula — verdade, `isWalkableAt` confirma cada
- * uma — pode ainda assim virar UM waypoint só a 20-30m de distância (uma
- * lane de rampa de ~4m de largura tem exatamente esse formato: reta,
+ * uma — pode ainda assim virar UM waypoint só bem longe (uma lane de
+ * rampa estreita tem exatamente esse formato: reta,
  * andável, e comprida). Célula andável não é o mesmo que "seguro mirar de
  * tão longe": entre um recálculo e o próximo
  * (`PATHFINDING.REPATH_INTERVAL`), a criatura anda reto na direção daquele

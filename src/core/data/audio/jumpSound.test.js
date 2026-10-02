@@ -15,12 +15,14 @@ describe('jumpSound', () => {
     }
   })
 
-  it('bot/fox (espécies reais do projeto) resolvem o grupo que cada um declara', async () => {
-    const { BOT } = await import('../species/bot')
-    const { FOX } = await import('../species/fox')
-    expect(resolveJumpSound(BOT)).toBe(getJumpSoundGroup(BOT.sounds.jumpGroup))
-    expect(resolveJumpSound(FOX)).toBe(getJumpSoundGroup(FOX.sounds.jumpGroup))
-    expect(resolveJumpSound(BOT)).not.toBe(null)
-    expect(resolveJumpSound(FOX)).not.toBe(null)
+  it('boy/charmander (espécies reais do projeto) resolvem o grupo que cada um declara', async () => {
+    const { BOY } = await import('../species/boy')
+    const { CHARMANDER } = await import('../species/004-charmander')
+    expect(resolveJumpSound(BOY)).toBe(getJumpSoundGroup(BOY.sounds.jumpGroup))
+    expect(resolveJumpSound(CHARMANDER)).toBe(
+      getJumpSoundGroup(CHARMANDER.sounds.jumpGroup),
+    )
+    expect(resolveJumpSound(BOY)).not.toBe(null)
+    expect(resolveJumpSound(CHARMANDER)).not.toBe(null)
   })
 })

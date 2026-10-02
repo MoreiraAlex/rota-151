@@ -35,7 +35,7 @@ function applyPhase(units, mood, phase) {
  * olhos.md), num ciclo por tempo: fica "aberto" por um intervalo sorteado
  * (`minInterval`-`maxInterval`, de novo a cada ciclo — mesmo raciocínio de
  * `voiceAudioSystem.js`, pra várias criaturas não piscarem em sincronia),
- * pisca "fechado" por `closedDuration` (curto, tipo 0.1-0.15s), volta pra
+ * pisca "fechado" por `closedDuration` (curto), volta pra
  * "aberto".
  *
  * Troca de humor NO MEIO de um "aberto" reflete NA HORA (não espera o

@@ -29,8 +29,8 @@ import { pickRandomVariation } from '@/view/audio/pickRandomVariation'
  * aleatória (`pickRandomVariation`); sem buffer carregado ainda, no-op — mas
  * AINDA remove a tag.
  *
- * Partes com `delay` > 0 (ex.: o som do ALVO da Brasa, 0.5 s depois do som
- * do atacante) esperam em `entry.pending` e tocam quando o atraso, contado
+ * Partes com `delay` > 0 (ex.: o som do ALVO tocando depois do som do
+ * atacante) esperam em `entry.pending` e tocam quando o atraso, contado
  * pelo `delta` do frame, zera.
  *
  * Sons em LOOP (`entry.loops`, `resolveAttackLoopSounds`), pela fase de cada

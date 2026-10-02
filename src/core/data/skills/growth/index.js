@@ -10,8 +10,8 @@
  * de mira nem aviso no chão. O `AttackEffect` nasce nos PÉS da criatura.
  * `range` não é usado.
  *
- * Os efeitos são os mesmos `statStage` do Growl, com o sinal trocado: 60 s,
- * renovável, acumula até +6.
+ * Os efeitos são os mesmos `statStage` do Growl, com o sinal trocado:
+ * renovável, acumula até o limite de estágios.
  *
  * Visual: o "boost" genérico do Cobblemon (`misc/boost.json` →
  * `statup_actor` + `statup_actoraura`), que o mod toca em toda criatura que
@@ -22,15 +22,13 @@
  */
 export const GROWTH_SKILL = {
   id: 'growth',
-  // `charge` do Bulbasaur dura 1 s; o atributo sobe no meio dela
+  // o atributo sobe no `effectAt`, durante a `charge` do Bulbasaur
   duration: 3,
   effectAt: 3,
   range: 0,
   castMode: 'instant',
   area: 'self',
   radius: 0.5,
-  staminaCost: 2,
-  cooldown: 1,
   // Sem dano: só sobe os atributos de quem usou.
   damage: null,
   effects: [
@@ -39,7 +37,7 @@ export const GROWTH_SKILL = {
   ],
   visual: {
     effectGroup: 'statup',
-    // cobre os orbes (0.1 + 0.375 de emissão + 0.45 de vida)
+    // cobre os orbes (emissão + vida das partículas)
     effectVisualDuration: 1,
     scale: 0.6,
     revealDuration: 0,

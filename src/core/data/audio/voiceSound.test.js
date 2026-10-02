@@ -19,16 +19,11 @@ describe('resolveVoiceSound', () => {
     expect(resolveVoiceSound({ sounds: { voice } })).toBe(voice)
   })
 
-  it('fox (espécie real do projeto) tem voz configurada', async () => {
-    const { FOX } = await import('../species/fox')
-    const voice = resolveVoiceSound(FOX)
+  it('charmander (espécie real do projeto) tem voz configurada', async () => {
+    const { CHARMANDER } = await import('../species/004-charmander')
+    const voice = resolveVoiceSound(CHARMANDER)
     expect(voice).not.toBe(null)
     expect(voice.clips.length).toBeGreaterThan(0)
-  })
-
-  it('bot (espécie real do projeto) ainda não tem voz — mecanismo pronto, sem arquivo', async () => {
-    const { BOT } = await import('../species/bot')
-    expect(resolveVoiceSound(BOT)).toBe(null)
   })
 })
 

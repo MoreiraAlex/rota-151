@@ -14,13 +14,13 @@ import {
 import { movementSystem } from './movementSystem'
 
 const { walkSpeed: WALK_SPEED, runSpeed: RUN_SPEED } =
-  getSpecies('fox').movement
-// Vitals do player de teste também vem de 'fox' (ver test/makeWorld.js) —
+  getSpecies('boy').movement
+// Vitals do player de teste também vem de 'boy' (ver test/makeWorld.js) —
 // RUN_STAMINA_DRAIN_PER_SECOND/STAMINA_REGEN_DELAY_AFTER_USE deixaram de
 // ser globais (GAME_CONFIG.VITALS) e viraram parte de `vitals` por espécie
 // (docs/features/018-troca-de-controle-treinador-criatura.md).
 const { runStaminaDrainPerSecond: RUN_STAMINA_DRAIN_PER_SECOND } =
-  getSpecies('fox').vitals
+  getSpecies('boy').vitals
 
 // koota limita a 16 worlds vivos por vez — este arquivo sozinho já passa
 // disso (um setup() novo por teste). Rastreia e destrói ao final de cada
@@ -89,14 +89,14 @@ describe('movementSystem', () => {
     const { player, tick } = setup(0, 1)
     tick({ x: 0, z: -1, run: true })
     expect(player.get(Vitals).stamina).toBeCloseTo(
-      100 - RUN_STAMINA_DRAIN_PER_SECOND,
+      player.get(Vitals).maxStamina - RUN_STAMINA_DRAIN_PER_SECOND,
     )
   })
 
   it('segurar corrida parado (sem intenção de movimento) não drena stamina', () => {
     const { player, tick } = setup(0, 1)
     tick({ x: 0, z: 0, run: true })
-    expect(player.get(Vitals).stamina).toBe(100)
+    expect(player.get(Vitals).stamina).toBe(player.get(Vitals).maxStamina)
   })
 
   it('sem stamina, corrida cai pra WALK_SPEED em vez de travar', () => {
@@ -136,12 +136,14 @@ describe('movementSystem', () => {
 
     tick({ x: 0, z: -1, run: true })
 
-    expect(player.get(Vitals).stamina).toBeCloseTo(100 - doubled)
+    expect(player.get(Vitals).stamina).toBeCloseTo(
+      player.get(Vitals).maxStamina - doubled,
+    )
   })
 
   it('correr reseta o delay de regeneração de stamina', () => {
     const { player, tick } = setup(0, 1)
-    const { staminaRegenDelayAfterUse } = getSpecies('fox').vitals
+    const { staminaRegenDelayAfterUse } = player.get(Vitals)
     tick({ x: 0, z: -1, run: true })
     expect(player.get(Vitals).staminaRegenDelay).toBeCloseTo(
       staminaRegenDelayAfterUse,

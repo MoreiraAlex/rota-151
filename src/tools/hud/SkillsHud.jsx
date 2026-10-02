@@ -2,9 +2,10 @@
 
 import { useQueryFirst, useTrait } from 'koota/react'
 import { getSpecies } from '@/core/data/species'
-import { resolveCreatureAttack } from '@/core/battle/creatureAttack'
+import { resolveAttackForEntity } from '@/core/battle/attackCasting'
 import {
   AttackCooldowns,
+  IndividualValues,
   InputControlled,
   SummonedCreature,
 } from '@/core/traits'
@@ -45,6 +46,8 @@ export function SkillsHud() {
   const controlled = useQueryFirst(InputControlled, SummonedCreature)
   const creature = useTrait(controlled, SummonedCreature)
   const cooldowns = useTrait(controlled, AttackCooldowns)
+  // A recarga sai da fórmula (035) e depende do `speed` desta criatura (IV).
+  const individualValues = useTrait(controlled, IndividualValues)
 
   if (!creature || !cooldowns) return null
 
@@ -52,7 +55,7 @@ export function SkillsHud() {
   const slots = SKILL_SLOTS.map(({ key, label }) => ({
     key,
     label,
-    attack: resolveCreatureAttack(species, key),
+    attack: resolveAttackForEntity(species, key, individualValues),
   }))
 
   if (slots.length === 0) return null

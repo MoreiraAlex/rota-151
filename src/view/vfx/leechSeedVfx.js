@@ -8,26 +8,26 @@ import { compileGradient, sampleCurve } from './particleSimulation'
  * Lançamento (`LEECH_SEED_EMITTERS`, grupo `'leech-seed'`, o `AttackEffect`
  * nasce no alvo, quem lançou em (0, 0, -length)):
  *
- *   0.00  `seeds`    — ~4 sementes voando em arco até o alvo (0.35 s cada)
- *   0.35  `burst`    — 4 orbes verdes estourando no alvo (o `leechseed_target`)
- *   0.35  `sprout`   — um broto nascendo no alvo
- *   0.35  `sparkle`  — brilhos em volta (o `leechseed_targetsparkle`)
+ *   - `seeds`    — sementes voando em arco até o alvo
+ *   - `burst`    — orbes verdes estourando no alvo (o `leechseed_target`)
+ *   - `sprout`   — um broto nascendo no alvo
+ *   - `sparkle`  — brilhos em volta (o `leechseed_targetsparkle`)
  *
  * Cada drenagem (`LEECH_DRAIN_EMITTERS`, grupo `'leech-drain'`, nasce no alvo,
  * quem plantou em (0, 0, -length)):
  *
- *   0.00  `hit`      — estouro de orbes no alvo (o `megadrain_actorhit`, o mesmo
+ *   - `hit`      — estouro de orbes no alvo (o `megadrain_actorhit`, o mesmo
  *                      que o Cobblemon usa no dano do Leech Seed)
- *   0.00  `sprouts`  — brotos em volta do alvo (o `leechseed_sproutpassive`)
- *   0.00  `stream`   — orbes em espiral indo do alvo até quem plantou (o "puxar"
+ *   - `sprouts`  — brotos em volta do alvo (o `leechseed_sproutpassive`)
+ *   - `stream`   — orbes em espiral indo do alvo até quem plantou (o "puxar"
  *                      do Giga Drain — escolha do usuário; o Cobblemon não tem)
  *
  * `LEECH_DRAIN_SOLO_EMITTERS` (grupo `'leech-drain-solo'`): sem quem plantou
  * (recolhido) não há pra onde puxar — só o estouro e os brotos.
  *
- * Diferenças pro original: as sementes VOAM (0.35 s), em vez de nascer no
+ * Diferenças pro original: as sementes VOAM, em vez de nascer no
  * alvo como os golpes de dano (regra da Parte 2) — o Leech Seed não causa dano
- * no `effectAt`, a 1ª drenagem só vem 2 s depois, então o voo não atrasa nada;
+ * no `effectAt`, a 1ª drenagem só vem um `interval` depois, então o voo não atrasa nada;
  * o som do alvo espera o pouso (`attackSound.js`). Velocidades de estouro
  * multiplicadas por `BURST_SPEED` (as criaturas daqui são menores que as do
  * Minecraft). O gradiente original apaga pelo ALFA; aqui fica a cor e o fade do

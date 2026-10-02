@@ -80,10 +80,8 @@ export const playerEntity = world.spawn(
   // Começa com a mão e o time já equipados — sem isso o jogo abre sem
   // nada pra arremessar/invocar, mesmo já tendo itens/criaturas
   // disponíveis (Inventory já começa com um kit de teste, ver
-  // core/traits/components/inventory.js). `rock` é um `throwable` do kit
-  // inicial; `fox` é a primeira criatura `kind: 'pokemon'` do registro
-  // (core/data/species/index.js) — nenhum dos dois é conteúdo de jogo de
-  // verdade ainda, só o ponto de partida mais conveniente pra testar.
+  // core/traits/components/inventory.js). O time começa com as três
+  // iniciais (`STARTER_PARTY`, acima).
   HeldItem({ itemId: 'pokedex' }),
   Inventory,
   Party(STARTER_PARTY),

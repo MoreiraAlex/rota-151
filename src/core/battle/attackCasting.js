@@ -15,28 +15,16 @@ import { GAME_CONFIG } from '../gameConfig'
 import { entrarEmCombate } from '../actions/combat'
 import { gameplayRng } from '../rng'
 import { AttackCooldowns } from '../traits'
+import { withActionCost } from './actionCost'
 
 /**
- * `duration`/`effectAt` do ataque BÁSICO (`primary`) escalados pelo
- * status `speed` da PRÓPRIA entidade — pedido original do usuário:
- * "preciso que o status speed influencie na velocidade de ataque básico
- * da criatura".
- *
- * A BASE é a autorada no ataque básico da própria espécie
- * (`species.basicAttack`, `core/data/species/<id>/basicAttack.js` —
- * `duration` e `effectAt`). O `speed` só multiplica por um fator em volta de 1
- * (`calculateAttackDurationFactor`, `GAME_CONFIG.BATTLE.ATTACK_SPEED`) —
- * assim a duração escolhida pra casar com a animação continua valendo, e
- * uma criatura mais rápida só encurta o golpe. (Antes, o `speed` gerava a
- * duração inteira, 0.05–0.5s — curto demais pros clipes embutidos, e por
- * isso o override da espécie passou a ignorá-lo; ver docs/features/032-*.)
- * `effectAt` escala junto. O corte de frames e as fases da animação acompanham sozinhos (são
- * proporcionais à duração).
- *
- * Retorna `null` pra espécie sem `stats.speed.base` (`fox`/`wolf` ainda
- * não migrados) — fica o ataque como está, mesmo fallback de sempre.
+ * Fator do status `speed` da PRÓPRIA entidade (`calculateAttackDurationFactor`,
+ * `GAME_CONFIG.BATTLE.ATTACK_SPEED`): em volta de 1, menor pra quem é rápido.
+ * Encurta o básico (abaixo) e a recarga das habilidades (`withActionCost`,
+ * docs/features/035-balanceamento-de-acoes-e-correcoes.md). `null` pra espécie sem
+ * `stats.speed.base` (ex.: o treinador).
  */
-function resolvePrimaryDurationOverride(species, attack, individualValues) {
+export function resolveSpeedFactor(species, individualValues) {
   const speedStat = species?.stats?.speed
   if (!speedStat || speedStat.base == null) return null
 
@@ -47,38 +35,60 @@ function resolvePrimaryDurationOverride(species, attack, individualValues) {
     level: species.level ?? 1,
   })
   const { REFERENCE, MIN_FACTOR, MAX_FACTOR } = GAME_CONFIG.BATTLE.ATTACK_SPEED
-  const factor = calculateAttackDurationFactor(speed, {
+  return calculateAttackDurationFactor(speed, {
     reference: REFERENCE,
     minFactor: MIN_FACTOR,
     maxFactor: MAX_FACTOR,
   })
+}
 
+/**
+ * `duration`/`effectAt` do ataque BÁSICO (`primary`) escalados pelo
+ * status `speed` da PRÓPRIA entidade — pedido original do usuário:
+ * "preciso que o status speed influencie na velocidade de ataque básico
+ * da criatura".
+ *
+ * A BASE é a autorada no ataque básico da própria espécie
+ * (`species.basicAttack`, `core/data/species/<id>/basicAttack.js` —
+ * `duration` e `effectAt`). O `speed` só multiplica por um fator em volta de 1
+ * (`resolveSpeedFactor`) — assim a duração escolhida pra casar com a animação
+ * continua valendo, e uma criatura mais rápida só encurta o golpe. (Antes, o
+ * `speed` gerava a duração inteira, 0.05–0.5s — curto demais pros clipes
+ * embutidos, e por isso o override da espécie passou a ignorá-lo; ver
+ * docs/features/032-*.) `effectAt` escala junto. O corte de frames e as fases
+ * da animação acompanham sozinhos (são proporcionais à duração).
+ */
+function resolvePrimaryDuration(attack, speedFactor) {
   return {
-    duration: attack.duration * factor,
-    effectAt: attack.effectAt * factor,
+    duration: attack.duration * speedFactor,
+    effectAt: attack.effectAt * speedFactor,
   }
 }
 
 /**
  * Resolve a definição de ataque de verdade pro `slot` desta entidade —
- * `resolveCreatureAttack` (básico da espécie ou skill do registro) +,
- * só pra `primary`, o `duration`/`effectAt` dinâmico calculado acima.
- * Chamada duas vezes por ataque em andamento (disparo e cada tick de
- * progresso, ver `creatureAttackSystem` abaixo) — sempre com o MESMO
- * resultado pra um dado slot/entidade, já que `IndividualValues` está
- * congelado pra aquela entidade (nunca muda entre as duas chamadas).
+ * `resolveCreatureAttack` (básico da espécie ou skill do registro) +:
+ * - só pra `primary`, o `duration`/`effectAt` pelo `speed` (acima);
+ * - `staminaCost`/`cooldown` pela fórmula (`withActionCost`,
+ *   `core/battle/actionCost.js`) quando a definição não escreve os seus.
+ * Chamada várias vezes por ataque (disparo, cada tick de progresso, IA, HUD)
+ * — sempre com o MESMO resultado pra um dado slot/entidade, já que
+ * `IndividualValues` está congelado pra aquela entidade.
  */
 export function resolveAttackForEntity(species, slot, individualValues) {
   const attack = resolveCreatureAttack(species, slot)
   if (!attack) return null
-  if (slot !== 'primary') return attack
 
-  const override = resolvePrimaryDurationOverride(
-    species,
-    attack,
-    individualValues,
-  )
-  return override ? { ...attack, ...override } : attack
+  const speedFactor = resolveSpeedFactor(species, individualValues)
+  const timed =
+    slot === 'primary' && speedFactor !== null
+      ? { ...attack, ...resolvePrimaryDuration(attack, speedFactor) }
+      : attack
+  return withActionCost(timed, {
+    slot,
+    level: species.level ?? 1,
+    speedFactor: speedFactor ?? 1,
+  })
 }
 
 // Ordem de prioridade de disparo por tick — botão esquerdo do mouse

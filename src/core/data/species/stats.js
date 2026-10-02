@@ -110,7 +110,7 @@ export function rollIndividualValues(rng, { min, max }) {
  * verdade: sem ele, todo `iv` cai em `0`.
  *
  * Retorna `null` pra espécie sem o formato de `stats` com `base`
- * (`fox`/`wolf` ainda têm `stats: {}`, `boy`/treinador tem `stats.hp`
+ * (ex.: `stats: {}`; `boy`/treinador tem `stats.hp`
  * sem `base` — não é Pokémon, não tem IV) — chamador cai pro fallback
  * de sempre nesse caso (ver `resolveMaxHp`/`resolveMaxStamina`,
  * `core/traits/components/vitals.js`).

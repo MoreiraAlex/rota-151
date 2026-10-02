@@ -56,7 +56,7 @@ export function rollDamageRandomFactor(rng) {
 }
 
 /**
- * STAB (same-type attack bonus) — `1.5` quando `attackType` é um dos
+ * STAB (same-type attack bonus) — bônus quando `attackType` é um dos
  * tipos do próprio atacante, senão `1`. `attackerTypes` viria de
  * `species.types` — campo ainda não declarado em NENHUMA espécie (ver
  * `core/data/species/_template/index.js`), então hoje isto sempre cai
@@ -88,8 +88,7 @@ export function resolveTypeEffectivenessMultiplier() {
  * Status ofensivo/defensivo de UMA criatura, prontos pra fórmula de
  * dano. `resolveCreatureStats` (`core/data/species/stats.js`) devolve
  * `null` pra espécie que ainda não migrou pro formato `stats.<key>.base`
- * (`fox`/`wolf` e seus clones `fox-red/green/blue`, hoje as únicas sem
- * `attack`/`defense` de verdade) — cai em `FALLBACK_COMBAT_STAT`
+ * (sem `attack`/`defense` de verdade) — cai em `FALLBACK_COMBAT_STAT`
  * (`gameConfig.js`) em vez de deixar o ataque delas sem causar dano
  * nenhum, mesmo "fallback gracioso" que `resolveMaxHp`/`resolveMaxStamina`
  * já usam pra essas mesmas espécies.

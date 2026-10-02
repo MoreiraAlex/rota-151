@@ -10,6 +10,10 @@ import { createKeyboardInput } from '@/platform/input/keyboardInput'
 import { createPointerInput } from '@/platform/input/pointerInput'
 import { createEventQueue } from '@/core/events'
 import { registerGameSystems } from './registerSystems'
+import {
+  captureRenderTransforms,
+  setRenderAlpha,
+} from '@/view/registry/renderInterpolation'
 
 const { FIXED_TIMESTEP, MAX_FRAME_TIME, MAX_STEPS_PER_FRAME } = GAME_CONFIG.LOOP
 
@@ -27,6 +31,12 @@ const { FIXED_TIMESTEP, MAX_FRAME_TIME, MAX_STEPS_PER_FRAME } = GAME_CONFIG.LOOP
  * que reagem a eventos rodam na fase `events` do próprio passo e leem
  * `context.events.stepEvents()` (só o que saiu neste passo — o loop chama
  * `beginStep()` antes de cada um).
+ *
+ * Interpolação de apresentação (`view/registry/renderInterpolation.js`):
+ * antes de cada passo fixo guarda Position/Rotation de todo mundo, e
+ * depois dos passos do frame passa quanto do próximo passo já correu
+ * (`accumulator ÷ FIXED_TIMESTEP`) — o modelo, a câmera e a plaquinha
+ * desenham entre o passo anterior e o atual em vez de andar em degraus.
  *
  * `castModeOverride` (prop, vira `context.settings.castModeOverride`):
  * força o modo de lançamento de todo ataque (`creatureAttackSystem.js`) —
@@ -64,6 +74,7 @@ export function GameLoop({ castModeOverride = null }) {
       // pointer.snapshot() drena os deltas acumulados — chamado a cada passo
       // fixo, o primeiro consome o movimento e os seguintes recebem zero.
       events.beginStep()
+      captureRenderTransforms(world)
       runFixedPipeline({
         world,
         delta: FIXED_TIMESTEP,
@@ -79,6 +90,9 @@ export function GameLoop({ castModeOverride = null }) {
     if (steps === MAX_STEPS_PER_FRAME) {
       accumulator.current = 0
     }
+    setRenderAlpha(
+      steps === MAX_STEPS_PER_FRAME ? 1 : accumulator.current / FIXED_TIMESTEP,
+    )
 
     runRenderPipeline({ world, delta, camera, frameEvents: events.drain() })
   })

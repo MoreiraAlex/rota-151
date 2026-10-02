@@ -5,7 +5,7 @@
  * `core/data/skills/_template/index.js` pro que cada campo significa.
  *
  * Valores de partida herdados do que a espécie usava antes (docs/features/
- * 033-skills-de-combate-e-vfx.md): `vine-whip` com range 1, duration 0.8 e effectAt 0.4. `visual`/`audio`/`sprite` reaproveitam os assets
+ * 033-skills-de-combate-e-vfx.md): `vine-whip` ajustado pra esta espécie. `visual`/`audio`/`sprite` reaproveitam os assets
  * de `vine-whip` — são da view, compartilháveis; o ataque em si é deste
  * do Bulbasaur.
  *
@@ -21,8 +21,6 @@ export const BASIC_ATTACK = {
   aim: 'melee',
   castMode: 'instant',
   radius: 0.3,
-  staminaCost: 0.25,
-  cooldown: 0,
   visual: {
     effectGroup: 'impact',
     effectVisualDuration: 0.6,

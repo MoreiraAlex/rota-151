@@ -9,8 +9,8 @@ import { SPARK_TINT, TACKLE_TEXTURE_PATHS } from './tackleVfx'
  * IMPACTO no alvo (o resto do golpe é a animação do corpo da criatura),
  * então tudo nasce no ponto de impacto, no instante em que o efeito nasce:
  *
- *   0.00  `mark`    — marca de arranhão amarela, 7 quadros ao longo de 0.35 s
- *   0.05  `sparks`  — 7 faíscas que saltam e caem (evento da marca, aos 0.05 s)
+ *   - `mark`    — marca de arranhão amarela, um flipbook
+ *   - `sparks`  — faíscas que saltam e caem (evento da marca)
  *
  * Marca e faíscas compartilham o deslocamento do original: 0.2 m pra cima
  * e `0.5 * radius` golpe adentro (o `q.entity_radius` do alvo vira o

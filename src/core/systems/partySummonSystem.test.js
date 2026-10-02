@@ -28,8 +28,8 @@ import { playerActionSystem } from './playerActionSystem'
 const DELTA = 1 / 60
 // summon/recall e o offset/velocidade de invocação são exclusivos do
 // treinador (`getPlayerSpecies().actions`/`.party`, ver docs/features/018-
-// troca-de-controle-treinador-criatura.md) — sempre a espécie `bot` de
-// verdade, não a `fox` que este arquivo usa pro player de teste.
+// troca-de-controle-treinador-criatura.md) — sempre a espécie do
+// treinador de verdade, não a que `makeWorld()` usa pro player de teste.
 const SUMMON = getPlayerSpecies().actions.summon
 const RECALL = getPlayerSpecies().actions.recall
 
@@ -205,7 +205,7 @@ describe('partySummonSystem', () => {
     const { world, player, camera } = spawnWorld({
       playerPosition: { x: 0, y: 1, z: 0 },
     })
-    player.set(Party, { slot1: 'fox-red' })
+    player.set(Party, { slot1: 'bulbasaur' })
     camera.set(OrbitCamera, { yaw: 1.1, pitch: 0.3 })
     player.set(Rotation, { y: -2 }) // deve ser sobrescrito
 
@@ -223,7 +223,7 @@ describe('partySummonSystem', () => {
 
   it('a esfera nasce no instante de efeito (EFFECT_AT), exatamente uma vez — a criatura só nasce quando ela pousa', () => {
     const { world, player } = spawnWorld()
-    player.set(Party, { slot1: 'fox-red' })
+    player.set(Party, { slot1: 'bulbasaur' })
 
     tick(world, { secondary1: true })
 
@@ -250,7 +250,7 @@ describe('partySummonSystem', () => {
 
   it('a ação termina sozinha (current volta a null) depois de DURATION — a esfera continua voando', () => {
     const { world, player } = spawnWorld()
-    player.set(Party, { slot1: 'fox-red' })
+    player.set(Party, { slot1: 'bulbasaur' })
 
     tick(world, { secondary1: true })
     advanceUntilFree(world, player)
@@ -264,7 +264,7 @@ describe('partySummonSystem', () => {
     const { world, player, camera } = spawnWorld({
       playerPosition: { x: 5, y: 1, z: 5 },
     })
-    player.set(Party, { slot1: 'fox-red' })
+    player.set(Party, { slot1: 'bulbasaur' })
     camera.set(OrbitCamera, { yaw: Math.PI / 2, pitch: 0.2 })
 
     tick(world, { secondary1: true })
@@ -298,13 +298,13 @@ describe('partySummonSystem', () => {
 
   it('a criatura invocada guarda a espécie e nasce com física/animação de verdade', () => {
     const { world, player } = spawnWorld()
-    player.set(Party, { slot1: 'fox-red' })
+    player.set(Party, { slot1: 'bulbasaur' })
 
     tick(world, { secondary1: true })
     advanceUntilResolved(world, player)
 
     const [creature] = world.query(SummonedCreature, Position, Rotation)
-    expect(creature.get(SummonedCreature).speciesId).toBe('fox-red')
+    expect(creature.get(SummonedCreature).speciesId).toBe('bulbasaur')
     expect(creature.has(AnimationState)).toBe(true)
     expect(creature.get(AnimationState).id).toBe('idle')
     expect(creature.has(Velocity)).toBe(true)
@@ -314,14 +314,16 @@ describe('partySummonSystem', () => {
     expect(creature.has(PhysicsBody)).toBe(true)
     expect(creature.get(PhysicsBody).bodyHandle).toBe(-1) // sem física real no teste
     expect(creature.has(ActionState)).toBe(true)
-    expect(creature.get(ActionState).current).toBe(null)
+    // Nasce se apresentando (`actions.appeal` do bulbasaur, ver
+    // `creatureAppealSystem.js`).
+    expect(creature.get(ActionState).current).toBe('appeal')
     expect(creature.has(PathState)).toBe(true)
     expect(creature.get(PathState).waypoints).toEqual([])
   })
 
   it('enquanto invoca, apertar outro secondaryN não inicia nada', () => {
     const { world, player } = spawnWorld()
-    player.set(Party, { slot1: 'fox-red', slot2: 'fox-green' })
+    player.set(Party, { slot1: 'bulbasaur', slot2: 'charmander' })
 
     tick(world, { secondary1: true })
     expect(player.get(ActionState).current).toBe('summon')
@@ -337,7 +339,7 @@ describe('partySummonSystem', () => {
     const { world, player } = spawnWorld({
       playerPosition: { x: 0, y: 1, z: 0 },
     })
-    player.set(Party, { slot1: 'fox-red' })
+    player.set(Party, { slot1: 'bulbasaur' })
     tick(world, { secondary1: true })
     advanceUntilResolved(world, player) // esfera precisa pousar — só aí a criatura existe pra recolher
     const [creature] = world.query(SummonedCreature, Position)
@@ -378,12 +380,12 @@ describe('partySummonSystem', () => {
     expect(beam.get(RecallBeam).fromZ).toBeCloseTo(expectedHandOrigin.z)
     // Espécie recolhida — RecallBeamView.jsx usa isso pra dimensionar o
     // envelope que cobre a criatura (getSpecies(speciesId).body).
-    expect(beam.get(RecallBeam).speciesId).toBe('fox-red')
+    expect(beam.get(RecallBeam).speciesId).toBe('bulbasaur')
   })
 
   it('desequipar uma criatura já invocada (Party[slot] = null) dispara o recolhimento como ação — não é instantâneo', () => {
     const { world, player } = spawnWorld()
-    player.set(Party, { slot1: 'fox-red' })
+    player.set(Party, { slot1: 'bulbasaur' })
     tick(world, { secondary1: true })
     advanceUntilResolved(world, player)
     expect(world.query(SummonedCreature).length).toBe(1)
@@ -400,7 +402,7 @@ describe('partySummonSystem', () => {
 
   it('recolhimento automático dispara mesmo com o treinador fora do controle (troca de controle pra outra criatura, ver controlSwitchSystem.js)', () => {
     const { world, player } = spawnWorld()
-    player.set(Party, { slot1: 'fox-red' })
+    player.set(Party, { slot1: 'bulbasaur' })
     tick(world, { secondary1: true })
     advanceUntilResolved(world, player)
     expect(world.query(SummonedCreature).length).toBe(1)
@@ -419,7 +421,7 @@ describe('partySummonSystem', () => {
 
   it('secondaryN não invoca/recolhe enquanto o treinador está fora do controle (reservado pras skills da criatura, ver docs/features/018-troca-de-controle-treinador-criatura.md)', () => {
     const { world, player } = spawnWorld()
-    player.set(Party, { slot1: 'fox-red' })
+    player.set(Party, { slot1: 'bulbasaur' })
     player.remove(InputControlled)
 
     tick(world, { secondary1: true })
@@ -432,7 +434,7 @@ describe('partySummonSystem', () => {
     const { world, player } = spawnWorld({
       playerPosition: { x: 0, y: 1, z: 0 },
     })
-    player.set(Party, { slot1: 'fox-red' })
+    player.set(Party, { slot1: 'bulbasaur' })
     tick(world, { secondary1: true })
     advanceUntilResolved(world, player)
     const [creature] = world.query(SummonedCreature, Position)
@@ -448,7 +450,7 @@ describe('partySummonSystem', () => {
 
   it('desequipar durante outra ação em andamento espera ela terminar antes de recolher', () => {
     const { world, player } = spawnWorld()
-    player.set(Party, { slot1: 'fox-red', slot2: 'fox-green' })
+    player.set(Party, { slot1: 'bulbasaur', slot2: 'charmander' })
     tick(world, { secondary1: true })
     advanceUntilResolved(world, player)
 
@@ -475,9 +477,9 @@ describe('partySummonSystem', () => {
   it('invocar sequencialmente as 3 criaturas — uma ação de cada vez, mas dá pra ter as 3 de fora ao final', () => {
     const { world, player } = spawnWorld()
     player.set(Party, {
-      slot1: 'fox-red',
-      slot2: 'fox-green',
-      slot3: 'fox-blue',
+      slot1: 'bulbasaur',
+      slot2: 'charmander',
+      slot3: 'squirtle',
     })
 
     // Apertar os 3 no mesmo tick só inicia UM — mutual exclusion.
@@ -496,7 +498,7 @@ describe('partySummonSystem', () => {
 
   it('enquanto uma ação do jogador (dash) está em andamento, invocar não começa', () => {
     const { world, player } = spawnWorld()
-    player.set(Party, { slot1: 'fox-red' })
+    player.set(Party, { slot1: 'bulbasaur' })
     player.set(ActionState, { current: 'dash', elapsed: 0 })
 
     tick(world, { secondary1: true })
@@ -507,7 +509,7 @@ describe('partySummonSystem', () => {
 
   it('enquanto invoca/recolhe, nenhuma outra ação do jogador (dash) pode começar', () => {
     const { world, player } = spawnWorld()
-    player.set(Party, { slot1: 'fox-red' })
+    player.set(Party, { slot1: 'bulbasaur' })
 
     tick(world, { secondary1: true })
     expect(player.get(ActionState).current).toBe('summon')
@@ -521,7 +523,7 @@ describe('partySummonSystem', () => {
     const { world, player, camera } = spawnWorld({
       playerPosition: { x: 0, y: 1, z: 0 },
     })
-    player.set(Party, { slot1: 'fox-red' })
+    player.set(Party, { slot1: 'bulbasaur' })
     const partyConfig = getPlayerSpecies().party
     const original = partyConfig.summonOffset
     partyConfig.summonOffset = original * 3
@@ -556,7 +558,7 @@ describe('partySummonSystem', () => {
 
   it('esfera duplicada: apertar secondaryN de novo assim que o gesto destrava (mas a esfera anterior ainda em voo) não lança uma segunda esfera pro mesmo slot', () => {
     const { world, player } = spawnWorld()
-    player.set(Party, { slot1: 'fox-red' })
+    player.set(Party, { slot1: 'bulbasaur' })
 
     tick(world, { secondary1: true })
     advanceUntilFree(world, player) // gesto livre, esfera ainda voando

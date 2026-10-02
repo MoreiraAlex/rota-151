@@ -275,8 +275,8 @@ describe('wildBehaviorSystem — pacífica', () => {
 })
 
 describe('wildBehaviorSystem — atacando e gastando fôlego', () => {
-  // charmander: tackle com range 1 (override), radius 0.3; alvo com o
-  // mesmo corpo (raio 0.3) → alcance 1.6m centro a centro.
+  // Alcance centro a centro: range + radius do golpe + raio do corpo do
+  // alvo (o mesmo charmander).
   const tackle = resolveCreatureAttack(SPECIES, 'primary')
   const REACH = tackle.range + tackle.radius + SPECIES.body.capsuleRadius
 

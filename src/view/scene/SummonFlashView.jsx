@@ -4,7 +4,7 @@ import { useQuery } from 'koota/react'
 import { SummonFlash, Position, Rotation } from '@/core/traits'
 import { registerView, unregisterView } from '../registry/viewRegistry'
 
-// Mesmo valor de `actions.summon.flashDuration` (core/data/species/bot/
+// Mesmo valor de `actions.summon.flashDuration` (core/data/species/boy/
 // index.js) — só usado aqui pra saber quanto tempo animar o fade (a view
 // não lê o `lifetime` do trait a cada frame de propósito, ver docstring
 // do componente).
@@ -23,7 +23,7 @@ const FLASH_COLOR = '#fff3c4'
  * é um efeito cosmético de curta duração, não precisa ser determinístico/
  * sincronizado a mais nada. `FLASH_DURATION` é só a duração da ANIMAÇÃO
  * visual — o `lifetime` de verdade (quando a entidade morre de fato,
- * `summonEffectsSystem.js`) é configurado à parte, em `bot/index.js`; os
+ * `summonEffectsSystem.js`) é configurado à parte, em `boy/index.js`; os
  * dois devem ficar parecidos (ver `flashDuration` lá) pra não sumir
  * abruptamente no meio do fade nem sobrar tempo com o alpha já zerado.
  */

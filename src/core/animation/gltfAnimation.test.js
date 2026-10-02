@@ -261,8 +261,7 @@ function makeEntry() {
 
 // ---------------------------------------------------------------------------
 // Arquivo de verdade (`public/assets/models/`, versionado no git — mesma
-// convenção de usar um asset real já usada em `applyAnimationClip.test.js`,
-// `fox-walk.json`): só um teste de fumaça, sem valor numérico esperado (não
+// convenção de usar um asset real): só um teste de fumaça, sem valor numérico esperado (não
 // dá pra conferir à mão a curva de um rig de verdade) — prova que o
 // parser/conversor não quebra contra dados reais e exportados por outra
 // ferramenta, incluindo o `STEP`/`LINEAR` misturado que este arquivo usa.

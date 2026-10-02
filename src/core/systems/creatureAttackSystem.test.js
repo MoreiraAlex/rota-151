@@ -54,7 +54,10 @@ import {
   WildCreature,
 } from '@/core/traits'
 import { creatureAttackSystem } from './creatureAttackSystem'
-import { resolveCastMode } from '@/core/battle/attackCasting'
+import {
+  resolveAttackForEntity,
+  resolveCastMode,
+} from '@/core/battle/attackCasting'
 import { resolveAttackImpactPoint } from '@/core/battle/attackTrajectory'
 import { resolveAttackTarget } from '@/core/battle/attackTargets'
 import {
@@ -70,14 +73,16 @@ const EMBER_SLOT = ['secondary1', 'secondary2', 'secondary3'].find(
 )
 
 const DELTA = 1 / 60
-// Espécie estável de teste (mesma usada por `test/makeWorld.js`) — o
+// Espécie estável de teste (o Bulbasaur) — o
 // ataque é exclusivo de `kind: 'pokemon'` (o treinador não ataca direto,
 // ver docs/backlog.md), então lido daqui, não de `getPlayerSpecies()`.
-// `ATTACK` é o ataque básico próprio da `fox` (`basicAttack`, ver
-// core/data/species/fox/basicAttack.js), resolvido pelo mesmo caminho do
+// `ATTACK` é o ataque básico próprio do `bulbasaur` (`basicAttack`, ver
+// core/data/species/001-bulbasaur/basicAttack.js), resolvido pelo mesmo caminho do
 // system (`resolveCreatureAttack(species, 'primary')`).
-const ATTACK = resolveCreatureAttack(getSpecies('fox'), 'primary')
-const FOX_BODY = getSpecies('fox').body
+// Custo/recarga resolvidos pela fórmula (`withActionCost`) — a definição não
+// escreve os seus (docs/features/035-balanceamento-de-acoes-e-correcoes.md).
+const ATTACK = resolveAttackForEntity(getSpecies('bulbasaur'), 'primary', null)
+const BULBASAUR_BODY = getSpecies('bulbasaur').body
 
 const spawnedWorlds = []
 function spawnWorld() {
@@ -97,7 +102,7 @@ afterEach(() => {
 
 function spawnControlledCreature(
   world,
-  { speciesId = 'fox', position, individualValues = null } = {},
+  { speciesId = 'bulbasaur', position, individualValues = null } = {},
 ) {
   return world.spawn(
     Position(position ?? { x: 0, y: 1, z: 0 }),
@@ -132,10 +137,10 @@ function spawnWildCreature(
 
 // A maioria dos testes aqui cobre a MECÂNICA do golpe (dano, trajetória,
 // cooldown...), não o modo de lançamento — então força lançar na hora no
-// primeiro aperto. Os testes do indicador (`castMode: 'confirm'`) passam
-// `REAL_CAST_MODE`, que respeita a definição de cada ataque.
+// primeiro aperto. Os testes do indicador forçam `CONFIRM_CAST` — testam o
+// mecanismo, não o `castMode` que cada golpe usa hoje (conteúdo, muda).
 const INSTANT_CAST = { castModeOverride: 'instant' }
-const REAL_CAST_MODE = { castModeOverride: null }
+const CONFIRM_CAST = { castModeOverride: 'confirm' }
 
 function tick(world, input = {}, settings = INSTANT_CAST) {
   creatureAttackSystem({ world, delta: DELTA, input, events, settings })
@@ -186,12 +191,12 @@ describe('creatureAttackSystem', () => {
   it('sem stamina suficiente, o ataque não dispara nem desconta nada', () => {
     const world = spawnWorld()
     const creature = spawnControlledCreature(world)
-    creature.set(Vitals, { stamina: ATTACK.staminaCost - 1 })
+    creature.set(Vitals, { stamina: ATTACK.staminaCost / 2 })
 
     tick(world, { primary: true })
 
     expect(creature.get(ActionState).current).toBe(null)
-    expect(creature.get(Vitals).stamina).toBeCloseTo(ATTACK.staminaCost - 1)
+    expect(creature.get(Vitals).stamina).toBeCloseTo(ATTACK.staminaCost / 2)
   })
 
   it('sem primary, não faz nada', () => {
@@ -210,10 +215,10 @@ describe('creatureAttackSystem', () => {
       Rotation,
       ActionState,
       AttackCooldowns,
-      CharacterController(FOX_BODY),
+      CharacterController(BULBASAUR_BODY),
       PhysicsBody,
-      vitalsFromSpecies(getSpecies('fox')),
-      SummonedCreature({ slot: 'slot1', speciesId: 'fox' }),
+      vitalsFromSpecies(getSpecies('bulbasaur')),
+      SummonedCreature({ slot: 'slot1', speciesId: 'bulbasaur' }),
     )
 
     tick(world, { primary: true })
@@ -228,9 +233,9 @@ describe('creatureAttackSystem', () => {
       Rotation,
       ActionState,
       AttackCooldowns,
-      CharacterController(FOX_BODY),
+      CharacterController(BULBASAUR_BODY),
       PhysicsBody,
-      vitalsFromSpecies(getSpecies('fox')),
+      vitalsFromSpecies(getSpecies('bulbasaur')),
       SummonedCreature({ slot: 'slot1', speciesId: 'nao-existe' }),
       InputControlled,
       IndividualValues,
@@ -249,7 +254,7 @@ describe('creatureAttackSystem', () => {
     const effect = advanceUntilEffectSpawns(world)
 
     // O golpe sai do centro do corpo (`Position`, centro da cápsula) —
-    // `fox` não declara `body.attackOriginHeight`.
+    // `bulbasaur` não declara `body.attackOriginHeight`.
     const pos = effect.get(Position)
     expect(pos.x).toBeCloseTo(2)
     expect(pos.y).toBeCloseTo(1)
@@ -270,7 +275,7 @@ describe('creatureAttackSystem', () => {
   })
 
   it('visual.positionOffset do ataque só desloca a PARTIDA: o efeito continua nascendo no impacto do range, reorientado e com o length medido da nova partida', () => {
-    const { visual } = getSpecies('fox').basicAttack
+    const { visual } = getSpecies('bulbasaur').basicAttack
     const original = visual.positionOffset
     // yaw 0 (sem câmera: +Z), nível: x → +X, y → +Y, z → +Z (golpe adentro)
     visual.positionOffset = { x: 0.5, y: 0.25, z: 0.2 }
@@ -305,7 +310,7 @@ describe('creatureAttackSystem', () => {
   })
 
   it('impactType do AttackEffect: visual.impactType, senão damage.type, senão vazio', () => {
-    const { visual, damage } = getSpecies('fox').basicAttack
+    const { visual, damage } = getSpecies('bulbasaur').basicAttack
     const originalVisual = visual.impactType
     const originalType = damage.type
     const spawnType = () => {
@@ -447,7 +452,9 @@ describe('creatureAttackSystem', () => {
 
     it('o ataque BÁSICO continua com a assistência enquanto carrega (puxa pro alvo, não só segue a câmera)', () => {
       const world = spawnWorld()
-      const creature = spawnControlledCreature(world, { speciesId: 'fox' })
+      const creature = spawnControlledCreature(world, {
+        speciesId: 'bulbasaur',
+      })
       // alvo 40° pro lado, ao alcance: sem câmera a base é +Z
       const side = (40 * Math.PI) / 180
       spawnWildCreature(world, {
@@ -462,25 +469,27 @@ describe('creatureAttackSystem', () => {
     })
   })
 
-  it('básico próprio de cada espécie (charmander, range 1 ≠ 1.4 da fox) é respeitado de ponta a ponta', () => {
-    const world = spawnWorld()
-    const charmanderAttack = resolveCreatureAttack(
-      getSpecies('charmander'),
-      'primary',
-    )
-    expect(charmanderAttack.range).toBe(1) // confere a premissa do teste
-    expect(charmanderAttack.range).not.toBe(ATTACK.range) // diferente da base
+  it('básico próprio de cada espécie (range do charmander ≠ do básico padrão) é respeitado de ponta a ponta', () => {
+    const charmander = getSpecies('charmander')
+    const original = charmander.basicAttack
+    charmander.basicAttack = { ...original, range: 1.6 }
+    try {
+      const world = spawnWorld()
+      expect(ATTACK.range).not.toBe(1.6) // diferente do básico padrão do teste
 
-    spawnControlledCreature(world, {
-      speciesId: 'charmander',
-      position: { x: 0, y: 1, z: 0 },
-    })
-    tick(world, { primary: true })
-    const effect = advanceUntilEffectSpawns(world)
+      spawnControlledCreature(world, {
+        speciesId: 'charmander',
+        position: { x: 0, y: 1, z: 0 },
+      })
+      tick(world, { primary: true })
+      const effect = advanceUntilEffectSpawns(world)
 
-    // Sem câmera, direção cai no fallback (0,0,1) — z reflete o RANGE
-    // sobrescrito (1), não o 1.4 da definição base de 'tackle'.
-    expect(effect.get(Position).z).toBeCloseTo(1)
+      // Sem câmera, direção cai no fallback (0,0,1) — z reflete o range do
+      // básico do charmander, não o do básico padrão.
+      expect(effect.get(Position).z).toBeCloseTo(1.6)
+    } finally {
+      charmander.basicAttack = original
+    }
   })
 
   it('marca AttackPulse na CRIATURA exatamente quando o AttackEffect nasce (mesmo instante EFFECT_AT) — som do impacto, ver attackAudioSystem.js', () => {
@@ -504,7 +513,7 @@ describe('creatureAttackSystem', () => {
     ).toBe('ember')
 
     tick(world, { [EMBER_SLOT]: true })
-    // `advanceUntilEffectSpawns` mede o tempo pelo básico da fox (0.5 s); o
+    // `advanceUntilEffectSpawns` mede o tempo pelo básico padrão; o
     // `effectAt` do Brasa do charmander é maior, então espera até 2 s.
     for (let i = 0; i < 120 && !creature.has(AttackPulse); i++) tick(world, {})
 
@@ -810,9 +819,9 @@ describe('creatureAttackSystem', () => {
   it('cooldown só começa a contar no FIM da ação, não no disparo', () => {
     // Regressão: a contagem começava no disparo — uma skill com `duration`
     // >= `cooldown` (ember do charmander) saía da ação já pronta de novo.
-    const fox = getSpecies('fox')
-    const original = fox.basicAttack
-    fox.basicAttack = { ...original, cooldown: 1 }
+    const bulbasaur = getSpecies('bulbasaur')
+    const original = bulbasaur.basicAttack
+    bulbasaur.basicAttack = { ...original, cooldown: 1 }
     try {
       const world = spawnWorld()
       const creature = spawnControlledCreature(world)
@@ -836,7 +845,7 @@ describe('creatureAttackSystem', () => {
       tick(world, { primary: true })
       expect(creature.get(ActionState).current).toBe('attack')
     } finally {
-      fox.basicAttack = original
+      bulbasaur.basicAttack = original
     }
   })
 
@@ -880,9 +889,10 @@ describe('creatureAttackSystem', () => {
       speciesId: 'bulbasaur',
       individualValues,
     })
-    const vineWhip = resolveCreatureAttack(
+    const vineWhip = resolveAttackForEntity(
       getSpecies('bulbasaur'),
       'secondary1',
+      individualValues,
     )
     const maxStamina = resolveMaxStamina(
       getSpecies('bulbasaur'),
@@ -925,13 +935,20 @@ describe('creatureAttackSystem', () => {
     expect(creature.get(ActionState).pendingSlot).toBe('primary')
   })
 
-  it('espécie sem secondary1 configurado (ex.: fox) — tecla Q não dispara nada, sem quebrar', () => {
-    const world = spawnWorld()
-    const creature = spawnControlledCreature(world) // fox, sem secondary1
+  it('espécie sem secondary1 configurado — tecla Q não dispara nada, sem quebrar', () => {
+    const bulbasaur = getSpecies('bulbasaur')
+    const original = bulbasaur.skills
+    bulbasaur.skills = {}
+    try {
+      const world = spawnWorld()
+      const creature = spawnControlledCreature(world)
 
-    tick(world, { secondary1: true })
+      tick(world, { secondary1: true })
 
-    expect(creature.get(ActionState).current).toBe(null)
+      expect(creature.get(ActionState).current).toBe(null)
+    } finally {
+      bulbasaur.skills = original
+    }
   })
 })
 
@@ -1098,20 +1115,24 @@ describe('resolveAttackTarget — combate 2.5D ao longo da trajetória', () => {
 
   it('alvo de lado: acerta se radius + capsuleRadius alcança no plano, contato na superfície do corpo', () => {
     const world = spawnWorld()
-    // charmander: capsuleRadius 0.3 → alcance lateral 0.3 + 0.3 = 0.6.
-    spawnWildCreature(world, { position: { x: 0.5, y: 1, z: 2 } })
+    // Alcance lateral = RADIUS + capsuleRadius do charmander (cápsula em pé).
+    const { capsuleRadius } = getSpecies('charmander').body
+    const x = RADIUS + capsuleRadius - 0.1
+    spawnWildCreature(world, { position: { x, y: 1, z: 2 } })
 
     const target = hit(world)
 
     expect(target).not.toBeNull()
-    expect(target.contactPoint.x).toBeCloseTo(0.2)
+    expect(target.contactPoint.x).toBeCloseTo(x - capsuleRadius)
     expect(target.contactPoint.y).toBeCloseTo(1)
     expect(target.contactPoint.z).toBeCloseTo(2)
   })
 
   it('ignora alvo de lado fora de radius + capsuleRadius', () => {
     const world = spawnWorld()
-    spawnWildCreature(world, { position: { x: 0.8, y: 1, z: 2 } })
+    const { capsuleRadius } = getSpecies('charmander').body
+    const x = RADIUS + capsuleRadius + 0.1
+    spawnWildCreature(world, { position: { x, y: 1, z: 2 } })
 
     expect(hit(world)).toBeNull()
   })
@@ -1142,14 +1163,16 @@ describe('resolveAttackTarget — combate 2.5D ao longo da trajetória', () => {
   })
 
   it('cápsula deitada acompanha o yaw do alvo (bulbasaur, axis z)', () => {
-    // bulbasaur: capsuleRadius 0.4, halfHeight 0.15 deitado em z.
-    // Alcance lateral = 0.3 + 0.4 = 0.7. Com o centro em x=0.8:
-    // - yaw 0: eixo paralelo à trajetória, distância 0.8 → erra;
-    // - yaw 90°: eixo vira x, ponta mais perto em x=0.65 → acerta.
+    // bulbasaur: cápsula deitada em z. Alcance lateral = RADIUS +
+    // capsuleRadius; centro meia `capsuleHalfHeight` além dele:
+    // - yaw 0: eixo paralelo à trajetória, distância = x → erra;
+    // - yaw 90°: eixo vira x, ponta mais perto em x - halfHeight → acerta.
+    const { capsuleRadius, capsuleHalfHeight } = getSpecies('bulbasaur').body
+    const x = RADIUS + capsuleRadius + capsuleHalfHeight / 2
     const world = spawnWorld()
     const wild = spawnWildCreature(world, {
       speciesId: 'bulbasaur',
-      position: { x: 0.8, y: 1, z: 2 },
+      position: { x, y: 1, z: 2 },
     })
 
     expect(hit(world)).toBeNull()
@@ -1227,8 +1250,8 @@ describe('resolveAttackTarget — combate 2.5D ao longo da trajetória', () => {
 
 describe('creatureAttackSystem — dano de verdade', () => {
   // Sem câmera no world, a direção cai no fallback pra frente (+Z) e o
-  // golpe sai do centro do corpo (`Position`) — bulbasaur em (0,1,0) com
-  // vine-whip (range 1.8) varre de z=0 até z=1.8, na altura y=1.
+  // golpe sai do centro do corpo (`Position`) — bulbasaur em (0,1,0) varre
+  // de z=0 até o `range` do básico, na altura y=1.
   function spawnBulbasaurAttacker(world) {
     return spawnControlledCreature(world, {
       speciesId: 'bulbasaur',
@@ -1373,19 +1396,11 @@ describe('creatureAttackSystem — dano de verdade', () => {
 })
 
 describe('creatureAttackSystem — indicador antes de lançar (castMode)', () => {
-  // bulbasaur: básico próprio e secondary1 = razor-leaf — os dois com
-  // `castMode: 'confirm'` na definição real (premissa conferida abaixo).
+  // Todo golpe em `castMode: 'confirm'` (`CONFIRM_CAST`) — bulbasaur só
+  // pelo básico e pelo secondary1.
   function real(world, input) {
-    tick(world, input, REAL_CAST_MODE)
+    tick(world, input, CONFIRM_CAST)
   }
-
-  it('premissa: os ataques usados aqui estão configurados como confirm', () => {
-    const bulbasaur = getSpecies('bulbasaur')
-    expect(resolveCreatureAttack(bulbasaur, 'primary').castMode).toBe('confirm')
-    expect(resolveCreatureAttack(bulbasaur, 'secondary1').castMode).toBe(
-      'confirm',
-    )
-  })
 
   it('1º clique só abre o indicador (sem golpe, sem gastar stamina); 2º clique lança', () => {
     const world = spawnWorld()
@@ -1490,7 +1505,7 @@ describe('creatureAttackSystem — modo combate', () => {
     const world = spawnWorld()
     const creature = spawnControlledCreature(world, { speciesId: 'bulbasaur' })
 
-    tick(world, { primary: true }, REAL_CAST_MODE)
+    tick(world, { primary: true }, CONFIRM_CAST)
 
     expect(creature.get(AttackAim).slot).toBe('primary') // premissa
     expect(creature.has(CombatMode)).toBe(false)
@@ -1723,7 +1738,7 @@ describe('resolveAttackTarget — lado do jogador (golpe de selvagem)', () => {
 })
 
 describe('creatureAttackSystem — ataque canalizado (damageMode channel)', () => {
-  // Básico da fox trocado por um canalizado só dentro do teste: dano a cada
+  // Básico do bulbasaur trocado por um canalizado só dentro do teste: dano a cada
   // 0.25s de 0.25 até 1s (4 ticks), cone de 3m com meia-largura 1.5 na
   // ponta, cooldown 1s. Sem câmera, a direção é +Z a partir de (0,1,0).
   const CHANNEL = {
@@ -1737,13 +1752,13 @@ describe('creatureAttackSystem — ataque canalizado (damageMode channel)', () =
   }
 
   function withChannelBasic(run) {
-    const fox = getSpecies('fox')
-    const original = fox.basicAttack
-    fox.basicAttack = { ...original, ...CHANNEL }
+    const bulbasaur = getSpecies('bulbasaur')
+    const original = bulbasaur.basicAttack
+    bulbasaur.basicAttack = { ...original, ...CHANNEL }
     try {
       run()
     } finally {
-      fox.basicAttack = original
+      bulbasaur.basicAttack = original
     }
   }
 
@@ -1820,11 +1835,11 @@ describe('creatureAttackSystem — ataque canalizado (damageMode channel)', () =
     // Orçamento do alvo = o dano de UM golpe (fator aleatório médio, sem
     // crítico) — `weight: 1` e crítico desligado pelo chamador.
     return resolveChannelTickDamage({
-      attackerSpecies: getSpecies('fox'),
+      attackerSpecies: getSpecies('bulbasaur'),
       attackerIndividualValues: {},
       defenderSpecies: getSpecies('charmander'),
       defenderIndividualValues: target.get(IndividualValues),
-      damage: getSpecies('fox').basicAttack.damage,
+      damage: getSpecies('bulbasaur').basicAttack.damage,
       weight: 1,
       rng: () => 0.99,
     }).amount
@@ -2083,6 +2098,8 @@ describe('Growl — a primeira skill de STATUS (sem dano, baixa o ataque dos ini
           advanceUntilFree(world, creature)
           creature.remove(CryPulse)
           creature.set(AttackCooldowns, { secondary1: 0 })
+          // ...e a energia: o teste é da precisão, não do custo (035).
+          creature.set(Vitals, { stamina: creature.get(Vitals).maxStamina })
         }
 
         expect(hits).toBeGreaterThan(0)
@@ -2250,9 +2267,9 @@ describe('Growl — a primeira skill de STATUS (sem dano, baixa o ataque dos ini
     // Poder 5 (o dos básicos hoje) esconde o efeito na fórmula (o `+2` fixo
     // domina) — aqui um golpe forte deixa o estágio aparecer. Média de várias
     // tentativas pra absorver o fator aleatório e o crítico.
-    const fox = getSpecies('fox')
-    const original = fox.basicAttack.damage
-    fox.basicAttack.damage = { ...original, power: 100 }
+    const bulbasaur = getSpecies('bulbasaur')
+    const original = bulbasaur.basicAttack.damage
+    bulbasaur.basicAttack.damage = { ...original, power: 100 }
     try {
       const averageLoss = (attackStage) => {
         let total = 0
@@ -2284,7 +2301,7 @@ describe('Growl — a primeira skill de STATUS (sem dano, baixa o ataque dos ini
       expect(normal).toBeGreaterThan(0)
       expect(lowered).toBeLessThan(normal * 0.6)
     } finally {
-      fox.basicAttack.damage = original
+      bulbasaur.basicAttack.damage = original
     }
   })
 })
@@ -2456,7 +2473,11 @@ describe('Growth — skill de status em SI MESMO (sobe Ataque e Ataque Especial 
   it('exige o botão SEGURADO na carga: soltar antes do efeito cancela (sem efeito, cooldown começa, stamina não volta)', () => {
     withGrowth(() => {
       const { world, creature } = setup()
-      const growth = resolveSkill('growth')
+      const growth = resolveAttackForEntity(
+        getSpecies('charmander'),
+        'secondary1',
+        creature.get(IndividualValues),
+      )
       const staminaBefore = creature.get(Vitals).stamina
 
       tick(world, { secondary1: true })
@@ -2570,7 +2591,11 @@ describe('interrupção de golpe de STATUS por dano (só na carga)', () => {
   it('levar dano durante a carga corta o Growth: sem efeito, cooldown começa, stamina não volta, sai "attackInterrupted"', () => {
     withGrowth(() => {
       const { world, mine, wild } = setup()
-      const growth = resolveSkill('growth')
+      const growth = resolveAttackForEntity(
+        getSpecies('charmander'),
+        'secondary1',
+        mine.get(IndividualValues),
+      )
       const staminaBefore = mine.get(Vitals).stamina
 
       tick(world, { secondary1: true })
@@ -2683,7 +2708,7 @@ describe('Leech Seed — planta a semente no alvo (quem drena é o leechSeedSyst
 })
 
 describe('creatureAttackSystem — canalizado em FEIXE (area line)', () => {
-  // Básico da fox trocado por um feixe só dentro do teste: 4 ticks (0.25 a
+  // Básico do bulbasaur trocado por um feixe só dentro do teste: 4 ticks (0.25 a
   // 1 s), cápsula de 3 m de alcance. Sem física, a trajetória vai até o alcance.
   const BEAM = {
     damageMode: 'channel',
@@ -2696,12 +2721,12 @@ describe('creatureAttackSystem — canalizado em FEIXE (area line)', () => {
     cooldown: 1,
   }
 
-  // `speciesId`: a fox não tem `camera` (a mira pela câmera precisa) — o teste
+  // `speciesId`: o bulbasaur não tem `camera` (a mira pela câmera precisa) — o teste
   // de mirar usa o charmander
-  function withBeamBasic(overrides, run, speciesId = 'fox') {
-    const fox = getSpecies(speciesId)
-    const original = fox.basicAttack
-    fox.basicAttack = {
+  function withBeamBasic(overrides, run, speciesId = 'bulbasaur') {
+    const species = getSpecies(speciesId)
+    const original = species.basicAttack
+    species.basicAttack = {
       ...original,
       ...BEAM,
       ...overrides,
@@ -2710,7 +2735,7 @@ describe('creatureAttackSystem — canalizado em FEIXE (area line)', () => {
     try {
       run()
     } finally {
-      fox.basicAttack = original
+      species.basicAttack = original
     }
   }
 

@@ -14,8 +14,8 @@ import { compileGradient, sampleCurve } from './particleSimulation'
  * drainopen`). O Synthesis (o golpe de "absorver sol") teria sido o tema mais
  * próximo, mas no pacote ele não está ligado a nada e a textura dele não existe.
  *
- *   contínuo  `inner`  — orbes menores, anel de 0.75 m (13/s)
- *   contínuo  `outer`  — orbes maiores, anel de 1.05 m (11/s)
+ *   - `inner`  — contínuo: orbes menores, anel interno
+ *   - `outer`  — contínuo: orbes maiores, anel externo
  *
  * Diferenças pro original:
  * - os emissores rodam enquanto a carga durar (`continuous`), não 1.3 s fixos;

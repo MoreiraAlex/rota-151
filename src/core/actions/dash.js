@@ -1,4 +1,5 @@
 import { GAME_CONFIG } from '../gameConfig'
+import { DashCooldown } from '../traits'
 import { resolveDashCost } from './stamina'
 
 /**
@@ -21,7 +22,7 @@ export function resolveDashSpeed(dash, elapsed, exitSpeed) {
 
 /**
  * Começa um dash na direção horizontal (`dirX`, `dirZ`, unitária): trava a
- * ação, paga o custo (`resolveDashCost`: `STAMINA_COST` × vida baixa) e
+ * ação, paga o custo (`resolveDashCost`: `Vitals.dashStaminaCost` × vida baixa) e
  * reinicia o atraso da regeneração. Regra única do jogador (`playerActionSystem.js`) e da IA (`core/battle/aiMovement.js`)
  * — quem chama confere antes se pode (chão, energia, ação livre).
  */
@@ -53,4 +54,21 @@ export function avancarDash(action, vel, delta, exitSpeed) {
   vel.x = action.dirX * speed
   vel.z = action.dirZ * speed
   if (done) action.current = null
+}
+
+/** O dash da entidade saiu da recarga (`DashCooldown`; sem o trait, pronto). */
+export function isDashReady(entity) {
+  return (entity.get(DashCooldown)?.timeLeft ?? 0) <= 0
+}
+
+/**
+ * Trava a recarga do dash (`PLAYER_ACTIONS.dash.COOLDOWN`) — chamada junto do
+ * `iniciarDash`, pelo jogador e pela IA (mesma regra pra todos,
+ * docs/features/035-balanceamento-de-acoes-e-correcoes.md). Põe o `DashCooldown` se a
+ * entidade ainda não tem.
+ */
+export function travarRecargaDoDash(entity) {
+  const timeLeft = GAME_CONFIG.PLAYER_ACTIONS.dash.COOLDOWN
+  if (entity.has(DashCooldown)) entity.set(DashCooldown, { timeLeft })
+  else entity.add(DashCooldown({ timeLeft }))
 }

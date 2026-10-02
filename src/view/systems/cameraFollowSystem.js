@@ -17,6 +17,7 @@ import {
   ScanMode,
   SummonedCreature,
 } from '@/core/traits'
+import { resolveRenderPosition } from '@/view/registry/renderInterpolation'
 
 /**
  * Espécie de quem está sendo seguido/mirado/CONTROLADO agora — `entity`
@@ -122,6 +123,15 @@ export function resolveControlledSpecies(entity) {
  * continua usando), câmera do Scan acompanha a posição 1:1 com o
  * input, todo frame.
  *
+ * **Posição do alvo interpolada** (`resolveRenderPosition`, a mesma do
+ * modelo em `syncTransformSystem`): com `Position` crua, o alvo andava em
+ * degraus do passo fixo (0 ou 2 passos num frame) enquanto a posição da câmera
+ * corria suave pelo `SMOOTHING` — o `lookAt`, sem suavização, pulava junto
+ * com os degraus e a câmera inteira girava pra lá e pra cá. O ângulo do
+ * tranco é ~degrau ÷ distância da órbita: bem maior no zoom mínimo que na
+ * distância inicial. Tudo que se move na cena (a criatura seguindo)
+ * tremia junto, em degraus contra uma câmera suave.
+ *
  * Fase: presentation (passo variável), depois do syncTransformSystem.
  * A câmera chega em context.camera (câmera default do R3F, via useThree).
  */
@@ -133,7 +143,7 @@ export function cameraFollowSystem(context) {
   const rig = world.queryFirst(OrbitCamera)
   if (!target || !rig) return
 
-  const pos = target.get(Position)
+  const pos = resolveRenderPosition(target)
   const orbit = rig.get(OrbitCamera)
   const {
     SMOOTHING, // só o branch de terceira pessoa (abaixo) lê isto — o modo Scan não suaviza posição

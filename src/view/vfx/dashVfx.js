@@ -11,8 +11,8 @@ import { compileGradient, sampleCurve } from './particleSimulation'
  * ela corre, origem nos pés — e as partículas ficam pra trás conforme ela
  * anda.
  *
- *   contínuo  `lines`  — linhas de velocidade ao redor do corpo (100/s)
- *   0.00      `dust`   — 12 nuvens de poeira no chão, na saída
+ *   - `lines`  — contínuo: linhas de velocidade ao redor do corpo
+ *   - `dust`   — nuvens de poeira no chão, na saída (`DASH_EFFECT.DUST_COUNT`)
  *
  * Não existe efeito de dash PARA MOVIMENTO no Cobblemon (é o mod por turnos
  * do Minecraft): estes vêm do golpe Quick Attack e foram adaptados — as linhas

@@ -13,7 +13,7 @@ function tick(world, input = {}) {
 }
 
 function spawnCreature(world, slot) {
-  return world.spawn(SummonedCreature({ slot, speciesId: 'fox' }))
+  return world.spawn(SummonedCreature({ slot, speciesId: 'bulbasaur' }))
 }
 
 describe('controlSwitchSystem', () => {

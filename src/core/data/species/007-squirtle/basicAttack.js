@@ -5,7 +5,7 @@
  * `core/data/skills/_template/index.js` pro que cada campo significa.
  *
  * Valores de partida herdados do que a espécie usava antes (docs/features/
- * 033-skills-de-combate-e-vfx.md): `tackle` com range 1, duration 0.8, effectAt 0.6 e animationFrames 30. `visual`/`audio`/`sprite` reaproveitam os assets
+ * 033-skills-de-combate-e-vfx.md): `tackle` ajustado pra esta espécie. `visual`/`audio`/`sprite` reaproveitam os assets
  * de `tackle` — são da view, compartilháveis; o ataque em si é deste
  * do Squirtle.
  *
@@ -21,8 +21,6 @@ export const BASIC_ATTACK = {
   aim: 'melee',
   castMode: 'instant',
   radius: 0.3,
-  staminaCost: 0.25,
-  cooldown: 0,
   animationFrames: 25,
   visual: {
     effectGroup: 'impact',

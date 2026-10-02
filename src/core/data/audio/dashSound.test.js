@@ -15,12 +15,14 @@ describe('dashSound', () => {
     }
   })
 
-  it('bot/fox (espécies reais do projeto) resolvem o grupo que cada um declara', async () => {
-    const { BOT } = await import('../species/bot')
-    const { FOX } = await import('../species/fox')
-    expect(resolveDashSound(BOT)).toBe(getDashSoundGroup(BOT.sounds.dashGroup))
-    expect(resolveDashSound(FOX)).toBe(getDashSoundGroup(FOX.sounds.dashGroup))
-    expect(resolveDashSound(BOT)).not.toBe(null)
-    expect(resolveDashSound(FOX)).not.toBe(null)
+  it('boy/charmander (espécies reais do projeto) resolvem o grupo que cada um declara', async () => {
+    const { BOY } = await import('../species/boy')
+    const { CHARMANDER } = await import('../species/004-charmander')
+    expect(resolveDashSound(BOY)).toBe(getDashSoundGroup(BOY.sounds.dashGroup))
+    expect(resolveDashSound(CHARMANDER)).toBe(
+      getDashSoundGroup(CHARMANDER.sounds.dashGroup),
+    )
+    expect(resolveDashSound(BOY)).not.toBe(null)
+    expect(resolveDashSound(CHARMANDER)).not.toBe(null)
   })
 })

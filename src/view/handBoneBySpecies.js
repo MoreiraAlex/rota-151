@@ -4,8 +4,7 @@
  * core/data/species/<id>/. Só espécies com mão (hoje só o treinador,
  * PLAYER_SPECIES_ID) entram aqui — sem entrada, quem consulta
  * (`heldItemViewSystem.js`, `RecallBeamView.jsx`) simplesmente não mostra
- * nada e não quebra (ex.: o Fox de teste, quadrúpede, não tem mão
- * nenhuma).
+ * nada e não quebra (ex.: as criaturas, sem mão nenhuma).
  *
  * Extraída de `heldItemViewSystem.js` (onde morava sozinha) quando um
  * segundo consumidor (`RecallBeamView.jsx`, docs/features/024-esfera-de-
@@ -14,7 +13,8 @@
  *
  * `boy` — bug real, relatado jogando ("configurando para ele lançar os
  * objetos no bone do boy, não tá respeitando"): `PLAYER_SPECIES_ID` virou
- * `'boy'` (`core/data/species/index.js`), mas este mapa só tinha `bot`.
+ * `'boy'` (`core/data/species/index.js`), mas este mapa só tinha o
+ * avatar antigo.
  * Sem entrada pra `boy`, `heldItemViewSystem.js` caía direto no fallback
  * "sem osso" (`bone` sempre `undefined` → `hide()`) — o item nunca era
  * anexado a NADA, não importa o que fosse configurado em
@@ -24,9 +24,9 @@
  * — coisas DIFERENTES: o osso é só o encaixe VISUAL do item na mão antes
  * de soltar). Nome do osso conferido direto no `.glb` (accessor de nós,
  * mesma técnica de inspeção sem navegador de sempre nesta sessão): `boy.glb`
- * usa a MESMA convenção de nome que `bot.glb` (`RHand`/`LHand`), não
+ * usa a convenção de nome `RHand`/`LHand`, não
  * `mixamorig_RightHand` como um comentário antigo (agora corrigido) em
- * `core/data/species/boy/index.js`/`bot/index.js` especulava.
+ * `core/data/species/boy/index.js` especulava.
  */
 export const HAND_BONE_BY_SPECIES = {
   boy: 'RHand',

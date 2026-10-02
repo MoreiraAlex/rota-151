@@ -31,7 +31,7 @@ import { useStatStages } from './useStatStages'
  * StatusHud.jsx` (4, voltar a pilotar o treinador, no card compacto).
  */
 
-/** "bulbasaur" → "Bulbasaur", "fox-red" → "Fox Red" — sem apelido
+/** "bulbasaur" → "Bulbasaur", "leech-seed" → "Leech Seed" — sem apelido
  * individual (nenhuma criatura tem nome próprio hoje), só a espécie
  * formatada. */
 export function formatSpeciesName(id) {

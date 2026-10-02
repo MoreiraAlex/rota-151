@@ -54,7 +54,7 @@ function recall(world, player) {
 function setup() {
   const { world, player } = makeWorld()
   worlds.push(world)
-  player.set(Party, { slot1: 'fox-red' })
+  player.set(Party, { slot1: 'bulbasaur' })
   return { world, player }
 }
 
@@ -139,7 +139,7 @@ describe('vida/energia do time na bola (PartyVitals)', () => {
     recall(world, player)
     expect(player.get(PartyVitals).slot1).not.toBe(null)
 
-    equiparCriatura(player, 'slot1', 'fox-red')
+    equiparCriatura(player, 'slot1', 'bulbasaur')
 
     expect(player.get(PartyVitals).slot1).toBe(null)
   })

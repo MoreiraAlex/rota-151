@@ -70,15 +70,15 @@ afterEach(() => {
   while (worlds.length) worlds.pop().destroy()
 })
 
-const FOX = getSpecies('fox')
+const CHARMANDER = getSpecies('charmander')
 
 function spawnNavigator(world, at) {
   return world.spawn(
     Position(at),
     Rotation,
     Velocity,
-    MovementStats(FOX.movement),
-    CharacterController(FOX.body),
+    MovementStats(CHARMANDER.movement),
+    CharacterController(CHARMANDER.body),
     PhysicsBody,
     PathState,
     WanderState,
@@ -123,7 +123,7 @@ describe('PathState.target', () => {
     worlds.push(world)
     expect(player.has(InputControlled)).toBe(true)
     const creature = spawnNavigator(world, { x: 20, y: 0.5, z: 0 })
-    creature.add(SummonedCreature({ slot: 'slot1', speciesId: 'fox' }))
+    creature.add(SummonedCreature({ slot: 'slot1', speciesId: 'charmander' }))
 
     creatureFollowSystem({ world, delta: 1 / 60 })
 

@@ -27,16 +27,14 @@ export const GROWL_SKILL = {
   aim: 'ranged',
   castMode: 'instant',
   area: 'cone',
-  // abertura do cone: `radius / range` (0.5 = ~27° pra cada lado)
+  // abertura do cone: `radius / range` (tangente do meio-ângulo)
   radius: 1.5,
-  staminaCost: 2,
-  cooldown: 1,
   // Sem dano: nada "apanha", e `attackResolved` sai com `status: true`.
   damage: null,
   effects: [{ type: 'statStage', stat: 'attack', stages: -1, duration: 60 }],
   visual: {
     effectGroup: 'growl',
-    // cobre a última das 3 ondas (`view/vfx/growlVfx.js`)
+    // cobre a última onda (`view/vfx/growlVfx.js`)
     effectVisualDuration: 1,
     scale: 1,
     revealDuration: 0,

@@ -51,8 +51,8 @@ export const CHARMANDER = {
     // Growl (skill de status): o rugido
     roar: 'roar',
     idle: 'idle',
-    walk: 'walk',
-    run: 'run',
+    walk: { animation: 'walk', speed: 1.5 },
+    run: { animation: 'run', speed: 1.2 },
     attack: {
       start: 'attackAltStart',
       loop: 'attackAltLoop',
@@ -90,8 +90,8 @@ export const CHARMANDER = {
     modelOffset: [0, -0.35, 0],
   },
   movement: {
-    walkSpeed: 1.5,
-    runSpeed: 4,
+    walkSpeed: 3,
+    runSpeed: 5,
     turnSpeed: 10,
     jumpSpeed: 6,
   },
@@ -143,8 +143,8 @@ export const CHARMANDER = {
     },
   },
   stats: {
-    hp: { base: HP, ev: HP_EV, regenPercent: 2, regenDelay: 5 },
-    energy: { regenPercent: 45, regenDelay: 2 },
+    hp: { base: HP, ev: HP_EV, regenPercent: 0.25, regenDelay: 10 },
+    energy: { regenPercent: 40, regenDelay: 2 },
     attack: { base: ATTACK, ev: ATTACK_EV },
     defense: { base: DEFENSE, ev: DEFENSE_EV },
     sp_atk: { base: SP_ATK, ev: SP_ATK_EV },

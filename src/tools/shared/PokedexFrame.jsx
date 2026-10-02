@@ -15,13 +15,12 @@
  * criatura pra mostrar; voltam agora pras TRÊS seções do menu
  * principal: Pokémons/Time/Histórico).
  *
- * **Altura travada em 350px (`h-[350px] flex flex-col`)** — pedido do
- * usuário: "preciso que a pokédex por inteira fique dentro de 420px"
- * (de ALTURA, confirmado depois — largura ficou livre em 500px, ver
- * `PauseMenu.jsx`). 350px é o que sobra dos 420px depois do resto do
- * chrome ao redor deste componente, que este arquivo não controla: o
- * `p-4` do `PauseMenu.jsx` (32px) + a barra de título "Pokédex"/"←
- * voltar" do `MenuView` (~30px) — únicos consumidores deste componente
+ * **Altura travada (`h-[…] flex flex-col`)** — pedido do usuário: a
+ * pokédex inteira cabe numa altura máxima (de ALTURA, confirmado depois —
+ * largura ficou livre, ver `PauseMenu.jsx`). A altura daqui é o que sobra
+ * dessa altura máxima depois do resto do chrome ao redor deste componente,
+ * que este arquivo não controla: o padding do `PauseMenu.jsx` + a barra de
+ * título "Pokédex"/"← voltar" do `MenuView` — únicos consumidores deste componente
  * hoje — com uma margem de alguns px de folga pra variação real de
  * fonte/line-height do navegador (não verificado visualmente, sandbox
  * sem navegador). A luz superior e a barra de abas são `shrink-0`

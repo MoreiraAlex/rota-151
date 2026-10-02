@@ -19,8 +19,7 @@ const worldScale = new THREE.Vector3()
  * pra ele a cada frame de graça, mesma técnica de `heldItemViewSystem.js`.
  *
  * Correção de escala: o osso vive dentro da hierarquia do modelo inteiro,
- * renderizado bem menor que 1:1 (`species.model.scale`, ~0.015 pros
- * Pokémon, além de qualquer escala já embutida no rig/armature do `.glb`)
+ * renderizado bem menor que 1:1 (`species.model.scale`, além de qualquer escala já embutida no rig/armature do `.glb`)
  * — um filho comum herdaria essa escala composta e nasceria minúsculo
  * demais pra aparecer (mesmo bug real que `heldItemViewSystem.js` já
  * documentou ter caído). `getWorldScale` lê a escala composta de verdade
@@ -44,10 +43,10 @@ const worldScale = new THREE.Vector3()
  * cauda, não em cima dela). Dividido por `worldScale` (mesma variável já
  * lida pra correção de escala acima) de propósito: posição de um filho é
  * interpretada no espaço LOCAL do pai (o osso, ainda dentro da hierarquia
- * pequena do rig, ~0.015), então um deslocamento em unidades de mundo
- * "de verdade" (ex.: 0.1 = 10cm) precisa da mesma correção que a escala,
- * senão o valor configurado pareceria não fazer quase nada (0.1 num
- * espaço 0.015x vira 0.0015 de verdade).
+ * pequena do rig), então um deslocamento em unidades de mundo "de
+ * verdade" precisa da mesma correção que a escala, senão o valor
+ * configurado pareceria não fazer quase nada (multiplicado pela escala
+ * minúscula do rig).
  *
  * `config.speed` multiplica o `delta` passado pra `flame.update`, mesmo
  * princípio do `speed` do spike (`Campfire.jsx`).

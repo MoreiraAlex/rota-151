@@ -15,8 +15,8 @@ import { CREATURE_TINTS } from '../creatureTints'
  * ver `CreaturesView`/`WildCreaturesView` abaixo — `speciesId` já vem
  * resolvido de qualquer um dos dois traits, este componente não sabe nem
  * precisa saber qual) — modelo da espécie via `useAnimatedModel` (mesmo
- * hook do `PlayerView`), tingido pela cor do mapa acima quando houver. As 4
- * espécies fox compartilham o mesmo `.glb`/material via cache do
+ * hook do `PlayerView`), tingido pela cor do mapa acima quando houver.
+ * Instâncias da mesma espécie compartilham o `.glb`/material via cache do
  * `useGLTF`; **clona o material antes de colorir**, senão a mudança
  * vazaria pra qualquer outra instância que carregue o mesmo asset
  * (`SkeletonUtils.clone` reusa materiais por referência).

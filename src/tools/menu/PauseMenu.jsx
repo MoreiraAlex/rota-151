@@ -7,9 +7,9 @@ import { InventoryPanel } from './InventoryPanel'
 import { PokedexMenu } from './pokedex/PokedexMenu'
 
 // Largura da caixa por subtela — Inventário precisa de mais espaço (grade +
-// preview de equipamento lado a lado, ver InventoryPanel.jsx); a Pokédex é
-// 500px de largura (pedido do usuário, docs/features/033-*.md — a
-// restrição de 420px é de ALTURA, ver `PokedexFrame.jsx`, não largura);
+// preview de equipamento lado a lado, ver InventoryPanel.jsx); a Pokédex tem
+// largura própria (pedido do usuário, docs/features/033-*.md — a restrição
+// dela é de ALTURA, ver `PokedexFrame.jsx`, não largura);
 // as outras ficam na largura compacta de sempre.
 const BOX_WIDTH = {
   main: 'w-80',

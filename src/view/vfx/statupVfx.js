@@ -7,8 +7,8 @@ import { compileGradient, sampleCurve } from './particleSimulation'
  * `statup_actoraura.particle.json` (`.exemple/Coblemon/assets/cobblemon/
  * bedrock/particles/generic/`). Usado pelo Growth (grupo `'statup'`).
  *
- *   0.10  `orbs`  — orbes subindo numa espiral em volta do corpo (30/s, 0.375 s)
- *   0.10  `aura`  — riscos verticais disparando do chão (60/s, 0.3 s)
+ *   - `orbs`  — orbes subindo numa espiral em volta do corpo
+ *   - `aura`  — riscos verticais disparando do chão
  *
  * (os 0.1 s são o `delay` do `boost.json`; o `aura` nasce junto do `orbs`,
  * que o cria no `creation_event`)

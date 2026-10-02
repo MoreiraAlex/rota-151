@@ -1,6 +1,11 @@
 import { describe, it, expect } from 'vitest'
 import { world, playerEntity, cameraEntity } from './world'
-import { getSpecies, PLAYER_SPECIES_ID } from '@/core/data/species'
+import {
+  getSpecies,
+  PLAYER_SPECIES_ID,
+  resolveSpeciesKind,
+} from '@/core/data/species'
+import { getItem } from '@/core/data/items'
 import {
   Position,
   Rotation,
@@ -20,7 +25,7 @@ import {
   OrbitCamera,
 } from '@/core/traits'
 
-// Segue PLAYER_SPECIES_ID (não fixo em 'fox') — o teste valida que o player
+// Segue PLAYER_SPECIES_ID (não fixo numa espécie) — o teste valida que o player
 // vem da espécie configurada como jogador, seja lá qual for no momento.
 const PLAYER_SPECIES = getSpecies(PLAYER_SPECIES_ID)
 
@@ -72,8 +77,7 @@ describe('world (singleton)', () => {
     // Mesma ordem de resolução de `vitalsFromSpecies` (core/traits/
     // components/vitals.js) — `stats.hp`/`.energy` ganha quando existe
     // (espécies novas, ex.: `boy`/`bulbasaur`/`charmander`), senão cai
-    // pro formato antigo (`vitals.maxHp`/`.maxStamina`, ex.: `fox`/
-    // `wolf`), senão pro default do próprio trait (100/100).
+    // pro formato antigo (`vitals.maxHp`/`.maxStamina`), senão pro default do próprio trait.
     const vitals = playerEntity.get(Vitals)
     const expectedMaxHp =
       PLAYER_SPECIES.stats?.hp?.stat ?? PLAYER_SPECIES.vitals?.maxHp ?? 100
@@ -88,22 +92,24 @@ describe('world (singleton)', () => {
     expect(vitals.stamina).toBe(expectedMaxStamina)
   })
 
-  it('o player já começa com a rock equipada na mão', () => {
-    expect(playerEntity.get(HeldItem).itemId).toBe('rock')
+  // Sem conteúdo fixo (kit e time mudam): só as regras de consistência.
+  it('o player começa com um item do inventário equipado na mão', () => {
+    const { itemId } = playerEntity.get(HeldItem)
+    expect(getItem(itemId)).not.toBeNull()
+    expect(playerEntity.get(Inventory).itemIds).toContain(itemId)
   })
 
-  it('o player começa com um kit de itens de teste no inventário (10 throwable + 5 consumable, pebble em pilha de 20)', () => {
-    const { itemIds } = playerEntity.get(Inventory)
-    expect(new Set(itemIds).size).toBe(15) // 15 tipos únicos (10 + 5)
-    expect(itemIds.filter((id) => id === 'pebble')).toHaveLength(20)
+  it('todo item do inventário inicial existe no registro', () => {
+    for (const id of playerEntity.get(Inventory).itemIds) {
+      expect(getItem(id), id).not.toBeNull()
+    }
   })
 
-  it('o player já começa com a fox no slot1 do time, os outros dois vazios', () => {
-    expect(playerEntity.get(Party)).toEqual({
-      slot1: 'fox',
-      slot2: null,
-      slot3: null,
-    })
+  it('o time inicial só tem criaturas (kind pokemon) do registro', () => {
+    for (const id of Object.values(playerEntity.get(Party))) {
+      if (id === null) continue
+      expect(resolveSpeciesKind(getSpecies(id)), id).toBe('pokemon')
+    }
   })
 
   it('a câmera tem OrbitCamera e não é o player', () => {

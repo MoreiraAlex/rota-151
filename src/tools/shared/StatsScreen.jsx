@@ -217,7 +217,7 @@ function radarPoint(index, total, radius) {
 /**
  * Radar (hexágono) dos seis status de combate — SVG puro, mesma técnica
  * de "sem canvas, sem lib nova" que `XpRing` já usa pro anel de XP.
- * `maxValue` é o MAIOR status desta própria criatura ×1.15 (folga pro
+ * `maxValue` é o MAIOR status desta própria criatura com uma folga (pro
  * pico não encostar na borda) — escala relativa, não um teto absoluto
  * de jogo de Pokémon de verdade. Marcas/grade seguem o mesmo espírito
  * recessivo de `XpRing` (linhas finas, baixa opacidade) — só o

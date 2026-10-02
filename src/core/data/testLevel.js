@@ -45,18 +45,16 @@ export const TEST_LEVEL = {
     minInterval: 2,
     maxInterval: 5,
   },
-  // 150 (era 60) — espaço pra fox selvagens vagarem longe de tudo que já
-  // existia perto da origem (ver docs/features/020-fox-selvagens-cena-e-
-  // texturas.md). A grade de pathfinding cresce em células (60/CELL_SIZE →
-  // 150/CELL_SIZE por eixo), mas é lazy/cacheada uma vez só
-  // (`core/pathfinding.js`), sem custo por tick.
+  // Espaço pras criaturas selvagens vagarem longe de tudo perto da origem
+  // (ver docs/features/020-fox-selvagens-cena-e-texturas.md). A grade de
+  // pathfinding cresce com ele (`size / CELL_SIZE` por eixo), mas é
+  // lazy/cacheada uma vez só (`core/pathfinding.js`), sem custo por tick.
   ground: { size: 150, thickness: 1 },
   obstacles: [
     // Muro de contorno — sem ele, sair da borda do chão é queda livre pro
     // limbo (nada segura isso hoje, ver characterPhysicsSystem.js). Altura
-    // bem acima do pulo máximo de qualquer espécie (~0,9m com
-    // movement.jumpSpeed/PHYSICS.GRAVITY atuais), posicionado exatamente na
-    // borda de `ground.size` (±75). `type: 'box'` normal — sem mecanismo
+    // bem acima do pulo máximo de qualquer espécie (`movement.jumpSpeed` /
+    // `PHYSICS.GRAVITY`), posicionado exatamente na borda de `ground.size`. `type: 'box'` normal — sem mecanismo
     // novo em TestLevelView/colliders.js/pathfinding.js.
     {
       id: 'boundary-north',
@@ -84,7 +82,7 @@ export const TEST_LEVEL = {
     },
 
     // Pedras espalhadas pela área nova (fora do raio de tudo que já existia
-    // perto da origem) — o que os fox selvagens (`wildWanderSystem.js`)
+    // perto da origem) — o que as selvagens (`wildWanderSystem.js`)
     // desviarem ao vagar.
     { id: 'rock-1', type: 'box', position: [30, 0.75, 40], size: [2, 1.5, 2] },
     { id: 'rock-2', type: 'box', position: [45, 1, -20], size: [3, 2, 2.5] },
@@ -131,7 +129,7 @@ export const TEST_LEVEL = {
       position: [-6, 0.75, 5],
       size: [3, 1.5, 3],
     },
-    // Toda rampa é uma caixa FINA (0.3 de espessura) tombada — sobra um vão
+    // Toda rampa é uma caixa FINA tombada — sobra um vão
     // físico em cunha embaixo dela (cresce conforme a rampa sobe, até quase
     // a altura do topo na ponta alta), sem collider nenhum ali. Uma
     // criatura consegue fisicamente entrar nesse vão e ficar presa lá — o
@@ -152,7 +150,7 @@ export const TEST_LEVEL = {
     //   size: [5, 2.5, 3],
     //   rotation: { axis: 'z', angle: 0.32 },
     // },
-    // Rampa subível (~18°): a extremidade -x encosta no chão, a +x sobe.
+    // Rampa subível: a extremidade -x encosta no chão, a +x sobe.
     {
       id: 'ramp',
       type: 'ramp',
@@ -173,7 +171,7 @@ export const TEST_LEVEL = {
     // virando o olhar por perto, pra testar a colisão da órbita
     // (docs/backlog.md → "Câmera orbital com colisão").
     { id: 'pillar', type: 'box', position: [3, 1.5, -1], size: [1, 3, 1] },
-    // Corredor estreito (4m de vão) — a distância padrão da câmera não
+    // Corredor estreito — a distância padrão da câmera não
     // cabe atrás do jogador aqui dentro sem atravessar uma das paredes,
     // então força a colisão da órbita a puxar a distância pra dentro o
     // tempo todo enquanto o jogador atravessa.
@@ -190,25 +188,24 @@ export const TEST_LEVEL = {
       size: [0.5, 5, 8],
     },
 
-    // Trilha de 4 terraços ("andares") subindo ao longo de +X, longe de
-    // tudo acima (que ocupa x∈[-8,12.5], z∈[-14,5]) — testa o pathfinding
+    // Trilha de terraços ("andares") subindo ao longo de +X, longe de
+    // tudo acima — testa o pathfinding
     // com elevação de verdade (ver "Elevação (heightmap)" em
     // docs/features/017-locomocao-e-recolhimento-de-criaturas.md). Cada terraço
-    // (`type: 'floor'`) sobe 1.8m sobre o anterior; cada transição tem DUAS
-    // rampas paralelas (lanes em z:[13,17] e z:[23,27]) — pelo menos 2
-    // caminhos pra alcançar cada terraço — separadas por uma "espinha" de
-    // rocha sólida (`type: 'box'`) no meio (z:[17,23]): sem ela, o vão
+    // (`type: 'floor'`) sobe um tanto fixo sobre o anterior; cada transição
+    // tem DUAS rampas paralelas (lanes) — pelo menos 2 caminhos pra alcançar
+    // cada terraço — separadas por uma "espinha" de rocha sólida
+    // (`type: 'box'`) no meio: sem ela, o vão
     // entre as duas lanes ficaria sem collider (buraco) e sem elevação
     // definida (cairia pro chão nível 0 por padrão, no meio da subida).
     // Cada rampa também ganha sua própria "backing" (`ramp{n}-{a,b}-
     // backing`) — mesma ideia da rampa original acima, fecha o vão em
     // cunha por baixo.
     //
-    // Ângulo de rampa 0.45 rad (~26°, abaixo de MIN_SLOPE_SLIDE — sobe
-    // inteiro sem escorregar). Rise 1.8m por terraço → LENGTH =
-    // 1.8/sin(0.45) ≈ 4.138 (vai em size[0]); RUN = LENGTH*cos(0.45) ≈
-    // 3.726 é só o espaço horizontal consumido, usado pra centralizar cada
-    // peça — não é o `size` da caixa.
+    // Ângulo de rampa abaixo de MIN_SLOPE_SLIDE (sobe inteiro sem
+    // escorregar). LENGTH = subida / sin(ângulo) (vai em size[0]); RUN =
+    // LENGTH × cos(ângulo) é só o espaço horizontal consumido, usado pra
+    // centralizar cada peça — não é o `size` da caixa.
     // {
     //   id: 'ramp0-a-backing',
     //   type: 'ramp',

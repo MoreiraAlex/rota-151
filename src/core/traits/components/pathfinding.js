@@ -20,7 +20,7 @@ import { trait } from 'koota'
  * só pra detectar a BORDA DE SUBIDA (ficou travada agora, não já estava),
  * disparando um recálculo imediato uma vez só; sem isso, `repathTimer`
  * seria forçado a `0` TODO tick enquanto a tag persiste, refazendo o A*
- * (com `grid.clone()`, ~7 mil alocações pra uma grade de 60×60) até 60x/s
+ * (com `grid.clone()`, milhares de alocações) a cada tick
  * em vez de uma vez por episódio de bloqueio (achado no code review desta
  * feature).
  *
@@ -32,6 +32,14 @@ import { trait } from 'koota'
  * alvo (adivinhar "quem está no controle" fazia a linha da selvagem
  * vagando apontar pro jogador entre um recálculo e outro).
  *
+ * `gait`, `resting` e `separating`: só do `creatureFollowSystem` — a
+ * marcha do tick anterior (`'stop'`/`'walk'`/`'run'`, ver
+ * `resolveFollowGait`), se está descansando a energia (`resolveResting`,
+ * `core/battle/aiEnergy.js`) e se, parada, está se afastando de alguém
+ * perto demais. São a memória da histerese: sem elas a decisão era
+ * refeita do zero todo tick e oscilava no limiar. `gait` começa em `'walk'` (decide só pela
+ * distância no primeiro tick, como antes).
+ *
  * Donos de escrita: `creatureFollowSystem` e `steerTowards` (calculam/
  * avançam o caminho) e as actions de `core/actions/wildBehavior.js`
  * (zeram ao trocar de estado).
@@ -42,4 +50,7 @@ export const PathState = trait(() => ({
   repathTimer: 0,
   wasBlocked: false,
   target: null,
+  gait: 'walk',
+  resting: false,
+  separating: false,
 }))

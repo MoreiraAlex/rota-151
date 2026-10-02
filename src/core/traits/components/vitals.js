@@ -1,5 +1,7 @@
 import { trait } from 'koota'
 import { resolveCreatureStats } from '../../data/species/stats'
+import { resolveLevelCost } from '../../battle/levelCost'
+import { GAME_CONFIG } from '../../gameConfig'
 
 /**
  * Vida (HP) e fôlego (stamina) da entidade — vem de `core/data/species/<id>/
@@ -19,8 +21,10 @@ import { resolveCreatureStats } from '../../data/species/stats'
  * mesmo princípio pro fôlego: quanto falta pra stamina voltar a
  * regenerar depois do último uso (correr, dash ou pulo) — cada dreno
  * reseta o delay pra `staminaRegenDelayAfterUse` (por espécie), igual
- * dano reseta o de HP. `runStaminaDrainPerSecond`/`jumpStaminaCost` são
- * os custos (por espécie) de correr/pular — até a rodada de
+ * dano reseta o de HP. `runStaminaDrainPerSecond`/`jumpStaminaCost`/
+ * `dashStaminaCost` são os custos (por entidade) de correr/pular/dar dash
+ * — nas criaturas, calculados pelo nível (`resolveMovementCosts`, abaixo;
+ * docs/features/035-balanceamento-de-acoes-e-correcoes.md). Até a rodada de
  * docs/features/018-troca-de-controle-treinador-criatura.md esses 4
  * campos eram globais em `GAME_CONFIG.VITALS` ("comportamento do motor,
  * não atributo de criatura"); decisão revertida — agora variam por
@@ -45,6 +49,7 @@ export const Vitals = trait({
   staminaRegenDelayAfterUse: 3,
   runStaminaDrainPerSecond: 2,
   jumpStaminaCost: 3,
+  dashStaminaCost: 1,
 })
 
 /**
@@ -53,7 +58,7 @@ export const Vitals = trait({
  * stamina... adeque o sistema de hp e stamina para ler esse stats".
  * Espécies migradas (`boy`/`001-bulbasaur`/`004-charmander`/
  * `007-squirtle`) guardam isso em `species.stats.hp`/`.energy`; as que
- * ainda NÃO migraram (`fox`/`wolf`) continuam com o formato antigo,
+ * ainda NÃO migraram continuam com o formato antigo,
  * `species.vitals.maxHp`/`.maxStamina`/etc. `stats.hp`/`.energy` GANHA
  * quando os dois existem; sem NENHUM dos dois, cai nos defaults do
  * trait `Vitals` (`100`/`100`, ver acima).
@@ -119,9 +124,8 @@ export function resolveMaxStamina(species, individualValues = null) {
  * campo abaixo tem um `?? <default literal do trait>` no final da
  * cadeia, nunca fica em aberto.
  *
- * `runStaminaDrainPerSecond`/`jumpStaminaCost` (custo, não
- * máximo/regen) continuam SEMPRE em `species.vitals` — não fazem parte
- * do conceito de "status de batalha" que migrou pra `stats`.
+ * `runStaminaDrainPerSecond`/`jumpStaminaCost`/`dashStaminaCost` (custo,
+ * não máximo/regen): ver `resolveMovementCosts`.
  *
  * `individualValues` (opcional) — mesmo parâmetro de `resolveMaxHp`/
  * `resolveMaxStamina` acima, repassado adiante. `regenPercent`/
@@ -130,6 +134,34 @@ export function resolveMaxStamina(species, individualValues = null) {
  * lidos direto de `species.stats.hp`/`.energy`, sem passar por
  * `resolveCreatureStats`.
  */
+/**
+ * Custo de energia do movimento — corrida (por segundo), pulo e dash
+ * (docs/features/035-balanceamento-de-acoes-e-correcoes.md):
+ * - criatura com status de batalha (`kind: 'pokemon'` com `stats.energy`):
+ *   pelo NÍVEL, na mesma conta dos golpes (`resolveLevelCost`) com os pesos
+ *   de `GAME_CONFIG.ACTION_COST` — cresce junto com a barra;
+ * - o resto (treinador, espécies não migradas): números próprios em
+ *   `species.vitals` (o treinador não luta, não precisa da fórmula).
+ */
+export function resolveMovementCosts(species) {
+  if (species?.kind === 'pokemon' && species?.stats?.energy) {
+    const { RUN_WEIGHT_PER_SECOND, JUMP_WEIGHT, DASH_WEIGHT } =
+      GAME_CONFIG.ACTION_COST
+    const level = species.level ?? 1
+    return {
+      runStaminaDrainPerSecond: resolveLevelCost(level, RUN_WEIGHT_PER_SECOND),
+      jumpStaminaCost: resolveLevelCost(level, JUMP_WEIGHT),
+      dashStaminaCost: resolveLevelCost(level, DASH_WEIGHT),
+    }
+  }
+  const vitals = species?.vitals
+  return {
+    runStaminaDrainPerSecond: vitals?.runStaminaDrainPerSecond ?? 2,
+    jumpStaminaCost: vitals?.jumpStaminaCost ?? 10,
+    dashStaminaCost: vitals?.dashStaminaCost ?? 1,
+  }
+}
+
 export function vitalsFromSpecies(species, individualValues = null) {
   const vitals = species?.vitals
   const hpStat = species?.stats?.hp
@@ -149,8 +181,7 @@ export function vitalsFromSpecies(species, individualValues = null) {
       energyStat?.regenPercent ?? vitals?.staminaRegenPercent ?? 10,
     staminaRegenDelayAfterUse:
       energyStat?.regenDelay ?? vitals?.staminaRegenDelayAfterUse ?? 3,
-    runStaminaDrainPerSecond: vitals?.runStaminaDrainPerSecond ?? 2,
-    jumpStaminaCost: vitals?.jumpStaminaCost ?? 10,
+    ...resolveMovementCosts(species),
   })
 }
 

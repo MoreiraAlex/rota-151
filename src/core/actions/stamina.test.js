@@ -7,7 +7,6 @@ import {
 } from './stamina'
 
 const { MAX_MULTIPLIER, EXPONENT } = GAME_CONFIG.STAMINA_BY_HP
-const { STAMINA_COST } = GAME_CONFIG.PLAYER_ACTIONS.dash
 
 function vitals(stamina) {
   return {
@@ -61,8 +60,11 @@ describe('custo da corrida e do dash pela vida baixa', () => {
     expect(tentarCorrer(v, 0.5)).toBe(false)
   })
 
-  it('dash: STAMINA_COST × o multiplicador', () => {
-    expect(resolveDashCost(at(1))).toBe(STAMINA_COST)
-    expect(resolveDashCost(at(0))).toBe(STAMINA_COST * MAX_MULTIPLIER)
+  it('dash: o custo da entidade (Vitals.dashStaminaCost) × o multiplicador', () => {
+    const cost = 2.5
+    expect(resolveDashCost({ ...at(1), dashStaminaCost: cost })).toBe(cost)
+    expect(resolveDashCost({ ...at(0), dashStaminaCost: cost })).toBe(
+      cost * MAX_MULTIPLIER,
+    )
   })
 })

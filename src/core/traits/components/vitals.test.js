@@ -1,8 +1,14 @@
 import { describe, it, expect } from 'vitest'
+import { createWorld } from 'koota'
+import { getSpecies } from '../../data/species'
+import { resolveLevelCost } from '../../battle/levelCost'
+import { GAME_CONFIG } from '../../gameConfig'
 import {
+  Vitals,
   applyDamage,
   applyHeal,
   resolveMaxHp,
+  resolveMovementCosts,
   vitalsFromSpecies,
 } from './vitals'
 
@@ -104,5 +110,43 @@ describe('vitalsFromSpecies com individualValues', () => {
 
     expect(weak.maxHp).toBeLessThan(strong.maxHp)
     expect(weak.maxStamina).toBeLessThan(strong.maxStamina)
+  })
+})
+
+describe('resolveMovementCosts — custo de correr, pular e dar dash', () => {
+  it('criatura com status: pelo nível, na mesma conta dos golpes (035)', () => {
+    const charmander = getSpecies('charmander')
+    const { RUN_WEIGHT_PER_SECOND, JUMP_WEIGHT, DASH_WEIGHT } =
+      GAME_CONFIG.ACTION_COST
+    const costs = resolveMovementCosts(charmander)
+    expect(costs.runStaminaDrainPerSecond).toBeCloseTo(
+      resolveLevelCost(charmander.level, RUN_WEIGHT_PER_SECOND),
+    )
+    expect(costs.jumpStaminaCost).toBeCloseTo(
+      resolveLevelCost(charmander.level, JUMP_WEIGHT),
+    )
+    expect(costs.dashStaminaCost).toBeCloseTo(
+      resolveLevelCost(charmander.level, DASH_WEIGHT),
+    )
+    // Mais nível, mais caro (a barra cresce junto).
+    const higher = resolveMovementCosts({ ...charmander, level: 50 })
+    expect(higher.dashStaminaCost).toBeGreaterThan(costs.dashStaminaCost)
+  })
+
+  it('treinador: os números próprios dele (species.vitals)', () => {
+    const boy = getSpecies('boy')
+    expect(resolveMovementCosts(boy)).toEqual({
+      runStaminaDrainPerSecond: boy.vitals.runStaminaDrainPerSecond,
+      jumpStaminaCost: boy.vitals.jumpStaminaCost,
+      dashStaminaCost: boy.vitals.dashStaminaCost,
+    })
+  })
+
+  it('vitalsFromSpecies copia os custos pro Vitals', () => {
+    const world = createWorld()
+    const charmander = getSpecies('charmander')
+    const entity = world.spawn(vitalsFromSpecies(charmander))
+    expect(entity.get(Vitals)).toMatchObject(resolveMovementCosts(charmander))
+    world.destroy()
   })
 })

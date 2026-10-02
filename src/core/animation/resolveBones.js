@@ -3,7 +3,7 @@ const ANIMATABLE_PROPERTIES = ['rotation', 'position', 'scale']
 /**
  * Resolve todos os ossos de um THREE.Skeleton, indexados pelo próprio nome do
  * osso no rig — sem camada de mapeamento semântico. O clipe JSON referencia o
- * osso pelo nome real do modelo (ver clips/fox-walk.json).
+ * osso pelo nome real do modelo.
  *
  * Devolve nomeDoOsso → `{ bone, rest, restQuaternion }`. `rest` guarda uma
  * cópia de `rotation`/`position`/`scale` do osso no momento da resolução
@@ -13,7 +13,7 @@ const ANIMATABLE_PROPERTIES = ['rotation', 'position', 'scale']
  * cópia do `bone.quaternion` no mesmo instante — a composição de rotação
  * parte dele, não da tripla de Euler, porque somar escalar em Euler só bate
  * com "girar no eixo local do osso" quando o resto do osso já está na
- * identidade (verdade pro Fox, falso pra um rig como o do Mixamo, cuja coxa
+ * identidade (verdade pra um rig simples, falso pra um rig como o do Mixamo, cuja coxa
  * descansa a 180° em Z).
  */
 export function resolveBones(skeleton) {

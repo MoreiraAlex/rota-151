@@ -28,16 +28,16 @@ import {
   ScanHistory,
 } from '@/core/traits'
 
-// Fixado em 'fox' de propósito, não em PLAYER_SPECIES_ID — os testes usam
-// uma espécie estável que eu mantenho, independente de qual espécie está
-// configurada como jogador na build real (isso é o que quem estiver
-// testando um modelo novo vai estar mexendo o tempo todo). Isso só vale
-// pra movement/vitals do PRÓPRIO player de teste — config exclusiva de
-// treinador (`actions`/`party`, ver `core/data/species/bot/index.js`) é
-// sempre resolvida pela identidade fixa `PLAYER_SPECIES_ID` (`bot` de
-// verdade, via `getPlayerSpecies()`), não por este `PLAYER_SPECIES` local
-// — ver docs/features/018-troca-de-controle-treinador-criatura.md.
-const PLAYER_SPECIES = getSpecies('fox')
+// Fixado em 'boy' de propósito, não em PLAYER_SPECIES_ID — os testes usam
+// uma espécie estável, independente de qual espécie está configurada como
+// jogador na build real (isso é o que quem estiver testando um modelo novo
+// vai estar mexendo o tempo todo). Isso só vale pra movement/vitals do
+// PRÓPRIO player de teste — config exclusiva de treinador (`actions`/
+// `party`, ver `core/data/species/boy/index.js`) é sempre resolvida pela
+// identidade fixa `PLAYER_SPECIES_ID` (via `getPlayerSpecies()`), não por
+// este `PLAYER_SPECIES` local — ver docs/features/018-troca-de-controle-
+// treinador-criatura.md.
+const PLAYER_SPECIES = getSpecies('boy')
 
 const vitals = vitalsFromSpecies(PLAYER_SPECIES)
 

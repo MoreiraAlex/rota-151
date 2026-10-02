@@ -12,11 +12,13 @@
  * precisar tingir por cima como os outros grupos (`HIT_COLOR` neutro,
  * branco, deixa a cor original da textura aparecer).
  *
- * `range` (3) bem maior que as demais skills — Brasa é ataque à
+ * `range` bem maior que o das demais skills — Brasa é ataque à
  * DISTÂNCIA no jogo original (bafo de fogo), não corpo-a-corpo como
- * chicote/redemoinho. `staminaCost`/`cooldown` na mesma faixa das outras
- * skills novas — valores de PARTIDA, sem validação em jogo (sandbox sem
- * navegador nesta sessão).
+ * chicote/redemoinho.
+ *
+ * `staminaCost`/`cooldown` saem da fórmula (`core/battle/actionCost.js`,
+ * docs/features/035-balanceamento-de-acoes-e-correcoes.md) — escrever aqui só pra fugir
+ * dela.
  */
 export const FLAMETHROWER_SKILL = {
   id: 'flamethrower',
@@ -26,8 +28,6 @@ export const FLAMETHROWER_SKILL = {
   aim: 'ranged',
   castMode: 'instant',
   radius: 0.8,
-  staminaCost: 4,
-  cooldown: 2,
   // Canalizado: dano em toda a área do cone a cada `damageInterval` s,
   // do `effectAt` até o fim; segurar o botão até o fim, soltar cancela
   // (ver `core/battle/channelAttack.js`). Intervalo de partida — a definir.
@@ -53,7 +53,7 @@ export const FLAMETHROWER_SKILL = {
   animation: {
     clipKey: 'attackRangedAlt',
   },
-  // Especial, poder 40 — mesmo valor de "Ember" nos jogos originais.
+  // Especial, poder de referência: o de "Ember" nos jogos originais.
   // Ver comentário sobre `type: null` em `../tackle/index.js`.
   damage: { power: 90, category: 'special', type: null },
 }

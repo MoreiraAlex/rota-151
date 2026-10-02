@@ -23,6 +23,7 @@ export {
   vitalsFromSpecies,
   resolveMaxHp,
   resolveMaxStamina,
+  resolveMovementCosts,
 } from './components/vitals'
 export { IndividualValues } from './components/individualValues'
 export { PartyIndividualValues } from './components/partyIndividualValues'
@@ -54,6 +55,7 @@ export { WildCreature } from './components/wildCreature'
 export { WildBehavior, WantsToAttack, Threat } from './components/wildBehavior'
 export { PartyBehavior } from './components/partyBehavior'
 export { AiMovement } from './components/aiMovement'
+export { DashCooldown } from './components/dashCooldown'
 export { TrainerBehavior } from './components/trainerBehavior'
 export { resolveCreatureSpeciesId } from './resolveCreatureSpeciesId'
 export { PathState } from './components/pathfinding'

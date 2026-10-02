@@ -1,6 +1,7 @@
 import { GAME_CONFIG } from '../gameConfig'
 import { resolveMoveSpeed } from '../actions/movementSpeed'
 import { tentarCorrer } from '../actions/stamina'
+import { resolveResting } from '../battle/aiEnergy'
 import { lerpAngle } from '../math'
 import { findPath } from '../pathfinding'
 import { castRay } from '../physics/raycast'
@@ -84,6 +85,33 @@ import {
  * movimento muda com o pathfinding, o ritmo de aproximação continua igual
  * ao de antes.
  *
+ * ## Histerese da marcha (`resolveFollowGait`)
+ *
+ * Parada/anda/corre não é decidido do zero a cada tick: a marcha do tick
+ * anterior fica em `PathState.gait` e cada troca tem uma folga
+ * (`followResumeDistance`, entre `FOLLOW_MIN_DISTANCE` e `RUN_DISTANCE`).
+ * Sem ela era um controle liga/desliga em cima de um limiar só: com o
+ * treinador andando entre o `walkSpeed` e o `runSpeed` das iniciais, a
+ * criatura corria até cair abaixo de `RUN_DISTANCE`, passava a
+ * andar, ficava pra trás e voltava a correr — trocando quase todo tick. O
+ * mesmo em `FOLLOW_MIN_DISTANCE` sempre que o treinador se afasta mais
+ * devagar que o andar dela (andando de lado, em curva): para, ele se afasta
+ * um pouco, anda um tick, para. E no desvio parada (ver "Evasão entre
+ * personagens"): com outro chegando devagar, ela andava um tick, saía de
+ * `AVOIDANCE_RADIUS`, parava, ele entrava de novo — agora começa a se
+ * afastar só abaixo de `avoidanceStartRadius` e vai até sair de
+ * `AVOIDANCE_RADIUS` (`PathState.separating`). A animação (`animationStateSystem`, pela
+ * velocidade) e o passo (`footstepAudioSystem`, a cada volta pro walk/run)
+ * só refletiam isso. Agora: correndo, corre até alcançar
+ * `followResumeDistance`; parada, só sai acima dela.
+ *
+ * Correr gasta energia (`tentarCorrer`), e a energia só regenera sem gasto
+ * por `staminaRegenDelayAfterUse`: vazia, o primeiro pouco regenerado já
+ * pagava um tick de corrida e reiniciava o atraso — um tranco de corrida a
+ * cada atraso. Mesma regra de descanso da IA de luta (`resolveResting`,
+ * `PathState.resting`): sem correr até a energia voltar a
+ * `REST_EXIT_FRACTION`.
+ *
  * ## `Velocity` segue `Rotation`, não o contrário
  *
  * O destino muda com frequência — o alvo anda, o caminho recalcula
@@ -161,7 +189,9 @@ export function creatureFollowSystem(context) {
   const {
     followMinDistance: FOLLOW_MIN_DISTANCE,
     runDistance: RUN_DISTANCE,
+    followResumeDistance: FOLLOW_RESUME_DISTANCE,
     avoidanceRadius: AVOIDANCE_RADIUS,
+    avoidanceStartRadius: AVOIDANCE_START_RADIUS,
     avoidanceStrength: AVOIDANCE_STRENGTH,
   } = getPlayerSpecies().party
   const {
@@ -234,12 +264,14 @@ export function creatureFollowSystem(context) {
       // AVOIDANCE_RADIUS — soma um vetor por vizinho próximo, mais forte
       // quanto mais perto (0 na borda do raio, 1 encostado).
       let avoidX = 0
+      let nearest = Infinity
       let avoidZ = 0
       for (const other of others) {
         if (other.entity === entity) continue
         const ox = pos.x - other.pos.x
         const oz = pos.z - other.pos.z
         const oDist = Math.hypot(ox, oz)
+        if (oDist > 0) nearest = Math.min(nearest, oDist)
         if (oDist > 0 && oDist < AVOIDANCE_RADIUS) {
           const push = (AVOIDANCE_RADIUS - oDist) / AVOIDANCE_RADIUS
           avoidX += (ox / oDist) * push
@@ -248,9 +280,35 @@ export function creatureFollowSystem(context) {
       }
       const isCrowded = avoidX !== 0 || avoidZ !== 0
 
-      if (distance <= FOLLOW_MIN_DISTANCE && !isCrowded) {
+      // `PathState` de propósito NÃO está na query acima — é AoS (ver
+      // docstring do trait), e ler/escrever por `entity.get`/`entity.set`
+      // enquanto o mesmo trait também está listado na query ativa faz a
+      // escrita não persistir de verdade (bug real, achado rodando os
+      // testes desta função: `repathTimer` voltava pra `0` todo tick em
+      // vez de manter o valor setado). Mesmo padrão que `Inventory` já
+      // usa em `playerActionSystem.js` — AoS lido/escrito por fora da
+      // query.
+      const previous = entity.get(PathState)
+      const gait = resolveFollowGait(previous.gait, distance, {
+        stopDistance: FOLLOW_MIN_DISTANCE,
+        resumeDistance: FOLLOW_RESUME_DISTANCE,
+        runDistance: RUN_DISTANCE,
+      })
+
+      // Parada, só se afasta de quem está perto com histerese (ver
+      // "Histerese da marcha" na docstring): começa abaixo de
+      // `avoidanceStartRadius`, para fora de `avoidanceRadius`.
+      const separating =
+        gait === 'stop' &&
+        nearest <
+          (previous.separating ? AVOIDANCE_RADIUS : AVOIDANCE_START_RADIUS)
+
+      if (gait === 'stop' && !separating) {
         vel.x = 0
         vel.z = 0
+        if (previous.gait !== 'stop' || previous.separating) {
+          entity.set(PathState, { ...previous, gait, separating })
+        }
         return
       }
 
@@ -258,7 +316,7 @@ export function creatureFollowSystem(context) {
       let dirZ
       let speed
 
-      if (distance <= FOLLOW_MIN_DISTANCE) {
+      if (gait === 'stop') {
         // Perto o bastante do alvo pra "chegar", mas outro
         // personagem está perto demais — só desvia, sem perseguir mais o
         // alvo (já não precisa).
@@ -266,21 +324,21 @@ export function creatureFollowSystem(context) {
         dirZ = avoidZ
         speed = resolveMoveSpeed(stats, vitals, false)
         // Só desviando: não está navegando rumo a nada (ver `PathState.target`).
-        entity.set(PathState, { ...entity.get(PathState), target: null })
+        entity.set(PathState, {
+          ...previous,
+          gait,
+          separating,
+          target: null,
+        })
       } else {
         const isBlocked = entity.has(MovementBlocked)
 
-        // `PathState` de propósito NÃO está na query acima — é AoS (ver
-        // docstring do trait), e ler/escrever por `entity.get`/`entity.set`
-        // enquanto o mesmo trait também está listado na query ativa faz a
-        // escrita não persistir de verdade (bug real, achado rodando os
-        // testes desta função: `repathTimer` voltava pra `0` todo tick em
-        // vez de manter o valor setado). Mesmo padrão que `Inventory` já
-        // usa em `playerActionSystem.js` — AoS lido/escrito por fora da
-        // query.
-        const path = entity.get(PathState)
-        let { waypoints, waypointIndex, repathTimer, wasBlocked } = path
+        let { waypoints, waypointIndex, repathTimer, wasBlocked } = previous
         repathTimer -= delta
+        // Voltando a seguir depois de parada: o caminho guardado é de antes
+        // de parar (o alvo já andou) — recalcula já.
+        if (previous.gait === 'stop') repathTimer = 0
+        const resting = resolveResting(previous.resting, vitals)
 
         const blockedRisingEdge = isBlocked && !wasBlocked
         if (repathTimer <= 0 || blockedRisingEdge) {
@@ -311,6 +369,9 @@ export function creatureFollowSystem(context) {
           repathTimer,
           wasBlocked: isBlocked,
           target: { x: targetPos.x, z: targetPos.z },
+          gait,
+          resting,
+          separating,
         })
 
         const baseDirX = targetX - pos.x
@@ -351,11 +412,11 @@ export function creatureFollowSystem(context) {
         }
 
         // Longe: corre pra alcançar — pagando stamina, igual ao jogador
-        // (`tentarCorrer`); sem fôlego, anda.
+        // (`tentarCorrer`); sem fôlego ou descansando, anda.
         speed = resolveMoveSpeed(
           stats,
           vitals,
-          distance > RUN_DISTANCE && tentarCorrer(vitals, delta),
+          gait === 'run' && !resting && tentarCorrer(vitals, delta),
         )
       }
 
@@ -370,4 +431,24 @@ export function creatureFollowSystem(context) {
       vel.x = Math.sin(rot.y) * speed
       vel.z = Math.cos(rot.y) * speed
     })
+}
+
+/**
+ * Marcha do seguidor neste tick (`'stop'`/`'walk'`/`'run'`), com histerese
+ * pela marcha do tick anterior (`previous`) — ver "Histerese da marcha" na
+ * docstring de `creatureFollowSystem`. Até `stopDistance`, para; além de
+ * `runDistance`, corre; no meio, depende de onde vinha: parada continua
+ * parada até passar de `resumeDistance`, correndo continua correndo até
+ * chegar nela, andando continua andando.
+ */
+export function resolveFollowGait(
+  previous,
+  distance,
+  { stopDistance, resumeDistance, runDistance },
+) {
+  if (distance <= stopDistance) return 'stop'
+  if (distance > runDistance) return 'run'
+  if (previous === 'stop') return distance > resumeDistance ? 'walk' : 'stop'
+  if (previous === 'run') return distance > resumeDistance ? 'run' : 'walk'
+  return 'walk'
 }

@@ -36,7 +36,7 @@ export const FOOTSTEP_GROUPS = {
       '/assets/audio/footsteps/medium/run-04.ogg',
     ],
   },
-  // Passo leve, mais metálico/curto — criaturas pequenas (fox e variantes).
+  // Passo leve, mais metálico/curto — criaturas pequenas.
   light: {
     volume: 0.05,
     refDistance: 4,

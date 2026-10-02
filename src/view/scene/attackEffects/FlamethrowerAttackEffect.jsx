@@ -15,7 +15,7 @@ const DENSITY = 0.6
  * (efeito nasce no impacto, criatura em (0, 0, -`length`)); o jato escala
  * por `length` pra alcançar o alvo do golpe.
  *
- * Dura ~2.4 s — a skill precisa de `visual.effectVisualDuration` ≥ isso,
+ * Dura o tempo das camadas do VFX (`flamethrowerVfx.js`) — a skill precisa de `visual.effectVisualDuration` ≥ isso,
  * senão o efeito some no meio.
  */
 export function FlamethrowerAttackEffect({ radius, length = 0, scale = 1 }) {

@@ -13,8 +13,6 @@ export const PUNCH_SKILL = {
   aim: 'melee',
   castMode: 'instant',
   radius: 0.3,
-  staminaCost: 0.25,
-  cooldown: 2,
   visual: {
     effectGroup: 'punch',
     effectVisualDuration: 0.35,
@@ -40,9 +38,7 @@ export const PUNCH_SKILL = {
   animation: {
     clipKey: 'attack',
   },
-  // Físico, poder 40 — mesma faixa de um soco básico nos jogos originais
-  // (ex.: "Comet Punch"/"Fire Punch" ficam entre 18 e 75; 40 como valor
-  // neutro de partida pro ataque comum genérico). Ver comentário sobre
+  // Físico, na faixa de um soco básico dos jogos originais. Ver comentário sobre
   // `type: null` em `../tackle/index.js`.
   damage: { power: 5, category: 'physical', type: null },
 }

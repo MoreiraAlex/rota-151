@@ -47,15 +47,15 @@ function spawnWildCreature(world, position) {
   return world.spawn(
     Position(position),
     Rotation,
-    WildCreature({ speciesId: 'fox' }),
+    WildCreature({ speciesId: 'charmander' }),
     PhysicsBody({ bodyHandle, colliderHandle }),
   )
 }
 
 // `boy` (PLAYER_SPECIES_ID) — targetHeight real do treinador, mesma
 // altura de olho que `scannerModeSystem.js` resolve via
-// `getPlayerSpecies()` (não a espécie 'fox' que `makeWorld()` usa só
-// pra movement/vitals do player de teste).
+// `getPlayerSpecies()` (não a espécie que `makeWorld()` usa só pra
+// movement/vitals do player de teste).
 const TRAINER_EYE_HEIGHT = 2 + 1.2
 
 describe('scannerModeSystem', () => {
@@ -266,8 +266,8 @@ describe('scannerModeSystem — rastreio e confirmação de alvo', () => {
     tick({ secondaryHeld: true })
     tick({ secondaryHeld: true, primary: true })
 
-    expect(player.get(PokedexEntries).speciesIds).toEqual(['fox'])
-    expect(player.get(ScanHistory).entries[0].speciesId).toBe('fox')
+    expect(player.get(PokedexEntries).speciesIds).toEqual(['charmander'])
+    expect(player.get(ScanHistory).entries[0].speciesId).toBe('charmander')
   })
 
   it('clique esquerdo enquanto segura, SEM alvo travado, não confirma nada', async () => {

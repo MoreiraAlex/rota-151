@@ -20,15 +20,13 @@
  */
 export const WATER_GUN_SKILL = {
   id: 'water-gun',
-  // canal de até 2.5 s; o jato começa no fim do `attackRangedAltStart` (0.67 s)
+  // canal de até `duration`; o jato começa no fim do `attackRangedAltStart`
   duration: 2.5,
   effectAt: 0.6,
   range: 5,
   aim: 'ranged',
   castMode: 'instant',
   radius: 0.35,
-  staminaCost: 2,
-  cooldown: 1,
   damageMode: 'channel',
   damageInterval: 0.25,
   area: 'line',
@@ -37,7 +35,7 @@ export const WATER_GUN_SKILL = {
     effectVisualDuration: 0,
     channelGroup: 'water-jet',
     channelHitGroup: 'water-gun-hit',
-    // cobre a espuma (0.3 s de emissão + 0.55 s de vida)
+    // cobre a espuma (emissão + vida das partículas)
     channelHitVisualDuration: 0.9,
     scale: 1,
     revealDuration: 0,

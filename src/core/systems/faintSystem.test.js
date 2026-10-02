@@ -319,7 +319,7 @@ function recallUntilDone(world, player) {
 function setupParty() {
   const { world, player } = makeWorld()
   worlds.push(world)
-  player.set(Party, { slot1: 'fox-red' })
+  player.set(Party, { slot1: 'bulbasaur' })
   const creature = summonSlot1(world, player)
   return { world, player, creature }
 }
@@ -400,6 +400,8 @@ describe('faintSystem — criatura do time', () => {
 
   it('desmaiada não segue o treinador (fica largada no chão)', () => {
     const { world, creature } = setupParty()
+    // Sem a apresentação de quando nasce (`appeal` trava o movimento).
+    creature.set(ActionState, { current: null, elapsed: 0 })
     const pos = creature.get(Position)
     creature.set(Position, { x: pos.x + 20, y: pos.y, z: pos.z })
 

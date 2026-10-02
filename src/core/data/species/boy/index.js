@@ -97,11 +97,15 @@ export const BOY = {
     targetHeight: 1.2,
     shoulderOffset: 0,
   },
+  // Números próprios do treinador (não luta — fora da fórmula das criaturas,
+  // docs/features/035-balanceamento-de-acoes-e-correcoes.md), na barra dele:
   vitals: {
     // Stamina gasta por segundo enquanto realmente correndo.
-    runStaminaDrainPerSecond: 2,
+    runStaminaDrainPerSecond: 3.2,
     // Custo de stamina do pulo, descontado uma vez no disparo.
     jumpStaminaCost: 4,
+    // Custo do dash, descontado uma vez no disparo.
+    dashStaminaCost: 8,
   },
   // Exclusivo do treinador (`getPlayerSpecies()`, ver
   // core/data/species/index.js) — arremesso/consumo/invocar/recolher só
@@ -115,9 +119,9 @@ export const BOY = {
       // (mesma leitura de "ciclos/segundo" dos clipes de locomoção, mas
       // aqui vira "a ação inteira é 1 ciclo" — ver a skill
       // procedural-rig-animation, referências/animations/one-shot-
-      // actions.md). O clipe do boy tem `speed: 2.5` → 1/2.5 = 0.4s. Errar
-      // esse valor (maior que o real) faz o gesto reiniciar do início e
-      // ficar visivelmente "engasgado" antes de cortar pro idle — o motor
+      // actions.md): duração = 1 / `speed` do clipe. Errar esse valor
+      // (maior que o real) faz o gesto reiniciar do início e ficar
+      // visivelmente "engasgado" antes de cortar pro idle — o motor
       // não trava o clipe no fim (`loop: false` no JSON é só documentação,
       // não é lido em lugar nenhum), ele só repete o mesmo gesto fechado.
       duration: 0.3,
@@ -126,10 +130,7 @@ export const BOY = {
       // docs/features/014-arremessar-usar-e-invocar.md). Devia coincidir
       // com o frame em que a MÃO solta o objeto no clipe de animação —
       // isso não dá pra derivar só do `speed` (fica na forma da curva, não
-      // no número), então por enquanto é a mesma fração que já estava
-      // ajustada antes (0.45/0.5 = 90% da duração antiga), só reescalada
-      // pra duração certa (0.4 × 90% = 0.36) — ainda precisa de olho no
-      // jogo pra confirmar se bate com a soltura visual de verdade.
+      // no número) — ajustado de olho no jogo, pela soltura visual.
       effectAt: 0.2,
       // Origem do arremesso (de onde a trajetória sai e onde o projétil
       // nasce) — aproxima a posição da MÃO a partir de `Position`/
@@ -210,8 +211,7 @@ export const BOY = {
       //    `view/handBoneBySpecies.js`) ainda não foi resolvido: aproxima a
       //    posição da MÃO a partir de `Position`/`Rotation.y` do treinador,
       //    em vez de nascer no centro do corpo. Nesse papel, precisa exceder
-      //    `capsuleRadius`
-      //    (0.4, ver `body` acima) com folga pra não ficar afundado na
+      //    `capsuleRadius` (ver `body` acima) com folga pra não ficar afundado na
       //    cápsula — valores bem maiores que uma AJUSTE fino, ver item 2.
       // 2) AJUSTE FINO por cima do osso resolvido (`RecallBeamView.jsx`,
       //    `resolveHandOrigin(ORIGIN, rot.y, RECALL)` — zera a posição de
@@ -264,6 +264,14 @@ export const BOY = {
     // treinador. Entre `followMinDistance` e este valor, anda; abaixo de
     // `followMinDistance`, parada.
     runDistance: 6,
+    // Folga (histerese) entre as faixas acima — sem ela, a decisão
+    // parada/anda/corre virava a cada tick em cima de um limiar só (com o
+    // treinador andando entre o andar e o correr da criatura, ela fica no
+    // limite e alterna). Parada, só volta a andar acima desta
+    // distância; correndo, só volta a andar abaixo dela. Entre
+    // `followMinDistance` e `runDistance`. Ver `resolveFollowGait`
+    // (`creatureFollowSystem.js`).
+    followResumeDistance: 5,
     // Distância (m) abaixo da qual outro personagem (treinador ou outra
     // criatura) conta como "muito perto" — soma repulsão na direção de
     // movimento pra desviar ANTES de esbarrar de verdade (personagens
@@ -271,6 +279,12 @@ export const BOY = {
     // isso aqui evita precisar chegar nesse ponto). Maior que a soma dos
     // raios de duas cápsulas típicas.
     avoidanceRadius: 2.5,
+    // Histerese do desvio PARADA (mesmo motivo de `followResumeDistance`):
+    // parada, só começa a se afastar com alguém mais perto que isto, e
+    // continua até ninguém estar dentro de `avoidanceRadius`. Sem a folga,
+    // com outro chegando devagar ela andava um tick, saía do raio, parava,
+    // ele entrava de novo — mini-passos. Menor que `avoidanceRadius`.
+    avoidanceStartRadius: 2,
     // Peso da repulsão de `avoidanceRadius` em relação à direção principal
     // (waypoint/treinador, sempre vetor unitário) — cada vizinho próximo
     // soma até este tanto na direção final antes de normalizar.
@@ -284,7 +298,7 @@ export const BOY = {
   sounds: {
     footstepGroup: 'medium',
     // Sem `voice` ainda — mecanismo pronto (ver core/data/audio/
-    // voiceSound.js/fox/index.js pro formato de verdade em uso), só
+    // voiceSound.js e as iniciais pro formato de verdade em uso), só
     // falta um arquivo de vocalização do treinador. Sem este campo, o
     // treinador simplesmente não vocaliza (fallback gracioso).
     // Mesmo princípio de grupo de `footstepGroup` acima, ver

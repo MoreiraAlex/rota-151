@@ -9,14 +9,14 @@ import { CLOUD_FUN, CLOUD_TINT, LINGER_TINT, clamp } from './fireParticleKit'
  * e mesma convenção de eixos de `emberVfx.js` (+Z = direção do golpe, o Z
  * do Bedrock foi invertido na tradução).
  *
- * Linha do tempo (segundos desde o golpe nascer — o `effectAt`, o MESMO
+ * Camadas, na ordem em que nascem a partir do golpe (o `effectAt`, o MESMO
  * instante do dano):
  *
- *   0.00  `actor`    — jato contínuo saindo da boca (1 s)
- *   0.00  `target`   — fogo se espalhando no alvo (0.95 s)
- *   0.00  `burst`    — estouro no alvo (0.15 s)
- *   0.30  `cinders`  — brasinhas subindo do alvo (0.95 s)
- *   0.90  `burst2`   — segundo estouro no alvo (0.15 s)
+ *   - `actor`    — jato contínuo saindo da boca
+ *   - `target`   — fogo se espalhando no alvo
+ *   - `burst`    — estouro no alvo
+ *   - `cinders`  — brasinhas subindo do alvo
+ *   - `burst2`   — segundo estouro no alvo
  *
  * **O golpe é instantâneo**: o dano acontece no `effectAt`, então o fogo e o
  * estouro do alvo também começam nele — no Cobblemon começam 0.25 s depois,

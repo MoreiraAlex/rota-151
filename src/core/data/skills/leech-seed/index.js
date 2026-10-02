@@ -5,14 +5,13 @@
  * docs/features/033-skills-de-combate-e-vfx.md (Parte 9) e
  * `../_template/index.js` pro que cada campo significa.
  *
- * Decisões do usuário no lançamento (os números foram rebalanceados depois):
- * 1/8 do HP a cada 2 s (a regra do Pokémon, com 2 s no
- * lugar do turno); tempo fixo renovável; cura do mesmo valor; orbes do alvo
+ * Decisões do usuário no lançamento: uma fração do HP a cada intervalo (a
+ * regra do Pokémon, com tempo no lugar do turno); tempo fixo renovável; cura do mesmo valor; orbes do alvo
  * até quem plantou a cada drenagem. As espécies ainda não têm tipo, então
  * a imunidade das plantas não existe aqui.
  *
  * Alvo único (o primeiro corpo na trajetória, como o básico), com o sorteio de
- * precisão (90%, como no Pokémon) e interrompível na carga (golpe de status).
+ * precisão (`accuracy`) e interrompível na carga (golpe de status).
  * O efeito (`effects`, tipo `leechSeed`) é aplicado no `effectAt` por
  * `plantarSemente`; quem drena é o `leechSeedSystem`.
  *
@@ -26,8 +25,6 @@ export const LEECH_SEED_SKILL = {
   aim: 'ranged',
   castMode: 'instant',
   radius: 0.4,
-  staminaCost: 3,
-  cooldown: 1,
   accuracy: 90,
   damage: null,
   effects: [{ type: 'leechSeed', fraction: 1 / 16, interval: 2, duration: 6 }],

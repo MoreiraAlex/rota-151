@@ -19,8 +19,11 @@
  *
  * `range`/`radius` — área mais ampla que as outras skills (o redemoinho
  * é uma ÁREA que prende o alvo, não um golpe pontual/de alcance como
- * chicote/brasa). `staminaCost`/`cooldown` na mesma faixa. Valores de
- * PARTIDA, sem validação em jogo (sandbox sem navegador nesta sessão).
+ * chicote/brasa).
+ *
+ * `staminaCost`/`cooldown` saem da fórmula (`core/battle/actionCost.js`,
+ * docs/features/035-balanceamento-de-acoes-e-correcoes.md) — escrever aqui só pra fugir
+ * dela.
  */
 export const WHIRLPOOL_SKILL = {
   id: 'whirlpool',
@@ -30,8 +33,6 @@ export const WHIRLPOOL_SKILL = {
   aim: 'ranged',
   castMode: 'instant',
   radius: 0.5,
-  staminaCost: 4,
-  cooldown: 2,
   visual: {
     effectGroup: 'whirlpool',
     effectVisualDuration: 0.45,
@@ -52,7 +53,6 @@ export const WHIRLPOOL_SKILL = {
   animation: {
     clipKey: 'attack',
   },
-  // Especial, poder 35 — mesmo valor clássico de "Whirlpool" nos jogos
-  // originais. Ver comentário sobre `type: null` em `../tackle/index.js`.
+  // Especial, poder de referência: o de "Whirlpool" nos jogos originais. Ver comentário sobre `type: null` em `../tackle/index.js`.
   damage: { power: 35, category: 'special', type: null },
 }

@@ -17,7 +17,6 @@ import { trait } from 'koota'
  *   (`AI_MOVEMENT.DODGE_CHANCE`); sem golpe vindo, volta a `null`.
  * - `strafeSign` / `strafeTimer`: sentido em que rodeia o alvo (1 ou -1) e
  *   quanto falta pra trocar.
- * - `dashTimer` (s): quanto falta pra poder dar outro dash.
  *
  * Dono de escrita: `core/battle/aiMovement.js`.
  */
@@ -27,5 +26,4 @@ export const AiMovement = trait({
   dodgeReact: false,
   strafeSign: 1,
   strafeTimer: 0,
-  dashTimer: 0,
 })

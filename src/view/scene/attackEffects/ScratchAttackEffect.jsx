@@ -14,7 +14,8 @@ import { useParticleAttackEffect } from './useParticleAttackEffect'
  * raio, até 1 m); `scale` (`attack.visual.scale`) multiplica o tamanho de
  * tudo. `revealDuration` e `length` não se aplicam.
  *
- * Dura ~0.55 s — o `effectVisualDuration` do ataque precisa ser ≥ isso,
+ * Dura o tempo das camadas do VFX (`scratchVfx.js`) — o
+ * `effectVisualDuration` do ataque precisa ser ≥ isso,
  * senão as faíscas somem no meio.
  */
 export function ScratchAttackEffect({ radius, scale = 1 }) {

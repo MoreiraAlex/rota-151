@@ -21,7 +21,7 @@ const HAND_BONE_NAME = HAND_BONE_BY_SPECIES[PLAYER_SPECIES_ID]
 // ver uso no `useFrame`, abaixo.
 const ORIGIN = { x: 0, y: 0, z: 0 }
 
-// Mesmo valor de `actions.recall.beamDuration` (core/data/species/bot/
+// Mesmo valor de `actions.recall.beamDuration` (core/data/species/boy/
 // index.js) — ver docstring de `SummonFlashView.jsx` pro porquê da
 // animação de fade não ler o `lifetime` do trait a cada frame.
 const BEAM_DURATION = 0.35
@@ -52,7 +52,7 @@ const DEFAULT_ENVELOPE_RADIUS = 0.4
 const ENVELOPE_DETAIL = 1
 // Fração do raio que cada vértice pode desviar pra dentro/fora — mesmo
 // papel de `beamJitter` no raio, só que aqui é uma constante local (não
-// exposta em `bot/index.js`): é um efeito genérico da VIEW, não algo que
+// exposta em `boy/index.js`): é um efeito genérico da VIEW, não algo que
 // o usuário pediu pra parametrizar por espécie.
 const ENVELOPE_JITTER = 0.35
 
@@ -142,7 +142,7 @@ function buildEnvelopeGeometry(radius, seed) {
  * segmento, não metros absolutos — o mesmo valor então parece
  * proporcional em recalls curtos e longos) e `thickness` (raio do tubo,
  * em metros) vêm de `actions.recall.beamJitter`/`beamThickness`
- * (`bot/index.js`), parametrizáveis pelo usuário.
+ * (`boy/index.js`), parametrizáveis pelo usuário.
  *
  * As pontas (`from`/`to`) nunca são deslocadas — o raio sempre começa
  * exatamente na mão do treinador e termina exatamente na criatura, só o
@@ -205,7 +205,7 @@ function buildLightningGeometry(from, to, jitter, thickness) {
  * `(0,0,0)`), MAIS uma esfera parada bem na ponta "mão" — pedido
  * explícito do usuário: a esfera de invocar (mesmo visual de
  * `SummonBallView.jsx`, `SUMMON_BALL_RADIUS`/`SUMMON_BALL_COLOR`
- * reaproveitados) deve "aparecer na mão do bot" durante o recall, não só
+ * reaproveitados) deve "aparecer na mão do treinador" durante o recall, não só
  * o feixe sozinho — como se fosse ELA puxando a criatura de volta pra
  * dentro.
  *
@@ -227,7 +227,7 @@ function buildLightningGeometry(from, to, jitter, thickness) {
  * `useFrame`, abaixo).
  *
  * `actions.recall.handForwardOffset`/`handSideOffset`/`handHeightOffset`
- * (`bot/index.js`) têm papel DUPLO, dependendo de qual dos dois caminhos
+ * (`boy/index.js`) têm papel DUPLO, dependendo de qual dos dois caminhos
  * acima está ativo: no FALLBACK, são a posição inteira (via
  * `resolveHandOrigin(pos, rot.y, RECALL)` em `applyRecall`); com o osso
  * resolvido, viram um AJUSTE FINO somado em cima da posição real da mão
@@ -264,7 +264,7 @@ function buildLightningGeometry(from, to, jitter, thickness) {
  * declarativo) — trocada a cada refresh, disposta a cada troca e no
  * desmonte, pra não vazar memória de GPU a cada regeneração. A esfera
  * NÃO é filha do osso (`bone.add()`, como o item na mão) — ficaria presa
- * na escala minúscula do rig (~0.015, ver `heldItemViewSystem.js`) e
+ * na escala minúscula do rig (ver `heldItemViewSystem.js`) e
  * precisaria da mesma correção de escala; em vez disso, lê a posição
  * MUNDIAL do osso todo frame e converte pro espaço local do grupo (que
  * já vive em escala de mundo normal, via `syncTransformSystem`) — mais

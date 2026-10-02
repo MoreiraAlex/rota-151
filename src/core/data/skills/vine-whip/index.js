@@ -16,17 +16,16 @@
  * choque (`hit-cut-shockwave`) acompanha, mesma dupla flash+onda de
  * `'punch'`.
  *
- * `range` (2.2) maior que o `'punch'`/`'tackle'` base (1.4) — reflete o
+ * `range` maior que o do `'punch'`/`'tackle'` base — reflete o
  * alcance de CHICOTE que o usuário já pediu desde a 2ª rodada ("se eu
  * determinar um range alto, simulando que vai ser o chicote de uma
  * criatura"); esta é a primeira skill que usa isso de verdade (o
  * `resolveAttackImpactPoint` já respeita obstáculo no caminho, mesmo
  * mecanismo do ataque comum, sem código novo).
  *
- * `staminaCost`/`cooldown` mais altos que o ataque comum (2/0) — skill de
- * verdade, não o soco/arranhão básico e spammable. Valores de PARTIDA,
- * sem validação em jogo (sandbox sem navegador nesta sessão) — ajustar
- * depois olhando o resultado real.
+ * `staminaCost`/`cooldown` saem da fórmula (`core/battle/actionCost.js`,
+ * docs/features/035-balanceamento-de-acoes-e-correcoes.md) — escrever aqui só pra fugir
+ * dela.
  */
 export const VINE_WHIP_SKILL = {
   id: 'vine-whip',
@@ -36,8 +35,6 @@ export const VINE_WHIP_SKILL = {
   aim: 'melee',
   castMode: 'instant',
   radius: 0.35,
-  staminaCost: 0.25,
-  cooldown: 2,
   visual: {
     effectGroup: 'impact',
     impactType: 'grass',

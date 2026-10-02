@@ -8,6 +8,7 @@ import { getSpecies, getPlayerSpecies } from '@/core/data/species'
 import { verticalClearance } from '@/core/physics/colliders'
 import { clamp } from '@/core/math/clamp'
 import { GAME_CONFIG } from '@/core/gameConfig'
+import { resolveRenderPosition } from '@/view/registry/renderInterpolation'
 import {
   InputControlled,
   Position,
@@ -25,6 +26,7 @@ import {
 // `core/physics/colliders.js`) — sem isso a etiqueta ficaria colada
 // exatamente no topo da cabeça, meio "enterrada" visualmente.
 const HEAD_MARGIN = 0.8
+const renderPos = {}
 
 // Escala (CSS `transform: scale(...)`) do TAMANHO BASE, EM TELA, da
 // etiqueta — pedido do usuário, "6ª rodada": "quero deixar um tamanho
@@ -120,7 +122,7 @@ function resolveEntitySpecies(entity) {
  * calculada TODO FRAME dentro do MESMO `useFrame` que já atualiza a
  * posição do `<group>` (sem assinatura extra no R3F), mapeada pro
  * intervalo de zoom de verdade do jogo (`GAME_CONFIG.CAMERA.
- * MIN_DISTANCE`/`MAX_DISTANCE`, `2.5`–`25`) via `clamp` + interpolação
+ * MIN_DISTANCE`/`MAX_DISTANCE`) via `clamp` + interpolação
  * linear, e escrita DIRETO no `style.transform` do elemento (via
  * `contentRef`, mutação de DOM, não `useState`) — mesmo motivo de
  * performance que `group.position.set(...)` já usa aqui embaixo: mudar
@@ -158,7 +160,9 @@ function NameplateView({ entity, species }) {
 
   useFrame((state) => {
     const group = groupRef.current
-    const pos = entity.get(Position)
+    // Interpolada, igual ao modelo (`syncTransformSystem`) — com Position
+    // crua a plaquinha andava em degraus contra a câmera já suave.
+    const pos = resolveRenderPosition(entity, renderPos)
     if (!group || !pos) return
     group.position.set(pos.x, pos.y, pos.z)
 

@@ -10,9 +10,9 @@ import { IMPACT_TYPES, resolveImpactType } from '@/core/data/impactTypes'
  * de `ctx`/`rnd` de `emberVfx.js`; tudo nasce no ponto de impacto, no
  * instante em que o efeito nasce:
  *
- *   0.00  `hit`     — clarão de 1 m (`hit.png`); dragão e veneno têm o seu,
+ *   - `hit`     — clarão (`hit.png`); dragão e veneno têm o seu,
  *                     colorido e mais longo (`hit_dragon`, `hit_poison`)
- *   0.00  `impact`  — rajada de faíscas do tipo (10 a 20, ver `TYPES`)
+ *   - `impact`  — rajada de faíscas do tipo (ver `TYPES`)
  *
  * As texturas são empilhadas na VERTICAL (quadro 0 = o de cima, 7 quadros
  * por faísca). O `impact_steel.png` tem 2 colunas e usa só a da direita.

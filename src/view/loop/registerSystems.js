@@ -6,6 +6,7 @@ import { cameraControlSystem } from '@/core/systems/cameraControlSystem'
 import { vitalsRegenSystem } from '@/core/systems/vitalsRegenSystem'
 import { movementSystem } from '@/core/systems/movementSystem'
 import { playerActionSystem } from '@/core/systems/playerActionSystem'
+import { dashCooldownSystem } from '@/core/systems/dashCooldownSystem'
 import { scannerModeSystem } from '@/core/systems/scannerModeSystem'
 import { creatureAttackSystem } from '@/core/systems/creatureAttackSystem'
 import { combatModeSystem } from '@/core/systems/combatModeSystem'
@@ -160,6 +161,7 @@ export function registerGameSystems() {
   registerSystem(GAME_PHASES.SIMULATION, cameraControlSystem)
   registerSystem(GAME_PHASES.SIMULATION, vitalsRegenSystem)
   registerSystem(GAME_PHASES.SIMULATION, movementSystem)
+  registerSystem(GAME_PHASES.SIMULATION, dashCooldownSystem)
   registerSystem(GAME_PHASES.SIMULATION, playerActionSystem)
   registerSystem(GAME_PHASES.SIMULATION, scannerModeSystem)
   registerSystem(GAME_PHASES.SIMULATION, creatureAttackSystem)

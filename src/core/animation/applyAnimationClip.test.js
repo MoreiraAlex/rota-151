@@ -6,7 +6,6 @@ import {
   resolveClipSpeed,
 } from './applyAnimationClip'
 import { quaternionFromAxisAngle, multiplyQuaternions } from '@/core/math'
-import FOX_WALK_CLIP from '@/core/data/species/fox/clips/walk.json'
 
 const IDENTITY = { x: 0, y: 0, z: 0, w: 1 }
 
@@ -233,104 +232,6 @@ describe('capturePose / applyBlendedAnimationClip — crossfade', () => {
     expectQuaternionCloseTo(bones.leg.bone.quaternion, IDENTITY)
   })
 })
-
-describe('applyAnimationClip — clipe real (fox-walk.json)', () => {
-  // Ossos usados pelo próprio clipe, com nomes reais do rig do Fox — deriva
-  // do arquivo em vez de listar à mão, então continua válido se o clipe
-  // ganhar/perder ossos.
-  const BONE = {
-    frontRight: 'b_RightUpperArm_06',
-    frontLeft: 'b_LeftUpperArm_09',
-    backLeft: 'b_LeftLeg01_015',
-    frontRightLower: 'b_RightForeArm_07',
-    hip: 'b_Hip_01',
-    tail: 'b_Tail01_012',
-    tail2: 'b_Tail02_013',
-  }
-
-  function makeFoxBones() {
-    return Object.fromEntries(
-      Object.keys(FOX_WALK_CLIP.bones).map((boneName) => [
-        boneName,
-        makeEntry(), // rest identidade — o rig do Fox é assim de verdade
-      ]),
-    )
-  }
-
-  it('pernas diagonais (frontRight/backLeft) ficam sempre na mesma fase', () => {
-    // "Mesma fase" aqui é por phaseTurns, não pelo sinal bruto do ângulo: o
-    // osso de braço (frontRight) e o de perna (backLeft) têm convenções de
-    // eixo local opostas no rig do Fox, então a amplitude de um é o negativo
-    // do outro por convenção — visualmente sincronizados, numericamente
-    // espelhados. Todos os ossos deste describe só têm curva em Z e
-    // descansam na identidade, então `signedZAngle` reproduz exatamente o
-    // antigo `bone.rotation.z` (sem a ambiguidade de sinal do módulo).
-    const bones = makeFoxBones()
-    for (let t = 0; t < 2; t += 0.05) {
-      applyAnimationClip(FOX_WALK_CLIP, bones, t, 1)
-      expect(
-        Math.abs(signedZAngle(bones[BONE.frontRight].bone.quaternion)),
-      ).toBeCloseTo(
-        Math.abs(signedZAngle(bones[BONE.backLeft].bone.quaternion)),
-      )
-    }
-  })
-
-  it('os dois pares diagonais estão defasados em meio ciclo', () => {
-    const bones = makeFoxBones()
-    applyAnimationClip(FOX_WALK_CLIP, bones, 0.1, 1)
-    expect(signedZAngle(bones[BONE.frontRight].bone.quaternion)).toBeCloseTo(
-      -signedZAngle(bones[BONE.frontLeft].bone.quaternion),
-    )
-  })
-
-  it('o membro inferior nunca dobra além do limite do clipe', () => {
-    const bones = makeFoxBones()
-    const { max } = FOX_WALK_CLIP.bones[BONE.frontRightLower].rotation.z
-    for (let t = 0; t < 2; t += 0.05) {
-      applyAnimationClip(FOX_WALK_CLIP, bones, t, 1)
-      const angle = signedZAngle(bones[BONE.frontRightLower].bone.quaternion)
-      expect(angle).toBeLessThanOrEqual(max + 1e-9)
-    }
-  })
-
-  it('o quadril também sobe/desce em position, não só gira', () => {
-    const bones = makeFoxBones()
-    const { amplitude } = FOX_WALK_CLIP.bones[BONE.hip].position.y
-    for (let t = 0; t < 2; t += 0.05) {
-      applyAnimationClip(FOX_WALK_CLIP, bones, t, 1)
-      expect(bones[BONE.hip].bone.position.y).toBeGreaterThanOrEqual(-1e-9)
-      expect(bones[BONE.hip].bone.position.y).toBeLessThanOrEqual(
-        amplitude + 1e-9,
-      )
-    }
-  })
-
-  it('os segmentos do rabo repetem o valor um do outro, com atraso', () => {
-    const bones = makeFoxBones()
-    const lag = FOX_WALK_CLIP.bones[BONE.tail2].rotation.y.timeOffset
-
-    applyAnimationClip(FOX_WALK_CLIP, bones, 0.4, 1)
-    const tailNow = signedYAngle(bones[BONE.tail].bone.quaternion)
-
-    applyAnimationClip(FOX_WALK_CLIP, bones, 0.4 + lag, 1)
-    const tail2Later = signedYAngle(bones[BONE.tail2].bone.quaternion)
-
-    expect(tail2Later).toBeCloseTo(tailNow)
-  })
-})
-
-// Só valem pra uma rotação pura no eixo em questão (rest identidade, curva
-// só naquele eixo) — é o caso de todo osso deste describe. Reproduzem
-// exatamente o antigo `bone.rotation.<eixo>` sem reintroduzir Euler no
-// motor: 2*atan2(componente, w) extrai o ângulo assinado de volta.
-function signedZAngle(q) {
-  return 2 * Math.atan2(q.z, q.w)
-}
-
-function signedYAngle(q) {
-  return 2 * Math.atan2(q.y, q.w)
-}
 
 describe('applyAnimationClip — clipe de keyframes gravados', () => {
   // Rotação: identidade → 180° em Z, em 3 frames (0, meio, fim) — fácil de

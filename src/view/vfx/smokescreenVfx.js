@@ -51,7 +51,7 @@ const smokeBase = {
 }
 
 // Abertura do cone visível da nuvem: metade da largura por metro de distância
-// da boca (o `radius / range` do Growl/Smokescreen, 1.5 / 3 → 0.5).
+// da boca (o `radius / range` do Growl/Smokescreen — ajuste junto deles).
 const CONE_SPREAD = 0.5
 
 export const SMOKESCREEN_EMITTERS = [

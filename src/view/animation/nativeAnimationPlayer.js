@@ -47,6 +47,14 @@ const clipsWithoutRootMotion = new WeakMap()
  * 'fallLoop', blend: 0.1 }` deixa jump → fall mais seco. Sem ele, vale o
  * global `GAME_CONFIG.ANIMATION.BLEND_DURATION` (ver `nativeStateBlend`).
  *
+ * `speed` (multiplicador, opcional, em qualquer forma objeto; padrão 1):
+ * velocidade do clipe gravado onde o tempo não vem de uma ação — estado
+ * cíclico (ex.: `walk: { animation: 'walk', speed: 1.3 }`), o `loop` de
+ * qualquer sequência, `start`/`end` fora de ação (faint) e a lista
+ * `sequence` fora de ação. Numa ação, clipe único, `start`/`end` e
+ * `sequence` continuam esticados pela `duration` (a duração manda; ver
+ * `resolveTimeScale`). Os passos (`nativeCyclePhase`) acompanham sozinhos.
+ *
  * `blinkConfig` (`species.nativeBlink`, opcional) liga o piscar por
  * animação — camada por cima do corpo, ver `nativeBlink.js`. `random` é
  * só o sorteio cosmético do intervalo de piscar.
@@ -144,6 +152,7 @@ export function enterNativeState(
       player,
       spec.sequence,
       oneShot ? duration : null,
+      spec.speed ?? 1,
     )
     playPhase(player, sequencePhase(0), fade)
     return
@@ -211,10 +220,10 @@ function advanceSequence(player) {
  * Plano de uma lista `sequence`: só os clipes que existem no `.glb`, cada
  * um tocado uma vez. Com `duration` (ação), `scale` comprime/estica a
  * lista INTEIRA na mesma proporção pra somar exatamente `duration`; sem,
- * velocidade original. `boundaries[i]` = instante (tempo real, desde a
+ * na velocidade `speed` do estado. `boundaries[i]` = instante (tempo real, desde a
  * entrada no estado) em que o clipe `i` termina.
  */
-function resolveSequencePlan(player, sequence, duration) {
+function resolveSequencePlan(player, sequence, duration, speed) {
   const items = sequence
     .map(sequenceItem)
     .map(({ animation, frames }) => {
@@ -226,7 +235,7 @@ function resolveSequencePlan(player, sequence, duration) {
     })
     .filter(Boolean)
   const total = items.reduce((sum, item) => sum + item.length, 0)
-  const scale = duration > 0 && total > 0 ? total / duration : 1
+  const scale = duration > 0 && total > 0 ? total / duration : speed
 
   let elapsed = 0
   const boundaries = items.map((item) => {
@@ -372,8 +381,15 @@ function resolveSpec(player, stateId) {
   if (!value) return null
   if (typeof value === 'string') return { main: value }
   if (Array.isArray(value)) return { sequence: value }
-  if (value.animation) return { main: value.animation, blend: value.blend }
+  if (value.animation) {
+    return { main: value.animation, blend: value.blend, speed: value.speed }
+  }
   return value
+}
+
+/** `speed` declarado pro estado (ver docstring do player), padrão 1. */
+function resolveSpecSpeed(player) {
+  return resolveSpec(player, player.stateId)?.speed ?? 1
 }
 
 function firstPhase(spec) {
@@ -469,8 +485,10 @@ function resolveTimeScale(player, animationSpeed, direction) {
     const playedLength = player.endTime ?? player.action.getClip().duration
     return animationSpeed * playedLength
   }
-  if (isRepeatingPhase(player, player.phase)) return direction
-  return player.schedule?.scale ?? 1
+  if (isRepeatingPhase(player, player.phase)) {
+    return direction * resolveSpecSpeed(player)
+  }
+  return player.schedule?.scale ?? resolveSpecSpeed(player)
 }
 
 function hasFinished(action) {

@@ -9,14 +9,14 @@ import { CLOUD_FUN, CLOUD_TINT, LINGER_TINT, clamp } from './fireParticleKit'
  * só que as expressões Molang viraram funções JS (ver
  * `particleSimulation.js` pra o contrato de `ctx`/`rnd`).
  *
- * Linha do tempo (segundos desde o golpe nascer — o `effectAt`, o MESMO
+ * Camadas, na ordem em que nascem a partir do golpe (o `effectAt`, o MESMO
  * instante do dano):
  *
- *   0.00  `actor`   — nuvem de fogo saindo da boca (0.1 s)
- *   0.00  `stream`  — brasas ao longo de TODO o trajeto, de uma vez
- *   0.00  `sparks`  — faíscas ao longo de TODO o trajeto, de uma vez
- *   0.00  `burst`   — estouro de fogo no alvo (0.05 s)
- *   0.10  `linger`  — brasas que ficam subindo do alvo (0.5 s)
+ *   - `actor`   — nuvem de fogo saindo da boca
+ *   - `stream`  — brasas ao longo de TODO o trajeto, de uma vez
+ *   - `sparks`  — faíscas ao longo de TODO o trajeto, de uma vez
+ *   - `burst`   — estouro de fogo no alvo
+ *   - `linger`  — brasas que ficam subindo do alvo
  *
  * **O golpe é instantâneo**: o dano acontece no `effectAt`, então o visual
  * também chega no impacto no mesmo instante — sem viajar. No Cobblemon as

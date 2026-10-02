@@ -36,7 +36,8 @@ import { characterPhysicsSystem } from './characterPhysicsSystem'
 import { physicsStepSystem } from './physicsStepSystem'
 import { syncPhysicsSystem } from './syncPhysicsSystem'
 
-const FOX = getSpecies('fox')
+const PLAYER = getSpecies('boy')
+const CREATURE = getSpecies('charmander')
 
 /** Extensão vertical da cápsula acima do chão em repouso — raio+meia-altura
  * em pé ('y'), só o raio deitada ('x'/'z', onde a meia-altura vira extensão
@@ -46,7 +47,7 @@ function restingHeightFor({ capsuleRadius, capsuleHalfHeight, capsuleAxis }) {
 }
 
 /** Como makeWorld, mas com um CharacterController customizado — pra testar
- * corpos com capsuleAxis diferente do Fox sem mudar o helper compartilhado. */
+ * corpos com capsuleAxis diferente do player sem mudar o helper compartilhado. */
 function makeWorldWithBody(body, playerPosition = { x: 0, y: 3, z: 0 }) {
   const world = createWorld()
   const player = world.spawn(
@@ -55,7 +56,7 @@ function makeWorldWithBody(body, playerPosition = { x: 0, y: 3, z: 0 }) {
     Velocity,
     InputState,
     InputControlled,
-    MovementStats(FOX.movement),
+    MovementStats(PLAYER.movement),
     Vitals,
     CameraTarget,
     PhysicsBody,
@@ -98,7 +99,7 @@ describe('characterPhysicsSystem + integração Rapier', () => {
     // Repouso ≈ extensão vertical da cápsula acima do chão — deriva da
     // espécie (corpo e orientação) em vez de literal fixo, pra não quebrar
     // sempre que o corpo for redimensionado/reorientado.
-    const restingHeight = restingHeightFor(FOX.body)
+    const restingHeight = restingHeightFor(PLAYER.body)
     expect(pos.y).toBeGreaterThan(restingHeight - 0.05)
     expect(pos.y).toBeLessThan(restingHeight + 0.3)
     expect(player.has(Grounded)).toBe(true)
@@ -106,7 +107,7 @@ describe('characterPhysicsSystem + integração Rapier', () => {
 
   it('cápsula deitada (capsuleAxis x) repousa numa altura diferente — só o raio, não raio+meia-altura', () => {
     const body = {
-      ...FOX.body,
+      ...PLAYER.body,
       capsuleRadius: 0.5,
       capsuleHalfHeight: 0.4, // bem alongada, pra diferença ficar clara
       capsuleAxis: 'x',
@@ -164,14 +165,16 @@ describe('characterPhysicsSystem + integração Rapier', () => {
 
   it('sobe a rampa andando em +x', () => {
     const { world, player } = makeWorld({
-      playerPosition: { x: 0, y: 1, z: 0 },
+      playerPosition: { x: 0, y: 2, z: 0 },
     })
-    run(world, 6)
+    // Cai e assenta antes de andar — a cápsula em pé do player de teste
+    // (2m) nascendo mais baixo já encosta no chão e não sai do lugar.
+    run(world, 60)
     const yFlat = player.get(Position).y
     // Ticks suficientes pra percorrer bem além da rampa, derivado da
     // velocidade de andar ATUAL da espécie — não um número fixo (já
-    // quebrou uma vez quando FOX.movement.walkSpeed mudou de 4 pra 2).
-    const ticksToClimb = Math.ceil((8 / FOX.movement.walkSpeed) * 60)
+    // quebrou uma vez quando o walkSpeed do player de teste mudou de 4 pra 2).
+    const ticksToClimb = Math.ceil((8 / PLAYER.movement.walkSpeed) * 60)
     run(world, ticksToClimb, { right: true })
     const pos = player.get(Position)
     expect(pos.x).toBeGreaterThan(4)
@@ -288,21 +291,24 @@ describe('characterPhysicsSystem + integração Rapier', () => {
   })
 
   it('pular desconta o custo de stamina uma vez; sem stamina suficiente, não pula', () => {
-    // Vitals do player de teste vem de 'fox' (test/makeWorld.js) —
+    // Vitals do player de teste vem de 'boy' (test/makeWorld.js) —
     // JUMP_STAMINA_COST/STAMINA_REGEN_DELAY_AFTER_USE deixaram de ser
     // globais e viraram parte de `vitals` por espécie (ver
     // docs/features/018-troca-de-controle-treinador-criatura.md).
-    const { jumpStaminaCost: JUMP_STAMINA_COST } = FOX.vitals
+    const { jumpStaminaCost: JUMP_STAMINA_COST } = PLAYER.vitals
     const { world, player } = makeWorld({
       playerPosition: { x: 0, y: 1, z: 0 },
     })
     run(world, 30)
     const yGround = player.get(Position).y
+    const { maxStamina, staminaRegenDelayAfterUse } = player.get(Vitals)
 
     tick(world, { jump: true })
-    expect(player.get(Vitals).stamina).toBeCloseTo(100 - JUMP_STAMINA_COST)
+    expect(player.get(Vitals).stamina).toBeCloseTo(
+      maxStamina - JUMP_STAMINA_COST,
+    )
     expect(player.get(Vitals).staminaRegenDelay).toBeCloseTo(
-      FOX.vitals.staminaRegenDelayAfterUse,
+      staminaRegenDelayAfterUse,
     )
 
     // pousa de novo antes de tentar o segundo pulo
@@ -333,15 +339,15 @@ describe('characterPhysicsSystem + integração Rapier', () => {
       Position({ x: 3, y: 1, z: 0 }),
       Rotation,
       Velocity,
-      MovementStats(FOX.movement),
+      MovementStats(CREATURE.movement),
       Vitals,
       PhysicsBody,
-      CharacterController(FOX.body),
+      CharacterController(CREATURE.body),
     )
     const handles = createCharacterBody(creature.get(Position), {
-      radius: FOX.body.capsuleRadius,
-      halfHeight: FOX.body.capsuleHalfHeight,
-      axis: FOX.body.capsuleAxis,
+      radius: CREATURE.body.capsuleRadius,
+      halfHeight: CREATURE.body.capsuleHalfHeight,
+      axis: CREATURE.body.capsuleAxis,
     })
     creature.set(PhysicsBody, handles)
 
@@ -381,15 +387,15 @@ describe('characterPhysicsSystem + integração Rapier', () => {
       Position({ x: 3, y: 1, z: 0 }),
       Rotation,
       Velocity,
-      MovementStats(FOX.movement),
+      MovementStats(CREATURE.movement),
       Vitals,
       PhysicsBody,
-      CharacterController(FOX.body),
+      CharacterController(CREATURE.body),
     )
     const handles = createCharacterBody(creature.get(Position), {
-      radius: FOX.body.capsuleRadius,
-      halfHeight: FOX.body.capsuleHalfHeight,
-      axis: FOX.body.capsuleAxis,
+      radius: CREATURE.body.capsuleRadius,
+      halfHeight: CREATURE.body.capsuleHalfHeight,
+      axis: CREATURE.body.capsuleAxis,
     })
     creature.set(PhysicsBody, handles)
 
@@ -494,17 +500,17 @@ describe('characterPhysicsSystem + integração Rapier', () => {
         Position({ x: 3, y: 1, z: 0 }),
         Rotation,
         Velocity,
-        MovementStats(FOX.movement),
+        MovementStats(CREATURE.movement),
         Vitals,
         PhysicsBody,
-        CharacterController(FOX.body),
+        CharacterController(CREATURE.body),
       )
       creature.set(
         PhysicsBody,
         createCharacterBody(creature.get(Position), {
-          radius: FOX.body.capsuleRadius,
-          halfHeight: FOX.body.capsuleHalfHeight,
-          axis: FOX.body.capsuleAxis,
+          radius: CREATURE.body.capsuleRadius,
+          halfHeight: CREATURE.body.capsuleHalfHeight,
+          axis: CREATURE.body.capsuleAxis,
         }),
       )
       return creature
@@ -535,17 +541,17 @@ describe('characterPhysicsSystem + integração Rapier', () => {
         Position({ x: 3, y: 3, z: 0 }),
         Rotation,
         Velocity,
-        MovementStats(FOX.movement),
+        MovementStats(CREATURE.movement),
         Vitals,
         PhysicsBody,
-        CharacterController(FOX.body),
+        CharacterController(CREATURE.body),
       )
       creature.set(
         PhysicsBody,
         createCharacterBody(creature.get(Position), {
-          radius: FOX.body.capsuleRadius,
-          halfHeight: FOX.body.capsuleHalfHeight,
-          axis: FOX.body.capsuleAxis,
+          radius: CREATURE.body.capsuleRadius,
+          halfHeight: CREATURE.body.capsuleHalfHeight,
+          axis: CREATURE.body.capsuleAxis,
         }),
       )
       desmaiar(world, creature)
@@ -553,7 +559,7 @@ describe('characterPhysicsSystem + integração Rapier', () => {
       run(world, 180)
 
       expect(creature.get(Position).y).toBeCloseTo(
-        restingHeightFor(FOX.body),
+        restingHeightFor(CREATURE.body),
         1,
       )
     })

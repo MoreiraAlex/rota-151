@@ -9,11 +9,11 @@ import { compileGradient, sampleCurve } from './particleSimulation'
  * nasce no `effectAt`, preso à criatura (`ContinuousAttackEffectsView.jsx`).
  *
  * UMA abanada da cauda: uma varrida (`swipe`) e dois punhados de brilhos
- * (`sparkle`), e termina sozinha (até ~0.55 s) — sem repetir (no original as
- * abanadas se repetem a cada 0.54 s; aqui o golpe "acontece" uma vez, no
+ * (`sparkle`), e termina sozinha — sem repetir (no original as abanadas
+ * se repetem; aqui o golpe "acontece" uma vez, no
  * `effectAt`):
  *
- *   0.00  sparkle   0.04  swipe   0.25  sparkle
+ *   sparkle → swipe → sparkle
  *
  * Espaço local = o da criatura, mas com a origem no PIVÔ do efeito: o ponto
  * `TAIL_WHIP_PIVOT` m à frente do CENTRO do corpo (quem acompanha a criatura —

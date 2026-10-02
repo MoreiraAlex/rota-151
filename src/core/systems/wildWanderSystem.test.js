@@ -17,7 +17,7 @@ import {
 import { GAME_CONFIG } from '@/core/gameConfig'
 import { wildWanderSystem } from './wildWanderSystem'
 
-const { walkSpeed: WALK_SPEED } = getSpecies('fox').movement
+const { walkSpeed: WALK_SPEED } = getSpecies('charmander').movement
 const { RADIUS, ARRIVAL_DISTANCE, MAX_CHASE_TIME } = GAME_CONFIG.WILD_WANDER
 
 // Koota limita worlds vivos por processo — mesmo cuidado de
@@ -38,9 +38,9 @@ function spawnWild(world, { position, wander }) {
     Position(position),
     Rotation,
     Velocity,
-    WildCreature({ speciesId: 'fox' }),
+    WildCreature({ speciesId: 'charmander' }),
     WildBehavior,
-    MovementStats(getSpecies('fox').movement),
+    MovementStats(getSpecies('charmander').movement),
     PathState,
     PhysicsBody,
     CharacterController,

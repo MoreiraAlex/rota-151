@@ -13,8 +13,6 @@ export const TACKLE_SKILL = {
   aim: 'melee',
   castMode: 'instant',
   radius: 0.3,
-  staminaCost: 0.25,
-  cooldown: 2,
   visual: {
     effectGroup: 'impact',
     effectVisualDuration: 0.6,

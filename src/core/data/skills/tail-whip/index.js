@@ -26,10 +26,8 @@ export const TAIL_WHIP_SKILL = {
   aim: 'ranged',
   castMode: 'instant',
   area: 'cone',
-  // abertura do cone: `radius / range` (0.5 = ~27° pra cada lado)
+  // abertura do cone: `radius / range` (tangente do meio-ângulo)
   radius: 1.5,
-  staminaCost: 2,
-  cooldown: 1,
   accuracy: 100,
   // Sem dano: nada "apanha", e `attackResolved` sai com `status: true`.
   damage: null,

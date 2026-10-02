@@ -6,6 +6,7 @@ import {
   ActionState,
   AiMovement,
   CharacterController,
+  DashCooldown,
   Grounded,
   IndividualValues,
   MovementStats,
@@ -242,10 +243,13 @@ describe('moveInFight — desvio', () => {
 
     mover.add(Grounded)
     mover.set(AiMovement, { dodgeAttacker: null })
-    const staminaBefore = mover.get(Vitals).stamina
+    const before = mover.get(Vitals)
     expect(run(mover, enemy, {}, REACT)).toBe('dash')
     expect(mover.get(ActionState).current).toBe('dash')
-    expect(mover.get(Vitals).stamina).toBe(staminaBefore - DASH.STAMINA_COST)
+    // O custo da entidade (pelo nível, 035) — vida cheia, sem multiplicador.
+    expect(mover.get(Vitals).stamina).toBeCloseTo(
+      before.stamina - before.dashStaminaCost,
+    )
     expect(velOf(mover).x).toBeCloseTo(DASH.SPEED)
   })
 })
@@ -337,7 +341,8 @@ describe('moveInFight — recuo, aproximação e dash', () => {
 
     mover.set(ActionState, { current: null })
     expect(run(mover, far)).toBe('approach')
-    expect(mover.get(AiMovement).dashTimer).toBeGreaterThan(0)
+    // A recarga é a mesma do jogador (`DashCooldown`, 035).
+    expect(mover.get(DashCooldown).timeLeft).toBeCloseTo(DASH.COOLDOWN)
   })
 
   it('dash ferido custa mais energia (vida baixa)', () => {
@@ -352,7 +357,7 @@ describe('moveInFight — recuo, aproximação e dash', () => {
     expect(mover.get(Vitals).stamina).toBeCloseTo(
       before.stamina - resolveDashCost(before),
     )
-    expect(resolveDashCost(before)).toBeGreaterThan(DASH.STAMINA_COST)
+    expect(resolveDashCost(before)).toBeGreaterThan(before.dashStaminaCost)
   })
 
   it('dash respeita a reserva de energia e o descanso', () => {

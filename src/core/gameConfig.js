@@ -12,7 +12,7 @@
  */
 export const GAME_CONFIG = {
   LOOP: {
-    // Passo fixo da simulação (60 Hz).
+    // Passo fixo da simulação (s).
     FIXED_TIMESTEP: 1 / 60,
     // Teto de tempo absorvido por frame. Protege contra "spiral of death"
     // quando a aba fica em background ou ocorre um stall de GC.
@@ -32,8 +32,7 @@ export const GAME_CONFIG = {
     // duração autorada (`basicAttack.duration`, ou a do
     // próprio ataque) é multiplicada por √(REFERENCE / speed), limitado a
     // [MIN_FACTOR, MAX_FACTOR]. REFERENCE é o `speed` CALCULADO (base + IV
-    // + nível) que toca a duração autorada exata — 10 ≈ base 45 no nível 5
-    // com IV médio (bulbasaur).
+    // + nível) que toca a duração autorada exata.
     ATTACK_SPEED: {
       REFERENCE: 10,
       MIN_FACTOR: 0.6,
@@ -48,18 +47,16 @@ export const GAME_CONFIG = {
     IV_MIN: 0,
     IV_MAX: 31,
     // Chance (0-1) de um ataque ser crítico (`critical = 2` na fórmula de
-    // dano, ver `core/battle/calculateDamage.js`) — 1/16, mesma taxa
-    // clássica das primeiras gerações de Pokémon. Decisão separada do
+    // dano, ver `core/battle/calculateDamage.js`). Decisão separada do
     // cálculo de dano em si (pedido do usuário), sorteada com
     // `gameplayRng` (`core/rng.js`) — regra 3.5, sem `Math.random()`.
     CRITICAL_HIT_CHANCE: 1 / 16,
-    // Faixa do multiplicador aleatório de dano (`random` na fórmula),
-    // mesma convenção clássica (85%-100%). Ver `rollDamageRandomFactor`.
+    // Faixa do multiplicador aleatório de dano (`random` na fórmula). Ver
+    // `rollDamageRandomFactor`.
     DAMAGE_RANDOM_MIN: 0.85,
     DAMAGE_RANDOM_MAX: 1,
     // Status ofensivo/defensivo usado no cálculo de dano quando a
-    // espécie ainda não migrou pro formato `stats.<key>.base`
-    // (`fox`/`wolf`/seus clones `fox-red/green/blue` — ver
+    // espécie ainda não migrou pro formato `stats.<key>.base` (ver
     // `resolveCreatureStats`, `core/data/species/stats.js`). Sem isso,
     // um ataque dessas criaturas não causaria dano nenhum; com o
     // fallback, causa um dano neutro/mediano — mesmo "fallback
@@ -69,8 +66,8 @@ export const GAME_CONFIG = {
     // Assistência de mira dos golpes corpo a corpo (`attack.aim:
     // 'melee'`, ver `core/battle/attackAim.js`): meio-ângulo (radianos)
     // do cone horizontal, em volta de pra onde a câmera aponta, onde um
-    // alvo ao alcance e no mesmo plano de combate "puxa" o giro do golpe.
-    // 45° = cone de 90° no total. Valor de partida, ajustar jogando.
+    // alvo ao alcance e no mesmo plano de combate "puxa" o giro do golpe
+    // (o cone inteiro tem o dobro disto).
     MELEE_AIM_HALF_ANGLE: Math.PI / 4,
     // Direcionar o golpe ENQUANTO O AVISO CARREGA: do disparo até o `effectAt`,
     // a criatura controlada acompanha a câmera (a direção só trava no instante
@@ -82,8 +79,7 @@ export const GAME_CONFIG = {
     COMBAT_MODE_TIMEOUT: 10,
     // Atordoamento (ação `'hit'`, `core/actions/hitStun.js`) de quem teve um
     // golpe de status interrompido por dano: segundos em que toca a animação
-    // de hit e não faz nada. 0.67 = a `hit` dos iniciais na velocidade
-    // original. Por espécie: `actions.hit.duration`.
+    // de hit e não faz nada. Por espécie: `actions.hit.duration`.
     HIT_STUN_DURATION: 0.67,
     // Quanto tempo (s) o visual de cada drenagem do Leech Seed fica na cena
     // (`leechSeedSystem.js`, grupo `'leech-drain'`) — cobre os orbes indo do
@@ -194,14 +190,12 @@ export const GAME_CONFIG = {
     },
     // Efeito visual do dash (`view/vfx/dashVfx.js`, `view/scene/
     // DashEffectsView.jsx`): linhas de velocidade enquanto dura o dash e poeira
-    // no chão na saída. SCALE multiplica tamanho e raio (1 = o do Cobblemon, grande
-    // pras criaturas daqui; valor de partida, ajustar jogando).
+    // no chão na saída. SCALE multiplica tamanho e raio (1 = o do Cobblemon).
     DASH_EFFECT: {
       ENABLED: true,
       SCALE: 0.6,
       // Linhas de velocidade: quantas saem por SEGUNDO enquanto o dash dura
-      // (vivem 0.2 s, então ~LINE_RATE × 0.2 na tela de cada vez; 0 = sem
-      // linhas), e o tamanho de cada uma em metros, antes da escala.
+      // (0 = sem linhas), e o tamanho de cada uma em metros, antes da escala.
       LINE_RATE: 25,
       LINE_LENGTH: 0.6,
       LINE_THICKNESS: 0.05,
@@ -262,23 +256,21 @@ export const GAME_CONFIG = {
   // controle-treinador-criatura.md), sem variar por espécie. Arremesso,
   // consumo, invocar/recolher e o comportamento de time (antes `PARTY`
   // aqui) viraram config exclusiva do TREINADOR — só ele dispara essas
-  // ações de verdade — em `core/data/species/bot/index.js`
+  // ações de verdade — em `core/data/species/boy/index.js`
   // (`actions`/`party`), lidos via `getPlayerSpecies()`
   // (`core/data/species/index.js`).
   // Corrida e dash custam mais energia com a vida baixa — pra todo mundo
   // (jogador, time, selvagens; `resolveMovementCostMultiplier`,
   // core/actions/stamina.js): × 1 com a vida cheia até × MAX_MULTIPLIER com
-  // ela em 0, pela curva (1 - vida) ^ EXPONENT — com 2: metade da vida ×2.75,
-  // um quarto ×4.9 (com MAX 8).
+  // ela em 0, pela curva (1 - vida) ^ EXPONENT.
   STAMINA_BY_HP: {
     MAX_MULTIPLIER: 8,
     EXPONENT: 2,
   },
   // Andar e correr ficam mais lentos com a vida baixa — pra todo mundo
   // (`resolveSpeedMultiplier`, core/actions/movementSpeed.js): × 1 com a vida
-  // cheia até × MIN_MULTIPLIER com ela em 0, pela curva (1 - vida) ^ EXPONENT
-  // — com 0.6 e 2: metade da vida × 0.9, um quarto × 0.78, 10% × 0.68. Não
-  // vale pro dash.
+  // cheia até × MIN_MULTIPLIER com ela em 0, pela curva (1 - vida) ^ EXPONENT.
+  // Não vale pro dash.
   SPEED_BY_HP: {
     MIN_MULTIPLIER: 0.6,
     EXPONENT: 2,
@@ -289,8 +281,10 @@ export const GAME_CONFIG = {
       DURATION: 0.5,
       // Unidades por segundo — maior que o runSpeed de qualquer espécie hoje.
       SPEED: 10,
-      // Custo de stamina, descontado uma vez no disparo (não por segundo).
-      STAMINA_COST: 1,
+      // Recarga (s) depois de cada dash — igual pra todos, jogador e IA
+      // (`DashCooldown`, docs/features/035-balanceamento-de-acoes-e-correcoes.md). O
+      // custo é por entidade (`Vitals.dashStaminaCost`).
+      COOLDOWN: 2.5,
       // Frenagem (s): nos últimos EASE_OUT_TIME segundos, a velocidade desce
       // suave de SPEED até a de saída (0 / andar / correr, pelo input) em
       // vez de cair de uma vez no tick seguinte. Limitado a metade de
@@ -319,16 +313,15 @@ export const GAME_CONFIG = {
     // Diferença de elevação (m) entre células vizinhas (incluindo
     // diagonais) acima da qual vira "penhasco" intransponível sem rampa —
     // ver "Elevação (heightmap)" em core/pathfinding.js. Precisa ficar
-    // entre o degrau por célula de uma rampa normal (~0.48m com os
-    // ângulos usados no nível de teste) e o salto de um terraço sem rampa
-    // (1.8m na trilha de teste) — senão ou bloqueia rampas de verdade, ou
-    // deixa passar de um andar pro outro sem rampa nenhuma.
+    // entre o degrau por célula das rampas do nível e o salto de um terraço
+    // sem rampa — senão ou bloqueia rampas de verdade, ou deixa passar de um
+    // andar pro outro sem rampa nenhuma.
     MAX_CLIMB_STEP: 0.6,
     // Distância máxima (m) de um único salto suavizado do caminho
     // (`boundedSmoothPath` em core/pathfinding.js) — mesmo que um trecho
     // reto inteiro seja andável célula a célula, virar UM waypoint só bem
-    // longe (a trilha de teste inteira, por exemplo, cabe numa lane de só
-    // ~4m de largura) dá tempo demais pra criatura desviar da lane antes
+    // longe (a trilha de teste inteira, por exemplo, cabe numa lane
+    // estreita) dá tempo demais pra criatura desviar da lane antes
     // da próxima correção (giro suavizado por `turnSpeed`, física) — ela
     // acaba esbarrando de lado numa rampa (ou passando por baixo dela) em
     // vez de subir. Maior que distâncias comuns em campo aberto (mantém o
@@ -468,6 +461,28 @@ export const GAME_CONFIG = {
     // selvagem. A criatura do time, ao trocar de alvo, pega a de menos vida.
     FINISH_BONUS: 2,
   },
+  // Custo de energia e recarga das ações das CRIATURAS, por fórmula
+  // (`core/battle/actionCost.js`, docs/features/035-balanceamento-
+  // de-acoes-e-correcoes.md) — adaptada da fórmula de dano. `staminaCost`/`cooldown`
+  // escritos na skill (ou no override da espécie) valem por cima.
+  ACTION_COST: {
+    // custo = (2·nível/5 + 2) × peso / COST_DIVISOR — o fator de nível do
+    // dano. Maior = tudo mais barato (mais habilidades por barra).
+    COST_DIVISOR: 50,
+    // recarga = peso × COOLDOWN_PER_WEIGHT (s) × fator de velocidade.
+    COOLDOWN_PER_WEIGHT: 0.085,
+    // Peso × RANGED_BONUS quando o golpe alcança RANGED_MIN_RANGE (m) ou
+    // mais — bater de longe é mais seguro...
+    RANGED_MIN_RANGE: 5,
+    RANGED_BONUS: 1.25,
+    // ...e × CONE_BONUS em cone (pode pegar mais de um inimigo).
+    CONE_BONUS: 1.3,
+    // Peso do movimento das criaturas, na mesma conta (`resolveLevelCost`):
+    // corrida POR SEGUNDO, dash e pulo.
+    RUN_WEIGHT_PER_SECOND: 4,
+    DASH_WEIGHT: 15,
+    JUMP_WEIGHT: 5,
+  },
   // Escolha do golpe pela IA (selvagens e time fora do controle —
   // `core/battle/aiAttackChoice.js`): cada golpe pronto ganha uma nota pelos
   // campos da definição (poder, área, efeitos), nunca pelo id da skill.
@@ -479,10 +494,10 @@ export const GAME_CONFIG = {
     // com chance proporcional à nota — não fica previsível.
     NEAR_BEST_FRACTION: 0.6,
     // Valor de UM estágio de status (baixar o do inimigo, subir o próprio),
-    // na mesma escala do `damage.power` (o básico vale 5, um Tackle 40).
+    // na mesma escala do `damage.power`.
     STAT_STAGE_VALUE: 25,
     // Cada estágio já acumulado no sentido do efeito multiplica o valor por
-    // isto (1 → 0.67 → 0.44...): acumula, mas bater passa a valer mais.
+    // isto: acumula, mas bater passa a valer mais.
     STAT_STAGE_DECAY: 2 / 3,
     // Valor de plantar uma semente (efeito `leechSeed`).
     LEECH_SEED_VALUE: 35,
@@ -527,12 +542,11 @@ export const GAME_CONFIG = {
     STRAFE_SWITCH_MIN: 1.5,
     STRAFE_SWITCH_MAX: 3.5,
     // Rodeando, ela anda virada pra onde vai; com o golpe pronto, para e vira
-    // pro alvo, e só pede o golpe com o corpo a até este ângulo (rad, ~20°)
+    // pro alvo, e só pede o golpe com o corpo a até este ângulo (rad)
     // dele — o disparo trava o corpo de uma vez, vindo de lado seria um estalo.
     AIM_TOLERANCE: 0.35,
-    // Segundos entre um dash e outro da IA (o dash usa
-    // `PLAYER_ACTIONS.dash` — mesma velocidade, duração e custo do jogador).
-    DASH_INTERVAL: 4,
+    // (O dash da IA usa `PLAYER_ACTIONS.dash` — mesma velocidade, duração e
+    // recarga do jogador, `DashCooldown`; custo da entidade, 035.)
     // Aproximando: dá dash se ainda faltar mais que isto (m) até o alcance.
     DASH_CLOSE_DISTANCE: 5,
     // Feixe da IA (canal em `area: 'line'`): quanto (rad/s) ele gira no
@@ -556,7 +570,7 @@ export const GAME_CONFIG = {
     WALK_MIN_SPEED: 0.3,
     // Acima disso, considera correndo (run) em vez de andando (walk). Fica
     // entre walkSpeed e runSpeed de MovementStats (core/data/species).
-    RUN_MIN_SPEED: 3,
+    RUN_MIN_SPEED: 4,
     // Duração do crossfade (segundos) ao trocar de AnimationState — evita o
     // corte seco entre idle/walk/run (ou qualquer outro clipe futuro).
     BLEND_DURATION: 0.2,
@@ -605,13 +619,12 @@ export const GAME_CONFIG = {
     INITIAL_DISTANCE: 12,
     // Limite do ângulo vertical (pitch), em radianos. O horizontal (yaw) é
     // livre. `pitch` positivo põe a câmera ACIMA do alvo olhando pra baixo
-    // (MAX_PITCH ~1.35 rad ≈ 77°, quase de cima); `pitch` 0 é olhar reto,
+    // (MAX_PITCH perto de π/2 = quase de cima); `pitch` 0 é olhar reto,
     // no nível do alvo. Pra olhar pra CIMA (céu, algo alto à frente), a
     // câmera precisa descer ABAIXO do alvo e inclinar — isso é `pitch`
     // NEGATIVO, não perto de zero (um MIN_PITCH só um pouco acima de 0
     // nunca deixa passar do "olhar reto", por menor que seja — foi o que
-    // limitava antes). MIN_PITCH ~-0.6 rad ≈ -34° dá uma boa folga pra
-    // cima. Ajuste à vontade.
+    // limitava antes).
     MIN_PITCH: -0.5,
     MAX_PITCH: 1.35,
     // Limites do zoom, em unidades.
@@ -624,7 +637,7 @@ export const GAME_CONFIG = {
     // Fator de suavização do acompanhamento (maior = mais rígido).
     SMOOTHING: 12,
     // Altura do ponto de mira acima da origem do alvo.
-    // TARGET_HEIGHT: 1.5,
+    TARGET_HEIGHT: 1.5,
     // Deslocamento lateral (m) do ponto que a câmera mira, em relação ao
     // alvo — usado tanto na resolução do ponto de mira (`computeAimRay`,
     // arremesso/esfera de invocar) quanto no enquadramento renderizado de
@@ -632,7 +645,7 @@ export const GAME_CONFIG = {
     // centro da tela) não se move, mas o personagem sai do centro, dando
     // o enquadramento "sobre o ombro" de verdade. 0 desativa o efeito por
     // completo (personagem sempre centralizado).
-    // SHOULDER_OFFSET: 0.4,
+    SHOULDER_OFFSET: 0.4,
     // Colisão da câmera orbital (docs/backlog.md → "Câmera orbital com
     // colisão"): raycast do alvo até a posição desejada da câmera; batendo
     // em algo antes de `orbit.distance`, a câmera aproxima pra logo antes

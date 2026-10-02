@@ -21,8 +21,8 @@ import { useParticleAttackEffect } from './useParticleAttackEffect'
  * `revealDuration` não se aplicam; `scale` (`attack.visual.scale`) cresce
  * clarão, faíscas e alcance.
  *
- * Dura até ~1 s (os tipos mais longos: inseto, fantasma, voador, psíquico,
- * dragão e veneno) — o `effectVisualDuration` do ataque precisa ser ≥ isso.
+ * Dura o tempo das camadas do VFX do tipo (`impactVfx.js`; alguns tipos
+ * duram mais que outros) — o `effectVisualDuration` do ataque precisa ser ≥ isso.
  */
 export function ImpactAttackEffect({ radius, scale = 1, impactType }) {
   const type = resolveImpactType(impactType)

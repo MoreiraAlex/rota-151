@@ -27,7 +27,7 @@ describe('creatureAppealSystem', () => {
   })
 
   it('espécie sem actions.appeal nasce livre', () => {
-    expect(resolveAppealActionState(getSpecies('fox'))).toEqual({})
+    expect(resolveAppealActionState({ actions: {} })).toEqual({})
   })
 
   it('segura a criatura parada até o fim da duração, depois libera', () => {

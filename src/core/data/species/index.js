@@ -1,10 +1,8 @@
 /**
  * Registro de espécies. Cada pasta `<dexNumber>-<id>/` (ou, no caso do
- * treinador, sem número — ver `bot/`) É SUA — eu construo o mecanismo (este
+ * treinador, sem número — ver `boy/`) É SUA — eu construo o mecanismo (este
  * arquivo, `getSpecies`/`listSpecies`), nunca escrevo uma entrada de espécie
- * de Pokémon. A entrada `fox/` é minha (modelo livre, Khronos Sample Assets)
- * — hoje serve de placeholder pra Pokémon/criatura selvagem (`kind:
- * 'pokemon'`), não pro jogador. `bot/` é o avatar de verdade do treinador
+ * de Pokémon. `boy/` é o avatar de verdade do treinador
  * (`PLAYER_SPECIES_ID`), conteúdo seu.
  *
  * Pra adicionar uma criatura:
@@ -12,16 +10,12 @@
  * 2) preenche `index.js` e a pasta `clips/`
  * 3) importa aqui embaixo e adiciona uma linha no SPECIES_REGISTRY
  */
-import { FOX } from './fox'
-import { BOT } from './bot'
 import { BULBASAUR } from './001-bulbasaur'
 import { CHARMANDER } from './004-charmander'
 import { SQUIRTLE } from './007-squirtle'
 import { BOY } from './boy'
 
 export const SPECIES_REGISTRY = {
-  [FOX.id]: FOX,
-  [BOT.id]: BOT,
   [BOY.id]: BOY,
   [BULBASAUR.id]: BULBASAUR,
   [CHARMANDER.id]: CHARMANDER,
@@ -44,7 +38,7 @@ export function getSpecies(id, registry = SPECIES_REGISTRY) {
  * Atalho pra `getSpecies(PLAYER_SPECIES_ID)` — usado por qualquer system
  * que precise de config exclusiva do treinador (arremesso, consumo,
  * invocar/recolher, comportamento de time — `actions`/`party` em
- * `core/data/species/bot/index.js`), não de "quem está sendo controlado
+ * `core/data/species/boy/index.js`), não de "quem está sendo controlado
  * agora" (isso é `InputControlled`, ver docs/features/018-troca-de-
  * controle-treinador-criatura.md). Essas ações só fazem sentido pro
  * treinador de verdade (só ele tem `Party`/itens de verdade), então
@@ -63,8 +57,7 @@ export function listSpecies(registry = SPECIES_REGISTRY) {
 /**
  * Tipo de entidade jogável que a espécie representa (`'trainer'` |
  * `'pokemon'`) — ver docs/features/011-slots-de-acao.md. Espécie sem `kind`
- * (ex.: `bot`, ainda não atualizado) cai em `'trainer'`: única leitura
- * possível hoje, já que não existe Pokémon jogável ainda.
+ * cai em `'trainer'`.
  */
 export function resolveSpeciesKind(species) {
   return species?.kind ?? 'trainer'

@@ -39,8 +39,8 @@ const AXES = ['x', 'y', 'z']
  * ordem fixa x, y, z — `q = restQuaternion · Rx(dx) · Ry(dy) · Rz(dz)` (ver
  * `core/math/quaternion.js`). Somar escalar direto no componente de Euler
  * (como position/scale fazem) só reproduz essa composição quando o resto do
- * osso já está perto da identidade nos outros dois eixos — verdade pro Fox
- * (rig simples), falso pra rigs com pose de descanso torta, como Mixamo
+ * osso já está perto da identidade nos outros dois eixos — verdade pra rig
+ * simples, falso pra rigs com pose de descanso torta, como Mixamo
  * (coxa a 180° em Z): nesses casos a soma de Euler vaza pra fora do eixo
  * local pretendido e a animação sai com sinal/eixo errado em partes do
  * corpo. Quaternion evita isso: cada eixo gira sempre no referencial local
@@ -51,7 +51,7 @@ const AXES = ['x', 'y', 'z']
  * `resolveKeyframeCount`/`sampleKeyframeClip` abaixo):
  * ```json
  * {
- *   "name": "bot-throw1",
+ *   "name": "boy-throw1",
  *   "type": "keyframes",
  *   "fps": 30,
  *   "bones": {

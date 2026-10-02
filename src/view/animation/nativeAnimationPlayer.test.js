@@ -357,3 +357,96 @@ describe('nativeAnimationPlayer — lista `sequence` (cada clipe uma vez)', () =
     expect(rig.hip.position.y).toBeCloseTo(2, 1) // não seguiu pro resto
   })
 })
+
+describe('nativeAnimationPlayer — `speed` do estado', () => {
+  function makeSpeedPlayer(nativeAnimations) {
+    const rig = makeRig()
+    const player = createNativeAnimationPlayer(
+      rig.root,
+      makeAnimations(),
+      nativeAnimations,
+    )
+    return { player, hip: rig.hip }
+  }
+
+  function run(player, seconds, speed = CYCLIC) {
+    const dt = 1 / 100
+    for (let t = 0; t < seconds - 1e-9; t += dt) {
+      advanceNativePhase(player)
+      advanceNativeAnimation(player, dt, speed)
+    }
+  }
+
+  it('estado cíclico toca na velocidade pedida (e os passos acompanham)', () => {
+    const { player } = makeSpeedPlayer({
+      walk: { animation: 'walk', speed: 2 },
+    })
+    enterNativeState(player, 'walk', { oneShot: false })
+
+    advanceNativeAnimation(player, 0.25, CYCLIC)
+
+    expect(nativeCyclePhase(player)).toBeCloseTo(0.5)
+  })
+
+  it('de costas, na mesma velocidade pedida', () => {
+    const { player } = makeSpeedPlayer({
+      walk: { animation: 'walk', speed: 2 },
+    })
+    enterNativeState(player, 'walk', { oneShot: false })
+
+    advanceNativeAnimation(player, 0.125, { animationSpeed: 1, direction: -1 })
+
+    expect(nativeCyclePhase(player)).toBeCloseTo(0.75)
+  })
+
+  it('numa ação, a duração manda: clipe único ignora o speed', () => {
+    // Clipe de 2s, ação de 0.5s → na metade da ação, metade do clipe.
+    const { player } = makeSpeedPlayer({
+      attack: { animation: 'attack', speed: 3 },
+    })
+    enterNativeState(player, 'attack', { oneShot: true })
+
+    advanceNativeAnimation(player, 0.25, { animationSpeed: 2, direction: 1 })
+
+    expect(player.action.time).toBeCloseTo(1)
+  })
+
+  it('start/loop fora de ação (faint): start acelera e o loop entra antes', () => {
+    // down_start 0.5s a 2x → acaba em 0.25s.
+    const { player } = makeSpeedPlayer({
+      faint: {
+        start: 'down_start',
+        loop: 'down_loop',
+        end: 'down_end',
+        speed: 2,
+      },
+    })
+    enterNativeState(player, 'faint', { oneShot: false })
+
+    run(player, 0.3)
+
+    expect(player.phase).toBe('loop')
+  })
+
+  it('lista `sequence` fora de ação: cada clipe na velocidade pedida', () => {
+    // down_start 0.5s a 2x → o segundo começa em 0.25s.
+    const { player } = makeSpeedPlayer({
+      dash: { sequence: ['down_start', 'down_loop'], speed: 2 },
+    })
+    enterNativeState(player, 'dash', { oneShot: false })
+
+    run(player, 0.2)
+    expect(player.phase).toBe('sequence:0')
+    run(player, 0.1)
+    expect(player.phase).toBe('sequence:1')
+  })
+
+  it('sem speed, velocidade original', () => {
+    const { player } = makeSpeedPlayer({ walk: { animation: 'walk' } })
+    enterNativeState(player, 'walk', { oneShot: false })
+
+    advanceNativeAnimation(player, 0.25, CYCLIC)
+
+    expect(nativeCyclePhase(player)).toBeCloseTo(0.25)
+  })
+})

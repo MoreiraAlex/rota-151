@@ -155,8 +155,8 @@ export function setCharacterColliderEnabled(colliderHandle, enabled) {
 
 // Resto numérico (m) tolerado ao comparar distâncias.
 const CLEARANCE_EPSILON = 1e-4
-// Passos da busca binária pelo maior giro livre — 6 passos = 1/64 do giro
-// pedido (menos de 3° num giro de 180°).
+// Passos da busca binária pelo maior giro livre — N passos = precisão de
+// 1/2^N do giro pedido.
 const TURN_SEARCH_STEPS = 6
 
 /**

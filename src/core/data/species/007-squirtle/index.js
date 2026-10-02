@@ -52,8 +52,8 @@ export const SQUIRTLE = {
   nativeAnimations: {
     roar: 'roar',
     idle: 'idle',
-    walk: 'walk',
-    run: 'run',
+    walk: { animation: 'walk', speed: 1.5 },
+    run: { animation: 'run', speed: 1.2 },
     attack: { sequence: [{ animation: 'attack', frames: 30 }] },
     attackRanged: 'attackRanged',
     attackAlt: {
@@ -88,8 +88,8 @@ export const SQUIRTLE = {
     modelOffset: [0, -0.26, 0],
   },
   movement: {
-    walkSpeed: 1.5,
-    runSpeed: 4,
+    walkSpeed: 3,
+    runSpeed: 5,
     turnSpeed: 10,
     jumpSpeed: 6,
   },
@@ -138,8 +138,8 @@ export const SQUIRTLE = {
   },
 
   stats: {
-    hp: { base: HP, ev: HP_EV, regenPercent: 2, regenDelay: 5 },
-    energy: { regenPercent: 45, regenDelay: 2 },
+    hp: { base: HP, ev: HP_EV, regenPercent: 0.25, regenDelay: 10 },
+    energy: { regenPercent: 40, regenDelay: 2 },
     attack: { base: ATTACK, ev: ATTACK_EV },
     defense: { base: DEFENSE, ev: DEFENSE_EV },
     sp_atk: { base: SP_ATK, ev: SP_ATK_EV },

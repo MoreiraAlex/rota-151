@@ -2,6 +2,7 @@ import { describe, it, expect, afterEach } from 'vitest'
 import { createWorld } from 'koota'
 import { makeWorld } from '@/test/makeWorld'
 import { GAME_CONFIG } from '@/core/gameConfig'
+import { getSpecies } from '@/core/data/species'
 import {
   ActionState,
   AttackAim,
@@ -81,7 +82,7 @@ describe('summonBallSystem', () => {
     const ball = world.spawn(
       Position({ x: 0, y: 0, z: 0 }),
       Velocity({ x: 10, y: 0, z: 0 }),
-      SummonBall({ slot: 'slot1', speciesId: 'fox', maxDistance: 1000 }),
+      SummonBall({ slot: 'slot1', speciesId: 'bulbasaur', maxDistance: 1000 }),
     )
 
     tick(world, 1 / 60)
@@ -98,7 +99,7 @@ describe('summonBallSystem', () => {
   it('sem física carregada (castRay sempre null), pousa exatamente ao esgotar maxDistance (percorrido ao longo do caminho, já curvo pela gravidade) e spawna a criatura ali', () => {
     const { world, player } = makeWorld()
     spawnedWorlds.push(world)
-    player.set(Party, { slot1: 'fox-red' })
+    player.set(Party, { slot1: 'bulbasaur' })
 
     const start = { x: 0, y: 1, z: 0 }
     const vel = { x: 10, y: 0, z: 0 } // 10 m/s, horizontal no lançamento
@@ -109,7 +110,7 @@ describe('summonBallSystem', () => {
       Velocity(vel),
       SummonBall({
         slot: 'slot1',
-        speciesId: 'fox-red',
+        speciesId: 'bulbasaur',
         maxDistance,
         traveled: 0,
       }),
@@ -170,14 +171,14 @@ describe('summonBallSystem', () => {
   it('sem hasSpecies válido (removido/trocado enquanto a esfera voava), pousa sem spawnar nada — some silenciosamente', () => {
     const { world, player } = makeWorld()
     spawnedWorlds.push(world)
-    player.set(Party, { slot1: 'fox-red' })
+    player.set(Party, { slot1: 'bulbasaur' })
 
     world.spawn(
       Position({ x: 0, y: 1, z: 0 }),
       Velocity({ x: 10, y: 0, z: 0 }),
       SummonBall({
         slot: 'slot1',
-        speciesId: 'fox-red',
+        speciesId: 'bulbasaur',
         maxDistance: 5,
         traveled: 0,
       }),
@@ -186,7 +187,7 @@ describe('summonBallSystem', () => {
     // Time do treinador muda de espécie no slot1 ENQUANTO a esfera está
     // voando (ex.: InventoryPanel) — a esfera não deve mais spawnar a
     // espécie antiga.
-    player.set(Party, { slot1: 'fox-green' })
+    player.set(Party, { slot1: 'charmander' })
 
     for (let i = 0; i < 60; i++) tick(world, 1 / 60)
 
@@ -209,7 +210,7 @@ describe('summonBallSystem — colisão com o mundo', () => {
 
     const { world, player } = makeWorld()
     spawnedWorlds.push(world)
-    player.set(Party, { slot1: 'fox-red' })
+    player.set(Party, { slot1: 'bulbasaur' })
 
     // Velocidade já aponta pro chão (a gravidade também ajudaria a
     // descer sozinha, mas -20 garante que bate rápido, sem depender de
@@ -219,7 +220,7 @@ describe('summonBallSystem — colisão com o mundo', () => {
       Velocity({ x: 0, y: -20, z: 0 }),
       SummonBall({
         slot: 'slot1',
-        speciesId: 'fox-red',
+        speciesId: 'bulbasaur',
         maxDistance: 100, // bem maior que a distância real até o chão
         traveled: 0,
       }),
@@ -230,12 +231,15 @@ describe('summonBallSystem — colisão com o mundo', () => {
     expect(world.query(SummonBall).length).toBe(0)
     const [creature] = world.query(SummonedCreature, Position)
     expect(creature).toBeDefined()
-    // Não em y=0 (a superfície tocada) — a cápsula de 'fox-red' é deitada
-    // (`capsuleAxis: 'z'`), então a base fica `capsuleRadius` (0.4) abaixo
+    // Não em y=0 (a superfície tocada) — a cápsula de 'bulbasaur' é deitada
+    // (`capsuleAxis: 'z'`), então a base fica `capsuleRadius` abaixo
     // do centro; nasce deslocada pra cima disso, senão ficaria metade
     // afundada no chão (bug real, relatado jogando — ver
     // `verticalClearance`/docstring de `resolveBall`).
-    expect(creature.get(Position).y).toBeCloseTo(0.4, 1)
+    expect(creature.get(Position).y).toBeCloseTo(
+      getSpecies('bulbasaur').body.capsuleRadius,
+      1,
+    )
   })
 
   it('pousando por toque (chão/obstáculo), desloca a criatura pra cima em verticalClearance — não nasce com a cápsula afundada na superfície', async () => {
@@ -245,17 +249,16 @@ describe('summonBallSystem — colisão com o mundo', () => {
 
     const { world, player } = makeWorld()
     spawnedWorlds.push(world)
-    // Bulbasaur: capsuleAxis 'z' (deitada), capsuleRadius 0.4 — mesmo
-    // raciocínio do teste acima, com uma espécie diferente pra não
-    // depender só de 'fox-red'.
-    player.set(Party, { slot1: 'bulbasaur' })
+    // Squirtle: capsuleAxis 'y' (em pé) — mesmo raciocínio do teste
+    // acima, com uma espécie diferente pra não depender só de 'bulbasaur'.
+    player.set(Party, { slot1: 'squirtle' })
 
     world.spawn(
       Position({ x: -20, y: 3, z: -20 }), // longe de qualquer obstáculo do nível de teste
       Velocity({ x: 0, y: -20, z: 0 }),
       SummonBall({
         slot: 'slot1',
-        speciesId: 'bulbasaur',
+        speciesId: 'squirtle',
         maxDistance: 100,
         traveled: 0,
       }),
@@ -265,8 +268,13 @@ describe('summonBallSystem — colisão com o mundo', () => {
 
     const [creature] = world.query(SummonedCreature, Position)
     expect(creature).toBeDefined()
-    // capsuleRadius do bulbasaur (0.4) acima do chão (y=0), não em y≈0.
-    expect(creature.get(Position).y).toBeCloseTo(0.4, 1)
+    // Cápsula em pé: base `capsuleRadius + capsuleHalfHeight` abaixo do
+    // centro — nasce isso acima do chão (y=0), não em y≈0.
+    const { capsuleRadius, capsuleHalfHeight } = getSpecies('squirtle').body
+    expect(creature.get(Position).y).toBeCloseTo(
+      capsuleRadius + capsuleHalfHeight,
+      1,
+    )
   })
 
   it('exclui a cápsula do treinador — não se autoacerta logo ao nascer perto do próprio corpo', async () => {
@@ -277,7 +285,7 @@ describe('summonBallSystem — colisão com o mundo', () => {
       playerPosition: { x: 0, y: 2, z: 0 },
     })
     spawnedWorlds.push(world)
-    player.set(Party, { slot1: 'fox-red' })
+    player.set(Party, { slot1: 'bulbasaur' })
     const { bodyHandle, colliderHandle } = createCharacterBody(
       player.get(Position),
       { radius: 0.5, halfHeight: 0.5, axis: 'y' },
@@ -292,7 +300,7 @@ describe('summonBallSystem — colisão com o mundo', () => {
       Velocity({ x: 5, y: 0, z: 0 }),
       SummonBall({
         slot: 'slot1',
-        speciesId: 'fox-red',
+        speciesId: 'bulbasaur',
         maxDistance: 100,
         traveled: 0,
       }),

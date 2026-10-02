@@ -51,7 +51,7 @@ function AnimatedCreature({ model, scale, position, clip, speed }) {
   )
 }
 
-export default function ProceduralFoxPage() {
+export default function ProceduralAnimationsPage() {
   const [speed, setSpeed] = useState(1)
   const [action, setAction] = useState(ACTIONS[0])
 

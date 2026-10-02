@@ -12,11 +12,13 @@
  * precisar tingir por cima como os outros grupos (`HIT_COLOR` neutro,
  * branco, deixa a cor original da textura aparecer).
  *
- * `range` (3) bem maior que as demais skills — Brasa é ataque à
+ * `range` bem maior que o das demais skills — Brasa é ataque à
  * DISTÂNCIA no jogo original (bafo de fogo), não corpo-a-corpo como
- * chicote/redemoinho. `staminaCost`/`cooldown` na mesma faixa das outras
- * skills novas — valores de PARTIDA, sem validação em jogo (sandbox sem
- * navegador nesta sessão).
+ * chicote/redemoinho.
+ *
+ * `staminaCost`/`cooldown` saem da fórmula (`core/battle/actionCost.js`,
+ * docs/features/035-balanceamento-de-acoes-e-correcoes.md) — escrever aqui só pra fugir
+ * dela.
  */
 export const EMBER_SKILL = {
   id: 'ember',
@@ -26,8 +28,6 @@ export const EMBER_SKILL = {
   aim: 'ranged',
   castMode: 'instant',
   radius: 0.35,
-  staminaCost: 4,
-  cooldown: 2,
   damageInterval: 0.25,
   visual: {
     effectGroup: 'ember',
@@ -49,7 +49,7 @@ export const EMBER_SKILL = {
   animation: {
     clipKey: 'attackRangedAlt',
   },
-  // Especial, poder 40 — mesmo valor de "Ember" nos jogos originais.
+  // Especial, poder de referência: o de "Ember" nos jogos originais.
   // Ver comentário sobre `type: null` em `../tackle/index.js`.
   damage: { power: 40, category: 'special', type: null },
 }

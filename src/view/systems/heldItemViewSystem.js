@@ -74,7 +74,7 @@ export function heldItemViewSystem(context) {
   }
 
   // O osso vive dentro da hierarquia do modelo inteiro, que é renderizado
-  // bem menor que 1:1 (`PLAYER_SPECIES.model.scale`, ~0.015 pro bot, além
+  // bem menor que 1:1 (`PLAYER_SPECIES.model.scale`, além
   // de qualquer escala já embutida no próprio rig/armature do .glb) — um
   // filho comum herdaria essa escala composta e ficaria minúsculo demais
   // pra aparecer (foi o que estava acontecendo: a esfera existia, só

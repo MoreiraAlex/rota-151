@@ -242,7 +242,7 @@ describe('resolveDamageAmount', () => {
 })
 
 describe('resolveDamageAmount — estágios de atributo (golpes de status)', () => {
-  // fox: espécie de teste estável; rng fixo (sem crítico, fator aleatório médio)
+  // charmander: espécie de teste estável; rng fixo (sem crítico, fator aleatório médio)
   const species = getSpecies('charmander')
   const rng = () => 0.99
   const dano = (stages = {}) =>
