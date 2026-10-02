@@ -5,9 +5,12 @@ import { useFrame } from '@react-three/fiber'
 import { Html } from '@react-three/drei'
 import { useQuery, useTrait } from 'koota/react'
 import * as THREE from 'three'
+import { resolveCreatureAttack } from '@/core/battle/creatureAttack'
 import { resolveBehaviorRadius } from '@/core/battle/wildBehavior'
+import { getSpecies } from '@/core/data/species'
 import { verticalClearance } from '@/core/physics/colliders'
 import {
+  AiMovement,
   CharacterController,
   Fainted,
   Party,
@@ -41,6 +44,44 @@ export function combatantLabel(entity) {
   return speciesId ? formatSpeciesName(speciesId) : '?'
 }
 
+/**
+ * Golpe da IA pro debug (`attackSlot`/`lastAttackSlot` de `WildBehavior` ou
+ * `PartyBehavior`, `planAiAttack`): o planejado (`· próximo: ember`) ou, sem
+ * plano (golpe em andamento, nada pronto), o último pedido
+ * (`· último: tackle`), ou `· descansando` com a energia baixa. Exportado: `PartyBehaviorDebugView.jsx` usa o mesmo.
+ */
+export function attackPlanLabel(entity, behavior) {
+  // Energia baixa: sem golpe até recuperar (`resolveResting`).
+  if (behavior.resting) return ' · descansando'
+  const slot = behavior.attackSlot ?? behavior.lastAttackSlot
+  if (!slot) return ''
+  const speciesId = resolveCreatureSpeciesId(entity)
+  const attack = speciesId
+    ? resolveCreatureAttack(getSpecies(speciesId), slot)
+    : null
+  const name = slot === 'primary' ? 'básico' : (attack?.id ?? slot)
+  return ` · ${behavior.attackSlot ? 'próximo' : 'último'}: ${name}`
+}
+
+const MOVEMENT_LABEL = {
+  approach: 'aproximando',
+  dodge: 'desviando',
+  retreat: 'recuando',
+  strafe: 'rodeando',
+  dash: 'dash',
+  aim: 'mirando',
+}
+
+/**
+ * Movimento da IA na luta pro debug (`AiMovement.mode`, `aiMovement.js`):
+ * `· desviando`, `· recuando`, `· rodeando`... Vazio parada ou sem o trait.
+ * Exportado: `PartyBehaviorDebugView.jsx` usa o mesmo.
+ */
+export function movementLabel(movement) {
+  const label = movement?.mode ? MOVEMENT_LABEL[movement.mode] : null
+  return label ? ` · ${label}` : ''
+}
+
 const STATE_RING_COLOR = {
   wander: '#ffb000',
   chase: '#ff3030',
@@ -50,6 +91,7 @@ const STATE_RING_COLOR = {
 function WildBehaviorDebug({ entity }) {
   const groupRef = useRef()
   const behavior = useTrait(entity, WildBehavior)
+  const movement = useTrait(entity, AiMovement)
   const fainted = useTrait(entity, Fainted)
 
   useFrame(() => {
@@ -70,12 +112,17 @@ function WildBehaviorDebug({ entity }) {
   const radius = fainted ? null : resolveBehaviorRadius(behavior)
   // Alvo do tick (ameaça, senão proximidade — `wildBehaviorSystem.js`).
   const targetText = behavior.target
-    ? ` → ${combatantLabel(behavior.target)}`
+    ? ` → ${combatantLabel(behavior.target)}` +
+      (behavior.state === 'chase'
+        ? attackPlanLabel(entity, behavior) + movementLabel(movement)
+        : '')
     : ''
   const stateText = fainted
     ? `desmaiada (${Math.ceil(fainted.timeLeft)}s)`
     : STATE_LABEL[behavior.state] +
       (behavior.provoked ? ' (provocada)' : '') +
+      // Fugiu com a vida baixa: não briga até se recuperar.
+      (behavior.shaken ? ' (abalada)' : '') +
       targetText
 
   return (

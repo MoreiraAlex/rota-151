@@ -172,6 +172,9 @@ de puxar ela pra frente.
       `docs/features/020-fox-selvagens-cena-e-texturas.md`: `WildCreature`/
       `wildWanderSystem` (vagar com pathfind, sem interação com o jogador
       ainda).
+- [ ] **Bando** — selvagens da mesma espécie por perto entram juntas na luta
+      quando uma delas briga. Saiu da `docs/features/034-ia-de-batalha.md`
+      (era a Parte 4, adiada pelo usuário).
 
 ## Animação
 

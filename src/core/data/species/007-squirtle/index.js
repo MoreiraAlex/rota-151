@@ -56,7 +56,9 @@ export const SQUIRTLE = {
     run: 'run',
     attack: { sequence: [{ animation: 'attack', frames: 30 }] },
     attackRanged: 'attackRanged',
-    attackAlt: { sequence: ['attackAltStart', { animation: 'attackAltEnd', frames: 30 }] },
+    attackAlt: {
+      sequence: ['attackAltStart', { animation: 'attackAltEnd', frames: 30 }],
+    },
     attackRangedAlt: {
       start: 'attackRangedAltStart',
       loop: 'attackRangedAltLoop',
@@ -117,11 +119,19 @@ export const SQUIRTLE = {
   },
   basicAttack: BASIC_ATTACK,
   skills: {
-    1: { id: 'tackle', overrides: { range: 1.4, duration: 1, effectAt: 0.6, animation: { clipKey: 'attackAlt' } } },
+    1: {
+      id: 'tackle',
+      overrides: {
+        range: 1.4,
+        duration: 1,
+        effectAt: 0.6,
+        animation: { clipKey: 'attackAlt' },
+      },
+    },
     2: {
       id: 'water-gun',
       overrides: {
-        visual: { positionOffset: { x: 0, y: 0, z: 0.5 }, scale: 1.5 }
+        visual: { positionOffset: { x: 0, y: 0, z: 0.5 }, scale: 1.5 },
       },
     },
     3: { id: 'tail-whip' },

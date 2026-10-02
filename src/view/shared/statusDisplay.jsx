@@ -81,9 +81,11 @@ export function VitalBar({ height, value, max, colorClass, activeValue }) {
       style={{ height: `${height * 0.25}rem` }}
     >
       <div className={`h-full ${colorClass}`} style={{ width: `${pct}%` }}>
-         {activeValue && (
-            <span>{Math.floor(value)}/{max}</span>
-          )}
+        {activeValue && (
+          <span>
+            {Math.floor(value)}/{max}
+          </span>
+        )}
       </div>
     </div>
   )

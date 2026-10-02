@@ -15,6 +15,7 @@ import {
   Mood,
   MovementStats,
   Party,
+  AiMovement,
   PartyBehavior,
   PartyIndividualValues,
   PartyVitals,
@@ -108,6 +109,7 @@ function spawnCreature(
     ScanMode,
     // IA de combate fora do controle (sempre defensiva, `partyBehaviorSystem.js`).
     PartyBehavior,
+    AiMovement,
   )
 
   const stored = trainer?.get(PartyVitals)?.[slot]

@@ -1,5 +1,6 @@
 import { describe, it, expect, afterEach } from 'vitest'
 import { makeWorld } from '@/test/makeWorld'
+import { resolveSpeedMultiplier } from '@/core/actions/movementSpeed'
 import { getSpecies } from '@/core/data/species'
 import {
   Position,
@@ -63,6 +64,19 @@ describe('movementSystem', () => {
     const vel = player.get(Velocity)
     expect(vel.x).toBeCloseTo(-WALK_SPEED)
     expect(vel.z).toBeCloseTo(0)
+  })
+
+  it('ferido, anda e corre mais devagar (× o multiplicador da vida)', () => {
+    const { player, tick } = setup(0)
+    const { maxHp } = player.get(Vitals)
+    player.set(Vitals, { hp: maxHp * 0.25 })
+    const factor = resolveSpeedMultiplier(player.get(Vitals))
+    expect(factor).toBeLessThan(1)
+
+    tick({ x: 0, z: -1, run: true })
+    expect(player.get(Velocity).z).toBeCloseTo(-RUN_SPEED * factor)
+    tick({ x: 0, z: -1, run: false })
+    expect(player.get(Velocity).z).toBeCloseTo(-WALK_SPEED * factor)
   })
 
   it('com run = true, usa RUN_SPEED em vez de WALK_SPEED', () => {

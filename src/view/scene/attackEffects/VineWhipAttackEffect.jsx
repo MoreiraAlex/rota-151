@@ -55,7 +55,9 @@ export function VineWhipAttackEffect({ radius, scale = 1 }) {
     const t = Math.min(elapsedRef.current / IMPACT_DURATION, 1)
     const fade = 1 - t
 
-    cut.object.scale.setScalar(radius * CUT_BASE_SCALE * scale * (0.7 + t * 0.5))
+    cut.object.scale.setScalar(
+      radius * CUT_BASE_SCALE * scale * (0.7 + t * 0.5),
+    )
     for (const material of cut.materials) material.opacity = fade
 
     shockwave.object.scale.setScalar(

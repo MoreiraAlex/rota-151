@@ -20,6 +20,7 @@ import {
   HeldItem,
   Inventory,
   Party,
+  TrainerBehavior,
   PartyIndividualValues,
   PartyFaint,
   PartyVitals,
@@ -86,6 +87,8 @@ export const playerEntity = world.spawn(
   HeldItem({ itemId: 'pokedex' }),
   Inventory,
   Party(STARTER_PARTY),
+  // Treinador numa luta fora do controle (`trainerBattleSystem.js`).
+  TrainerBehavior,
   PartyIndividualValues(STARTER_INDIVIDUAL_VALUES),
   // Ninguém do time começa desmaiado (ver `PartyFaint`), e todos começam
   // com a vida/energia cheias na bola (ver `PartyVitals`).

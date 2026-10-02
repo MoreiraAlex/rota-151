@@ -1,3 +1,4 @@
+import { resolveMoveSpeed } from '../actions/movementSpeed'
 import { tentarCorrer } from '../actions/stamina'
 import { lerpAngle } from '../math'
 import {
@@ -76,7 +77,8 @@ export function movementSystem(context) {
       const hasMoveIntent = worldX !== 0 || worldZ !== 0
       const isRunning =
         input.run && hasMoveIntent && tentarCorrer(vitals, delta)
-      const speed = isRunning ? stats.runSpeed : stats.walkSpeed
+      // Ferido anda/corre mais devagar (`resolveMoveSpeed`).
+      const speed = resolveMoveSpeed(stats, vitals, isRunning)
 
       vel.x = worldX * speed
       vel.z = worldZ * speed

@@ -2,10 +2,12 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { createWorld } from 'koota'
 import { fugirDoJogador } from '../actions/wildBehavior'
 import { attackResolved, createEventQueue } from '../events'
+import { GAME_CONFIG } from '../gameConfig'
 import {
   PathState,
   Position,
   Threat,
+  Vitals,
   WanderState,
   WildBehavior,
 } from '../traits'
@@ -129,5 +131,44 @@ describe('wildReactionSystem', () => {
       { entity: 'treinador', amount: 9 },
       { entity: 'bulbasaur', amount: 3 },
     ])
+  })
+})
+
+describe('wildReactionSystem — decisões com critério', () => {
+  const WB = GAME_CONFIG.WILD_BEHAVIOR
+
+  it('abalada (fugiu com a vida baixa) que apanha continua fugindo — mesmo hostil', () => {
+    const world = setup()
+    const wild = spawnWild(world, 'hostile')
+    wild.set(WildBehavior, { shaken: true })
+
+    react([hitEvent(wild)])
+
+    expect(wild.get(WildBehavior).state).toBe('flee')
+  })
+
+  it('pacífica: a chance de revidar sai da vida dela e do agressor', () => {
+    const saved = { ...WB }
+    // Coragem com peso enorme e sem limite: o sinal decide sozinho.
+    Object.assign(WB, {
+      COURAGE_HP_WEIGHT: 100,
+      COURAGE_MIN_CHANCE: 0,
+      COURAGE_MAX_CHANCE: 1,
+    })
+    try {
+      const world = setup()
+      const attacker = world.spawn(Vitals({ hp: 50, maxHp: 100 }))
+      const healthy = spawnWild(world, 'peaceful')
+      healthy.add(Vitals({ hp: 90, maxHp: 100 }))
+      const hurt = spawnWild(world, 'peaceful')
+      hurt.add(Vitals({ hp: 10, maxHp: 100 }))
+
+      react([hitEvent(healthy, attacker, 1), hitEvent(hurt, attacker, 1)])
+
+      expect(healthy.get(WildBehavior).state).toBe('chase')
+      expect(hurt.get(WildBehavior).state).toBe('flee')
+    } finally {
+      Object.assign(WB, saved)
+    }
   })
 })

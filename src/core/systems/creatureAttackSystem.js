@@ -18,6 +18,7 @@ import {
   resolveDirectionTo,
   tryStartAttack,
 } from '../battle/attackCasting'
+import { resolveAiTarget, steerAiBeam } from '../battle/aiMovement'
 import { resolveAttackImpact } from '../battle/attackImpact'
 import { applyChannelTick } from '../battle/attackChannelTick'
 import { interruptStatusAttacks } from '../battle/attackStatusEffects'
@@ -43,8 +44,8 @@ import {
  * passadas por tick: (1) cooldowns de todo atacante; (2) disparo pelo
  * input da criatura controlada; (3) disparo da IA — selvagem ou criatura
  * do time fora do controle com `WantsToAttack` (posto pelo
- * `wildBehaviorSystem.js`/`partyBehaviorSystem.js`) lança o ataque básico
- * mirando no alvo do pedido (`tryStartAttack` com direção pronta — mesmo
+ * `wildBehaviorSystem.js`/`partyBehaviorSystem.js`) lança o golpe do slot
+ * pedido (básico ou habilidade, `planAiAttack`) mirando no alvo do pedido (`tryStartAttack` com direção pronta — mesmo
  * caminho, stamina/cooldown/modo combate iguais); (4)
  * avanço do golpe de todo atacante; (5) interrupção do golpe de status em
  * carga de quem levou dano no tick. O golpe de criatura do time acerta
@@ -284,8 +285,8 @@ export function creatureAttackSystem(context) {
 
   // 3. Disparo da IA: criatura (selvagem, ou do time fora do controle)
   // que pediu golpe (`WantsToAttack`, posto pelo `wildBehaviorSystem.js`/
-  // `partyBehaviorSystem.js`) lança o ataque básico mirando no alvo do
-  // pedido. Pedido que não dá pra atender agora (ocupada/stamina/
+  // `partyBehaviorSystem.js`) lança o golpe do slot pedido (básico ou
+  // habilidade) mirando no alvo do pedido. Pedido que não dá pra atender agora (ocupada/stamina/
   // cooldown, alvo fora da luta) é descartado — o comportamento pede de
   // novo depois.
   const requested = []
@@ -334,7 +335,7 @@ export function creatureAttackSystem(context) {
         }
         tryStartAttack(
           castContext,
-          'primary',
+          request.slot ?? 'primary',
           resolveDirectionTo(pos, target.get(Position), rot),
         )
       },
@@ -403,6 +404,13 @@ export function creatureAttackSystem(context) {
           action.dirY = aim.y
           action.dirZ = aim.z
           rot.y = Math.atan2(aim.x, aim.z)
+        } else if (isBeamAttack(ATTACK) && !entity.has(InputControlled)) {
+          // Feixe da IA: segue o alvo dela o canal inteiro, com giro limitado
+          // (`steerAiBeam`) — dá pra escapar correndo de lado.
+          const aiTarget = resolveAiTarget(entity)
+          if (aiTarget) {
+            rot.y = steerAiBeam(action, pos, aiTarget.get(Position), delta)
+          }
         }
 
         if (

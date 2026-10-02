@@ -13,6 +13,7 @@ import { acordar, desmaiar, resolveReviveHp } from '../actions/faint'
 import { entrarEmCombate } from '../actions/combat'
 import { perseguirJogador } from '../actions/wildBehavior'
 import {
+  AiMovement,
   ActionState,
   AttackAim,
   CameraTarget,
@@ -65,6 +66,7 @@ function spawnWild(world, { at = WILD_AT, physicsBody } = {}) {
   return world.spawn(
     WildCreature({ speciesId: 'charmander' }),
     WildBehavior({ temperament: 'hostile' }),
+    AiMovement,
     Position(at),
     Rotation,
     Velocity,

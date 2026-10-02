@@ -285,6 +285,14 @@ export const SKILL_TEMPLATE = {
   // ninguém; sem indicador nem aviso; o VFX nasce nos pés dele.
   // area: 'cone',
 
+  // === IA (core/battle/aiAttackChoice.js) ===
+  // Opcional — a IA (selvagens e time fora do controle) dá nota a cada golpe
+  // só pelos campos acima (poder, área, efeitos), sem nada por skill. `weight`
+  // multiplica essa nota: ajuste fino de UMA skill que pareça usada demais
+  // (< 1) ou de menos (> 1) em jogo. Uma espécie pode mudar só pra ela via
+  // `skills[N].overrides.ai`. Omitido = 1.
+  // ai: { weight: 1 },
+
   // === Visual do HUD (view/shared/statusDisplay.jsx, `AttackIcon`) ===
   // Opcional — sem isto, o ícone do slot (SkillsHud.jsx Q/E/R e
   // ActionSlotHud.jsx clique, quando é a criatura no controle) cai no

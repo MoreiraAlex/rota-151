@@ -9,14 +9,11 @@
 // import FOX_WALK_CLIP from '@/core/data/species/fox/clips/walk.json'
 // import FOX_RUN_CLIP from '@/core/data/species/fox/clips/run.json'
 
-
 // import ARCANINE_WALK_CLIP from '@/core/data/species/arcanine/clips/walk.json'
 // import ARCANINE_RUN_CLIP from '@/core/data/species/arcanine/clips/run.json'
 
 // import BOY_WALK_CLIP from '@/core/data/species/boy/clips/walk.json'
 // import BOY_RUN_CLIP from '@/core/data/species/boy/clips/run.json'
-
-
 
 export const CREATURES = [
   // {
@@ -52,15 +49,14 @@ export const CREATURES = [
   //   model: '/assets/models/004-charmander.glb',
   //   scale: 0.03,
   //   position: [0, 0, 0],
-  //   clips: { 
-  //     idle: CHARMANDER_IDLE_CLIP, 
-  //     walk: CHARMANDER_WALK_CLIP, 
-  //     run: CHARMANDER_RUN_CLIP, 
+  //   clips: {
+  //     idle: CHARMANDER_IDLE_CLIP,
+  //     walk: CHARMANDER_WALK_CLIP,
+  //     run: CHARMANDER_RUN_CLIP,
   //     faint: CHARMANDER_FAINT_CLIP,
-  //     attack: CHARMANDER_ATTACK_CLIP 
+  //     attack: CHARMANDER_ATTACK_CLIP
   //   },
   // },
-
   //  {
   //   id: 'boy',
   //   model: '/assets/models/boy.glb',

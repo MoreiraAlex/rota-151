@@ -1,4 +1,6 @@
-import { GAME_CONFIG } from '../gameConfig'
+import { avancarDash, iniciarDash } from '../actions/dash'
+import { resolveMoveSpeed } from '../actions/movementSpeed'
+import { resolveDashCost } from '../actions/stamina'
 import { getItem } from '../data/items'
 import { getPlayerSpecies } from '../data/species'
 import { resolveAimPoint, resolveHandOrigin } from '../aim'
@@ -82,23 +84,9 @@ function removeOneFromInventory(entity, itemId) {
   return newItemIds
 }
 
-/**
- * Velocidade do dash em `elapsed` segundos: `SPEED` constante e, nos
- * últimos `EASE_OUT_TIME` segundos (no máximo metade de `DURATION`), desce
- * suave (smoothstep) até `exitSpeed` — chega EXATAMENTE nela no fim, então
- * a passagem pro `movementSystem` não tem salto de velocidade. Pedido do
- * usuário: a queda brusca de 12 m/s pra 0-4 m/s num tick, no fim do dash,
- * dava sensação de freio de mão.
- */
-export function resolveDashSpeed(dash, elapsed, exitSpeed) {
-  const ease = Math.min(dash.EASE_OUT_TIME ?? 0, dash.DURATION / 2)
-  const easeStart = dash.DURATION - ease
-  if (ease <= 0 || elapsed <= easeStart) return dash.SPEED
-
-  const t = Math.min(1, (elapsed - easeStart) / ease)
-  const smooth = t * t * (3 - 2 * t)
-  return dash.SPEED + (exitSpeed - dash.SPEED) * smooth
-}
+// Movido pra `core/actions/dash.js` (a IA também dá dash); reexportado aqui
+// pros leitores de sempre.
+export { resolveDashSpeed } from '../actions/dash'
 
 /**
  * Velocidade que o `movementSystem` vai dar logo depois do dash, pelo
@@ -114,7 +102,7 @@ function resolveDashExitSpeed(entity) {
 
   const intent = Math.min(1, Math.hypot(input.x, input.z))
   if (intent === 0) return 0
-  return intent * (input.run ? stats.runSpeed : stats.walkSpeed)
+  return intent * resolveMoveSpeed(stats, entity.get(Vitals), input.run)
 }
 
 /**
@@ -165,12 +153,12 @@ export function playerActionSystem(context) {
   // Lido a cada tick (não guardado num const no topo do módulo) pra
   // manipular via menu de configurações (ver
   // docs/features/015-menu-de-pausa-e-configuracoes.md) valer na hora.
-  // `DASH` continua global (`GAME_CONFIG`) — funciona igual pra qualquer
-  // entidade controlada, sem variar por espécie. `THROW`/`CONSUME` são
+  // O dash (`core/actions/dash.js`, `PLAYER_ACTIONS.dash`) é global —
+  // funciona igual pra qualquer entidade controlada, sem variar por espécie,
+  // com o custo pela vida (`resolveDashCost`). `THROW`/`CONSUME` são
   // exclusivos do treinador (`getPlayerSpecies().actions`, ver
   // docs/features/018-troca-de-controle-treinador-criatura.md) — só ele
   // arremessa/consome de verdade (item real só existe nele).
-  const DASH = GAME_CONFIG.PLAYER_ACTIONS.dash
   const { throw: THROW, consume: CONSUME } = getPlayerSpecies().actions
 
   world
@@ -189,19 +177,10 @@ export function playerActionSystem(context) {
         const canDash =
           input.dash &&
           entity.has(Grounded) &&
-          vitals.stamina >= DASH.STAMINA_COST
+          vitals.stamina >= resolveDashCost(vitals)
 
         if (canDash) {
-          action.current = 'dash'
-          action.elapsed = 0
-          // Ver docstring de `ActionState.animationSpeed` — o clipe
-          // de dash toca nesta velocidade em vez de um `speed` fixo
-          // no JSON do clipe.
-          action.animationSpeed = DASH.DURATION > 0 ? 1 / DASH.DURATION : 1
-          action.dirX = Math.sin(rot.y)
-          action.dirZ = Math.cos(rot.y)
-          vitals.stamina -= DASH.STAMINA_COST
-          vitals.staminaRegenDelay = vitals.staminaRegenDelayAfterUse
+          iniciarDash(action, vitals, Math.sin(rot.y), Math.cos(rot.y))
         } else if (input.primary) {
           const item = heldItem.itemId ? getItem(heldItem.itemId) : null
 
@@ -258,23 +237,16 @@ export function playerActionSystem(context) {
         return
       }
 
-      const previousElapsed = action.elapsed
-      action.elapsed += delta
-
       if (action.current === 'dash') {
-        const exitSpeed = resolveDashExitSpeed(entity)
         // No tick do fim, já deixa a velocidade de saída — o
         // `movementSystem` (que roda ANTES) zerou a velocidade por ainda
         // ver o dash ativo; sem isso sobrava um tick parado no fim.
-        const speed =
-          action.elapsed >= DASH.DURATION
-            ? exitSpeed
-            : resolveDashSpeed(DASH, action.elapsed, exitSpeed)
-        vel.x = action.dirX * speed
-        vel.z = action.dirZ * speed
-        if (action.elapsed >= DASH.DURATION) action.current = null
+        avancarDash(action, vel, delta, resolveDashExitSpeed(entity))
         return
       }
+
+      const previousElapsed = action.elapsed
+      action.elapsed += delta
 
       if (action.current === 'throw') {
         if (

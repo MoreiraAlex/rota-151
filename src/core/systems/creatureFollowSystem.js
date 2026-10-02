@@ -1,4 +1,5 @@
 import { GAME_CONFIG } from '../gameConfig'
+import { resolveMoveSpeed } from '../actions/movementSpeed'
 import { tentarCorrer } from '../actions/stamina'
 import { lerpAngle } from '../math'
 import { findPath } from '../pathfinding'
@@ -12,6 +13,7 @@ import {
   MovementBlocked,
   MovementStats,
   PartyBehavior,
+  TrainerBehavior,
   PathState,
   PhysicsBody,
   Position,
@@ -213,6 +215,10 @@ export function creatureFollowSystem(context) {
       if (entity.has(Fainted)) return
       // Lutando pra defender o grupo: quem move é o `partyBehaviorSystem.js`.
       if (entity.get(PartyBehavior)?.state === 'fight') return
+      // Treinador numa luta (longe dela, desviando, fugindo pro time): quem
+      // move é o `trainerBattleSystem.js`.
+      const trainerState = entity.get(TrainerBehavior)?.state
+      if (trainerState && trainerState !== 'follow') return
       // Ação em andamento (ex.: `appeal` ao ser invocada): fica parada.
       if (entity.get(ActionState)?.current) {
         vel.x = 0
@@ -258,7 +264,7 @@ export function creatureFollowSystem(context) {
         // alvo (já não precisa).
         dirX = avoidX
         dirZ = avoidZ
-        speed = stats.walkSpeed
+        speed = resolveMoveSpeed(stats, vitals, false)
         // Só desviando: não está navegando rumo a nada (ver `PathState.target`).
         entity.set(PathState, { ...entity.get(PathState), target: null })
       } else {
@@ -346,10 +352,11 @@ export function creatureFollowSystem(context) {
 
         // Longe: corre pra alcançar — pagando stamina, igual ao jogador
         // (`tentarCorrer`); sem fôlego, anda.
-        speed =
-          distance > RUN_DISTANCE && tentarCorrer(vitals, delta)
-            ? stats.runSpeed
-            : stats.walkSpeed
+        speed = resolveMoveSpeed(
+          stats,
+          vitals,
+          distance > RUN_DISTANCE && tentarCorrer(vitals, delta),
+        )
       }
 
       const dirLength = Math.hypot(dirX, dirZ) || 1

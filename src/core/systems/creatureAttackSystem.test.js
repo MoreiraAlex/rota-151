@@ -50,6 +50,7 @@ import {
   Vitals,
   vitalsFromSpecies,
   WantsToAttack,
+  WildBehavior,
   WildCreature,
 } from '@/core/traits'
 import { creatureAttackSystem } from './creatureAttackSystem'
@@ -1548,6 +1549,60 @@ describe('creatureAttackSystem — selvagem atacando (IA)', () => {
     expect(wild.get(Rotation).y).toBeCloseTo(Math.PI / 2)
     expect(wild.has(WantsToAttack)).toBe(false)
     expect(wild.has(CombatMode)).toBe(true)
+  })
+
+  it('pedido com slot lança a HABILIDADE pedida, mirando no alvo', () => {
+    const world = spawnWorld()
+    const mine = spawnControlledCreature(world, {
+      speciesId: 'bulbasaur',
+      position: { x: 1, y: 1, z: 0 },
+    })
+    const wild = spawnWildAttacker(world, { x: 0, y: 1, z: 0 })
+    wild.add(WantsToAttack({ target: mine, slot: 'secondary3' }))
+
+    tick(world)
+
+    expect(wild.get(ActionState)).toMatchObject({
+      current: 'attack',
+      pendingSlot: 'secondary3',
+    })
+    expect(wild.get(Rotation).y).toBeCloseTo(Math.PI / 2)
+  })
+
+  it('feixe da IA (Water Gun) segue o alvo durante o canal, com giro limitado', () => {
+    const world = spawnWorld()
+    const mine = spawnControlledCreature(world, {
+      speciesId: 'bulbasaur',
+      position: { x: 0, y: 1, z: 3 },
+    })
+    const squirtle = getSpecies('squirtle')
+    const wild = world.spawn(
+      Position({ x: 0, y: 1, z: 0 }),
+      Rotation,
+      ActionState,
+      AttackCooldowns,
+      Mood,
+      CharacterController(squirtle.body),
+      PhysicsBody,
+      vitalsFromSpecies(squirtle),
+      WildCreature({ speciesId: 'squirtle' }),
+      WildBehavior({ state: 'chase', target: mine }),
+      IndividualValues,
+    )
+    wild.add(WantsToAttack({ target: mine, slot: 'secondary2' })) // water-gun
+    tick(world)
+    expect(wild.get(ActionState).dirZ).toBeCloseTo(1) // mirou em +Z
+
+    // O alvo corre pro lado (+X): o feixe acompanha, sem pular direto.
+    mine.set(Position, { x: 3, y: 1, z: 0 })
+    tick(world)
+    const yaw = Math.atan2(
+      wild.get(ActionState).dirX,
+      wild.get(ActionState).dirZ,
+    )
+    expect(yaw).toBeGreaterThan(0)
+    expect(yaw).toBeLessThan(Math.PI / 2)
+    expect(wild.get(Rotation).y).toBeCloseTo(yaw)
   })
 
   it('o golpe da selvagem acerta a criatura do jogador e emite o evento', () => {

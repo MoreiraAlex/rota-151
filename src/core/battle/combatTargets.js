@@ -1,3 +1,4 @@
+import { GAME_CONFIG } from '../gameConfig'
 import { resolveCreatureAttack } from './creatureAttack'
 import {
   CharacterController,
@@ -49,6 +50,24 @@ export function listPlayerSide(world) {
   return list
 }
 
+/**
+ * O treinador só é alvo se for o ÚNICO do lado do jogador ao alcance da
+ * selvagem (docs/features/034-ia-de-batalha.md, Parte 4): com alguma criatura
+ * do time ativa a até `radius` de `pos` (o raio de perseguição/aggro da
+ * selvagem agora), ele sai dos `candidates`. Sem raio, a lista volta igual.
+ */
+export function excludeCoveredTrainer(candidates, pos, radius) {
+  if (radius == null) return candidates
+  const covered = candidates.some(
+    (candidate) =>
+      !candidate.entity.has(Party) &&
+      horizontalDistance(pos, candidate.pos) <= radius,
+  )
+  return covered
+    ? candidates.filter((candidate) => !candidate.entity.has(Party))
+    : candidates
+}
+
 /** O mais perto de `pos` (no plano) numa lista `{ entity, pos }`, ou `null`. */
 export function findNearest(pos, candidates) {
   let best = null
@@ -62,9 +81,42 @@ export function findNearest(pos, candidates) {
 }
 
 /**
+ * Peso de "terminar a luta" de um alvo (Parte 3 da docs/features/034-ia-de-
+ * batalha.md): `AI_TARGET.FINISH_BONUS` com a vida em `FINISH_HP_FRACTION`
+ * ou menos; senão 1. Vale pros dois lados (selvagem e criatura do time).
+ */
+export function resolveFinishWeight(entity) {
+  const { FINISH_HP_FRACTION, FINISH_BONUS } = GAME_CONFIG.AI_TARGET
+  const vitals = entity?.get(Vitals)
+  if (!vitals || !(vitals.maxHp > 0)) return 1
+  return vitals.hp / vitals.maxHp <= FINISH_HP_FRACTION ? FINISH_BONUS : 1
+}
+
+/**
+ * O mais perto de `pos` contando a prioridade por vida
+ * (`resolveFinishWeight`): a distância de quem está quase desmaiando é
+ * dividida pelo peso. `{ entity, pos, distance }` (distância real) ou `null`.
+ */
+export function findNearestWeighted(pos, candidates) {
+  let best = null
+  let bestScore = Infinity
+  for (const candidate of candidates) {
+    const distance = horizontalDistance(pos, candidate.pos)
+    const score = distance / resolveFinishWeight(candidate.entity)
+    if (score < bestScore) {
+      bestScore = score
+      best = { entity: candidate.entity, pos: candidate.pos, distance }
+    }
+  }
+  return best
+}
+
+/**
  * Alvo de uma selvagem entre `candidates` (`listPlayerSide`): quem mais
  * causou dano nela (topo do `Threat` que ainda está na luta) ou, sem
- * ameaça, quem está mais perto. `{ entity, pos, distance }` ou `null`.
+ * ameaça, quem está mais perto — nos dois casos com prioridade pra quem
+ * está quase desmaiando (`resolveFinishWeight` multiplica a ameaça e divide
+ * a distância). `{ entity, pos, distance }` ou `null`.
  */
 export function resolveWildTarget(wild, pos, candidates) {
   const entries = wild.get(Threat)?.entries ?? []
@@ -72,7 +124,8 @@ export function resolveWildTarget(wild, pos, candidates) {
   for (const entry of entries) {
     const candidate = candidates.find((c) => c.entity === entry.entity)
     if (!candidate) continue
-    if (!top || entry.amount > top.amount) top = { ...entry, candidate }
+    const score = entry.amount * resolveFinishWeight(candidate.entity)
+    if (!top || score > top.score) top = { score, candidate }
   }
   if (top) {
     return {
@@ -81,7 +134,34 @@ export function resolveWildTarget(wild, pos, candidates) {
       distance: horizontalDistance(pos, top.candidate.pos),
     }
   }
-  return findNearest(pos, candidates)
+  return findNearestWeighted(pos, candidates)
+}
+
+/**
+ * Selvagem que a criatura do time escolhe ao trocar de alvo: a com MENOS
+ * vida (fração) entre `candidates` — terminar a luta —, empate pela mais
+ * perto. `{ entity, pos, distance }` ou `null`.
+ */
+export function findWeakest(pos, candidates) {
+  let best = null
+  for (const candidate of candidates) {
+    const vitals = candidate.entity.get(Vitals)
+    const fraction = vitals?.maxHp > 0 ? vitals.hp / vitals.maxHp : 1
+    const distance = horizontalDistance(pos, candidate.pos)
+    if (
+      !best ||
+      fraction < best.fraction - 1e-9 ||
+      (Math.abs(fraction - best.fraction) <= 1e-9 && distance < best.distance)
+    ) {
+      best = {
+        entity: candidate.entity,
+        pos: candidate.pos,
+        distance,
+        fraction,
+      }
+    }
+  }
+  return best && { entity: best.entity, pos: best.pos, distance: best.distance }
 }
 
 /**

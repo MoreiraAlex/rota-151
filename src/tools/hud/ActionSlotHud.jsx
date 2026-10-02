@@ -48,16 +48,19 @@ export function ActionSlotHud() {
 
   return (
     <>
-    {creature && cooldowns ? (
+      {creature && cooldowns ? (
         <div className="pointer-events-none absolute bottom-4 left-[40%] font-mono text-xs text-white">
-          <ActionSlotAttack speciesId={creature.speciesId} remaining={cooldowns.primary} />
+          <ActionSlotAttack
+            speciesId={creature.speciesId}
+            remaining={cooldowns.primary}
+          />
         </div>
       ) : (
         <div className="pointer-events-none absolute bottom-4 right-4 font-mono text-xs text-white">
           <ActionSlotItem heldItem={heldItem} inventory={inventory} />
         </div>
       )}
-      </>
+    </>
   )
 }
 
@@ -65,7 +68,13 @@ function ActionSlotAttack({ speciesId, remaining }) {
   const species = getSpecies(speciesId)
   const attack = resolveCreatureAttack(species, 'primary')
 
-  return <SkillSlot label={<MouseLeft size={16}/>} attack={attack} remaining={remaining} />
+  return (
+    <SkillSlot
+      label={<MouseLeft size={16} />}
+      attack={attack}
+      remaining={remaining}
+    />
+  )
 }
 
 function ActionSlotItem({ heldItem, inventory }) {
@@ -77,7 +86,9 @@ function ActionSlotItem({ heldItem, inventory }) {
 
   return (
     <div className="flex h-16 w-16 flex-col items-center justify-center gap-0.5 rounded border border-white/20 bg-black/70 p-1.5">
-      <span className="absolute left-1 top-1 z-20 text-sm text-white"><MouseLeft size={16}/></span>
+      <span className="absolute left-1 top-1 z-20 text-sm text-white">
+        <MouseLeft size={16} />
+      </span>
       {heldItem.itemId && (
         <SlotPreview kind="item" id={heldItem.itemId} count={heldItemCount} />
       )}

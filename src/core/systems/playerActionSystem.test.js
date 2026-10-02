@@ -19,6 +19,7 @@ import { GAME_CONFIG } from '@/core/gameConfig'
 import { getItem } from '@/core/data/items'
 import { getSpecies, getPlayerSpecies } from '@/core/data/species'
 import { computeAimRay } from '@/core/camera/orbitCamera'
+import { resolveDashCost } from '../actions/stamina'
 import { playerActionSystem, resolveDashSpeed } from './playerActionSystem'
 
 // DASH continua global (GAME_CONFIG) — THROW/CONSUME são exclusivos do
@@ -97,6 +98,19 @@ describe('playerActionSystem — dash', () => {
 
     const vel = player.get(Velocity)
     expect(Math.hypot(vel.x, vel.z)).toBeCloseTo(SPEED)
+  })
+
+  it('ferido, o dash custa mais (STAMINA_COST × o multiplicador da vida)', () => {
+    const { world, player } = spawnWorld()
+    player.add(Grounded)
+    const { maxHp } = player.get(Vitals)
+    player.set(Vitals, { hp: maxHp * 0.25, stamina: 100 })
+    const cost = resolveDashCost(player.get(Vitals))
+    expect(cost).toBeGreaterThan(STAMINA_COST)
+
+    tick(world, { dash: true })
+
+    expect(player.get(Vitals).stamina).toBeCloseTo(100 - cost)
   })
 
   it('desconta o custo de stamina uma única vez, no disparo', () => {

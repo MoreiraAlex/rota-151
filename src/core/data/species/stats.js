@@ -24,12 +24,12 @@ export function calculateHpStat({ base, iv, ev, level }) {
   return (
     Math.trunc(((2 * base + iv + Math.trunc(ev / 4)) * level) / 100) +
     level +
-    50
+    10
   )
 }
 
-export function calculateEnergyStat({ hp, defense, sp_def }) {
-  return Math.trunc((hp + defense + sp_def) / 3) + 25
+export function calculateEnergyStat({ hp, defense, sp_def: spDef }) {
+  return Math.trunc((hp + defense + spDef) / 3) + 10
 }
 
 /**

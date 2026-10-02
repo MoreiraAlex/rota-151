@@ -24,6 +24,7 @@ import { wildBehaviorSystem } from '@/core/systems/wildBehaviorSystem'
 import { wildReactionSystem } from '@/core/systems/wildReactionSystem'
 import { partyBehaviorSystem } from '@/core/systems/partyBehaviorSystem'
 import { partyReactionSystem } from '@/core/systems/partyReactionSystem'
+import { trainerBattleSystem } from '@/core/systems/trainerBattleSystem'
 import { projectileSystem } from '@/core/systems/projectileSystem'
 import { consumeEffectSystem } from '@/core/systems/consumeEffectSystem'
 import { summonEffectsSystem } from '@/core/systems/summonEffectsSystem'
@@ -184,6 +185,9 @@ export function registerGameSystems() {
   registerSystem(GAME_PHASES.SIMULATION, creatureAppealSystem)
   // Antes do follow: quem está lutando pra defender o grupo não segue.
   registerSystem(GAME_PHASES.SIMULATION, partyBehaviorSystem)
+  // Treinador fora do controle numa luta: longe dela, desviando, fugindo pro
+  // time (antes do follow, que o pula fora de 'follow').
+  registerSystem(GAME_PHASES.SIMULATION, trainerBattleSystem)
   registerSystem(GAME_PHASES.SIMULATION, creatureFollowSystem)
   registerSystem(GAME_PHASES.SIMULATION, wildCreatureSpawnSystem)
   // Antes do vagar: decide perseguir/fugir/voltar a vagar e move quem

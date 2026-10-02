@@ -230,6 +230,21 @@ export function inspectCell(x, z) {
   }
 }
 
+/**
+ * O ponto `(x, z)` está DENTRO do mapa navegável e numa célula andável? Fora
+ * da grade → `false` (diferente de `findPath`, que prende a coordenada na
+ * borda). Usado pra escolher destino de fuga
+ * (`core/battle/flee.js`) — destino dentro de obstáculo ou fora do mapa
+ * fazia a criatura correr contra a parede.
+ */
+export function isWalkableAt(x, z) {
+  const { origin, cellSize, cols, rows, grid } = getNavGrid()
+  const col = Math.floor((x - origin) / cellSize)
+  const row = Math.floor((z - origin) / cellSize)
+  if (col < 0 || row < 0 || col >= cols || row >= rows) return false
+  return grid.isWalkableAt(col, row)
+}
+
 function getNavGrid() {
   if (!cachedGrid) cachedGrid = buildNavGrid()
   return cachedGrid

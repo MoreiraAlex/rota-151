@@ -121,16 +121,16 @@ export const CHARMANDER = {
   },
   basicAttack: BASIC_ATTACK,
   skills: {
-    1: { 
-      id: 'growl', 
-      overrides: { 
-        audio: { 
+    1: {
+      id: 'growl',
+      overrides: {
+        audio: {
           cry: false,
-          clips: ['/assets/audio/voices/004-charmander/cry-02.wav'], 
+          clips: ['/assets/audio/voices/004-charmander/cry-02.wav'],
           volume: 2,
           refDistance: 4,
-        } 
-      } 
+        },
+      },
     },
     2: { id: 'tackle', overrides: { range: 1.4, duration: 1, effectAt: 0.4 } },
     3: {
@@ -152,7 +152,25 @@ export const CHARMANDER = {
     speed: { base: SPEED, ev: SPEED_EV },
   },
   moves: [
-    { id: 'smokescreen', overrides: { range: 2.5, radius: 2, duration: 2, effectAt: 0.6, visual: { positionOffset: { x: 0, y: 0, z: 0.5 }, scale: 3 } } },
-    { id: 'flamethrower', overrides: { range: 2.5, radius: 2, duration: 2, effectAt: 0.6, visual: { positionOffset: { x: 0, y: 0, z: 0.5 }, scale: 3 } } },
+    {
+      id: 'smokescreen',
+      overrides: {
+        range: 2.5,
+        radius: 2,
+        duration: 2,
+        effectAt: 0.6,
+        visual: { positionOffset: { x: 0, y: 0, z: 0.5 }, scale: 3 },
+      },
+    },
+    {
+      id: 'flamethrower',
+      overrides: {
+        range: 2.5,
+        radius: 2,
+        duration: 2,
+        effectAt: 0.6,
+        visual: { positionOffset: { x: 0, y: 0, z: 0.5 }, scale: 3 },
+      },
+    },
   ],
 }

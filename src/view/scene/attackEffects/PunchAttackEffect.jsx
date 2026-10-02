@@ -57,9 +57,13 @@ const SHOCKWAVE_BASE_SCALE = 0.025
  */
 export function PunchAttackEffect({ radius, scale = 1 }) {
   const hit = useAdditiveEffectMesh(HIT_MODEL_PATH, HIT_COLOR)
-  const shockwave = useAdditiveEffectMesh(SHOCKWAVE_MODEL_PATH, SHOCKWAVE_COLOR, {
-    alignForwardTip: true,
-  })
+  const shockwave = useAdditiveEffectMesh(
+    SHOCKWAVE_MODEL_PATH,
+    SHOCKWAVE_COLOR,
+    {
+      alignForwardTip: true,
+    },
+  )
   const elapsedRef = useRef(0)
 
   useFrame((_state, delta) => {

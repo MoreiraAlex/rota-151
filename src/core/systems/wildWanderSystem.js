@@ -1,3 +1,4 @@
+import { resolveMoveSpeed } from '../actions/movementSpeed'
 import { GAME_CONFIG } from '../gameConfig'
 import { steerTowards } from '../steering'
 import {
@@ -7,6 +8,7 @@ import {
   Position,
   Rotation,
   Velocity,
+  Vitals,
   WanderState,
   WildBehavior,
   WildCreature,
@@ -19,7 +21,8 @@ import {
  *
  * A navegação até o destino (caminho pela grade, desvio quando trava,
  * giro suave) é `steerTowards` (`core/steering.js`), a mesma usada pra
- * perseguir e fugir. Sempre `walkSpeed` (sem correr vagando) e sem
+ * perseguir e fugir. Sempre andando (`walkSpeed`, mais devagar ferida —
+ * `resolveMoveSpeed`), sem correr vagando, e sem
  * evasão entre personagens.
  *
  * Ciclo por criatura (`WanderState`):
@@ -88,7 +91,8 @@ export function wildWanderSystem(context) {
         entity,
         { pos, rot, vel, stats },
         { x: wander.targetX, z: wander.targetZ },
-        stats.walkSpeed,
+        // Ferida vaga mais devagar (`resolveMoveSpeed`).
+        resolveMoveSpeed(stats, entity.get(Vitals), false),
         delta,
       )
     })

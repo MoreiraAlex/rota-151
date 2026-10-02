@@ -5,6 +5,7 @@ import { getSpecies } from '@/core/data/species'
 import { steerTowards } from '@/core/steering'
 import { voltarAVagar } from '@/core/actions/wildBehavior'
 import {
+  AiMovement,
   CharacterController,
   InputControlled,
   MovementStats,
@@ -107,6 +108,7 @@ describe('PathState.target', () => {
     worlds.push(world)
     const entity = spawnNavigator(world, { x: 30, y: 0.5, z: 30 })
     entity.add(WildBehavior({ state: 'chase' }))
+    entity.add(AiMovement)
     entity.set(PathState, { ...entity.get(PathState), target: { x: 1, z: 1 } })
 
     voltarAVagar(entity, entity.get(Position))

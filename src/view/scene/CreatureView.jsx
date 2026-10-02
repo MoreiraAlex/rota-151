@@ -1,7 +1,12 @@
 import { useEffect } from 'react'
 import { useQuery } from 'koota/react'
 import { getSpecies } from '@/core/data/species'
-import { SummonedCreature, WildCreature, Position, Rotation } from '@/core/traits'
+import {
+  SummonedCreature,
+  WildCreature,
+  Position,
+  Rotation,
+} from '@/core/traits'
 import { useAnimatedModel } from '../hooks/useAnimatedModel'
 import { CREATURE_TINTS } from '../creatureTints'
 

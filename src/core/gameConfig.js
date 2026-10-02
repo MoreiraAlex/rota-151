@@ -265,6 +265,24 @@ export const GAME_CONFIG = {
   // ações de verdade — em `core/data/species/bot/index.js`
   // (`actions`/`party`), lidos via `getPlayerSpecies()`
   // (`core/data/species/index.js`).
+  // Corrida e dash custam mais energia com a vida baixa — pra todo mundo
+  // (jogador, time, selvagens; `resolveMovementCostMultiplier`,
+  // core/actions/stamina.js): × 1 com a vida cheia até × MAX_MULTIPLIER com
+  // ela em 0, pela curva (1 - vida) ^ EXPONENT — com 2: metade da vida ×2.75,
+  // um quarto ×4.9 (com MAX 8).
+  STAMINA_BY_HP: {
+    MAX_MULTIPLIER: 8,
+    EXPONENT: 2,
+  },
+  // Andar e correr ficam mais lentos com a vida baixa — pra todo mundo
+  // (`resolveSpeedMultiplier`, core/actions/movementSpeed.js): × 1 com a vida
+  // cheia até × MIN_MULTIPLIER com ela em 0, pela curva (1 - vida) ^ EXPONENT
+  // — com 0.6 e 2: metade da vida × 0.9, um quarto × 0.78, 10% × 0.68. Não
+  // vale pro dash.
+  SPEED_BY_HP: {
+    MIN_MULTIPLIER: 0.6,
+    EXPONENT: 2,
+  },
   PLAYER_ACTIONS: {
     dash: {
       // Duração do impulso (segundos).
@@ -276,7 +294,7 @@ export const GAME_CONFIG = {
       // Frenagem (s): nos últimos EASE_OUT_TIME segundos, a velocidade desce
       // suave de SPEED até a de saída (0 / andar / correr, pelo input) em
       // vez de cair de uma vez no tick seguinte. Limitado a metade de
-      // DURATION; 0 desliga. Ver `resolveDashSpeed` (playerActionSystem.js).
+      // DURATION; 0 desliga. Ver `resolveDashSpeed` (core/actions/dash.js).
       EASE_OUT_TIME: 0.25,
     },
   },
@@ -364,14 +382,43 @@ export const GAME_CONFIG = {
     CHASE_STOP_GAP: 0.8,
     // Segundos entre um pedido de golpe e o próximo, perseguindo.
     ATTACK_INTERVAL: 1.2,
-    // Pacífica que apanha: chance (0-1) de revidar; senão, foge.
+    // Pacífica que apanha: chance (0-1) BASE de revidar; senão, foge. A
+    // chance de verdade é a "coragem" pela situação (`resolveRetaliateChance`):
+    // sobe com a vida dela (peso × quanto passa de metade), cai com o tamanho
+    // do golpe (peso × dano em fração da vida máxima), sobe se ela está
+    // melhor que o agressor (peso × diferença das vidas) — limitada entre
+    // MIN e MAX (sempre sobra surpresa).
     RETALIATE_CHANCE: 0.5,
+    COURAGE_HP_WEIGHT: 0.6,
+    COURAGE_HIT_WEIGHT: 1,
+    COURAGE_ADVANTAGE_WEIGHT: 0.4,
+    COURAGE_MIN_CHANCE: 0.05,
+    COURAGE_MAX_CHANCE: 0.95,
+    // Fuga com HP baixo: perseguindo (hostil ou pacífica revidando), ao
+    // chegar nesta fração da vida sorteia UMA vez se foge...
+    LOW_HP_FLEE_FRACTION: 0.25,
+    LOW_HP_FLEE_CHANCE: 0.5,
+    // ...e fugindo assim não persegue ninguém (nem hostil no raio, nem
+    // apanhando) até a vida voltar a esta fração.
+    LOW_HP_RECOVER_FRACTION: 0.5,
+    // Ameaça cai pela metade a cada este tanto (s); entrada abaixo de
+    // THREAT_MIN sai da tabela.
+    THREAT_HALF_LIFE: 10,
+    THREAT_MIN: 0.5,
     // Quem persegue porque APANHOU (pacífica revidando, ou hostil atacada
     // de longe) só desiste além desta distância (m).
     RETALIATE_LEASH_RADIUS: 14,
-    // Fugindo: corre pra um ponto este tanto (m) à frente, na direção
-    // oposta ao jogador (recalculado sempre)...
+    // Fugindo: corre pra um ponto a este tanto (m) dela — escolhido entre
+    // FLEE_DIRECTIONS direções em volta, o ANDÁVEL que deixa ela mais longe
+    // de quem persegue (bônus de FLEE_CLEAR_LINE_BONUS m se o caminho reto
+    // está livre) — `resolveFleeDestination`, core/battle/flee.js. Guardado e
+    // refeito a cada FLEE_REPICK_INTERVAL (s), ao chegar (FLEE_ARRIVE_DISTANCE,
+    // m) ou travando...
     FLEE_STEP: 6,
+    FLEE_DIRECTIONS: 16,
+    FLEE_CLEAR_LINE_BONUS: 2,
+    FLEE_REPICK_INTERVAL: 0.75,
+    FLEE_ARRIVE_DISTANCE: 1,
     // ...até ficar a esta distância (m); aí volta a vagar dali.
     FLEE_SAFE_DISTANCE: 14,
   },
@@ -388,6 +435,109 @@ export const GAME_CONFIG = {
     // Se afastou mais que isto (m, no plano) de quem segue (quem está no
     // controle), larga a luta e volta a seguir.
     LEASH_RADIUS: 15,
+  },
+  // Treinador numa luta, fora do controle (`trainerBattleSystem.js`): fica
+  // longe, desvia, foge pro time se mirado. A selvagem só mira nele se ele
+  // for o único do lado do jogador no raio de perseguição dela
+  // (`excludeCoveredTrainer`, core/battle/combatTargets.js).
+  TRAINER_BATTLE: {
+    // Zona segura (com folga): a pelo menos SAFE_MIN_DISTANCE (m) de toda
+    // selvagem na luta e no máximo SAFE_MAX_DISTANCE (m) da criatura
+    // controlada — dentro dela, fica parado encarando a luta.
+    SAFE_MIN_DISTANCE: 5,
+    SAFE_MAX_DISTANCE: 12,
+    // Fora da zona: vai pra um ponto a esta distância (m) atrás da criatura
+    // controlada, do lado oposto à selvagem mais perto dela — escolhido UMA
+    // vez e guardado até chegar (ou ficar fora da zona).
+    SAFE_DISTANCE: 7,
+    // Chegou na posição segura com esta folga (m): para e encara a luta.
+    ARRIVE_DISTANCE: 1,
+    // Corre (em vez de andar) se alguma selvagem estiver a esta distância
+    // (m) dele.
+    DANGER_DISTANCE: 4,
+    // Mirado por uma selvagem: corre até ficar a esta distância (m) da
+    // criatura do time mais perto.
+    TEAM_STOP_DISTANCE: 2,
+  },
+  // Escolha do ALVO pela IA (os dois lados — `core/battle/combatTargets.js`):
+  // alvo quase desmaiando ganha prioridade, pra terminar a luta.
+  AI_TARGET: {
+    // Vida (fração) em que o alvo passa a ter prioridade...
+    FINISH_HP_FRACTION: 0.25,
+    // ...e quanto: multiplica a ameaça dele (e divide a distância) na
+    // selvagem. A criatura do time, ao trocar de alvo, pega a de menos vida.
+    FINISH_BONUS: 2,
+  },
+  // Escolha do golpe pela IA (selvagens e time fora do controle —
+  // `core/battle/aiAttackChoice.js`): cada golpe pronto ganha uma nota pelos
+  // campos da definição (poder, área, efeitos), nunca pelo id da skill.
+  AI_ATTACK: {
+    // Golpe que já alcança o alvo agora vale este tanto a mais (prefere
+    // lançar já a correr até o alcance de outro).
+    IN_REACH_BONUS: 1.25,
+    // Sorteio entre os golpes com nota de pelo menos esta fração da melhor,
+    // com chance proporcional à nota — não fica previsível.
+    NEAR_BEST_FRACTION: 0.6,
+    // Valor de UM estágio de status (baixar o do inimigo, subir o próprio),
+    // na mesma escala do `damage.power` (o básico vale 5, um Tackle 40).
+    STAT_STAGE_VALUE: 25,
+    // Cada estágio já acumulado no sentido do efeito multiplica o valor por
+    // isto (1 → 0.67 → 0.44...): acumula, mas bater passa a valer mais.
+    STAT_STAGE_DECAY: 2 / 3,
+    // Valor de plantar uma semente (efeito `leechSeed`).
+    LEECH_SEED_VALUE: 35,
+    // Efeito ativo com até estes segundos sobrando volta a valer cheio
+    // (renovar antes de acabar).
+    EFFECT_REFRESH_TIME: 3,
+    // Golpe em si mesmo (`area: 'self'`, ex.: Growth) só com nenhum inimigo
+    // a esta distância (m) — a carga é interrompida por dano.
+    SELF_CAST_SAFE_DISTANCE: 4,
+  },
+  // Energia da IA na luta (`core/battle/aiEnergy.js`) — todo gasto reinicia o
+  // atraso da regeneração, então gastar sempre um pouco nunca deixa regenerar.
+  AI_ENERGY: {
+    // Habilidade (golpe mais caro que o mais barato pronto) só se sobrar
+    // esta fração (0-1) da energia máxima depois de pagar.
+    SKILL_RESERVE_FRACTION: 0.25,
+    // Com a energia nesta fração ou menos, descansa: sem golpe e sem correr...
+    REST_ENTER_FRACTION: 0.15,
+    // ...até voltar a esta fração.
+    REST_EXIT_FRACTION: 0.6,
+  },
+  // Movimento da IA na luta (`core/battle/aiMovement.js`): desvio, recuo,
+  // rodear o alvo, dash e o feixe seguindo o alvo.
+  AI_MOVEMENT: {
+    // Chance (0-1) de reagir a um golpe vindo nela — sorteada UMA vez por
+    // golpe.
+    DODGE_CHANCE: 0.5,
+    // Só reage depois de o golpe estar carregando há isto (s) — golpe rápido
+    // demais pega.
+    DODGE_REACTION_TIME: 0.2,
+    // Golpe planejado à distância (`aim: 'ranged'`): recua se o alvo estiver
+    // mais perto que esta fração do alcance dele...
+    KEEP_DISTANCE_MIN: 0.5,
+    // ...andando pra um ponto este tanto (m) pra trás (recalculado sempre).
+    RETREAT_STEP: 3,
+    // Rodeando o alvo: velocidade como fração do `walkSpeed` (andando — não
+    // gasta energia)...
+    STRAFE_SPEED_FACTOR: 0.6,
+    // ...a esta fração da distância de parada (dentro do alcance)...
+    STRAFE_DISTANCE_FRACTION: 0.9,
+    // ...trocando de sentido a cada intervalo sorteado entre estes (s).
+    STRAFE_SWITCH_MIN: 1.5,
+    STRAFE_SWITCH_MAX: 3.5,
+    // Rodeando, ela anda virada pra onde vai; com o golpe pronto, para e vira
+    // pro alvo, e só pede o golpe com o corpo a até este ângulo (rad, ~20°)
+    // dele — o disparo trava o corpo de uma vez, vindo de lado seria um estalo.
+    AIM_TOLERANCE: 0.35,
+    // Segundos entre um dash e outro da IA (o dash usa
+    // `PLAYER_ACTIONS.dash` — mesma velocidade, duração e custo do jogador).
+    DASH_INTERVAL: 4,
+    // Aproximando: dá dash se ainda faltar mais que isto (m) até o alcance.
+    DASH_CLOSE_DISTANCE: 5,
+    // Feixe da IA (canal em `area: 'line'`): quanto (rad/s) ele gira no
+    // máximo pra seguir o alvo — dá pra escapar correndo de lado.
+    BEAM_TURN_SPEED: 1.5,
   },
   // Desmaio (`faintSystem.js`, `Fainted`): criatura (selvagem ou do time)
   // que chega a 0 de HP.

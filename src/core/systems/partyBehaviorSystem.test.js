@@ -16,6 +16,7 @@ import {
   Mood,
   MovementStats,
   PartyBehavior,
+  AiMovement,
   PathState,
   PhysicsBody,
   Position,
@@ -51,11 +52,21 @@ function at(dx, dz) {
   return { x: BASE.x + dx, y: BASE.y, z: BASE.z + dz }
 }
 
+// Habilidades travadas em cooldown: só o básico — os testes de distância/
+// intervalo não dependem do sorteio do golpe.
+const SKILLS_LOCKED = { secondary1: 999, secondary2: 999, secondary3: 999 }
+
 /** Criatura do time como o `summonBallSystem` cria (fora do controle). */
-function spawnPartyCreature(world, position, slot = 'slot1') {
+function spawnPartyCreature(
+  world,
+  position,
+  slot = 'slot1',
+  { skills = false } = {},
+) {
   return world.spawn(
     SummonedCreature({ slot, speciesId: 'charmander' }),
     PartyBehavior,
+    AiMovement,
     Position(position),
     Rotation,
     Velocity,
@@ -64,17 +75,18 @@ function spawnPartyCreature(world, position, slot = 'slot1') {
     PhysicsBody,
     PathState,
     ActionState,
-    AttackCooldowns,
+    AttackCooldowns(skills ? {} : SKILLS_LOCKED),
     IndividualValues,
     Mood,
     vitalsFromSpecies(CHARMANDER),
   )
 }
 
-function spawnWild(world, position) {
+function spawnWild(world, position, { skills = false } = {}) {
   return world.spawn(
     WildCreature({ speciesId: 'charmander' }),
     WildBehavior({ temperament: 'hostile' }),
+    AiMovement,
     Position(position),
     Rotation,
     Velocity,
@@ -84,7 +96,7 @@ function spawnWild(world, position) {
     PathState,
     WanderState({ homeX: position.x, homeZ: position.z }),
     ActionState,
-    AttackCooldowns,
+    AttackCooldowns(skills ? {} : SKILLS_LOCKED),
     IndividualValues,
     Mood,
     vitalsFromSpecies(CHARMANDER),
@@ -228,6 +240,25 @@ describe('partyBehaviorSystem — lutando', () => {
     expect(mine.has(WantsToAttack)).toBe(true)
   })
 
+  it('de lado pra selvagem: vira pra ela antes de pedir o golpe', () => {
+    const { world } = setup()
+    const mine = spawnPartyCreature(world, at(0, 3))
+    // Dentro da distância de parada, em +Z (yaw 0).
+    const wild = spawnWild(world, at(0, 3 + REACH * 0.5))
+    defenderGrupo(mine, wild)
+    mine.set(Rotation, { y: Math.PI / 2 })
+
+    tick(world)
+    expect(mine.has(WantsToAttack)).toBe(false)
+    expect(mine.get(AiMovement).mode).toBe('aim')
+
+    for (let i = 0; i < 30 && !mine.has(WantsToAttack); i++) tick(world)
+    expect(mine.has(WantsToAttack)).toBe(true)
+    expect(Math.abs(mine.get(Rotation).y)).toBeLessThanOrEqual(
+      GAME_CONFIG.AI_MOVEMENT.AIM_TOLERANCE,
+    )
+  })
+
   it('alvo desmaiou: troca pra outra selvagem que está lutando com o grupo', () => {
     const { world, trainer } = setup()
     const mine = spawnPartyCreature(world, at(0, 3))
@@ -292,7 +323,7 @@ describe('partyBehaviorSystem — lutando', () => {
 })
 
 describe('luta em grupo de ponta a ponta', () => {
-  it('selvagem hostil bate no treinador; a criatura do time entra na luta e tira vida dela', () => {
+  it('selvagem hostil perto do grupo bate na criatura (não no treinador), que entra na luta e tira vida dela', () => {
     const { world, trainer } = setup()
     // Sem física ninguém anda de verdade: todos já estão ao alcance.
     const mine = spawnPartyCreature(world, at(1.2, 1.2))
@@ -312,8 +343,187 @@ describe('luta em grupo de ponta a ponta', () => {
       partyReactionSystem(ctx)
     }
 
-    expect(trainer.get(Vitals).hp).toBeLessThan(trainerHpBefore)
+    // Com a criatura do time ali, o treinador não é alvo (Parte 4).
+    expect(trainer.get(Vitals).hp).toBe(trainerHpBefore)
+    expect(mine.get(Vitals).hp).toBeLessThan(mine.get(Vitals).maxHp)
     expect(stateOf(mine).state).toBe('fight')
     expect(wild.get(Vitals).hp).toBeLessThan(wildHpBefore)
+  })
+})
+
+describe('partyBehaviorSystem — habilidades (escolha do golpe)', () => {
+  function tick(world) {
+    partyBehaviorSystem({ world, delta: DELTA })
+    creatureFollowSystem({ world, delta: DELTA })
+  }
+
+  it('a 6m, com só o Ember pronto, para e pede o Ember de longe', () => {
+    const { world } = setup()
+    const mine = spawnPartyCreature(world, at(0, 3), 'slot1', { skills: true })
+    mine.set(AttackCooldowns, { secondary1: 999, secondary2: 999 })
+    const wild = spawnWild(world, at(0, 9))
+    defenderGrupo(mine, wild)
+
+    tick(world)
+
+    expect(mine.get(WantsToAttack)).toMatchObject({
+      target: wild,
+      slot: 'secondary3',
+    })
+    expect(Math.hypot(mine.get(Velocity).x, mine.get(Velocity).z)).toBe(0)
+    expect(stateOf(mine)).toMatchObject({
+      attackSlot: null,
+      lastAttackSlot: 'secondary3',
+    })
+  })
+
+  it('golpe planejado que alcança menos: corre até o alcance DELE', () => {
+    const { world } = setup()
+    const mine = spawnPartyCreature(world, at(0, 3), 'slot1', { skills: true })
+    mine.set(AttackCooldowns, { secondary1: 999, secondary3: 999 })
+    const wild = spawnWild(world, at(0, 9))
+    defenderGrupo(mine, wild)
+
+    tick(world)
+
+    expect(stateOf(mine).attackSlot).toBe('secondary2')
+    expect(mine.has(WantsToAttack)).toBe(false)
+    expect(mine.get(Velocity).z).toBeGreaterThan(0)
+  })
+
+  it('entrar na luta (ou trocar de alvo) descarta o golpe planejado', () => {
+    const { world } = setup()
+    const mine = spawnPartyCreature(world, at(0, 3))
+    mine.set(PartyBehavior, { attackSlot: 'secondary2' })
+
+    defenderGrupo(mine, spawnWild(world, at(0, 9)))
+
+    expect(stateOf(mine).attackSlot).toBeNull()
+  })
+
+  it('de ponta a ponta: a criatura do time usa habilidade e tira vida da selvagem', () => {
+    const { world } = setup()
+    const mine = spawnPartyCreature(world, at(1.2, 1.2), 'slot1', {
+      skills: true,
+    })
+    const wild = spawnWild(world, at(0, 1.2))
+    const wildHpBefore = wild.get(Vitals).hp
+    const used = new Set()
+    const events = createEventQueue()
+
+    for (let i = 0; i < 600; i++) {
+      events.beginStep()
+      const ctx = { world, delta: DELTA, input: {}, events }
+      creatureAttackSystem(ctx)
+      partyBehaviorSystem(ctx)
+      creatureFollowSystem(ctx)
+      wildBehaviorSystem(ctx)
+      wildReactionSystem(ctx)
+      partyReactionSystem(ctx)
+      const last = stateOf(mine).lastAttackSlot
+      if (last) used.add(last)
+    }
+
+    expect(mine.get(Vitals).hp).toBeLessThan(mine.get(Vitals).maxHp)
+    expect(wild.get(Vitals).hp).toBeLessThan(wildHpBefore)
+    expect([...used].some((slot) => slot !== 'primary')).toBe(true)
+  })
+
+  it('energia baixa: descansa — sem golpe e sem correr até recuperar', () => {
+    const { world } = setup()
+    const mine = spawnPartyCreature(world, at(0, 3), 'slot1', { skills: true })
+    const wild = spawnWild(world, at(0, 4.2)) // ao alcance do básico
+    defenderGrupo(mine, wild)
+    const { maxStamina } = mine.get(Vitals)
+    const { REST_ENTER_FRACTION, REST_EXIT_FRACTION } = GAME_CONFIG.AI_ENERGY
+    mine.set(Vitals, { stamina: REST_ENTER_FRACTION * maxStamina })
+
+    tick(world)
+    expect(stateOf(mine).resting).toBe(true)
+    expect(mine.has(WantsToAttack)).toBe(false)
+
+    mine.set(Vitals, { stamina: REST_EXIT_FRACTION * maxStamina })
+    tick(world)
+    expect(stateOf(mine).resting).toBe(false)
+    expect(mine.has(WantsToAttack)).toBe(true)
+  })
+})
+
+describe('partyBehaviorSystem — movimento na luta', () => {
+  function tick(world) {
+    partyBehaviorSystem({ world, delta: DELTA })
+    creatureFollowSystem({ world, delta: DELTA })
+  }
+
+  it('no alcance esperando o intervalo: rodeia a selvagem', () => {
+    const { world } = setup()
+    const mine = spawnPartyCreature(world, at(0, 3))
+    const wild = spawnWild(world, at(0, 4.2))
+    defenderGrupo(mine, wild)
+    tick(world) // pede o golpe (intervalo começa)
+    mine.remove(WantsToAttack)
+
+    tick(world)
+
+    expect(mine.get(AiMovement).mode).toBe('strafe')
+    expect(
+      Math.hypot(mine.get(Velocity).x, mine.get(Velocity).z),
+    ).toBeGreaterThan(0)
+  })
+
+  it('dash em andamento: segue nele, sem o follow puxar de volta', () => {
+    const { world } = setup()
+    const mine = spawnPartyCreature(world, at(0, 3))
+    defenderGrupo(mine, spawnWild(world, at(0, 9)))
+    mine.set(ActionState, { current: 'dash', elapsed: 0, dirX: 0, dirZ: 1 })
+
+    tick(world)
+
+    expect(mine.get(Velocity).z).toBeCloseTo(
+      GAME_CONFIG.PLAYER_ACTIONS.dash.SPEED,
+    )
+  })
+})
+
+describe('partyBehaviorSystem — decisões com critério', () => {
+  it('alvo saiu da luta: troca pra selvagem com MENOS vida (não a mais perto)', () => {
+    const { world } = setup()
+    const mine = spawnPartyCreature(world, at(0, 3))
+    // Lutando com outra criatura do time (não com o treinador — esse é o
+    // caso de proteger, outro teste).
+    const other = spawnPartyCreature(world, at(-2, 3), 'slot2')
+    const first = spawnWild(world, at(0, 5))
+    const near = spawnWild(world, at(1, 4))
+    const weak = spawnWild(world, at(4, 6))
+    for (const wild of [near, weak]) {
+      perseguirJogador(wild, { provoked: true })
+      wild.set(WildBehavior, { target: other })
+    }
+    weak.set(Vitals, { hp: weak.get(Vitals).maxHp * 0.2 })
+    defenderGrupo(mine, first)
+
+    desmaiar(world, first)
+    partyBehaviorSystem({ world, delta: DELTA })
+
+    expect(stateOf(mine).target).toBe(weak)
+  })
+})
+
+describe('partyBehaviorSystem — protege o treinador', () => {
+  it('lutando com uma selvagem, troca pra que está mirando o treinador', () => {
+    const { world, trainer } = setup()
+    const mine = spawnPartyCreature(world, at(0, 3))
+    const other = spawnPartyCreature(world, at(-2, 3), 'slot2')
+    const busy = spawnWild(world, at(0, 5))
+    perseguirJogador(busy, { provoked: true })
+    busy.set(WildBehavior, { target: other })
+    const hunter = spawnWild(world, at(3, 0))
+    perseguirJogador(hunter, { provoked: true })
+    hunter.set(WildBehavior, { target: trainer })
+    defenderGrupo(mine, busy)
+
+    partyBehaviorSystem({ world, delta: DELTA })
+
+    expect(stateOf(mine).target).toBe(hunter)
   })
 })

@@ -23,11 +23,7 @@
 
 const WILD_CREATURE_COUNT = 5
 
-const WILD_CREATURE_SPECIES = [
-  'bulbasaur',
-  'charmander',
-  'squirtle',
-]
+const WILD_CREATURE_SPECIES = ['bulbasaur', 'charmander', 'squirtle']
 
 const generateWildCreatures = (count) =>
   Array.from({ length: count }, (_, index) => ({

@@ -6,13 +6,18 @@ import { Html } from '@react-three/drei'
 import { useHas, useQuery, useTrait } from 'koota/react'
 import { verticalClearance } from '@/core/physics/colliders'
 import {
+  AiMovement,
   CharacterController,
   InputControlled,
   PartyBehavior,
   Position,
   SummonedCreature,
 } from '@/core/traits'
-import { combatantLabel } from './WildBehaviorDebugView'
+import {
+  attackPlanLabel,
+  combatantLabel,
+  movementLabel,
+} from './WildBehaviorDebugView'
 
 // Mesma altura da etiqueta das selvagens (`WildBehaviorDebugView.jsx`).
 const GROUND_LIFT = 0.05
@@ -20,6 +25,7 @@ const GROUND_LIFT = 0.05
 function PartyBehaviorDebug({ entity }) {
   const groupRef = useRef()
   const behavior = useTrait(entity, PartyBehavior)
+  const movement = useTrait(entity, AiMovement)
   const controlled = useHas(entity, InputControlled)
 
   useFrame(() => {
@@ -38,7 +44,9 @@ function PartyBehaviorDebug({ entity }) {
   if (!behavior || controlled) return null
   const fighting = behavior.state === 'fight'
   const stateText = fighting
-    ? `lutando → ${combatantLabel(behavior.target)}`
+    ? `lutando → ${combatantLabel(behavior.target)}` +
+      attackPlanLabel(entity, behavior) +
+      movementLabel(movement)
     : 'seguindo'
 
   return (

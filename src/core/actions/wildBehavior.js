@@ -1,3 +1,4 @@
+import { GAME_CONFIG } from '../gameConfig'
 import { PathState, Threat, WanderState, WildBehavior } from '../traits'
 
 // Troca de estado recalcula o caminho já no próximo tick (o alvo mudou).
@@ -25,7 +26,11 @@ export function perseguirJogador(entity, { provoked }) {
 
 /** Selvagem passa a fugir do lado do jogador (de quem estiver mais perto). */
 export function fugirDoJogador(entity) {
-  entity.set(WildBehavior, { state: 'flee', provoked: false })
+  entity.set(WildBehavior, {
+    state: 'flee',
+    provoked: false,
+    hasFleePoint: false,
+  })
   resetPath(entity)
 }
 
@@ -52,6 +57,22 @@ export function voltarAVagar(entity, pos) {
  * Soma `amount` de ameaça de `attacker` na tabela da selvagem (`Threat`) —
  * quem mais causou dano nela vira o alvo dela (`resolveWildTarget`).
  */
+/**
+ * A ameaça perde força com o tempo (Parte 3): cada entrada cai pela metade a
+ * cada `THREAT_HALF_LIFE` segundos, e a que fica abaixo de `THREAT_MIN` sai —
+ * quem para de bater deixa de ser o topo.
+ */
+export function decairAmeaca(entity, delta) {
+  const { THREAT_HALF_LIFE, THREAT_MIN } = GAME_CONFIG.WILD_BEHAVIOR
+  const entries = entity.get(Threat)?.entries
+  if (!entries?.length || !(THREAT_HALF_LIFE > 0)) return
+  const factor = 0.5 ** (delta / THREAT_HALF_LIFE)
+  const next = entries
+    .map((entry) => ({ entity: entry.entity, amount: entry.amount * factor }))
+    .filter((entry) => entry.amount >= THREAT_MIN)
+  entity.set(Threat, { entries: next })
+}
+
 export function registrarAmeaca(entity, attacker, amount) {
   if (attacker == null || !(amount > 0)) return
   const entries = entity.get(Threat)?.entries ?? []

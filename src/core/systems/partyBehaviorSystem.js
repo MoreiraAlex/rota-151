@@ -1,22 +1,24 @@
 import { entrarEmCombate } from '../actions/combat'
 import { defenderGrupo, voltarASeguir } from '../actions/partyBehavior'
-import { tentarCorrer } from '../actions/stamina'
+import { planAiAttack } from '../battle/aiAttackChoice'
+import { resolveResting } from '../battle/aiEnergy'
+import { advanceAiDash, moveInFight } from '../battle/aiMovement'
 import {
   findNearest,
+  findWeakest,
   isActiveCombatant,
   listWildsFightingParty,
   resolveAttackReach,
 } from '../battle/combatTargets'
 import { getSpecies } from '../data/species'
 import { GAME_CONFIG } from '../gameConfig'
-import { lerpAngle } from '../math'
-import { steerTowards } from '../steering'
 import {
   ActionState,
   CharacterController,
   Fainted,
   InputControlled,
   MovementStats,
+  Party,
   PartyBehavior,
   Position,
   Rotation,
@@ -24,6 +26,7 @@ import {
   Velocity,
   Vitals,
   WantsToAttack,
+  WildBehavior,
 } from '../traits'
 
 function horizontalDistance(a, b) {
@@ -33,9 +36,11 @@ function horizontalDistance(a, b) {
 /**
  * Pra uma criatura lutando: o alvo que vale neste tick, ou `null` pra
  * largar a luta. Se afastou demais de quem segue (`LEASH_RADIUS`) → larga.
- * O alvo atual saiu da luta (desmaiou, sumiu) → a selvagem mais perto que
- * ainda está lutando com o grupo (`listWildsFightingParty`), dentro do
- * mesmo limite; nenhuma → larga.
+ * Uma selvagem mirando o TREINADOR → ela (proteger quem não luta,
+ * `findTrainerHunter`). O alvo atual saiu da luta (desmaiou, sumiu) → a selvagem com MENOS vida
+ * (empate: a mais perto) que ainda está lutando com o grupo
+ * (`listWildsFightingParty`, `findWeakest`), dentro do mesmo limite —
+ * terminar a luta; nenhuma → larga.
  */
 function resolveFightTarget(behavior, pos, leader, fightingWilds) {
   const { LEASH_RADIUS } = GAME_CONFIG.PARTY_BEHAVIOR
@@ -43,6 +48,10 @@ function resolveFightTarget(behavior, pos, leader, fightingWilds) {
   if (leaderPos && horizontalDistance(pos, leaderPos) > LEASH_RADIUS) {
     return null
   }
+  // Proteger o treinador: selvagem mirando nele (no limite) vira o alvo,
+  // mesmo no meio de outra luta.
+  const hunter = findTrainerHunter(pos, leaderPos, fightingWilds)
+  if (hunter) return hunter
   if (isActiveCombatant(behavior.target)) return behavior.target
 
   const inRange = leaderPos
@@ -50,22 +59,40 @@ function resolveFightTarget(behavior, pos, leader, fightingWilds) {
         (wild) => horizontalDistance(leaderPos, wild.pos) <= LEASH_RADIUS,
       )
     : fightingWilds
-  return findNearest(pos, inRange)?.entity ?? null
+  return findWeakest(pos, inRange)?.entity ?? null
+}
+
+/**
+ * A selvagem (mais perto) que está mirando o TREINADOR agora, entre as que
+ * lutam com o grupo e dentro do limite de quem segue — ou `null`. A criatura
+ * do time protege quem não luta (Parte 4).
+ */
+function findTrainerHunter(pos, leaderPos, fightingWilds) {
+  const { LEASH_RADIUS } = GAME_CONFIG.PARTY_BEHAVIOR
+  const hunters = fightingWilds.filter((wild) => {
+    const target = wild.entity.get(WildBehavior).target
+    if (!target?.has(Party)) return false
+    return !leaderPos || horizontalDistance(leaderPos, wild.pos) <= LEASH_RADIUS
+  })
+  return findNearest(pos, hunters)?.entity ?? null
 }
 
 /**
  * IA de combate das criaturas do time FORA do controle do jogador — sempre
  * defensiva (`PartyBehavior`; quem as põe na luta é o
  * `partyReactionSystem.js`, quando uma selvagem acerta alguém do grupo).
- * Lutando: corre até uma fração do alcance do próprio ataque básico
- * (`PARTY_BEHAVIOR.ATTACK_REACH_FRACTION`), para virada pro alvo e pede
- * golpes nele (`WantsToAttack`, a cada `PARTY_BEHAVIOR.ATTACK_INTERVAL` —
- * mais lento que o jogador —, só o ataque básico, lançados pelo
- * `creatureAttackSystem.js` pelo mesmo caminho do golpe do jogador).
+ * Lutando: escolhe o golpe (básico ou habilidade da espécie,
+ * `planAiAttack` — `core/battle/aiAttackChoice.js`), corre até uma fração
+ * do alcance DELE (`PARTY_BEHAVIOR.ATTACK_REACH_FRACTION`), para virada pro
+ * alvo e pede o golpe (`WantsToAttack`, a cada
+ * `PARTY_BEHAVIOR.ATTACK_INTERVAL` — mais lento que o jogador —, lançados
+ * pelo `creatureAttackSystem.js` pelo mesmo caminho do golpe do jogador).
  * Troca pra outra selvagem que está lutando com o grupo quando o alvo sai
  * da luta, e volta a seguir (`voltarASeguir`) quando não sobra nenhuma ou
  * quando se afasta demais de quem segue. Correr gasta stamina
- * (`tentarCorrer`). Lutando fica em modo combate (`entrarEmCombate`).
+ * (`tentarCorrer`); com a energia baixa, descansa (`resolveResting`,
+ * `core/battle/aiEnergy.js`): sem golpe e sem correr até recuperar. Lutando
+ * fica em modo combate (`entrarEmCombate`).
  *
  * Virar a controlada, ou desmaiar, tira da luta: a controlada é o jogador
  * quem move; a desmaiada fica no chão. Seguir é do
@@ -124,44 +151,69 @@ export function partyBehaviorSystem(context) {
         entrarEmCombate(entity)
         behavior.attackTimer = Math.max(0, behavior.attackTimer - delta)
 
+        // Dash em andamento (desvio/aproximação): segue nele.
+        const current = entity.get(ActionState).current
+        if (current === 'dash') {
+          advanceAiDash(entity, { rot, vel, stats }, delta)
+          return
+        }
         // Golpe em andamento: fica parada (o golpe já virou o corpo).
-        if (entity.get(ActionState).current !== null) {
+        if (current !== null) {
           vel.x = 0
           vel.z = 0
           return
         }
 
-        const reach = resolveAttackReach(
-          getSpecies(creature.speciesId),
-          target.get(CharacterController),
-        )
-        // Sem ataque básico na espécie: só acompanha o alvo de perto.
+        // Energia baixa: descansa (sem golpe, sem correr) até recuperar.
+        behavior.resting = resolveResting(behavior.resting, vitals)
+        // Escolhe o golpe (básico ou habilidade) e corre até o alcance DELE —
+        // sem nada pronto, até o alcance do básico.
+        const species = getSpecies(creature.speciesId)
+        const plan = behavior.resting
+          ? null
+          : planAiAttack(
+              entity,
+              species,
+              target,
+              fightingWilds,
+              behavior.attackSlot,
+            )
+        behavior.attackSlot = plan?.slot ?? null
+        const reach =
+          plan?.reach ??
+          resolveAttackReach(species, target.get(CharacterController))
+        // Sem golpe nenhum na espécie: só acompanha o alvo de perto.
         const stopDistance = (reach ?? 1) * ATTACK_REACH_FRACTION
 
-        if (distance > stopDistance) {
-          const speed = tentarCorrer(vitals, delta)
-            ? stats.runSpeed
-            : stats.walkSpeed
-          steerTowards(
-            entity,
-            { pos, rot, vel, stats },
-            targetPos,
-            speed,
-            delta,
-          )
-        } else {
-          vel.x = 0
-          vel.z = 0
-          rot.y = lerpAngle(
-            rot.y,
-            Math.atan2(toTarget.x, toTarget.z),
-            stats.turnSpeed * delta,
-          )
-        }
+        // Desvia, recua, corre até o alcance, rodeia ou para (`aiMovement.js`).
+        const mode = moveInFight(entity, {
+          pos,
+          rot,
+          vel,
+          stats,
+          vitals,
+          target,
+          plan,
+          stopDistance,
+          enemies: fightingWilds,
+          resting: behavior.resting,
+          waiting: !plan || behavior.attackTimer > 0,
+          delta,
+        })
 
-        if (reach !== null && distance <= reach && behavior.attackTimer <= 0) {
-          entity.add(WantsToAttack({ target }))
+        // Menos desviando, de dash ou ainda virando pro alvo (`'aim'`).
+        if (
+          plan &&
+          mode !== 'dodge' &&
+          mode !== 'dash' &&
+          mode !== 'aim' &&
+          distance <= plan.reach &&
+          behavior.attackTimer <= 0
+        ) {
+          entity.add(WantsToAttack({ target, slot: plan.slot }))
           behavior.attackTimer = ATTACK_INTERVAL
+          behavior.lastAttackSlot = plan.slot
+          behavior.attackSlot = null
         }
       },
     )

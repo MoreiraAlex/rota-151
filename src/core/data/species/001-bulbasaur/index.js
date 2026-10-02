@@ -60,7 +60,12 @@ export const BULBASAUR = {
     idle: 'idle',
     walk: 'walk',
     run: 'run',
-    attackBasic: { sequence: [{ animation: 'attackRangedAltStart' }, { animation: 'attackRangedAltEnd', frames: 10 }], },
+    attackBasic: {
+      sequence: [
+        { animation: 'attackRangedAltStart' },
+        { animation: 'attackRangedAltEnd', frames: 10 },
+      ],
+    },
     attackBasicAlt: { sequence: ['attackAltStart', 'attackAltEnd'] },
     attackAlt: 'attack',
     attackRanged: { sequence: [{ animation: 'attackRanged', frames: 40 }] },
@@ -120,16 +125,16 @@ export const BULBASAUR = {
   },
   basicAttack: BASIC_ATTACK,
   skills: {
-    1: { 
-      id: 'growl', 
-      overrides: { 
-        audio: { 
+    1: {
+      id: 'growl',
+      overrides: {
+        audio: {
           cry: false,
-          clips: ['/assets/audio/voices/001-bulbasaur/cry-02.wav'], 
+          clips: ['/assets/audio/voices/001-bulbasaur/cry-02.wav'],
           volume: 2,
           refDistance: 4,
-        } 
-      } 
+        },
+      },
     },
     2: { id: 'leech-seed' },
     // 2: {
@@ -159,7 +164,5 @@ export const BULBASAUR = {
     sp_def: { base: SP_DEF, ev: SP_DEF_EV },
     speed: { base: SPEED, ev: SPEED_EV },
   },
-  moves: [
-    { id: 'leech-seed' },
-  ],
+  moves: [{ id: 'leech-seed' }],
 }

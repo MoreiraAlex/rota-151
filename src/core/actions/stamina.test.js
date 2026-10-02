@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { tentarCorrer } from './stamina'
+import { GAME_CONFIG } from '../gameConfig'
+import {
+  resolveDashCost,
+  resolveMovementCostMultiplier,
+  tentarCorrer,
+} from './stamina'
+
+const { MAX_MULTIPLIER, EXPONENT } = GAME_CONFIG.STAMINA_BY_HP
+const { STAMINA_COST } = GAME_CONFIG.PLAYER_ACTIONS.dash
 
 function vitals(stamina) {
   return {
@@ -25,5 +33,36 @@ describe('tentarCorrer', () => {
     expect(tentarCorrer(v, 0.5)).toBe(false)
     expect(v.stamina).toBe(0.5)
     expect(v.staminaRegenDelay).toBe(0)
+  })
+})
+
+describe('custo da corrida e do dash pela vida baixa', () => {
+  const at = (fraction) => ({ hp: fraction * 100, maxHp: 100 })
+
+  it('×1 com a vida cheia, MAX com ela em 0, pela curva no meio', () => {
+    expect(resolveMovementCostMultiplier(at(1))).toBe(1)
+    expect(resolveMovementCostMultiplier(at(0))).toBe(MAX_MULTIPLIER)
+    expect(resolveMovementCostMultiplier(at(0.5))).toBeCloseTo(
+      1 + (MAX_MULTIPLIER - 1) * 0.5 ** EXPONENT,
+    )
+    expect(resolveMovementCostMultiplier({})).toBe(1) // sem vida
+  })
+
+  it('correr ferido gasta o drain × o multiplicador', () => {
+    const v = { ...vitals(10), ...at(0.5) }
+    tentarCorrer(v, 0.5)
+    expect(v.stamina).toBeCloseTo(
+      10 - 2 * 0.5 * resolveMovementCostMultiplier(v),
+    )
+  })
+
+  it('ferido sem fôlego pro custo maior: não corre', () => {
+    const v = { ...vitals(1.5), ...at(0) } // custaria 2 × 0.5 × MAX
+    expect(tentarCorrer(v, 0.5)).toBe(false)
+  })
+
+  it('dash: STAMINA_COST × o multiplicador', () => {
+    expect(resolveDashCost(at(1))).toBe(STAMINA_COST)
+    expect(resolveDashCost(at(0))).toBe(STAMINA_COST * MAX_MULTIPLIER)
   })
 })

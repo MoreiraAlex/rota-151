@@ -17,12 +17,16 @@ function resetPath(entity) {
  * por aqui.
  */
 export function defenderGrupo(entity, target) {
-  entity.set(PartyBehavior, { state: 'fight', target })
+  entity.set(PartyBehavior, { state: 'fight', target, attackSlot: null })
   resetPath(entity)
 }
 
 /** Criatura do time larga a luta e volta a seguir quem está no controle. */
 export function voltarASeguir(entity) {
-  entity.set(PartyBehavior, { state: 'follow', target: null })
+  entity.set(PartyBehavior, {
+    state: 'follow',
+    target: null,
+    attackSlot: null,
+  })
   resetPath(entity)
 }

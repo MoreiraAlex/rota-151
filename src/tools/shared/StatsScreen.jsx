@@ -72,7 +72,12 @@ const RADAR_SHORT_LABELS = {
  * de Energia, radar plotando `base` em vez do `stat` calculado (que
  * dependeria de um IV que não existe nesse modo).
  */
-export function StatsScreen({ species, individualValues, showIndividual = true, vertical = false }) {
+export function StatsScreen({
+  species,
+  individualValues,
+  showIndividual = true,
+  vertical = false,
+}) {
   const stats = resolveCreatureStats(species, individualValues)
   const hasStats = stats != null
   const cp = showIndividual && typeof stats?.cp === 'number' ? stats.cp : null
@@ -81,7 +86,9 @@ export function StatsScreen({ species, individualValues, showIndividual = true, 
     <div className="w-full space-y-3">
       {hasStats ? (
         <>
-          <div className={`flex w-full items-${vertical ? 'center' : 'start'} justify-between`}>
+          <div
+            className={`flex w-full items-${vertical ? 'center' : 'start'} justify-between`}
+          >
             {/* Pokémon */}
             <div className="flex items-center gap-2">
               <SpritePortrait
@@ -96,9 +103,7 @@ export function StatsScreen({ species, individualValues, showIndividual = true, 
                 </span>
 
                 {cp != null && (
-                  <span className="text-[11px] text-amber-400">
-                    CP {cp}
-                  </span>
+                  <span className="text-[11px] text-amber-400">CP {cp}</span>
                 )}
               </div>
             </div>
@@ -106,10 +111,7 @@ export function StatsScreen({ species, individualValues, showIndividual = true, 
             {/* Radar */}
             {!vertical && (
               <div className="flex flex-1 justify-center">
-                <StatsRadar
-                  stats={stats}
-                  showIndividual={showIndividual}
-                />
+                <StatsRadar stats={stats} showIndividual={showIndividual} />
               </div>
             )}
 
@@ -124,34 +126,21 @@ export function StatsScreen({ species, individualValues, showIndividual = true, 
           {/* Radar vertical */}
           {vertical && (
             <div className="flex w-full justify-center">
-              <StatsRadar
-                stats={stats}
-                showIndividual={showIndividual}
-              />
+              <StatsRadar stats={stats} showIndividual={showIndividual} />
             </div>
           )}
 
           <table className="w-full text-[11px]">
             <thead>
               <tr className="text-white/50">
-                <th className="pb-1 text-left font-normal">
-                  Atributo
-                </th>
-                <th className="pb-1 text-right font-normal">
-                  Base
-                </th>
+                <th className="pb-1 text-left font-normal">Atributo</th>
+                <th className="pb-1 text-right font-normal">Base</th>
 
                 {showIndividual && (
                   <>
-                    <th className="pb-1 text-right font-normal">
-                      IV
-                    </th>
-                    <th className="pb-1 text-right font-normal">
-                      EV
-                    </th>
-                    <th className="pb-1 text-right font-normal">
-                      Status
-                    </th>
+                    <th className="pb-1 text-right font-normal">IV</th>
+                    <th className="pb-1 text-right font-normal">EV</th>
+                    <th className="pb-1 text-right font-normal">Status</th>
                   </>
                 )}
               </tr>
@@ -170,13 +159,8 @@ export function StatsScreen({ species, individualValues, showIndividual = true, 
                 }
 
                 return (
-                  <tr
-                    key={key}
-                    className="border-t border-white/10"
-                  >
-                    <td className="py-1">
-                      {label}
-                    </td>
+                  <tr key={key} className="border-t border-white/10">
+                    <td className="py-1">{label}</td>
 
                     <td className="text-right text-white/70">
                       {stat.base ?? '-'}

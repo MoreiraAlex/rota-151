@@ -74,7 +74,11 @@ export function PokemonsTab() {
 
       <div className="w-72 overflow-y-auto border-l border-white/10 pl-3">
         {selectedSpecies ? (
-          <StatsScreen species={selectedSpecies} showIndividual={false} vertical/>
+          <StatsScreen
+            species={selectedSpecies}
+            showIndividual={false}
+            vertical
+          />
         ) : (
           <p className="text-xs text-white/50">
             Selecione um Pokémon já escaneado pra ver os detalhes.

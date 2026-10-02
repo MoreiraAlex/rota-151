@@ -21,6 +21,7 @@ import {
   Velocity,
   vitalsFromSpecies,
   WanderState,
+  AiMovement,
   WildBehavior,
   WildCreature,
 } from '../traits'
@@ -108,6 +109,8 @@ export function wildCreatureSpawnSystem(context) {
       WildCreature({ speciesId: entry.speciesId }),
       // Hostil ou pacífica — sorteado por indivíduo, chance por espécie.
       WildBehavior({ temperament: rollTemperament(gameplayRng, species) }),
+      // Movimento na luta (desvio, recuo, rodear, dash — `aiMovement.js`).
+      AiMovement,
       IndividualValues(individualValues),
       AnimationState,
       ActionState,
