@@ -190,8 +190,13 @@ export function resolveChannelTickDamage({
   }
 }
 
-/** Monta os parâmetros da fórmula (status, STAB, tipo) e calcula. */
-function computeDamage(context, { critical, random }) {
+/**
+ * Monta os parâmetros da fórmula (status, STAB, tipo) e calcula, com
+ * `critical`/`random` já decididos por quem chama. Exportada pra quem precisa
+ * da conta sem sorteio — a calculadora da wiki (`tools/wiki/
+ * damageCalculator.js`) pede os extremos da faixa pela mesma função do jogo.
+ */
+export function computeDamage(context, { critical, random }) {
   const attacker = resolveCombatStats(
     context.attackerSpecies,
     context.attackerIndividualValues,

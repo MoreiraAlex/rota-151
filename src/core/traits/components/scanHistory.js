@@ -30,7 +30,8 @@ export const ScanHistory = trait(() => ({
   entries: [],
 }))
 
-const MAX_ENTRIES = 10
+// Exportado pra wiki (`tools/wiki/wikiData.js`) mostrar o tamanho do histórico.
+export const MAX_ENTRIES = 10
 
 /**
  * Insere uma entrada nova no TOPO (mais recente) da lista — pedido do
