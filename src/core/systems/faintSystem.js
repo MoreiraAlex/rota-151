@@ -1,4 +1,5 @@
 import { acordar, desmaiar, resolveReviveHp } from '../actions/faint'
+import { distribuirExperiencia } from '../actions/experience'
 import {
   Fainted,
   PartyFaint,
@@ -13,7 +14,8 @@ const PARTY_SLOTS = ['slot1', 'slot2', 'slot3']
 /**
  * Desmaio das criaturas (selvagens e do time em campo) — ver `Fainted`:
  * 1. quem chegou a 0 de HP neste tick (golpe do `creatureAttackSystem.js`)
- *    desmaia (`desmaiar`);
+ *    desmaia (`desmaiar`); se é selvagem, quem lutou contra ela ganha XP
+ *    (`distribuirExperiencia`, docs/features/037-experiencia-e-nivel.md);
  * 2. a contagem de quem está desmaiado em campo corre, e quem zera acorda
  *    (`acordar`) — pra selvagem, é o caminho normal; a do time costuma ser
  *    recolhida antes (`partySummonSystem.js`, `PARTY_RECALL_DELAY`);
@@ -31,7 +33,7 @@ const PARTY_SLOTS = ['slot1', 'slot2', 'slot3']
  * (que recolhe a do time desmaiada).
  */
 export function faintSystem(context) {
-  const { world, delta } = context
+  const { world, delta, events } = context
 
   const fainting = []
   world.query(Vitals).readEach(([vitals], entity) => {
@@ -39,7 +41,10 @@ export function faintSystem(context) {
     if (!entity.has(WildCreature) && !entity.has(SummonedCreature)) return
     fainting.push(entity)
   })
-  for (const entity of fainting) desmaiar(world, entity)
+  for (const entity of fainting) {
+    desmaiar(world, entity)
+    if (entity.has(WildCreature)) distribuirExperiencia(world, events, entity)
+  }
 
   const waking = []
   world.query(Fainted).updateEach(([fainted], entity) => {

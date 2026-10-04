@@ -84,10 +84,13 @@ export const Vitals = trait({
  * agora (campo removido) — só continua certo pro trainer `boy`
  * (`species.stats.hp.stat` fixo, sem IV — trainer não é Pokémon),
  * chamado sem segundo argumento.
+ *
+ * `level` (opcional) — nível DESTA criatura (docs/features/037-experiencia-
+ * e-nivel.md); sem ele, o `species.level` (ver `resolveCreatureStats`).
  */
-export function resolveMaxHp(species, individualValues = null) {
+export function resolveMaxHp(species, individualValues = null, level) {
   const resolved =
-    individualValues && resolveCreatureStats(species, individualValues)
+    individualValues && resolveCreatureStats(species, individualValues, level)
   return (
     resolved?.hp?.stat ??
     species?.stats?.hp?.stat ??
@@ -96,9 +99,9 @@ export function resolveMaxHp(species, individualValues = null) {
   )
 }
 
-export function resolveMaxStamina(species, individualValues = null) {
+export function resolveMaxStamina(species, individualValues = null, level) {
   const resolved =
-    individualValues && resolveCreatureStats(species, individualValues)
+    individualValues && resolveCreatureStats(species, individualValues, level)
   return (
     resolved?.energy?.stat ??
     species?.stats?.energy?.stat ??
@@ -143,11 +146,10 @@ export function resolveMaxStamina(species, individualValues = null) {
  * - o resto (treinador, espécies não migradas): números próprios em
  *   `species.vitals` (o treinador não luta, não precisa da fórmula).
  */
-export function resolveMovementCosts(species) {
+export function resolveMovementCosts(species, level = species?.level ?? 1) {
   if (species?.kind === 'pokemon' && species?.stats?.energy) {
     const { RUN_WEIGHT_PER_SECOND, JUMP_WEIGHT, DASH_WEIGHT } =
       GAME_CONFIG.ACTION_COST
-    const level = species.level ?? 1
     return {
       runStaminaDrainPerSecond: resolveLevelCost(level, RUN_WEIGHT_PER_SECOND),
       jumpStaminaCost: resolveLevelCost(level, JUMP_WEIGHT),
@@ -162,12 +164,12 @@ export function resolveMovementCosts(species) {
   }
 }
 
-export function vitalsFromSpecies(species, individualValues = null) {
+export function vitalsFromSpecies(species, individualValues = null, level) {
   const vitals = species?.vitals
   const hpStat = species?.stats?.hp
   const energyStat = species?.stats?.energy
-  const maxHp = resolveMaxHp(species, individualValues)
-  const maxStamina = resolveMaxStamina(species, individualValues)
+  const maxHp = resolveMaxHp(species, individualValues, level)
+  const maxStamina = resolveMaxStamina(species, individualValues, level)
 
   return Vitals({
     hp: maxHp,
@@ -181,7 +183,7 @@ export function vitalsFromSpecies(species, individualValues = null) {
       energyStat?.regenPercent ?? vitals?.staminaRegenPercent ?? 10,
     staminaRegenDelayAfterUse:
       energyStat?.regenDelay ?? vitals?.staminaRegenDelayAfterUse ?? 3,
-    ...resolveMovementCosts(species),
+    ...resolveMovementCosts(species, level),
   })
 }
 

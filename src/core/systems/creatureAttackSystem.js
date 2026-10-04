@@ -37,6 +37,7 @@ import {
   WantsToAttack,
   WildCreature,
   resolveCreatureSpeciesId,
+  resolveEntityLevel,
 } from '../traits'
 
 /**
@@ -236,11 +237,13 @@ export function creatureAttackSystem(context) {
         ],
         entity,
       ) => {
+        const species = getSpecies(creature.speciesId)
         const castContext = {
           entity,
           world,
-          species: getSpecies(creature.speciesId),
+          species,
           individualValues,
+          level: resolveEntityLevel(entity, species),
           action,
           cooldowns,
           vitals,
@@ -253,9 +256,10 @@ export function creatureAttackSystem(context) {
         // do slot cancela (e o cooldown começa, como no fim normal).
         if (action.current === 'attack') {
           const running = resolveAttackForEntity(
-            castContext.species,
+            species,
             action.pendingSlot,
             individualValues,
+            castContext.level,
           )
           if (
             requiresHold(action, running) &&
@@ -321,11 +325,13 @@ export function creatureAttackSystem(context) {
         const speciesId = resolveCreatureSpeciesId(entity)
         if (!speciesId) return
 
+        const species = getSpecies(speciesId)
         const castContext = {
           entity,
           world,
-          species: getSpecies(speciesId),
+          species,
           individualValues,
+          level: resolveEntityLevel(entity, species),
           action,
           cooldowns,
           vitals,
@@ -367,11 +373,13 @@ export function creatureAttackSystem(context) {
         if (action.current !== 'attack') return
 
         const species = getSpecies(resolveCreatureSpeciesId(entity))
+        const level = resolveEntityLevel(entity, species)
         const targetSide = entity.has(WildCreature) ? 'player' : 'wild'
         const ATTACK = resolveAttackForEntity(
           species,
           action.pendingSlot,
           individualValues,
+          level,
         )
         const previousElapsed = action.elapsed
         action.elapsed += delta
@@ -422,6 +430,7 @@ export function creatureAttackSystem(context) {
             action,
             species,
             individualValues,
+            level,
             attack: ATTACK,
             pos,
             controller,
@@ -443,6 +452,7 @@ export function creatureAttackSystem(context) {
               action,
               species,
               individualValues,
+              level,
               attack: ATTACK,
               pos,
               controller,

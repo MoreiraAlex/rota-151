@@ -3,6 +3,7 @@
 import { resolveCreatureStats } from '@/core/data/species/stats'
 import {
   formatSpeciesName,
+  resolveDisplayLevel,
   resolveXpPercent,
   SpritePortrait,
 } from '@/view/shared/statusDisplay'
@@ -62,6 +63,10 @@ const RADAR_SHORT_LABELS = {
  * passado (IV de UMA entidade — congelado por indivíduo — ou `null`
  * pra "sem indivíduo", ver `showIndividual` abaixo).
  *
+ * `progress` (opcional, `{ level, xp }`) — nível/XP DESTA criatura
+ * (`PartyProgress` do slot; o histórico de scan só tem `level`). Sem ele,
+ * o nível inicial da espécie (docs/features/037-experiencia-e-nivel.md).
+ *
  * `showIndividual` (novo, docs/features/033-*.md) — pedido do usuário:
  * a aba "Pokémons" (visão GENÉRICA por espécie, sem indivíduo real por
  * trás — grid dos 151) precisa mostrar só os valores BASE, sem "IV",
@@ -75,10 +80,16 @@ const RADAR_SHORT_LABELS = {
 export function StatsScreen({
   species,
   individualValues,
+  progress = null,
   showIndividual = true,
   vertical = false,
 }) {
-  const stats = resolveCreatureStats(species, individualValues)
+  const level = resolveDisplayLevel(species, progress)
+  const stats = resolveCreatureStats(
+    species,
+    individualValues,
+    level ?? undefined,
+  )
   const hasStats = stats != null
   const cp = showIndividual && typeof stats?.cp === 'number' ? stats.cp : null
 
@@ -94,7 +105,7 @@ export function StatsScreen({
               <SpritePortrait
                 species={species}
                 size={48}
-                xpPercent={resolveXpPercent(species)}
+                xpPercent={resolveXpPercent(species, progress)}
               />
 
               <div className="flex flex-col">
@@ -116,10 +127,8 @@ export function StatsScreen({
             )}
 
             {/* Level */}
-            {species.level != null && (
-              <span className="text-[11px] text-white/50">
-                Lv.{species.level}
-              </span>
+            {level != null && (
+              <span className="text-[11px] text-white/50">Lv.{level}</span>
             )}
           </div>
 

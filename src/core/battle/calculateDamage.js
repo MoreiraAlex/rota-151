@@ -1,5 +1,6 @@
 import { GAME_CONFIG } from '../gameConfig'
 import { resolveCreatureStats } from '../data/species/stats'
+import { resolveFormulaLevel } from '../data/species/formulaLevel'
 import { stageMultiplier } from './statStages'
 
 /**
@@ -93,12 +94,17 @@ export function resolveTypeEffectivenessMultiplier() {
  * nenhum, mesmo "fallback gracioso" que `resolveMaxHp`/`resolveMaxStamina`
  * já usam pra essas mesmas espécies.
  */
-export function resolveCombatStats(species, individualValues) {
-  const resolved = resolveCreatureStats(species, individualValues)
+export function resolveCombatStats(
+  species,
+  individualValues,
+  level = species?.level ?? 1,
+) {
+  const resolved = resolveCreatureStats(species, individualValues, level)
   const fallback = GAME_CONFIG.BATTLE.FALLBACK_COMBAT_STAT
 
   return {
-    level: species?.level ?? 1,
+    // escala das fórmulas (teto 100) — o `level` recebido é o do jogo
+    level: resolveFormulaLevel(level),
     attack: resolved?.attack?.stat ?? fallback,
     defense: resolved?.defense?.stat ?? fallback,
     sp_atk: resolved?.sp_atk?.stat ?? fallback,
@@ -119,8 +125,10 @@ export function resolveCombatStats(species, individualValues) {
 export function resolveDamageAmount({
   attackerSpecies,
   attackerIndividualValues,
+  attackerLevel,
   defenderSpecies,
   defenderIndividualValues,
+  defenderLevel,
   damage,
   attackerStages,
   defenderStages,
@@ -129,8 +137,10 @@ export function resolveDamageAmount({
   const context = {
     attackerSpecies,
     attackerIndividualValues,
+    attackerLevel,
     defenderSpecies,
     defenderIndividualValues,
+    defenderLevel,
     damage,
     attackerStages,
     defenderStages,
@@ -162,8 +172,10 @@ export function resolveDamageAmount({
 export function resolveChannelTickDamage({
   attackerSpecies,
   attackerIndividualValues,
+  attackerLevel,
   defenderSpecies,
   defenderIndividualValues,
+  defenderLevel,
   damage,
   attackerStages,
   defenderStages,
@@ -175,8 +187,10 @@ export function resolveChannelTickDamage({
     {
       attackerSpecies,
       attackerIndividualValues,
+      attackerLevel,
       defenderSpecies,
       defenderIndividualValues,
+      defenderLevel,
       damage,
       attackerStages,
       defenderStages,
@@ -200,10 +214,12 @@ export function computeDamage(context, { critical, random }) {
   const attacker = resolveCombatStats(
     context.attackerSpecies,
     context.attackerIndividualValues,
+    context.attackerLevel,
   )
   const defender = resolveCombatStats(
     context.defenderSpecies,
     context.defenderIndividualValues,
+    context.defenderLevel,
   )
   const { damage } = context
   const isSpecial = damage?.category === 'special'

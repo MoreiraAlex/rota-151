@@ -1,3 +1,4 @@
+import { registrarParticipante } from '../actions/experience'
 import { resolveLeechDrain } from '../actions/leechSeed'
 import { leechSeedDrained } from '../events'
 import { GAME_CONFIG } from '../gameConfig'
@@ -71,6 +72,8 @@ function drain(world, events, target, vitals, fraction) {
   )
 
   const source = target.targetFor(SeededBy) ?? null
+  // a drenagem é dano de quem plantou: conta pra divisão do XP
+  if (source) registrarParticipante(world, source, target)
   let healed = 0
   if (source?.isAlive() && source.has(Vitals) && !source.has(Fainted)) {
     const before = source.get(Vitals)

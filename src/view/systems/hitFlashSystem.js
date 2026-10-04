@@ -103,7 +103,8 @@ function applyFlash(slots, strength, color) {
  * - tomou dano (`attackResolved` com `hit`, sem `status`): vermelho no
  *   oponente, rosa no aliado (o treinador e as criaturas do time);
  * - atributo baixou (`statStageChanged`, `delta < 0`): laranja / violeta;
- * - atributo subiu (`delta > 0`): verde / ciano.
+ * - atributo subiu (`delta > 0`) ou subiu de nível (`leveledUp`): verde /
+ *   ciano.
  * Dano ganha de status quando os dois chegam juntos no mesmo alvo. Padrão
  * comum de jogo de ação ("hit flash"): deixa claro QUEM foi atingido, de QUE
  * jeito e QUANDO, sem esconder a textura. Consome `context.frameEvents`
@@ -127,6 +128,11 @@ export function hitFlashSystem(context) {
   for (const event of frameEvents) {
     if (event.type === EVENT_TYPES.STAT_STAGE_CHANGED) {
       consider(event.target, event.delta < 0 ? 'debuff' : 'buff')
+      continue
+    }
+    // subiu de nível (criatura em campo): mesmo brilho de atributo subindo
+    if (event.type === EVENT_TYPES.LEVELED_UP) {
+      if (event.creature?.isAlive()) consider(event.creature, 'buff')
       continue
     }
     if (event.type !== EVENT_TYPES.ATTACK_RESOLVED) continue

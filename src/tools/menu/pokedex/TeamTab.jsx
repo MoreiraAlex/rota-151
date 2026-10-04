@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useTrait } from 'koota/react'
 import { playerEntity } from '@/core/world/world'
 import { getSpecies } from '@/core/data/species'
-import { Party, PartyIndividualValues } from '@/core/traits'
+import { Party, PartyIndividualValues, PartyProgress } from '@/core/traits'
 import { formatSpeciesName } from '@/view/shared/statusDisplay'
 import { StatsScreen } from '../../shared/StatsScreen'
 
@@ -35,6 +35,7 @@ const SLOTS = [
 export function TeamTab() {
   const party = useTrait(playerEntity, Party)
   const partyIndividualValues = useTrait(playerEntity, PartyIndividualValues)
+  const partyProgress = useTrait(playerEntity, PartyProgress)
   const [selectedSlot, setSelectedSlot] = useState(
     SLOTS.find((slot) => party?.[slot.key])?.key ?? SLOTS[0].key,
   )
@@ -73,6 +74,7 @@ export function TeamTab() {
         <StatsScreen
           species={species}
           individualValues={individualValues}
+          progress={partyProgress?.[selectedSlot] ?? null}
           showIndividual
         />
       ) : (

@@ -21,6 +21,8 @@ export const BULBASAUR = {
   id: 'bulbasaur',
   dexNumber: 1,
   level: LEVEL,
+  baseXp: 64,
+  growthRate: 'medium-slow',
   kind: 'pokemon',
   sprite: {
     path: 'https://play.pokemonshowdown.com/sprites/ani/bulbasaur.gif',
@@ -95,10 +97,10 @@ export const BULBASAUR = {
     modelOffset: [0, -0.28, -0.08],
   },
   movement: {
-    walkSpeed: 3,
+    walkSpeed: 2.25,
     runSpeed: 5,
     turnSpeed: 10,
-    jumpSpeed: 6,
+    jumpSpeed: 7,
   },
   camera: {
     targetHeight: 0.5,
@@ -136,15 +138,16 @@ export const BULBASAUR = {
         },
       },
     },
-    2: {
-      id: 'tackle',
-      overrides: {
-        range: 1.4,
-        duration: 1,
-        effectAt: 0.4,
-        animation: { clipKey: 'attackBasicAlt' },
-      },
-    },
+    2: { id: 'leech-seed' },
+    // {
+    //   id: 'tackle',
+    //   overrides: {
+    //     range: 1.4,
+    //     duration: 1,
+    //     effectAt: 0.4,
+    //     animation: { clipKey: 'attackBasicAlt' },
+    //   },
+    // },
     3: {
       id: 'vine-whip',
       overrides: {

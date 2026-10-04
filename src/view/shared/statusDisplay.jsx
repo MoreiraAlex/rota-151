@@ -3,6 +3,10 @@ import { CREATURE_TINTS } from '@/view/creatureTints'
 import { ATTACK_COLORS } from '@/view/attackColors'
 import { resolveFeedbackColor, resolveSide } from '@/view/vfx/feedbackColors'
 import { useStatStages } from './useStatStages'
+import {
+  resolveGrowthRate,
+  resolveLevelProgress,
+} from '@/core/data/species/experience'
 
 /**
  * Formatação/UI compartilhadas entre "onde mostrar nome/nível/vida/
@@ -145,17 +149,28 @@ export function StatStageBadges({ entity, compact = false, align = 'center' }) {
 }
 
 /**
- * Fração de XP (0 a 1) — `species.xp` (opcional, `{ current, max }`,
- * mesmo espírito de `level`: sem sistema de progressão de verdade por
- * trás, só um NÚMERO de exibição pro anel — ver docstring completa em
- * `_template/index.js`). Sem `xp` configurado (nenhuma espécie tem
- * ainda), o anel nasce vazio (0%) — capacidade pronta, conteúdo depois,
- * mesmo padrão de `level`/`camera`/`sprite` nas rodadas anteriores.
+ * Fração de XP (0 a 1) do nível atual até o próximo — o anel ao redor do
+ * retrato. `progress` é o `{ level, xp }` DESTA criatura (`CreatureLevel` em
+ * campo, `PartyProgress[slot]` na bola — docs/features/037-experiencia-e-
+ * nivel.md). Sem `progress` (treinador) ou sem `xp` (histórico de scan,
+ * que só guarda o nível), anel vazio.
  */
-export function resolveXpPercent(species) {
-  const xp = species?.xp
-  if (!xp || !xp.max) return 0
-  return Math.max(0, Math.min(1, xp.current / xp.max))
+export function resolveXpPercent(species, progress) {
+  if (progress?.level == null || progress.xp == null) return 0
+  return resolveLevelProgress(
+    resolveGrowthRate(species),
+    progress.level,
+    progress.xp,
+  )
+}
+
+/**
+ * Nível pra exibir: o da criatura (`progress.level`) ou, sem ele, o inicial
+ * da espécie. Espécie sem `level` (treinador) não mostra nível — `null`.
+ */
+export function resolveDisplayLevel(species, progress) {
+  if (species?.level == null) return null
+  return progress?.level ?? species.level
 }
 
 const RING_STROKE = 3

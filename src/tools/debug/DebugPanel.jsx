@@ -1,10 +1,10 @@
 'use client'
 
 import { useTrait, useTag, useQuery, useQueryFirst } from 'koota/react'
-import { playerEntity, cameraEntity } from '@/core/world/world'
+import { playerEntity, cameraEntity, world } from '@/core/world/world'
 import { getItem, listItems } from '@/core/data/items'
 import { listSpecies, resolveSpeciesKind } from '@/core/data/species'
-import { equiparCriatura } from '@/core/actions'
+import { equiparCriatura, ganharExperiencia } from '@/core/actions'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import {
   Position,
@@ -20,6 +20,7 @@ import {
   Vitals,
   HeldItem,
   Party,
+  PartyProgress,
   Projectile,
   SummonBall,
   SummonedCreature,
@@ -215,6 +216,9 @@ export function DebugPanel() {
       <PartySlotSelect slot="slot1" value={party.slot1} />
       <PartySlotSelect slot="slot2" value={party.slot2} />
       <PartySlotSelect slot="slot3" value={party.slot3} />
+      {['slot1', 'slot2', 'slot3'].map((slot) => (
+        <PartySlotExperience key={slot} slot={slot} />
+      ))}
       <hr className="border-white/20" />
       <p>projéteis ativos: {projectiles.length}</p>
       {projectiles.map((entity) => {
@@ -303,6 +307,39 @@ function PartySlotSelect({ slot, value }) {
         </option>
       ))}
     </select>
+  )
+}
+
+/**
+ * Nível/XP de um slot do time + botão "+XP" (`ganharExperiencia`, mesma
+ * action do desmaio de uma selvagem) — pra testar a subida de nível sem
+ * caçar selvagem (docs/features/037-experiencia-e-nivel.md). Sem a fila de
+ * eventos do loop aqui, então sem o texto flutuante: só o estado muda.
+ */
+function PartySlotExperience({ slot }) {
+  const progress = useTrait(playerEntity, PartyProgress)?.[slot]
+  if (!progress) return null
+  return (
+    <div className="flex items-center gap-2 text-[10px] text-white/60">
+      <span>
+        {slot}: nv {progress.level} · {progress.xp} xp
+      </span>
+      <button
+        type="button"
+        className="pointer-events-auto rounded bg-sky-900 px-1.5 py-0.5 hover:bg-sky-800"
+        onClick={() => {
+          ganharExperiencia(
+            world,
+            null,
+            playerEntity,
+            slot,
+            GAME_CONFIG.EXPERIENCE.DEBUG_XP_AMOUNT,
+          )
+        }}
+      >
+        +{GAME_CONFIG.EXPERIENCE.DEBUG_XP_AMOUNT} xp
+      </button>
+    </div>
   )
 }
 

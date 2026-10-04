@@ -19,6 +19,14 @@ import { resolveRetaliateChance } from '@/core/battle/wildBehavior'
 import { resolveMovementCostMultiplier } from '@/core/actions/stamina'
 import { resolveSpeedMultiplier } from '@/core/actions/movementSpeed'
 import { resolveCreatureStats } from '@/core/data/species/stats'
+import {
+  GROWTH_RATES,
+  calculateExperienceGain,
+  experienceForLevel,
+  resolveBaseXp,
+  resolveGrowthRate,
+} from '@/core/data/species/experience'
+import { FORMULA_MAX_LEVEL } from '@/core/data/species/formulaLevel'
 import { getItem } from '@/core/data/items'
 import { MAX_ENTRIES as SCAN_HISTORY_LIMIT } from '@/core/traits/components/scanHistory'
 import { resolveDamagePreview } from './damageCalculator'
@@ -50,8 +58,26 @@ import { describeEffect, formatName } from './wikiFormat'
  * os números da época mesmo depois de o jogo mudar.
  */
 
-// Entradas de exemplo das tabelas ilustrativas — não são valores do jogo.
-const EXAMPLE_LEVELS = [5, 25, 50, 100]
+// Entradas de exemplo das tabelas ilustrativas — não são valores do jogo
+// (o último é o nível máximo, que é).
+const EXAMPLE_LEVELS = [5, 15, 30, GAME_CONFIG.EXPERIENCE.MAX_LEVEL]
+const EXAMPLE_GROWTH_LEVELS = [
+  5,
+  10,
+  20,
+  30,
+  40,
+  GAME_CONFIG.EXPERIENCE.MAX_LEVEL,
+]
+// Lutas de exemplo da tabela de XP ganho: nível de quem vence, da derrotada
+// e quantas criaturas do time dividem.
+const EXAMPLE_DUELS = [
+  { winner: 5, defeated: 5, participants: 1 },
+  { winner: 10, defeated: 5, participants: 1 },
+  { winner: 5, defeated: 10, participants: 1 },
+  { winner: 20, defeated: 20, participants: 1 },
+  { winner: 5, defeated: 5, participants: 2 },
+]
 const EXAMPLE_HP_FRACTIONS = [1, 0.75, 0.5, 0.25, 0]
 const EXAMPLE_COURAGE = [
   { own: 1, hit: 0.1, attacker: 1 },
@@ -98,6 +124,8 @@ function buildSpecies(species) {
     dexNumber: species.dexNumber ?? null,
     sprite: species.sprite?.path ?? null,
     level: range.level,
+    baseXp: resolveBaseXp(species),
+    growthRate: resolveGrowthRate(species),
     bodyRadius: species.body?.capsuleRadius ?? null,
     hasTypes: Boolean(species.types?.length),
     stats: range.stats,
@@ -164,6 +192,57 @@ function buildSkill(skill) {
       cooldown: user.slot ? user.cooldown : null,
       duration: user.slot ? user.duration : null,
     })),
+  }
+}
+
+/** Curvas de nível e exemplos de XP ganho (contra a primeira da lista). */
+function buildExperience(speciesList) {
+  const { EXPERIENCE } = GAME_CONFIG
+  const example = speciesList[0]
+  const baseXp = resolveBaseXp(example)
+  const growthRate = resolveGrowthRate(example)
+  const xpToNext = (level) =>
+    experienceForLevel(growthRate, level + 1) -
+    experienceForLevel(growthRate, level)
+  return {
+    maxLevel: EXPERIENCE.MAX_LEVEL,
+    formulaMaxLevel: FORMULA_MAX_LEVEL,
+    formulaScale: FORMULA_MAX_LEVEL / EXPERIENCE.MAX_LEVEL,
+    baseDivisor: EXPERIENCE.BASE_DIVISOR,
+    scalingExponent: EXPERIENCE.SCALING_EXPONENT,
+    wildLevelMin: EXPERIENCE.WILD_LEVEL_MIN,
+    wildLevelMax: EXPERIENCE.WILD_LEVEL_MAX,
+    growthLevels: EXAMPLE_GROWTH_LEVELS,
+    growthRows: GROWTH_RATES.map((rate) => ({
+      rate,
+      totals: EXAMPLE_GROWTH_LEVELS.map((level) =>
+        experienceForLevel(rate, level),
+      ),
+    })),
+    example: example
+      ? {
+          speciesName: formatName(example.id),
+          baseXp,
+          growthRate,
+          duels: EXAMPLE_DUELS.map((duel) => {
+            const gain = calculateExperienceGain({
+              baseXp,
+              defeatedLevel: duel.defeated,
+              winnerLevel: duel.winner,
+              participants: duel.participants,
+            })
+            return {
+              ...duel,
+              gain,
+              // quantas vitórias iguais a esta pra subir UM nível
+              winsToLevel:
+                duel.winner < EXPERIENCE.MAX_LEVEL
+                  ? xpToNext(duel.winner) / gain
+                  : null,
+            }
+          }),
+        }
+      : null,
   }
 }
 
@@ -332,6 +411,7 @@ export function buildWikiData() {
       scanRange: getItem('pokedex')?.scanner?.range ?? null,
       historyLimit: SCAN_HISTORY_LIMIT,
     },
+    experience: buildExperience(speciesList),
     species: speciesList.map(buildSpecies),
     skills: listWikiSkills().map(buildSkill),
     ivExample: buildIvExample(speciesList[0]),

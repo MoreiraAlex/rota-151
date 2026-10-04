@@ -1,0 +1,1536 @@
+{
+  "battle": {
+    "ivMin": 0,
+    "ivMax": 31,
+    "criticalChance": 0.0625,
+    "criticalMultiplier": 2,
+    "randomMin": 0.85,
+    "randomMax": 1,
+    "stabMultiplier": 1.5,
+    "speedReference": 10,
+    "speedFactorMin": 0.6,
+    "speedFactorMax": 1.4,
+    "defaultAccuracy": 100,
+    "maxCombatHeight": 1,
+    "meleeAssistAngle": 45,
+    "windupSteering": true,
+    "combatModeTimeout": 10,
+    "hitStun": 0.67
+  },
+  "stages": {
+    "limit": 6,
+    "rows": [
+      {
+        "stage": -6,
+        "stat": 0.25,
+        "accuracy": 0.3333333333333333
+      },
+      {
+        "stage": -5,
+        "stat": 0.2857142857142857,
+        "accuracy": 0.375
+      },
+      {
+        "stage": -4,
+        "stat": 0.3333333333333333,
+        "accuracy": 0.42857142857142855
+      },
+      {
+        "stage": -3,
+        "stat": 0.4,
+        "accuracy": 0.5
+      },
+      {
+        "stage": -2,
+        "stat": 0.5,
+        "accuracy": 0.6
+      },
+      {
+        "stage": -1,
+        "stat": 0.6666666666666666,
+        "accuracy": 0.75
+      },
+      {
+        "stage": 0,
+        "stat": 1,
+        "accuracy": 1
+      },
+      {
+        "stage": 1,
+        "stat": 1.5,
+        "accuracy": 1.3333333333333333
+      },
+      {
+        "stage": 2,
+        "stat": 2,
+        "accuracy": 1.6666666666666667
+      },
+      {
+        "stage": 3,
+        "stat": 2.5,
+        "accuracy": 2
+      },
+      {
+        "stage": 4,
+        "stat": 3,
+        "accuracy": 2.3333333333333335
+      },
+      {
+        "stage": 5,
+        "stat": 3.5,
+        "accuracy": 2.6666666666666665
+      },
+      {
+        "stage": 6,
+        "stat": 4,
+        "accuracy": 3
+      }
+    ]
+  },
+  "cost": {
+    "divisor": 50,
+    "cooldownPerWeight": 0.085,
+    "rangedMinRange": 5,
+    "rangedBonus": 1.25,
+    "coneBonus": 1.3,
+    "stageWeight": 25,
+    "drainWeight": 35,
+    "runWeight": 4,
+    "dashWeight": 15,
+    "jumpWeight": 5,
+    "exampleLevels": [
+      5,
+      25,
+      50,
+      100
+    ]
+  },
+  "dash": {
+    "duration": 0.5,
+    "speed": 10,
+    "cooldown": 2.5
+  },
+  "lowHp": {
+    "costMax": 8,
+    "speedMin": 0.6,
+    "rows": [
+      {
+        "hp": 1,
+        "cost": 1,
+        "speed": 1
+      },
+      {
+        "hp": 0.75,
+        "cost": 1.4375,
+        "speed": 0.975
+      },
+      {
+        "hp": 0.5,
+        "cost": 2.75,
+        "speed": 0.9
+      },
+      {
+        "hp": 0.25,
+        "cost": 4.9375,
+        "speed": 0.775
+      },
+      {
+        "hp": 0,
+        "cost": 8,
+        "speed": 0.6
+      }
+    ]
+  },
+  "faint": {
+    "minutes": 15,
+    "reviveFraction": 0.15,
+    "recallDelay": 2
+  },
+  "wild": {
+    "hostileChance": 0.5,
+    "aggroRadius": 8,
+    "exitMargin": 1,
+    "leashRadius": 14,
+    "retaliateChance": 0.5,
+    "courageMin": 0.05,
+    "courageMax": 0.95,
+    "lowHpFlee": 0.25,
+    "lowHpFleeChance": 0.5,
+    "lowHpRecover": 0.5,
+    "threatHalfLife": 10,
+    "fleeSafeDistance": 14,
+    "courageRows": [
+      {
+        "own": 1,
+        "hit": 0.1,
+        "attacker": 1,
+        "chance": 0.7000000000000001
+      },
+      {
+        "own": 1,
+        "hit": 0.1,
+        "attacker": 0.5,
+        "chance": 0.9000000000000001
+      },
+      {
+        "own": 0.75,
+        "hit": 0.25,
+        "attacker": 1,
+        "chance": 0.30000000000000004
+      },
+      {
+        "own": 0.5,
+        "hit": 0.1,
+        "attacker": 1,
+        "chance": 0.2
+      },
+      {
+        "own": 0.5,
+        "hit": 0.4,
+        "attacker": 1,
+        "chance": 0.05
+      },
+      {
+        "own": 0.25,
+        "hit": 0.1,
+        "attacker": 0.25,
+        "chance": 0.24999999999999997
+      }
+    ]
+  },
+  "ai": {
+    "inReachBonus": 1.25,
+    "nearBest": 0.6,
+    "stageValue": 25,
+    "stageDecay": 0.6666666666666666,
+    "refreshTime": 3,
+    "selfSafeDistance": 4,
+    "skillReserve": 0.25,
+    "restEnter": 0.15,
+    "restExit": 0.6,
+    "dodgeChance": 0.5,
+    "dodgeReaction": 0.2,
+    "keepDistance": 0.5,
+    "dashCloseDistance": 5,
+    "beamTurnSpeed": 85.94366926962348,
+    "finishHp": 0.25,
+    "finishBonus": 2
+  },
+  "party": {
+    "attackInterval": 1.5,
+    "leashRadius": 15
+  },
+  "trainerBattle": {
+    "safeMin": 5,
+    "safeMax": 12
+  },
+  "pokedex": {
+    "scanRange": 40,
+    "historyLimit": 10
+  },
+  "species": [
+    {
+      "id": "bulbasaur",
+      "name": "Bulbasaur",
+      "dexNumber": 1,
+      "sprite": "https://play.pokemonshowdown.com/sprites/ani/bulbasaur.gif",
+      "level": 5,
+      "bodyRadius": 0.3,
+      "hasTypes": false,
+      "stats": {
+        "hp": {
+          "base": 45,
+          "ev": 0,
+          "min": 19,
+          "max": 21
+        },
+        "attack": {
+          "base": 49,
+          "ev": 0,
+          "min": 9,
+          "max": 11
+        },
+        "defense": {
+          "base": 65,
+          "ev": 0,
+          "min": 11,
+          "max": 13
+        },
+        "sp_atk": {
+          "base": 65,
+          "ev": 0,
+          "min": 11,
+          "max": 13
+        },
+        "sp_def": {
+          "base": 45,
+          "ev": 0,
+          "min": 9,
+          "max": 11
+        },
+        "speed": {
+          "base": 45,
+          "ev": 0,
+          "min": 9,
+          "max": 11
+        }
+      },
+      "energy": {
+        "min": 23,
+        "max": 25,
+        "regenPercent": 40,
+        "regenDelay": 2
+      },
+      "hpRegen": {
+        "regenPercent": 0.25,
+        "regenDelay": 10
+      },
+      "cp": {
+        "min": 20,
+        "max": 377
+      },
+      "speedFactor": {
+        "slow": 1.0540925533894598,
+        "fast": 0.9534625892455924
+      },
+      "movement": {
+        "walkSpeed": 2.25,
+        "runSpeed": 5,
+        "jumpSpeed": 7,
+        "runStaminaDrainPerSecond": 0.32,
+        "jumpStaminaCost": 0.4,
+        "dashStaminaCost": 1.2
+      },
+      "attacks": [
+        {
+          "slot": "primary",
+          "skillId": null,
+          "name": "Ataque básico",
+          "category": "physical",
+          "power": 5,
+          "area": "capsule",
+          "channel": false,
+          "range": 1,
+          "cost": 0.4,
+          "cooldown": {
+            "min": 0,
+            "max": 0
+          },
+          "duration": {
+            "min": 0.7627700713964739,
+            "max": 0.8432740427115679
+          },
+          "effects": []
+        },
+        {
+          "slot": "secondary1",
+          "skillId": "growl",
+          "name": "Growl",
+          "category": "status",
+          "power": null,
+          "area": "cone",
+          "channel": false,
+          "range": 3,
+          "cost": 2.6,
+          "cooldown": {
+            "min": 2.633940402790949,
+            "max": 2.911930678738383
+          },
+          "duration": {
+            "min": 1.2,
+            "max": 1.2
+          },
+          "effects": [
+            "Ataque −1 por 60 s"
+          ]
+        },
+        {
+          "slot": "secondary2",
+          "skillId": "leech-seed",
+          "name": "Leech Seed",
+          "category": "status",
+          "power": null,
+          "area": "capsule",
+          "channel": false,
+          "range": 5,
+          "cost": 3.5,
+          "cooldown": {
+            "min": 3.545689003757047,
+            "max": 3.919906682917054
+          },
+          "duration": {
+            "min": 1.2,
+            "max": 1.2
+          },
+          "effects": [
+            "Rouba 6,25% da vida máxima do alvo a cada 2 s, por 6 s"
+          ]
+        },
+        {
+          "slot": "secondary3",
+          "skillId": "vine-whip",
+          "name": "Vine Whip",
+          "category": "physical",
+          "power": 45,
+          "area": "capsule",
+          "channel": false,
+          "range": 2,
+          "cost": 3.6,
+          "cooldown": {
+            "min": 3.646994403864391,
+            "max": 4.031904016714684
+          },
+          "duration": {
+            "min": 0.8,
+            "max": 0.8
+          },
+          "effects": []
+        }
+      ],
+      "moves": [
+        "leech-seed"
+      ]
+    },
+    {
+      "id": "charmander",
+      "name": "Charmander",
+      "dexNumber": 4,
+      "sprite": "https://play.pokemonshowdown.com/sprites/ani/charmander.gif",
+      "level": 5,
+      "bodyRadius": 0.25,
+      "hasTypes": false,
+      "stats": {
+        "hp": {
+          "base": 39,
+          "ev": 0,
+          "min": 18,
+          "max": 20
+        },
+        "attack": {
+          "base": 52,
+          "ev": 0,
+          "min": 10,
+          "max": 11
+        },
+        "defense": {
+          "base": 43,
+          "ev": 0,
+          "min": 9,
+          "max": 10
+        },
+        "sp_atk": {
+          "base": 60,
+          "ev": 0,
+          "min": 11,
+          "max": 12
+        },
+        "sp_def": {
+          "base": 50,
+          "ev": 0,
+          "min": 10,
+          "max": 11
+        },
+        "speed": {
+          "base": 65,
+          "ev": 0,
+          "min": 11,
+          "max": 13
+        }
+      },
+      "energy": {
+        "min": 22,
+        "max": 23,
+        "regenPercent": 40,
+        "regenDelay": 2
+      },
+      "hpRegen": {
+        "regenPercent": 0.25,
+        "regenDelay": 10
+      },
+      "cp": {
+        "min": 20,
+        "max": 376
+      },
+      "speedFactor": {
+        "slow": 0.9534625892455924,
+        "fast": 0.8770580193070292
+      },
+      "movement": {
+        "walkSpeed": 2.25,
+        "runSpeed": 5,
+        "jumpSpeed": 7,
+        "runStaminaDrainPerSecond": 0.32,
+        "jumpStaminaCost": 0.4,
+        "dashStaminaCost": 1.2
+      },
+      "attacks": [
+        {
+          "slot": "primary",
+          "skillId": null,
+          "name": "Ataque básico",
+          "category": "physical",
+          "power": 5,
+          "area": "capsule",
+          "channel": false,
+          "range": 1,
+          "cost": 0.4,
+          "cooldown": {
+            "min": 0,
+            "max": 0
+          },
+          "duration": {
+            "min": 0.7016464154456235,
+            "max": 0.7627700713964739
+          },
+          "effects": []
+        },
+        {
+          "slot": "secondary1",
+          "skillId": "growl",
+          "name": "Growl",
+          "category": "status",
+          "power": null,
+          "area": "cone",
+          "channel": false,
+          "range": 3,
+          "cost": 2.6,
+          "cooldown": {
+            "min": 2.4228727783356683,
+            "max": 2.633940402790949
+          },
+          "duration": {
+            "min": 1.2,
+            "max": 1.2
+          },
+          "effects": [
+            "Ataque −1 por 60 s"
+          ]
+        },
+        {
+          "slot": "secondary2",
+          "skillId": "tackle",
+          "name": "Tackle",
+          "category": "physical",
+          "power": 40,
+          "area": "capsule",
+          "channel": false,
+          "range": 1.4,
+          "cost": 3.2,
+          "cooldown": {
+            "min": 2.9819972656438996,
+            "max": 3.241772803435014
+          },
+          "duration": {
+            "min": 1,
+            "max": 1
+          },
+          "effects": []
+        },
+        {
+          "slot": "secondary3",
+          "skillId": "ember",
+          "name": "Ember",
+          "category": "special",
+          "power": 40,
+          "area": "capsule",
+          "channel": false,
+          "range": 8,
+          "cost": 4,
+          "cooldown": {
+            "min": 3.727496582054874,
+            "max": 4.052216004293768
+          },
+          "duration": {
+            "min": 1,
+            "max": 1
+          },
+          "effects": []
+        }
+      ],
+      "moves": [
+        "smokescreen",
+        "flamethrower"
+      ]
+    },
+    {
+      "id": "squirtle",
+      "name": "Squirtle",
+      "dexNumber": 7,
+      "sprite": "https://play.pokemonshowdown.com/sprites/ani/squirtle.gif",
+      "level": 5,
+      "bodyRadius": 0.2,
+      "hasTypes": false,
+      "stats": {
+        "hp": {
+          "base": 44,
+          "ev": 0,
+          "min": 19,
+          "max": 20
+        },
+        "attack": {
+          "base": 48,
+          "ev": 0,
+          "min": 9,
+          "max": 11
+        },
+        "defense": {
+          "base": 65,
+          "ev": 0,
+          "min": 11,
+          "max": 13
+        },
+        "sp_atk": {
+          "base": 50,
+          "ev": 0,
+          "min": 10,
+          "max": 11
+        },
+        "sp_def": {
+          "base": 64,
+          "ev": 0,
+          "min": 11,
+          "max": 12
+        },
+        "speed": {
+          "base": 43,
+          "ev": 0,
+          "min": 9,
+          "max": 10
+        }
+      },
+      "energy": {
+        "min": 23,
+        "max": 25,
+        "regenPercent": 40,
+        "regenDelay": 2
+      },
+      "hpRegen": {
+        "regenPercent": 0.25,
+        "regenDelay": 10
+      },
+      "cp": {
+        "min": 20,
+        "max": 376
+      },
+      "speedFactor": {
+        "slow": 1.0540925533894598,
+        "fast": 1
+      },
+      "movement": {
+        "walkSpeed": 2.25,
+        "runSpeed": 5,
+        "jumpSpeed": 7,
+        "runStaminaDrainPerSecond": 0.32,
+        "jumpStaminaCost": 0.4,
+        "dashStaminaCost": 1.2
+      },
+      "attacks": [
+        {
+          "slot": "primary",
+          "skillId": null,
+          "name": "Ataque básico",
+          "category": "physical",
+          "power": 5,
+          "area": "capsule",
+          "channel": false,
+          "range": 1,
+          "cost": 0.4,
+          "cooldown": {
+            "min": 0,
+            "max": 0
+          },
+          "duration": {
+            "min": 0.8,
+            "max": 0.8432740427115679
+          },
+          "effects": []
+        },
+        {
+          "slot": "secondary1",
+          "skillId": "tackle",
+          "name": "Tackle",
+          "category": "physical",
+          "power": 40,
+          "area": "capsule",
+          "channel": false,
+          "range": 1.4,
+          "cost": 3.2,
+          "cooldown": {
+            "min": 3.4000000000000004,
+            "max": 3.583914681524164
+          },
+          "duration": {
+            "min": 1,
+            "max": 1
+          },
+          "effects": []
+        },
+        {
+          "slot": "secondary2",
+          "skillId": "water-gun",
+          "name": "Water Gun",
+          "category": "special",
+          "power": 40,
+          "area": "line",
+          "channel": true,
+          "range": 5,
+          "cost": 4,
+          "cooldown": {
+            "min": 4.25,
+            "max": 4.479893351905204
+          },
+          "duration": {
+            "min": 2.5,
+            "max": 2.5
+          },
+          "effects": []
+        },
+        {
+          "slot": "secondary3",
+          "skillId": "tail-whip",
+          "name": "Tail Whip",
+          "category": "status",
+          "power": null,
+          "area": "cone",
+          "channel": false,
+          "range": 3,
+          "cost": 2.6,
+          "cooldown": {
+            "min": 2.7625,
+            "max": 2.911930678738383
+          },
+          "duration": {
+            "min": 1,
+            "max": 1
+          },
+          "effects": [
+            "Defesa −1 por 60 s"
+          ]
+        }
+      ],
+      "moves": []
+    }
+  ],
+  "skills": [
+    {
+      "id": "ember",
+      "name": "Ember",
+      "category": "special",
+      "power": 40,
+      "accuracy": 100,
+      "area": "capsule",
+      "range": 8,
+      "radius": 0.35,
+      "duration": 0.5,
+      "effectAt": 0.25,
+      "channel": null,
+      "effects": [],
+      "weight": 50,
+      "baseCooldown": 4.25,
+      "fixedCost": null,
+      "costByLevel": [
+        {
+          "level": 5,
+          "cost": 4
+        },
+        {
+          "level": 25,
+          "cost": 12
+        },
+        {
+          "level": 50,
+          "cost": 22
+        },
+        {
+          "level": 100,
+          "cost": 42
+        }
+      ],
+      "users": [
+        {
+          "speciesId": "charmander",
+          "speciesName": "Charmander",
+          "level": 5,
+          "slot": "secondary3",
+          "cost": 4,
+          "cooldown": {
+            "min": 3.727496582054874,
+            "max": 4.052216004293768
+          },
+          "duration": {
+            "min": 1,
+            "max": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "flamethrower",
+      "name": "Flamethrower",
+      "category": "special",
+      "power": 90,
+      "accuracy": 100,
+      "area": "cone",
+      "range": 3,
+      "radius": 0.8,
+      "duration": 0.5,
+      "effectAt": 0.25,
+      "channel": {
+        "ticks": 2,
+        "interval": 0.25
+      },
+      "effects": [],
+      "weight": 117,
+      "baseCooldown": 9.945,
+      "fixedCost": null,
+      "costByLevel": [
+        {
+          "level": 5,
+          "cost": 9.36
+        },
+        {
+          "level": 25,
+          "cost": 28.08
+        },
+        {
+          "level": 50,
+          "cost": 51.48
+        },
+        {
+          "level": 100,
+          "cost": 98.28
+        }
+      ],
+      "users": [
+        {
+          "speciesId": "charmander",
+          "speciesName": "Charmander",
+          "level": 5,
+          "slot": null,
+          "cost": null,
+          "cooldown": null,
+          "duration": null
+        }
+      ]
+    },
+    {
+      "id": "growl",
+      "name": "Growl",
+      "category": "status",
+      "power": null,
+      "accuracy": 100,
+      "area": "cone",
+      "range": 3,
+      "radius": 1.5,
+      "duration": 1.2,
+      "effectAt": 0.5,
+      "channel": null,
+      "effects": [
+        "Ataque −1 por 60 s"
+      ],
+      "weight": 32.5,
+      "baseCooldown": 2.7625,
+      "fixedCost": null,
+      "costByLevel": [
+        {
+          "level": 5,
+          "cost": 2.6
+        },
+        {
+          "level": 25,
+          "cost": 7.8
+        },
+        {
+          "level": 50,
+          "cost": 14.3
+        },
+        {
+          "level": 100,
+          "cost": 27.3
+        }
+      ],
+      "users": [
+        {
+          "speciesId": "bulbasaur",
+          "speciesName": "Bulbasaur",
+          "level": 5,
+          "slot": "secondary1",
+          "cost": 2.6,
+          "cooldown": {
+            "min": 2.633940402790949,
+            "max": 2.911930678738383
+          },
+          "duration": {
+            "min": 1.2,
+            "max": 1.2
+          }
+        },
+        {
+          "speciesId": "charmander",
+          "speciesName": "Charmander",
+          "level": 5,
+          "slot": "secondary1",
+          "cost": 2.6,
+          "cooldown": {
+            "min": 2.4228727783356683,
+            "max": 2.633940402790949
+          },
+          "duration": {
+            "min": 1.2,
+            "max": 1.2
+          }
+        }
+      ]
+    },
+    {
+      "id": "growth",
+      "name": "Growth",
+      "category": "status",
+      "power": null,
+      "accuracy": 100,
+      "area": "self",
+      "range": 0,
+      "radius": 0.5,
+      "duration": 3,
+      "effectAt": 3,
+      "channel": null,
+      "effects": [
+        "Ataque +1 por 60 s",
+        "Ataque especial +1 por 60 s"
+      ],
+      "weight": 50,
+      "baseCooldown": 4.25,
+      "fixedCost": null,
+      "costByLevel": [
+        {
+          "level": 5,
+          "cost": 4
+        },
+        {
+          "level": 25,
+          "cost": 12
+        },
+        {
+          "level": 50,
+          "cost": 22
+        },
+        {
+          "level": 100,
+          "cost": 42
+        }
+      ],
+      "users": []
+    },
+    {
+      "id": "leech-seed",
+      "name": "Leech Seed",
+      "category": "status",
+      "power": null,
+      "accuracy": 90,
+      "area": "capsule",
+      "range": 5,
+      "radius": 0.4,
+      "duration": 1.2,
+      "effectAt": 0.6,
+      "channel": null,
+      "effects": [
+        "Rouba 6,25% da vida máxima do alvo a cada 2 s, por 6 s"
+      ],
+      "weight": 43.75,
+      "baseCooldown": 3.7187500000000004,
+      "fixedCost": null,
+      "costByLevel": [
+        {
+          "level": 5,
+          "cost": 3.5
+        },
+        {
+          "level": 25,
+          "cost": 10.5
+        },
+        {
+          "level": 50,
+          "cost": 19.25
+        },
+        {
+          "level": 100,
+          "cost": 36.75
+        }
+      ],
+      "users": [
+        {
+          "speciesId": "bulbasaur",
+          "speciesName": "Bulbasaur",
+          "level": 5,
+          "slot": "secondary2",
+          "cost": 3.5,
+          "cooldown": {
+            "min": 3.545689003757047,
+            "max": 3.919906682917054
+          },
+          "duration": {
+            "min": 1.2,
+            "max": 1.2
+          }
+        },
+        {
+          "speciesId": "bulbasaur",
+          "speciesName": "Bulbasaur",
+          "level": 5,
+          "slot": null,
+          "cost": null,
+          "cooldown": null,
+          "duration": null
+        }
+      ]
+    },
+    {
+      "id": "punch",
+      "name": "Punch",
+      "category": "physical",
+      "power": 5,
+      "accuracy": 100,
+      "area": "capsule",
+      "range": 1.4,
+      "radius": 0.3,
+      "duration": 0.5,
+      "effectAt": 0.25,
+      "channel": null,
+      "effects": [],
+      "weight": 5,
+      "baseCooldown": 0.42500000000000004,
+      "fixedCost": null,
+      "costByLevel": [
+        {
+          "level": 5,
+          "cost": 0.4
+        },
+        {
+          "level": 25,
+          "cost": 1.2
+        },
+        {
+          "level": 50,
+          "cost": 2.2
+        },
+        {
+          "level": 100,
+          "cost": 4.2
+        }
+      ],
+      "users": []
+    },
+    {
+      "id": "razor-leaf",
+      "name": "Razor Leaf",
+      "category": "physical",
+      "power": 55,
+      "accuracy": 100,
+      "area": "cone",
+      "range": 3,
+      "radius": 0.4,
+      "duration": 1,
+      "effectAt": 0.25,
+      "channel": {
+        "ticks": 4,
+        "interval": 0.25
+      },
+      "effects": [],
+      "weight": 71.5,
+      "baseCooldown": 6.077500000000001,
+      "fixedCost": null,
+      "costByLevel": [
+        {
+          "level": 5,
+          "cost": 5.72
+        },
+        {
+          "level": 25,
+          "cost": 17.16
+        },
+        {
+          "level": 50,
+          "cost": 31.46
+        },
+        {
+          "level": 100,
+          "cost": 60.06
+        }
+      ],
+      "users": []
+    },
+    {
+      "id": "smokescreen",
+      "name": "Smokescreen",
+      "category": "status",
+      "power": null,
+      "accuracy": 100,
+      "area": "cone",
+      "range": 3,
+      "radius": 1.5,
+      "duration": 1.2,
+      "effectAt": 0.5,
+      "channel": null,
+      "effects": [
+        "Precisão −1 por 30 s"
+      ],
+      "weight": 32.5,
+      "baseCooldown": 2.7625,
+      "fixedCost": null,
+      "costByLevel": [
+        {
+          "level": 5,
+          "cost": 2.6
+        },
+        {
+          "level": 25,
+          "cost": 7.8
+        },
+        {
+          "level": 50,
+          "cost": 14.3
+        },
+        {
+          "level": 100,
+          "cost": 27.3
+        }
+      ],
+      "users": [
+        {
+          "speciesId": "charmander",
+          "speciesName": "Charmander",
+          "level": 5,
+          "slot": null,
+          "cost": null,
+          "cooldown": null,
+          "duration": null
+        }
+      ]
+    },
+    {
+      "id": "tackle",
+      "name": "Tackle",
+      "category": "physical",
+      "power": 40,
+      "accuracy": 100,
+      "area": "capsule",
+      "range": 1.4,
+      "radius": 0.3,
+      "duration": 0.5,
+      "effectAt": 0.25,
+      "channel": null,
+      "effects": [],
+      "weight": 40,
+      "baseCooldown": 3.4000000000000004,
+      "fixedCost": null,
+      "costByLevel": [
+        {
+          "level": 5,
+          "cost": 3.2
+        },
+        {
+          "level": 25,
+          "cost": 9.6
+        },
+        {
+          "level": 50,
+          "cost": 17.6
+        },
+        {
+          "level": 100,
+          "cost": 33.6
+        }
+      ],
+      "users": [
+        {
+          "speciesId": "charmander",
+          "speciesName": "Charmander",
+          "level": 5,
+          "slot": "secondary2",
+          "cost": 3.2,
+          "cooldown": {
+            "min": 2.9819972656438996,
+            "max": 3.241772803435014
+          },
+          "duration": {
+            "min": 1,
+            "max": 1
+          }
+        },
+        {
+          "speciesId": "squirtle",
+          "speciesName": "Squirtle",
+          "level": 5,
+          "slot": "secondary1",
+          "cost": 3.2,
+          "cooldown": {
+            "min": 3.4000000000000004,
+            "max": 3.583914681524164
+          },
+          "duration": {
+            "min": 1,
+            "max": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "tail-whip",
+      "name": "Tail Whip",
+      "category": "status",
+      "power": null,
+      "accuracy": 100,
+      "area": "cone",
+      "range": 3,
+      "radius": 1.5,
+      "duration": 1,
+      "effectAt": 0.6,
+      "channel": null,
+      "effects": [
+        "Defesa −1 por 60 s"
+      ],
+      "weight": 32.5,
+      "baseCooldown": 2.7625,
+      "fixedCost": null,
+      "costByLevel": [
+        {
+          "level": 5,
+          "cost": 2.6
+        },
+        {
+          "level": 25,
+          "cost": 7.8
+        },
+        {
+          "level": 50,
+          "cost": 14.3
+        },
+        {
+          "level": 100,
+          "cost": 27.3
+        }
+      ],
+      "users": [
+        {
+          "speciesId": "squirtle",
+          "speciesName": "Squirtle",
+          "level": 5,
+          "slot": "secondary3",
+          "cost": 2.6,
+          "cooldown": {
+            "min": 2.7625,
+            "max": 2.911930678738383
+          },
+          "duration": {
+            "min": 1,
+            "max": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "vine-whip",
+      "name": "Vine Whip",
+      "category": "physical",
+      "power": 45,
+      "accuracy": 100,
+      "area": "capsule",
+      "range": 2.5,
+      "radius": 0.35,
+      "duration": 0.2,
+      "effectAt": 0.1,
+      "channel": null,
+      "effects": [],
+      "weight": 45,
+      "baseCooldown": 3.825,
+      "fixedCost": null,
+      "costByLevel": [
+        {
+          "level": 5,
+          "cost": 3.6
+        },
+        {
+          "level": 25,
+          "cost": 10.8
+        },
+        {
+          "level": 50,
+          "cost": 19.8
+        },
+        {
+          "level": 100,
+          "cost": 37.8
+        }
+      ],
+      "users": [
+        {
+          "speciesId": "bulbasaur",
+          "speciesName": "Bulbasaur",
+          "level": 5,
+          "slot": "secondary3",
+          "cost": 3.6,
+          "cooldown": {
+            "min": 3.646994403864391,
+            "max": 4.031904016714684
+          },
+          "duration": {
+            "min": 0.8,
+            "max": 0.8
+          }
+        }
+      ]
+    },
+    {
+      "id": "water-gun",
+      "name": "Water Gun",
+      "category": "special",
+      "power": 40,
+      "accuracy": 100,
+      "area": "line",
+      "range": 5,
+      "radius": 0.35,
+      "duration": 2.5,
+      "effectAt": 0.6,
+      "channel": {
+        "ticks": 8,
+        "interval": 0.25
+      },
+      "effects": [],
+      "weight": 50,
+      "baseCooldown": 4.25,
+      "fixedCost": null,
+      "costByLevel": [
+        {
+          "level": 5,
+          "cost": 4
+        },
+        {
+          "level": 25,
+          "cost": 12
+        },
+        {
+          "level": 50,
+          "cost": 22
+        },
+        {
+          "level": 100,
+          "cost": 42
+        }
+      ],
+      "users": [
+        {
+          "speciesId": "squirtle",
+          "speciesName": "Squirtle",
+          "level": 5,
+          "slot": "secondary2",
+          "cost": 4,
+          "cooldown": {
+            "min": 4.25,
+            "max": 4.479893351905204
+          },
+          "duration": {
+            "min": 2.5,
+            "max": 2.5
+          }
+        }
+      ]
+    },
+    {
+      "id": "whirlpool",
+      "name": "Whirlpool",
+      "category": "special",
+      "power": 35,
+      "accuracy": 100,
+      "area": "capsule",
+      "range": 1.6,
+      "radius": 0.5,
+      "duration": 0.6,
+      "effectAt": 0.3,
+      "channel": null,
+      "effects": [],
+      "weight": 35,
+      "baseCooldown": 2.975,
+      "fixedCost": null,
+      "costByLevel": [
+        {
+          "level": 5,
+          "cost": 2.8
+        },
+        {
+          "level": 25,
+          "cost": 8.4
+        },
+        {
+          "level": 50,
+          "cost": 15.4
+        },
+        {
+          "level": 100,
+          "cost": 29.4
+        }
+      ],
+      "users": []
+    }
+  ],
+  "ivExample": {
+    "speciesName": "Bulbasaur",
+    "level": 5,
+    "columns": [
+      0,
+      16,
+      31
+    ],
+    "rows": [
+      {
+        "stat": "hp",
+        "values": [
+          19,
+          20,
+          21
+        ]
+      },
+      {
+        "stat": "attack",
+        "values": [
+          9,
+          10,
+          11
+        ]
+      },
+      {
+        "stat": "defense",
+        "values": [
+          11,
+          12,
+          13
+        ]
+      },
+      {
+        "stat": "sp_atk",
+        "values": [
+          11,
+          12,
+          13
+        ]
+      },
+      {
+        "stat": "sp_def",
+        "values": [
+          9,
+          10,
+          11
+        ]
+      },
+      {
+        "stat": "speed",
+        "values": [
+          9,
+          10,
+          11
+        ]
+      },
+      {
+        "stat": "energy",
+        "values": [
+          23,
+          24,
+          25
+        ]
+      }
+    ]
+  },
+  "damageExamples": {
+    "defenderName": "Bulbasaur",
+    "iv": 16,
+    "rows": [
+      {
+        "attackerName": "Bulbasaur",
+        "attackName": "Ataque básico",
+        "category": "physical",
+        "power": 5,
+        "channel": false,
+        "min": 1.9833333333333334,
+        "max": 2.3333333333333335,
+        "minPercent": 0.09916666666666667,
+        "maxPercent": 0.11666666666666667
+      },
+      {
+        "attackerName": "Bulbasaur",
+        "attackName": "Vine Whip",
+        "category": "physical",
+        "power": 45,
+        "channel": false,
+        "min": 4.25,
+        "max": 5,
+        "minPercent": 0.2125,
+        "maxPercent": 0.25
+      },
+      {
+        "attackerName": "Charmander",
+        "attackName": "Ataque básico",
+        "category": "physical",
+        "power": 5,
+        "channel": false,
+        "min": 2.0116666666666667,
+        "max": 2.3666666666666667,
+        "minPercent": 0.10058333333333333,
+        "maxPercent": 0.11833333333333333
+      },
+      {
+        "attackerName": "Charmander",
+        "attackName": "Tackle",
+        "category": "physical",
+        "power": 40,
+        "channel": false,
+        "min": 4.193333333333333,
+        "max": 4.933333333333334,
+        "minPercent": 0.20966666666666667,
+        "maxPercent": 0.24666666666666667
+      },
+      {
+        "attackerName": "Charmander",
+        "attackName": "Ember",
+        "category": "special",
+        "power": 40,
+        "channel": false,
+        "min": 4.691999999999999,
+        "max": 5.52,
+        "minPercent": 0.23459999999999998,
+        "maxPercent": 0.27599999999999997
+      },
+      {
+        "attackerName": "Squirtle",
+        "attackName": "Ataque básico",
+        "category": "physical",
+        "power": 5,
+        "channel": false,
+        "min": 1.9833333333333334,
+        "max": 2.3333333333333335,
+        "minPercent": 0.09916666666666667,
+        "maxPercent": 0.11666666666666667
+      },
+      {
+        "attackerName": "Squirtle",
+        "attackName": "Tackle",
+        "category": "physical",
+        "power": 40,
+        "channel": false,
+        "min": 3.966666666666667,
+        "max": 4.666666666666667,
+        "minPercent": 0.19833333333333333,
+        "maxPercent": 0.23333333333333334
+      },
+      {
+        "attackerName": "Squirtle",
+        "attackName": "Water Gun",
+        "category": "special",
+        "power": 40,
+        "channel": true,
+        "min": 4.8100000000000005,
+        "max": 4.8100000000000005,
+        "minPercent": 0.24050000000000002,
+        "maxPercent": 0.24050000000000002
+      }
+    ]
+  }
+}

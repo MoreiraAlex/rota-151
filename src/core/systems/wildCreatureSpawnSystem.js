@@ -1,6 +1,7 @@
 import { TEST_LEVEL } from '../data/testLevel'
 import { getSpecies } from '../data/species'
 import { rollIndividualValues } from '../data/species/stats'
+import { createLevelState, rollWildLevel } from '../data/species/experience'
 import { rollTemperament } from '../battle/wildBehavior'
 import { GAME_CONFIG } from '../gameConfig'
 import { gameplayRng } from '../rng'
@@ -11,6 +12,7 @@ import {
   AttackCooldowns,
   AnimationState,
   CharacterController,
+  CreatureLevel,
   IndividualValues,
   Mood,
   MovementStats,
@@ -102,6 +104,12 @@ export function wildCreatureSpawnSystem(context) {
       min: GAME_CONFIG.BATTLE.IV_MIN,
       max: GAME_CONFIG.BATTLE.IV_MAX,
     })
+    // Nível sorteado na faixa da entrada (ou a padrão) — por indivíduo,
+    // como o IV (docs/features/037-experiencia-e-nivel.md).
+    const levelState = createLevelState(
+      species,
+      rollWildLevel(gameplayRng, entry.levelRange),
+    )
 
     world.spawn(
       Position({ x, y, z }),
@@ -112,6 +120,7 @@ export function wildCreatureSpawnSystem(context) {
       // Movimento na luta (desvio, recuo, rodear, dash — `aiMovement.js`).
       AiMovement,
       IndividualValues(individualValues),
+      CreatureLevel(levelState),
       AnimationState,
       ActionState,
       // Ataque básico da selvagem (cooldown por slot, mesmo trait das
@@ -120,7 +129,7 @@ export function wildCreatureSpawnSystem(context) {
       Velocity,
       CharacterController(species.body),
       MovementStats(species.movement),
-      vitalsFromSpecies(species, individualValues),
+      vitalsFromSpecies(species, individualValues, levelState.level),
       PhysicsBody(physicsBody),
       PathState,
       WanderState({

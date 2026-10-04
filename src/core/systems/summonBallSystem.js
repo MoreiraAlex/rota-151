@@ -1,6 +1,7 @@
 import { GAME_CONFIG } from '../gameConfig'
 import { castRay } from '../physics/raycast'
 import { getSpecies, getPlayerSpecies } from '../data/species'
+import { createLevelState } from '../data/species/experience'
 import { isPhysicsReady } from '../physics/physicsWorld'
 import { createCharacterBody, verticalClearance } from '../physics/colliders'
 import {
@@ -9,6 +10,7 @@ import {
   AttackAim,
   AttackCooldowns,
   CharacterController,
+  CreatureLevel,
   HeldItem,
   IndividualValues,
   InputState,
@@ -18,6 +20,7 @@ import {
   AiMovement,
   PartyBehavior,
   PartyIndividualValues,
+  PartyProgress,
   PartyVitals,
   PathState,
   PhysicsBody,
@@ -86,12 +89,18 @@ function spawnCreature(
     : { bodyHandle: -1, colliderHandle: -1 }
 
   const individualValues = trainer?.get(PartyIndividualValues)?.[slot] ?? null
+  // Nível/XP do slot (`PartyProgress`) — a criatura sai da bola no nível em
+  // que está; sem nada (testes antigos), o nível inicial da espécie.
+  const progress =
+    trainer?.get(PartyProgress)?.[slot] ??
+    createLevelState(species, species.level ?? 1)
 
   const creature = world.spawn(
     Position(spawnPosition),
     Rotation,
     SummonedCreature({ slot, speciesId }),
     IndividualValues(individualValues ?? {}),
+    CreatureLevel(progress),
     AnimationState,
     // Nasce já fazendo a apresentação (`appeal`), se a espécie tiver.
     ActionState(resolveAppealActionState(species)),
@@ -100,7 +109,7 @@ function spawnCreature(
     Velocity,
     CharacterController(species.body),
     MovementStats(species.movement),
-    vitalsFromSpecies(species, individualValues),
+    vitalsFromSpecies(species, individualValues, progress.level),
     PhysicsBody(physicsBody),
     PathState,
     InputState,

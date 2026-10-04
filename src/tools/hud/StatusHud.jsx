@@ -9,12 +9,18 @@ import { resolveControlledSpecies } from '@/view/systems/cameraFollowSystem'
 import {
   formatSpeciesName,
   KeyHint,
+  resolveDisplayLevel,
   resolveXpPercent,
   SpritePortrait,
   StatStageBadges,
   VitalBar,
 } from '@/view/shared/statusDisplay'
-import { InputControlled, SummonedCreature, Vitals } from '@/core/traits'
+import {
+  CreatureLevel,
+  InputControlled,
+  SummonedCreature,
+  Vitals,
+} from '@/core/traits'
 import { CARD_TRANSITION, statusLayoutId } from './statusMotion'
 
 /**
@@ -166,6 +172,8 @@ function StatusCard({
   compact = false,
   layoutId,
 }) {
+  const progress = useTrait(entity, CreatureLevel)
+  const level = resolveDisplayLevel(species, progress)
   return (
     <motion.div
       layout
@@ -181,13 +189,13 @@ function StatusCard({
       <SpritePortrait
         species={species}
         size={size}
-        xpPercent={resolveXpPercent(species)}
+        xpPercent={resolveXpPercent(species, progress)}
       />
       <div className={`flex flex-col gap-0.5 ${compact ? 'w-24' : 'w-52'}`}>
         <div className="flex items-center justify-between gap-1">
           <span className="truncate">{formatSpeciesName(species.id)}</span>
-          {species.level != null && (
-            <span className="shrink-0 text-white/50">Lv.{species.level}</span>
+          {level != null && (
+            <span className="shrink-0 text-white/50">Lv.{level}</span>
           )}
           {compact && (
             <KeyHint keyLabel="4" icon={ArrowLeftRight} variant="accent" />

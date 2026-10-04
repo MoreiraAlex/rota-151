@@ -15,12 +15,19 @@
 export const SPECIES_TEMPLATE = {
   id: 'nome-em-minusculo',
   dexNumber: 0,
-  // Opcional — nível fixo por ESPÉCIE (não por indivíduo; sem XP/
-  // progressão nenhuma por trás), mostrado na etiqueta acima da cabeça
-  // (`view/scene/NameplateView.jsx`, docs/features/027-hud-de-status-e-habilidades.md). Ausente = campo simplesmente não aparece na etiqueta
-  // (ex.: `../boy/index.js`, treinador — "nível" não faz sentido pra um
-  // humano). Valor de PARTIDA quando declarado, sem balanceamento.
+  // Opcional — nível INICIAL de quem entra no time (`equiparCriatura`). O
+  // nível de verdade é de cada criatura (`CreatureLevel`/`PartyProgress`,
+  // docs/features/037-experiencia-e-nivel.md); a selvagem sorteia o dela no
+  // spawn (`levelRange` da entrada, ou `GAME_CONFIG.EXPERIENCE`). Ausente
+  // (ex.: `../boy/index.js`, treinador) = sem nível na etiqueta.
   // level: 5,
+  // Opcional — XP base que ela rende ao ser derrotada (fórmula de ganho,
+  // `core/data/species/experience.js`). Ausente = `FALLBACK_BASE_XP`.
+  // baseXp: 64,
+  // Opcional — grupo de crescimento (curva de nível): 'fast' |
+  // 'medium-fast' | 'medium-slow' | 'slow' | 'erratic' | 'fluctuating'.
+  // Ausente = `DEFAULT_GROWTH_RATE`.
+  // growthRate: 'medium-slow',
   // Opcional — retrato/sprite REDONDO (`view/shared/statusDisplay.jsx`,
   // `SpritePortrait`) usado por `tools/hud/StatusHud.jsx`/`PartyHud.jsx`
   // (docs/features/027-hud-de-status-e-habilidades.md, "3ª/4ª rodada").
@@ -41,11 +48,6 @@ export const SPECIES_TEMPLATE = {
   //   // medida exata disponível.
   //   scale: 1,
   // },
-  // Opcional — fração de XP (0 a 1, via `current`/`max`) mostrada no
-  // anel ao redor do retrato (`SpritePortrait`) — mesmo espírito de
-  // `level`: só um NÚMERO de exibição, sem sistema de progressão
-  // nenhum por trás ainda. Ausente = anel nasce vazio (0%).
-  // xp: { current: 0, max: 100 },
   // 'trainer' | 'pokemon' — que tipo de entidade jogável esta espécie
   // representa (ver docs/features/011-slots-de-acao.md). Opcional — sem
   // isso, resolveSpeciesKind() assume 'trainer'.

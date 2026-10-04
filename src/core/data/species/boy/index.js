@@ -88,7 +88,7 @@ export const BOY = {
     modelOffset: [0, -1, 0],
   },
   movement: {
-    walkSpeed: 2.5,
+    walkSpeed: 2.25,
     runSpeed: 6,
     turnSpeed: 10,
     jumpSpeed: 9,

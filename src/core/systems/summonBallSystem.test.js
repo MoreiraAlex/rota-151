@@ -3,10 +3,17 @@ import { createWorld } from 'koota'
 import { makeWorld } from '@/test/makeWorld'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import { getSpecies } from '@/core/data/species'
+import { createLevelState } from '@/core/data/species/experience'
+import { equiparCriatura } from '@/core/actions/party'
 import {
   ActionState,
   AttackAim,
   AttackCooldowns,
+  CreatureLevel,
+  PartyIndividualValues,
+  PartyProgress,
+  Vitals,
+  resolveMaxHp,
   SummonBall,
   SummonedCreature,
   SummonFlash,
@@ -166,6 +173,39 @@ describe('summonBallSystem', () => {
 
     const [creature] = world.query(SummonedCreature)
     expect(creature.get(ActionState).current).toBe('appeal')
+  })
+
+  it('a criatura sai da bola com o nível/XP do slot (PartyProgress)', () => {
+    const { world, player } = makeWorld()
+    spawnedWorlds.push(world)
+    equiparCriatura(player, 'slot1', 'charmander')
+    const progress = createLevelState(
+      getSpecies('charmander'),
+      getSpecies('charmander').level + 3,
+    )
+    player.set(PartyProgress, { slot1: progress })
+
+    world.spawn(
+      Position({ x: 0, y: 1, z: 0 }),
+      Velocity({ x: 10, y: 0, z: 0 }),
+      SummonBall({
+        slot: 'slot1',
+        speciesId: 'charmander',
+        maxDistance: 1,
+        traveled: 0,
+      }),
+    )
+    for (let i = 0; i < 30; i++) tick(world, 1 / 60)
+
+    const [creature] = world.query(SummonedCreature)
+    expect(creature.get(CreatureLevel)).toEqual(progress)
+    expect(creature.get(Vitals).maxHp).toBe(
+      resolveMaxHp(
+        getSpecies('charmander'),
+        player.get(PartyIndividualValues).slot1,
+        progress.level,
+      ),
+    )
   })
 
   it('sem hasSpecies válido (removido/trocado enquanto a esfera voava), pousa sem spawnar nada — some silenciosamente', () => {

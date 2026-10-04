@@ -20,6 +20,7 @@ import {
   Party,
   TrainerBehavior,
   PartyIndividualValues,
+  PartyProgress,
   PartyFaint,
   PartyVitals,
   PathState,
@@ -72,6 +73,7 @@ export function makeWorld({ playerPosition = { x: 0, y: 2, z: 0 } } = {}) {
     // `equiparCriatura` (`core/actions/party.js`) poder ser chamada num
     // player de teste sem precisar de `.add()` antes de `.set()`.
     PartyIndividualValues,
+    PartyProgress,
     TrainerBehavior,
     PartyFaint,
     PartyVitals,

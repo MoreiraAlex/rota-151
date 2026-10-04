@@ -5,6 +5,7 @@ import { getSpecies } from '@/core/data/species'
 import { resolveAttackForEntity } from '@/core/battle/attackCasting'
 import {
   AttackCooldowns,
+  CreatureLevel,
   IndividualValues,
   InputControlled,
   SummonedCreature,
@@ -48,6 +49,8 @@ export function SkillsHud() {
   const cooldowns = useTrait(controlled, AttackCooldowns)
   // A recarga sai da fórmula (035) e depende do `speed` desta criatura (IV).
   const individualValues = useTrait(controlled, IndividualValues)
+  // ...e do nível dela (o custo/recarga crescem com o nível).
+  const progress = useTrait(controlled, CreatureLevel)
 
   if (!creature || !cooldowns) return null
 
@@ -55,7 +58,12 @@ export function SkillsHud() {
   const slots = SKILL_SLOTS.map(({ key, label }) => ({
     key,
     label,
-    attack: resolveAttackForEntity(species, key, individualValues),
+    attack: resolveAttackForEntity(
+      species,
+      key,
+      individualValues,
+      progress?.level ?? species.level,
+    ),
   }))
 
   if (slots.length === 0) return null

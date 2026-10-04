@@ -6,6 +6,7 @@ import {
   IndividualValues,
   Position,
   Vitals,
+  resolveEntityLevel,
 } from '../traits'
 import { ATTACK_SLOTS, resolveAttackForEntity } from './attackCasting'
 import { isInsideAttackCone } from './attackGeometry'
@@ -136,6 +137,7 @@ function resolveReadyAttack(entity, species, slot) {
     species,
     slot,
     entity.get(IndividualValues),
+    resolveEntityLevel(entity, species),
   )
   if (!attack) return null
   if (entity.get(Vitals).stamina < attack.staminaCost) return null

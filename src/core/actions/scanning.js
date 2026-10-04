@@ -5,6 +5,7 @@ import {
   ScanHistory,
   pushScanHistoryEntry,
   resolveCreatureSpeciesId,
+  resolveEntityLevel,
 } from '../traits'
 
 /**
@@ -40,7 +41,8 @@ export function registrarScan(trainer, creature) {
     entries: pushScanHistoryEntry(history.entries, {
       speciesId,
       individualValues,
-      level: species?.level ?? null,
+      level:
+        species?.level != null ? resolveEntityLevel(creature, species) : null,
     }),
   })
 }

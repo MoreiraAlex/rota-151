@@ -11,6 +11,7 @@ import {
   Party,
   PartyFaint,
   PartyIndividualValues,
+  PartyProgress,
   PartyVitals,
   resolveMaxHp,
   resolveMaxStamina,
@@ -20,6 +21,7 @@ import {
 import {
   formatSpeciesName,
   KeyHint,
+  resolveDisplayLevel,
   resolveXpPercent,
   SpritePortrait,
   StatStageBadges,
@@ -169,6 +171,7 @@ export function PartyHud() {
   const partyIndividualValues = useTrait(playerEntity, PartyIndividualValues)
   const partyFaint = useTrait(playerEntity, PartyFaint)
   const partyVitals = useTrait(playerEntity, PartyVitals)
+  const partyProgress = useTrait(playerEntity, PartyProgress)
   const summoned = useQuery(SummonedCreature)
   const controlled = useQueryFirst(InputControlled)
   const controllingCreature = !!controlled && controlled !== playerEntity
@@ -206,6 +209,7 @@ export function PartyHud() {
               speciesId={speciesId}
               activeEntity={activeEntity}
               individualValues={partyIndividualValues?.[slot]}
+              progress={partyProgress?.[slot] ?? null}
               slotFaint={partyFaint?.[slot] ?? null}
               storedVitals={partyVitals?.[slot] ?? null}
               dimInvoke={controllingCreature}
@@ -257,6 +261,7 @@ function PartySlotCard({
   speciesId,
   activeEntity,
   individualValues,
+  progress,
   slotFaint,
   storedVitals,
   dimInvoke,
@@ -271,8 +276,14 @@ function PartySlotCard({
     return <HudSlot label={label} value={null} dimInvoke={dimInvoke} />
   }
 
-  const maxHp = resolveMaxHp(species, individualValues)
-  const maxStamina = resolveMaxStamina(species, individualValues)
+  // Nível do slot (`PartyProgress`) — o máximo acompanha a subida de nível.
+  const level = resolveDisplayLevel(species, progress)
+  const maxHp = resolveMaxHp(species, individualValues, progress?.level)
+  const maxStamina = resolveMaxStamina(
+    species,
+    individualValues,
+    progress?.level,
+  )
   const faintTimeLeft = fainted?.timeLeft ?? slotFaint?.timeLeft ?? 0
   const faintedInBall = !active && faintTimeLeft > 0
   const shownVitals = liveVitals ?? storedVitals
@@ -294,7 +305,7 @@ function PartySlotCard({
       <SpritePortrait
         species={species}
         size={36}
-        xpPercent={resolveXpPercent(species)}
+        xpPercent={resolveXpPercent(species, progress)}
       />
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <div className="flex items-center justify-between gap-1">
@@ -316,9 +327,9 @@ function PartySlotCard({
           <span className="truncate text-[11px]">
             {formatSpeciesName(species.id)}
           </span>
-          {species.level != null && (
+          {level != null && (
             <span className="shrink-0 text-[10px] text-white/50">
-              Lv.{species.level}
+              Lv.{level}
             </span>
           )}
         </div>

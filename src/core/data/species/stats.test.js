@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+import { resolveFormulaLevel } from './formulaLevel'
 import { createRng } from '../../rng'
 import {
   calculateAttackDurationFactor,
@@ -59,8 +60,9 @@ describe('rollIndividualValues', () => {
 describe('resolveCreatureStats', () => {
   it('usa o individualValues passado — cada indivíduo com seu próprio resultado', () => {
     const species = fakeSpecies()
-    const lowIvHp = calculateHpStat({ base: 45, iv: 0, ev: 0, level: 5 })
-    const highIvHp = calculateHpStat({ base: 45, iv: 31, ev: 0, level: 5 })
+    const level = resolveFormulaLevel(species.level)
+    const lowIvHp = calculateHpStat({ base: 45, iv: 0, ev: 0, level })
+    const highIvHp = calculateHpStat({ base: 45, iv: 31, ev: 0, level })
 
     const weak = resolveCreatureStats(species, { ...REFERENCE_IV, hp: 0 })
     const strong = resolveCreatureStats(species, { ...REFERENCE_IV, hp: 31 })

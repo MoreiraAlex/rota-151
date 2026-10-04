@@ -1,3 +1,5 @@
+import DATA from './data.json'
+
 /**
  * Wiki da versão 0.0.36 do jogo — a primeira. Menu e situação dos dados.
  *
@@ -11,7 +13,8 @@
  */
 export const WIKI_V0_0_36 = {
   id: '0.0.36',
-  data: null,
+  // Congelada (retrato da 0.0.36, antes do nível por criatura e do XP).
+  data: DATA,
   nav: [
     {
       title: 'Começando',

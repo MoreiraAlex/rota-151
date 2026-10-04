@@ -20,6 +20,7 @@ import {
   Vitals,
   WildCreature,
   resolveCreatureSpeciesId,
+  resolveEntityLevel,
 } from '../traits'
 
 /**
@@ -117,11 +118,13 @@ export function resolveAttackTarget(
       // Contato na altura da trajetória naquele ponto (não no Y zerado da
       // conta no plano) — é onde um VFX de acerto deve nascer.
       const pathY = origin.y + (impactPoint.y - origin.y) * closest.s
+      const species = resolveCombatantSpecies(entity)
       best = {
         s: closest.s,
         distance: closest.distance,
         entity,
-        species: resolveCombatantSpecies(entity),
+        species,
+        level: resolveEntityLevel(entity, species),
         vitals,
         individualValues: entity.has(IndividualValues)
           ? entity.get(IndividualValues)
@@ -136,8 +139,9 @@ export function resolveAttackTarget(
   )
 
   if (!best) return null
-  const { entity, species, vitals, individualValues, contactPoint } = best
-  return { entity, species, vitals, individualValues, contactPoint }
+  const { entity, species, level, vitals, individualValues, contactPoint } =
+    best
+  return { entity, species, level, vitals, individualValues, contactPoint }
 }
 
 /**
@@ -173,9 +177,11 @@ export function resolveConeTargets(
       )
         return
 
+      const species = resolveCombatantSpecies(entity)
       targets.push({
         entity,
-        species: resolveCombatantSpecies(entity),
+        species,
+        level: resolveEntityLevel(entity, species),
         vitals,
         individualValues: entity.has(IndividualValues)
           ? entity.get(IndividualValues)

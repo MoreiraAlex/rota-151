@@ -21,6 +21,8 @@ export const CHARMANDER = {
   id: 'charmander',
   dexNumber: 4,
   level: LEVEL,
+  baseXp: 62,
+  growthRate: 'medium-slow',
   kind: 'pokemon',
   sprite: {
     path: 'https://play.pokemonshowdown.com/sprites/ani/charmander.gif',
@@ -90,10 +92,10 @@ export const CHARMANDER = {
     modelOffset: [0, -0.35, 0],
   },
   movement: {
-    walkSpeed: 3,
+    walkSpeed: 2.25,
     runSpeed: 5,
     turnSpeed: 10,
-    jumpSpeed: 6,
+    jumpSpeed: 7,
   },
   camera: {
     targetHeight: 0.5,

@@ -21,6 +21,8 @@ export const SQUIRTLE = {
   id: 'squirtle',
   dexNumber: 7,
   level: LEVEL,
+  baseXp: 63,
+  growthRate: 'medium-slow',
   kind: 'pokemon',
   sprite: { path: 'https://play.pokemonshowdown.com/sprites/ani/squirtle.gif' },
   model: {
@@ -88,10 +90,10 @@ export const SQUIRTLE = {
     modelOffset: [0, -0.26, 0],
   },
   movement: {
-    walkSpeed: 3,
+    walkSpeed: 2.25,
     runSpeed: 5,
     turnSpeed: 10,
-    jumpSpeed: 6,
+    jumpSpeed: 7,
   },
   camera: {
     targetHeight: 0.5,

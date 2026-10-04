@@ -16,3 +16,9 @@ export {
   resolveHitStunDuration,
 } from './hitStun'
 export { plantarSemente, resolveLeechDrain } from './leechSeed'
+export {
+  registrarParticipante,
+  distribuirExperiencia,
+  ganharExperiencia,
+  subirDeNivel,
+} from './experience'

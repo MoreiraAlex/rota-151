@@ -1,4 +1,5 @@
 import { randomInt } from '../../rng'
+import { resolveFormulaLevel } from './formulaLevel'
 
 /**
  * Fórmulas de status de batalha, mesma convenção clássica de Pokémon
@@ -99,7 +100,7 @@ export function rollIndividualValues(rng, { min, max }) {
 /**
  * Combina `base`/`ev` da espécie (os dois únicos campos que
  * `species.stats.<key>` ainda guarda — ver `_template`/qualquer espécie
- * migrada) com o `level` da espécie e o `individualValues` de UMA
+ * migrada) com o `level` e o `individualValues` de UMA
  * ENTIDADE (`IndividualValues`/`PartyIndividualValues`, sorteado uma
  * vez e congelado — ver docstring dos traits) pra chegar no status de
  * verdade DESTA criatura. Não existe mais um `iv`/`stat`/`cp`
@@ -109,17 +110,28 @@ export function rollIndividualValues(rng, { min, max }) {
  * selvagens") — por isso `individualValues` não é mais opcional de
  * verdade: sem ele, todo `iv` cai em `0`.
  *
+ * `level` é o nível DESTA criatura (`resolveEntityLevel`/`PartyProgress`,
+ * docs/features/037-experiencia-e-nivel.md); sem ele, cai no
+ * `species.level` (nível inicial da espécie — previews da wiki, testes).
+ * É o nível do JOGO — as fórmulas recebem o da escala delas
+ * (`resolveFormulaLevel`).
+ *
  * Retorna `null` pra espécie sem o formato de `stats` com `base`
  * (ex.: `stats: {}`; `boy`/treinador tem `stats.hp`
  * sem `base` — não é Pokémon, não tem IV) — chamador cai pro fallback
  * de sempre nesse caso (ver `resolveMaxHp`/`resolveMaxStamina`,
  * `core/traits/components/vitals.js`).
  */
-export function resolveCreatureStats(species, individualValues) {
+export function resolveCreatureStats(
+  species,
+  individualValues,
+  level = species?.level ?? 1,
+) {
   const base = species?.stats
   if (!base?.hp || base.hp.base == null) return null
 
-  const level = species.level ?? 1
+  // As fórmulas da série são pra teto 100 — ver `resolveFormulaLevel`.
+  const formulaLevel = resolveFormulaLevel(level)
   const resolved = {}
 
   for (const key of STAT_KEYS) {
@@ -134,8 +146,8 @@ export function resolveCreatureStats(species, individualValues) {
       ev,
       stat:
         key === 'hp'
-          ? calculateHpStat({ base: entry.base, iv, ev, level })
-          : calculateStat({ base: entry.base, iv, ev, level }),
+          ? calculateHpStat({ base: entry.base, iv, ev, level: formulaLevel })
+          : calculateStat({ base: entry.base, iv, ev, level: formulaLevel }),
     }
   }
 
@@ -155,7 +167,7 @@ export function resolveCreatureStats(species, individualValues) {
       SomaStatus: STAT_KEYS.reduce((sum, key) => sum + resolved[key].stat, 0),
       SomaIV: STAT_KEYS.reduce((sum, key) => sum + resolved[key].iv, 0),
       SomaEV: STAT_KEYS.reduce((sum, key) => sum + resolved[key].ev, 0),
-      level,
+      level: formulaLevel,
     })
   }
 

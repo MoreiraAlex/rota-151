@@ -122,6 +122,11 @@ export const GAME_CONFIG = {
     // Cor do texto "Interrompido!" (golpe de status cortado na carga por
     // dano): amarelo, igual pros dois lados — não é dano nem status.
     INTERRUPT_COLOR: '#ffd54f',
+    // Cor do texto "+N XP" em cima da criatura do time que ganhou XP
+    // (docs/features/037-experiencia-e-nivel.md).
+    XP_COLOR: '#9fd8ff',
+    // Cor do texto "Nível N!" quando ela sobe de nível.
+    LEVEL_UP_COLOR: '#ffe066',
     FEEDBACK_COLORS: {
       OPPONENT: {
         DAMAGE: '#ff3b30',
@@ -563,6 +568,32 @@ export const GAME_CONFIG = {
     REVIVE_HP_FRACTION: 0.15,
     // Segundos desmaiada no chão antes do treinador recolher a do time.
     PARTY_RECALL_DELAY: 2,
+  },
+
+  // Experiência e nível (docs/features/037-experiencia-e-nivel.md):
+  // `core/data/species/experience.js` e `core/actions/experience.js`.
+  EXPERIENCE: {
+    // Teto de nível — a curva para aqui e o XP não passa do total dele.
+    MAX_LEVEL: 50,
+    // Multiplica o XP total de todo degrau de todas as curvas de nível — o
+    // "preço" dos níveis, valendo pra qualquer fonte de XP (batalha, item).
+    // Pra mudar o ritmo de tudo, mexe aqui; o ganho de batalha é ajustado
+    // por `BASE_DIVISOR`.
+    CURVE_MULTIPLIER: 10,
+    // Fórmula escalada (Gen 5): `(baseXp × Nd ÷ BASE_DIVISOR) ×
+    // ((2·Nd + 10) ÷ (Nd + Nv + 10))^SCALING_EXPONENT + 1`.
+    BASE_DIVISOR: 5,
+    SCALING_EXPONENT: 2.5,
+    // XP base de uma espécie sem `baseXp` configurado.
+    FALLBACK_BASE_XP: 50,
+    // Grupo de crescimento de uma espécie sem `growthRate`.
+    DEFAULT_GROWTH_RATE: 'medium-slow',
+    // Faixa de nível sorteada pra selvagem cuja entrada de spawn não traz
+    // a própria (`levelRange`).
+    WILD_LEVEL_MIN: 3,
+    WILD_LEVEL_MAX: 8,
+    // XP dado pelo botão "+XP" do `DebugPanel`.
+    DEBUG_XP_AMOUNT: 100,
   },
 
   ANIMATION: {

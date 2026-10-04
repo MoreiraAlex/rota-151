@@ -175,6 +175,22 @@ de puxar ela pra frente.
 - [ ] **Bando** — selvagens da mesma espécie por perto entram juntas na luta
       quando uma delas briga. Saiu da `docs/features/034-ia-de-batalha.md`
       (era a Parte 4, adiada pelo usuário).
+- [ ] **Evolução** — objetivo de longo prazo da progressão. Nível de
+      evolução PRÓPRIO por espécie, pensado pro teto do jogo (não o da série:
+      Charizard no 36 é cedo demais pra um teto de 50). Ideia de alvo
+      (ilustrativa): 2ª forma por volta de metade do teto, forma final perto
+      do fim (~80–90%). Opcional: exigir nível **e** uma condição (item,
+      líder derrotado, vínculo com o treinador), pra a evolução ser um
+      objetivo sem inflar a curva. Saiu da
+      `docs/features/037-experiencia-e-nivel.md` (teto 50 + curva mais cara).
+- [ ] **Aprender golpe por nível** — hoje cada espécie tem um kit fixo.
+      Learnsets da série como referência, comprimidos pro teto do jogo (ex.:
+      nível original × `MAX_LEVEL` ÷ 100); golpes que eram depois do 50 na
+      Gen 1 (48 espécies, ex.: Solar Beam do Venusaur, Fire Spin do
+      Charizard, Hydro Pump do Blastoise) viram as recompensas do fim.
+      Itens de XP também ficam pra cá/depois — pensados em relação à curva
+      ("+1 nível"), não XP fixo. Saiu da
+      `docs/features/037-experiencia-e-nivel.md`.
 
 ## Animação
 

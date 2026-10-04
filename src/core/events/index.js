@@ -5,6 +5,8 @@ export const EVENT_TYPES = {
   STAT_STAGE_CHANGED: 'statStageChanged',
   ATTACK_INTERRUPTED: 'attackInterrupted',
   LEECH_SEED_DRAINED: 'leechSeedDrained',
+  EXPERIENCE_GAINED: 'experienceGained',
+  LEVELED_UP: 'leveledUp',
 }
 
 /**
@@ -176,5 +178,72 @@ export function leechSeedDrained({ target, source, damage, healed }) {
     source: source ?? null,
     damage,
     healed,
+  }
+}
+
+/**
+ * @typedef {object} ExperienceGainedEvent
+ * @property {'experienceGained'} type
+ * @property {import('koota').Entity} trainer dono do time
+ * @property {'slot1' | 'slot2' | 'slot3'} slot criatura do time que ganhou
+ * @property {import('koota').Entity | null} creature a criatura em campo
+ *   desse slot, ou `null` se estava na bola
+ * @property {number} amount XP ganho (já dividido entre os participantes)
+ */
+
+/**
+ * Uma criatura do time ganhou XP (o estado — `PartyProgress`/`CreatureLevel`
+ * — já foi atualizado; o evento é só o aviso).
+ *
+ * - Quem emite: `ganharExperiencia` (`core/actions/experience.js`) — no
+ *   desmaio de uma selvagem (`faintSystem.js`) ou pelo botão de debug.
+ * - Quem consome: `view/systems/damageNumberSystem.js` (texto "+N XP" em
+ *   cima da criatura em campo). Drenado uma vez por frame; sem consumidor,
+ *   some.
+ *
+ * @returns {ExperienceGainedEvent}
+ */
+export function experienceGained({ trainer, slot, creature, amount }) {
+  return {
+    type: EVENT_TYPES.EXPERIENCE_GAINED,
+    trainer,
+    slot,
+    creature: creature ?? null,
+    amount,
+  }
+}
+
+/**
+ * @typedef {object} LeveledUpEvent
+ * @property {'leveledUp'} type
+ * @property {import('koota').Entity} trainer dono do time
+ * @property {'slot1' | 'slot2' | 'slot3'} slot criatura do time que subiu
+ * @property {import('koota').Entity | null} creature a criatura em campo
+ *   desse slot, ou `null` se estava na bola
+ * @property {number} fromLevel nível antes
+ * @property {number} level nível novo (pode ter pulado mais de um)
+ */
+
+/**
+ * Uma criatura do time subiu de nível (status e vida/energia já
+ * recalculados por `subirDeNivel`).
+ *
+ * - Quem emite: `ganharExperiencia` (`core/actions/experience.js`), logo
+ *   depois do `experienceGained`. Um evento por ganho, mesmo pulando vários
+ *   níveis.
+ * - Quem consome: `view/systems/damageNumberSystem.js` (texto "Nível N!") e
+ *   `view/systems/hitFlashSystem.js` (brilho na criatura). Drenado uma vez
+ *   por frame; sem consumidor, some.
+ *
+ * @returns {LeveledUpEvent}
+ */
+export function leveledUp({ trainer, slot, creature, fromLevel, level }) {
+  return {
+    type: EVENT_TYPES.LEVELED_UP,
+    trainer,
+    slot,
+    creature: creature ?? null,
+    fromLevel,
+    level,
   }
 }

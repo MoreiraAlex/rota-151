@@ -16,7 +16,9 @@
  *   fallback gracioso de qualquer conteúdo que ainda não existe).
  * - wildCreatures (opcional): criaturas selvagens spawnadas UMA VEZ pelo
  *   `wildCreatureSpawnSystem.js` no início do jogo — `{ id, speciesId,
- *   position: [x,y,z] }`. Vagam sozinhas (`wildWanderSystem.js`), sem
+ *   position: [x,y,z], levelRange? }`. `levelRange: [min, max]` (opcional)
+ *   é a faixa do nível sorteado no spawn; sem ela, a padrão
+ *   (`GAME_CONFIG.EXPERIENCE.WILD_LEVEL_MIN/MAX`). Vagam sozinhas (`wildWanderSystem.js`), sem
  *   pertencer ao time do treinador. Ver docs/features/020-fox-selvagens-
  *   cena-e-texturas.md.
  */

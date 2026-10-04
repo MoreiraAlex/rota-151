@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { resolveFormulaLevel } from '../data/species/formulaLevel'
 import { getSpecies } from '../data/species'
 import { resolveSkill } from '../data/skills'
 import { GAME_CONFIG } from '../gameConfig'
@@ -75,9 +76,14 @@ describe('resolveAttackWeight — o "poder" do preço', () => {
 })
 
 describe('custo e recarga pela fórmula', () => {
-  it('custo = (2·nível/5 + 2) × peso / COST_DIVISOR — cresce com o nível', () => {
-    expect(resolveLevelCost(5, 40)).toBeCloseTo((4 * 40) / COST_DIVISOR)
-    expect(resolveLevelCost(50, 40)).toBeCloseTo((22 * 40) / COST_DIVISOR)
+  it('custo = (2·nível/5 + 2) × peso / COST_DIVISOR (nível na escala das fórmulas) — cresce com o nível', () => {
+    const levelFactor = (level) => (2 * resolveFormulaLevel(level)) / 5 + 2
+    expect(resolveLevelCost(5, 40)).toBeCloseTo(
+      (levelFactor(5) * 40) / COST_DIVISOR,
+    )
+    expect(resolveLevelCost(50, 40)).toBeCloseTo(
+      (levelFactor(50) * 40) / COST_DIVISOR,
+    )
     expect(resolveLevelCost(50, 40)).toBeGreaterThan(resolveLevelCost(5, 40))
   })
 

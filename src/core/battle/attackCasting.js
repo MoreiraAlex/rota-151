@@ -16,6 +16,7 @@ import { entrarEmCombate } from '../actions/combat'
 import { gameplayRng } from '../rng'
 import { AttackCooldowns } from '../traits'
 import { withActionCost } from './actionCost'
+import { resolveFormulaLevel } from '../data/species/formulaLevel'
 
 /**
  * Fator do status `speed` da PRÓPRIA entidade (`calculateAttackDurationFactor`,
@@ -24,7 +25,11 @@ import { withActionCost } from './actionCost'
  * docs/features/035-balanceamento-de-acoes-e-correcoes.md). `null` pra espécie sem
  * `stats.speed.base` (ex.: o treinador).
  */
-export function resolveSpeedFactor(species, individualValues) {
+export function resolveSpeedFactor(
+  species,
+  individualValues,
+  level = species?.level ?? 1,
+) {
   const speedStat = species?.stats?.speed
   if (!speedStat || speedStat.base == null) return null
 
@@ -32,7 +37,7 @@ export function resolveSpeedFactor(species, individualValues) {
     base: speedStat.base,
     iv: individualValues?.speed ?? 0,
     ev: speedStat.ev ?? 0,
-    level: species.level ?? 1,
+    level: resolveFormulaLevel(level),
   })
   const { REFERENCE, MIN_FACTOR, MAX_FACTOR } = GAME_CONFIG.BATTLE.ATTACK_SPEED
   return calculateAttackDurationFactor(speed, {
@@ -73,20 +78,29 @@ function resolvePrimaryDuration(attack, speedFactor) {
  *   `core/battle/actionCost.js`) quando a definição não escreve os seus.
  * Chamada várias vezes por ataque (disparo, cada tick de progresso, IA, HUD)
  * — sempre com o MESMO resultado pra um dado slot/entidade, já que
- * `IndividualValues` está congelado pra aquela entidade.
+ * `IndividualValues` está congelado pra aquela entidade (o resultado muda
+ * só quando ela sobe de nível).
+ *
+ * `level` — nível DESTA criatura (`resolveEntityLevel`); sem ele, o
+ * `species.level` (previews da wiki).
  */
-export function resolveAttackForEntity(species, slot, individualValues) {
+export function resolveAttackForEntity(
+  species,
+  slot,
+  individualValues,
+  level = species?.level ?? 1,
+) {
   const attack = resolveCreatureAttack(species, slot)
   if (!attack) return null
 
-  const speedFactor = resolveSpeedFactor(species, individualValues)
+  const speedFactor = resolveSpeedFactor(species, individualValues, level)
   const timed =
     slot === 'primary' && speedFactor !== null
       ? { ...attack, ...resolvePrimaryDuration(attack, speedFactor) }
       : attack
   return withActionCost(timed, {
     slot,
-    level: species.level ?? 1,
+    level,
     speedFactor: speedFactor ?? 1,
   })
 }
@@ -110,10 +124,11 @@ export const ATTACK_SLOTS = [
  * stamina e cooldown ok. `null` se não der.
  */
 function resolveCastableAttack(castContext, slot) {
-  const { species, individualValues, action, vitals, cooldowns } = castContext
+  const { species, individualValues, level, action, vitals, cooldowns } =
+    castContext
   if (action.current !== null) return null
 
-  const attack = resolveAttackForEntity(species, slot, individualValues)
+  const attack = resolveAttackForEntity(species, slot, individualValues, level)
   if (!attack) return null
   if (vitals.stamina < attack.staminaCost) return null
   if (cooldowns[slot] > 0) return null
@@ -215,12 +230,17 @@ export function resolveCastMode(attack, castModeOverride) {
  * - `castMode: 'instant'`: lança na hora, se der; senão tenta o próximo.
  */
 export function handleAttackPress(castContext, aim, input, castModeOverride) {
-  const { species, individualValues, cooldowns } = castContext
+  const { species, individualValues, level, cooldowns } = castContext
 
   for (const { input: inputKey, slot } of ATTACK_SLOTS) {
     if (!input[inputKey] || slot === aim.slot) continue
 
-    const attack = resolveAttackForEntity(species, slot, individualValues)
+    const attack = resolveAttackForEntity(
+      species,
+      slot,
+      individualValues,
+      level,
+    )
     if (!attack) continue
 
     if (resolveCastMode(attack, castModeOverride) === 'confirm') {

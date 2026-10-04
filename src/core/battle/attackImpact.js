@@ -1,4 +1,5 @@
 import { verticalClearance } from '../physics/colliders'
+import { registrarParticipante } from '../actions/experience'
 import { resolveDamageAmount } from './calculateDamage'
 import { isChannelAttack, isSelfAttack } from './channelAttack'
 import { resolveAttackOrigin, resolveFootElevation } from './attackGeometry'
@@ -22,18 +23,14 @@ import {
 } from '../traits'
 
 /** Fórmula de dano + `applyDamage` num alvo resolvido. */
-function damageTarget(
-  attack,
-  attackerSpecies,
-  attackerIndividualValues,
-  target,
-  attackerStages,
-) {
+function damageTarget(attack, attacker, target, attackerStages) {
   const { amount, critical } = resolveDamageAmount({
-    attackerSpecies,
-    attackerIndividualValues,
+    attackerSpecies: attacker.species,
+    attackerIndividualValues: attacker.individualValues,
+    attackerLevel: attacker.level,
     defenderSpecies: target.species,
     defenderIndividualValues: target.individualValues,
+    defenderLevel: target.level,
     damage: attack.damage,
     // estágios de atributo (golpes de status): o do atacante e o do alvo
     attackerStages,
@@ -59,7 +56,6 @@ export function resolveAttackImpact(world, events, context) {
     entity,
     action,
     species,
-    individualValues,
     attack,
     pos,
     controller,
@@ -125,15 +121,13 @@ export function resolveAttackImpact(world, events, context) {
       !!target && !rollHit(attack, attackerStages.accuracy, gameplayRng)
     const { amount, critical } =
       target && !missed
-        ? damageTarget(
-            attack,
-            species,
-            individualValues,
-            target,
-            attackerStages,
-          )
+        ? damageTarget(attack, context, target, attackerStages)
         : { amount: 0, critical: false }
-    if (target && !missed) damaged.add(target.entity)
+    if (target && !missed) {
+      damaged.add(target.entity)
+      // quem acertou entra na divisão do XP se ela desmaiar
+      registrarParticipante(world, entity, target.entity)
+    }
     if (target?.contactPoint && !missed) {
       effectPoint = target.contactPoint
     }

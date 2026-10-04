@@ -4,6 +4,7 @@ import { TEST_LEVEL } from '@/core/data/testLevel'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import {
   AttackCooldowns,
+  CreatureLevel,
   IndividualValues,
   PhysicsBody,
   WanderState,
@@ -30,6 +31,27 @@ function tick(world) {
 }
 
 describe('wildCreatureSpawnSystem', () => {
+  it('cada selvagem nasce com um nível dentro da faixa (a da entrada ou a padrão)', () => {
+    const world = spawnWorld()
+
+    tick(world)
+
+    const { WILD_LEVEL_MIN, WILD_LEVEL_MAX } = GAME_CONFIG.EXPERIENCE
+    for (const entity of world.query(WildCreature, CreatureLevel)) {
+      const { speciesId } = entity.get(WildCreature)
+      const entry = TEST_LEVEL.wildCreatures.find(
+        (candidate) => candidate.speciesId === speciesId,
+      )
+      const [min, max] = entry?.levelRange ?? [WILD_LEVEL_MIN, WILD_LEVEL_MAX]
+      const { level } = entity.get(CreatureLevel)
+      expect(level).toBeGreaterThanOrEqual(min)
+      expect(level).toBeLessThanOrEqual(max)
+    }
+    expect(world.query(WildCreature, CreatureLevel).length).toBe(
+      TEST_LEVEL.wildCreatures.length,
+    )
+  })
+
   it('spawna uma WildCreature por entrada de TEST_LEVEL.wildCreatures', () => {
     const world = spawnWorld()
 

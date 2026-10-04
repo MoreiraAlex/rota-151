@@ -1,5 +1,6 @@
 import { buildWikiData } from '../wikiData'
 import { WIKI_V0_0_36 } from './v0-0-36/meta'
+import { WIKI_V0_0_37 } from './v0-0-37/meta'
 
 /**
  * Versões da wiki, da mais nova pra mais antiga — a caixa de versão do topo
@@ -13,7 +14,7 @@ import { WIKI_V0_0_36 } from './v0-0-36/meta'
  *    `null` e edita só o que mudou;
  * 3) adiciona a nova no começo desta lista e em `pages.js`.
  */
-export const WIKI_VERSIONS = [WIKI_V0_0_36]
+export const WIKI_VERSIONS = [WIKI_V0_0_37, WIKI_V0_0_36]
 
 export const LATEST_WIKI_VERSION = WIKI_VERSIONS[0]
 

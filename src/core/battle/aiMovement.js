@@ -21,6 +21,7 @@ import {
   Position,
   WildBehavior,
   resolveCreatureSpeciesId,
+  resolveEntityLevel,
 } from '../traits'
 import { resolveAttackForEntity } from './attackCasting'
 import { isInsideAttackCone } from './attackGeometry'
@@ -42,10 +43,12 @@ export function resolveIncomingAttack(attacker, attackerPos, pos, bodyRadius) {
   if (!action || action.current !== 'attack') return null
   const speciesId = resolveCreatureSpeciesId(attacker)
   if (!speciesId) return null
+  const species = getSpecies(speciesId)
   const attack = resolveAttackForEntity(
-    getSpecies(speciesId),
+    species,
     action.pendingSlot,
     attacker.get(IndividualValues),
+    resolveEntityLevel(attacker, species),
   )
   if (!attack || isSelfAttack(attack)) return null
   const hitAt = resolveAttackHitTime(action, attack)

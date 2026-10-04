@@ -68,6 +68,11 @@ export function HistoryTab({ initialEntryId = null }) {
           <StatsScreen
             species={selectedSpecies}
             individualValues={selectedEntry.individualValues}
+            progress={
+              selectedEntry.level != null
+                ? { level: selectedEntry.level }
+                : null
+            }
             showIndividual
           />
         ) : (

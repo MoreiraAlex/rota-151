@@ -28,6 +28,12 @@ export {
 export { IndividualValues } from './components/individualValues'
 export { PartyIndividualValues } from './components/partyIndividualValues'
 export { PartyVitals } from './components/partyVitals'
+export {
+  CreatureLevel,
+  PartyProgress,
+  FoughtBy,
+  resolveEntityLevel,
+} from './components/creatureLevel'
 export { PokedexEntries } from './components/pokedexEntries'
 export { ScanHistory, pushScanHistoryEntry } from './components/scanHistory'
 export { HeldItem } from './components/heldItem'

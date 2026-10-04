@@ -14,6 +14,7 @@ import {
   Position,
   Rotation,
   resolveCreatureSpeciesId,
+  resolveEntityLevel,
 } from '../traits'
 
 /**
@@ -141,6 +142,7 @@ export function interruptStatusAttacks(events, damaged) {
       species,
       slot,
       entity.get(IndividualValues),
+      resolveEntityLevel(entity, species),
     )
     if (!isInterruptible(action, attack)) continue
 

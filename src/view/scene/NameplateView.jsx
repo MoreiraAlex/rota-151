@@ -10,6 +10,7 @@ import { clamp } from '@/core/math/clamp'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import { resolveRenderPosition } from '@/view/registry/renderInterpolation'
 import {
+  CreatureLevel,
   InputControlled,
   Position,
   SummonedCreature,
@@ -18,6 +19,7 @@ import {
 } from '@/core/traits'
 import {
   formatSpeciesName,
+  resolveDisplayLevel,
   StatStageBadges,
   VitalBar,
 } from '../shared/statusDisplay'
@@ -69,9 +71,10 @@ function resolveEntitySpecies(entity) {
 
 /**
  * Etiqueta acima da cabeça de UMA entidade — nome (espécie formatada),
- * nível (opcional, `species.level` — fixo POR ESPÉCIE, sem XP/progressão
- * por trás; ausente = campo não aparece, caso do treinador, ver
- * `core/data/species/boy/index.js`), barra de vida e de stamina. Pedido
+ * nível (opcional, o `CreatureLevel` DESTA criatura — docs/features/037-
+ * experiencia-e-nivel.md; espécie sem `level` = campo não aparece, caso do
+ * treinador, ver `core/data/species/boy/index.js`), barra de vida e de
+ * stamina. Pedido
  * do usuário: "quero elementos no jogo... para cada entidade, a cima da
  * cabeça, nome, nivel, vida e stamina" (docs/features/027-hud-de-status-e-habilidades.md) — TODO mundo (time, selvagens, o próprio
  * treinador), EXCETO quem está `InputControlled` agora (ver
@@ -157,6 +160,7 @@ function NameplateView({ entity, species }) {
   const groupRef = useRef()
   const contentRef = useRef()
   const vitals = useTrait(entity, Vitals)
+  const progress = useTrait(entity, CreatureLevel)
 
   useFrame((state) => {
     const group = groupRef.current
@@ -184,6 +188,7 @@ function NameplateView({ entity, species }) {
   if (!vitals) return null
 
   const headHeight = verticalClearance(species.body) + HEAD_MARGIN
+  const level = resolveDisplayLevel(species, progress)
 
   return (
     <group ref={groupRef}>
@@ -210,8 +215,8 @@ function NameplateView({ entity, species }) {
         >
           <div className="flex w-full items-center justify-center gap-1">
             <span className="truncate">{formatSpeciesName(species.id)}</span>
-            {species.level != null && (
-              <span className="shrink-0 text-white/50">Lv.{species.level}</span>
+            {level != null && (
+              <span className="shrink-0 text-white/50">Lv.{level}</span>
             )}
           </div>
           <VitalBar

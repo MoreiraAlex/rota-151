@@ -1,3 +1,4 @@
+import { registrarParticipante } from '../actions/experience'
 import { resolveChannelTickDamage } from './calculateDamage'
 import { isBeamAttack } from './channelAttack'
 import { resolveAttackOrigin, resolveFootElevation } from './attackGeometry'
@@ -86,8 +87,10 @@ export function applyChannelTick(world, events, context) {
     const { amount, critical } = resolveChannelTickDamage({
       attackerSpecies: species,
       attackerIndividualValues: individualValues,
+      attackerLevel: context.level,
       defenderSpecies: target.species,
       defenderIndividualValues: target.individualValues,
+      defenderLevel: target.level,
       damage: attack.damage,
       attackerStages: readStatStages(entity),
       defenderStages: readStatStages(target.entity),
@@ -99,6 +102,7 @@ export function applyChannelTick(world, events, context) {
       applyDamage(target.vitals, amount, target.vitals.hpRegenDelayAfterDamage),
     )
     context.damaged?.add(target.entity)
+    registrarParticipante(world, entity, target.entity)
     events.emit(
       attackResolved({
         attacker: entity,

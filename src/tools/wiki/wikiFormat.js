@@ -53,6 +53,15 @@ export function formatName(id) {
     .join(' ')
 }
 
+export const GROWTH_RATE_LABELS = {
+  fast: 'Rápido',
+  'medium-fast': 'Médio-rápido',
+  'medium-slow': 'Médio-lento',
+  slow: 'Lento',
+  erratic: 'Errático',
+  fluctuating: 'Flutuante',
+}
+
 export const STAT_LABELS = {
   hp: 'Vida',
   attack: 'Ataque',

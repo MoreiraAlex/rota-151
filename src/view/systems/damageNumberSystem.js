@@ -27,6 +27,16 @@ export function formatStatChange(stat, delta) {
   return `${STAT_LABELS[stat] ?? stat} ${arrow.repeat(Math.min(Math.abs(delta), 3))}`
 }
 
+/** Texto do ganho de XP: "+N XP". */
+export function formatExperienceGain(amount) {
+  return `+${Math.round(amount)} XP`
+}
+
+/** Texto da subida de nível: "Nível N!". */
+export function formatLevelUp(level) {
+  return `Nível ${level}!`
+}
+
 /** Texto do número: inteiro, nunca menos que 1 num acerto. */
 export function formatDamage(amount) {
   return String(Math.max(1, Math.round(amount)))
@@ -44,6 +54,9 @@ export function formatDamage(amount) {
  *
  * O dano de verdade continua com casas decimais no `Vitals` — só o texto
  * é arredondado (`formatDamage`).
+ *
+ * Também os avisos em texto: "Errou!", "Interrompido!", "+N XP" e "Nível N!"
+ * (só da criatura em campo — a que está na bola não mostra nada).
  *
  * Fase: presentation.
  */
@@ -64,6 +77,24 @@ export function damageNumberSystem(context) {
     }
     if (event.type === EVENT_TYPES.LEECH_SEED_DRAINED) {
       spawnLeechNumbers(event, cameraRight)
+      continue
+    }
+    if (event.type === EVENT_TYPES.EXPERIENCE_GAINED) {
+      spawnNotice(
+        event.creature,
+        formatExperienceGain(event.amount),
+        GAME_CONFIG.FEEDBACK.XP_COLOR,
+        cameraRight,
+      )
+      continue
+    }
+    if (event.type === EVENT_TYPES.LEVELED_UP) {
+      spawnNotice(
+        event.creature,
+        formatLevelUp(event.level),
+        GAME_CONFIG.FEEDBACK.LEVEL_UP_COLOR,
+        cameraRight,
+      )
       continue
     }
     if (event.type !== EVENT_TYPES.ATTACK_RESOLVED) continue

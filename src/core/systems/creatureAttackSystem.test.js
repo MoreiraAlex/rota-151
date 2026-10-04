@@ -1,10 +1,14 @@
 import { describe, it, expect, afterEach } from 'vitest'
+import { resolveFormulaLevel } from '../data/species/formulaLevel'
 import { createWorld } from 'koota'
 import { getPlayerSpecies, getSpecies } from '@/core/data/species'
 import { resolveCreatureAttack } from '@/core/battle/creatureAttack'
 import { resolveSkill } from '@/core/data/skills'
 import { resolveChannelTickDamage } from '@/core/battle/calculateDamage'
-import { isConeAttack } from '@/core/battle/channelAttack'
+import {
+  isConeAttack,
+  resolveChannelTickCount,
+} from '@/core/battle/channelAttack'
 import { computeAimRay } from '@/core/camera/orbitCamera'
 import { disposePhysics } from '@/core/physics/physicsWorld'
 import { createEventQueue, EVENT_TYPES } from '@/core/events'
@@ -82,6 +86,18 @@ const DELTA = 1 / 60
 // Custo/recarga resolvidos pela fórmula (`withActionCost`) — a definição não
 // escreve os seus (docs/features/035-balanceamento-de-acoes-e-correcoes.md).
 const ATTACK = resolveAttackForEntity(getSpecies('bulbasaur'), 'primary', null)
+
+// Ticks de um canalizado no básico do bulbasaur: a duração dele escala pelo
+// `speed` (IV/nível), então a contagem sai do golpe resolvido, não da config.
+function expectedBasicChannelTicks(creature) {
+  return resolveChannelTickCount(
+    resolveAttackForEntity(
+      getSpecies('bulbasaur'),
+      'primary',
+      creature.get(IndividualValues),
+    ),
+  )
+}
 const BULBASAUR_BODY = getSpecies('bulbasaur').body
 
 const spawnedWorlds = []
@@ -120,11 +136,18 @@ function spawnControlledCreature(
   )
 }
 
+// `sturdy`: vida que nunca acaba — pra testes que contam ticks/acertos e não
+// podem depender de quantos golpes a selvagem aguenta (isso é balanceamento).
 function spawnWildCreature(
   world,
-  { speciesId = 'charmander', position, individualValues = null } = {},
+  {
+    speciesId = 'charmander',
+    position,
+    individualValues = null,
+    sturdy = false,
+  } = {},
 ) {
-  return world.spawn(
+  const entity = world.spawn(
     Position(position ?? { x: 0, y: 1, z: 0 }),
     Rotation,
     CharacterController(getSpecies(speciesId).body),
@@ -133,6 +156,13 @@ function spawnWildCreature(
     WildCreature({ speciesId }),
     IndividualValues(individualValues ?? {}),
   )
+  if (sturdy) {
+    entity.set(Vitals, {
+      hp: Number.MAX_SAFE_INTEGER,
+      maxHp: Number.MAX_SAFE_INTEGER,
+    })
+  }
+  return entity
 }
 
 // A maioria dos testes aqui cobre a MECÂNICA do golpe (dano, trajetória,
@@ -727,7 +757,7 @@ describe('creatureAttackSystem', () => {
       base: squirtle.stats.speed.base,
       iv: 0,
       ev: squirtle.stats.speed.ev ?? 0,
-      level: squirtle.level,
+      level: resolveFormulaLevel(squirtle.level),
     })
     const factor = calculateAttackDurationFactor(speed, {
       reference: REFERENCE,
@@ -1776,10 +1806,16 @@ describe('creatureAttackSystem — ataque canalizado (damageMode channel)', () =
   it('segurando até o fim: dano em TODOS os alvos do cone, a cada intervalo', () => {
     withChannelBasic(() => {
       const world = spawnWorld()
-      spawnControlledCreature(world, { position: { x: 0, y: 1, z: 0 } })
-      const near = spawnWildCreature(world, { position: { x: 0, y: 1, z: 1 } })
+      const creature = spawnControlledCreature(world, {
+        position: { x: 0, y: 1, z: 0 },
+      })
+      const near = spawnWildCreature(world, {
+        position: { x: 0, y: 1, z: 1 },
+        sturdy: true,
+      })
       const wide = spawnWildCreature(world, {
         position: { x: 1, y: 1, z: 2.5 },
+        sturdy: true,
       })
       const outside = spawnWildCreature(world, {
         position: { x: 3, y: 1, z: 1 },
@@ -1804,8 +1840,10 @@ describe('creatureAttackSystem — ataque canalizado (damageMode channel)', () =
         }
       }
 
-      expect(hits.near).toBe(4)
-      expect(hits.wide).toBe(4)
+      const ticks = expectedBasicChannelTicks(creature)
+      expect(ticks).toBeGreaterThan(1)
+      expect(hits.near).toBe(ticks)
+      expect(hits.wide).toBe(ticks)
       expect(hits.outside).toBe(0)
       expect(near.get(Vitals).hp).toBeLessThan(hpBefore.near)
       expect(wide.get(Vitals).hp).toBeLessThan(hpBefore.wide)
@@ -1859,15 +1897,18 @@ describe('creatureAttackSystem — ataque canalizado (damageMode channel)', () =
     withCriticalChance(0, () => {
       withChannelBasic(() => {
         const world = spawnWorld()
-        spawnControlledCreature(world, { position: { x: 0, y: 1, z: 0 } })
+        const creature = spawnControlledCreature(world, {
+          position: { x: 0, y: 1, z: 0 },
+        })
         const target = spawnWildCreature(world, {
           position: { x: 0, y: 1, z: 1 },
+          sturdy: true,
         })
 
         const hits = damageEventsOn(world, target)
         const total = hits.reduce((sum, event) => sum + event.damage, 0)
 
-        expect(hits).toHaveLength(4)
+        expect(hits).toHaveLength(expectedBasicChannelTicks(creature))
         expect(total).toBeCloseTo(channelBudget(target), 6)
         expect(
           new Set(hits.map((e) => e.damage.toFixed(6))).size,
@@ -2750,8 +2791,13 @@ describe('creatureAttackSystem — canalizado em FEIXE (area line)', () => {
   it('só o PRIMEIRO corpo na linha leva cada tick (o de trás, não)', () => {
     withBeamBasic({}, () => {
       const world = spawnWorld()
-      spawnControlledCreature(world, { position: { x: 0, y: 1, z: 0 } })
-      const front = spawnWildCreature(world, { position: { x: 0, y: 1, z: 1 } })
+      const creature = spawnControlledCreature(world, {
+        position: { x: 0, y: 1, z: 0 },
+      })
+      const front = spawnWildCreature(world, {
+        position: { x: 0, y: 1, z: 1 },
+        sturdy: true,
+      })
       const behind = spawnWildCreature(world, {
         position: { x: 0, y: 1, z: 2.2 },
       })
@@ -2763,7 +2809,9 @@ describe('creatureAttackSystem — canalizado em FEIXE (area line)', () => {
         resolved.push(...events.drain())
       }
 
-      expect(damageOn(resolved, front)).toBe(4)
+      expect(damageOn(resolved, front)).toBe(
+        expectedBasicChannelTicks(creature),
+      )
       expect(damageOn(resolved, behind)).toBe(0)
     })
   })

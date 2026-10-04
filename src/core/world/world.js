@@ -2,6 +2,7 @@ import { createWorld } from 'koota'
 import { GAME_CONFIG } from '../gameConfig'
 import { getSpecies, PLAYER_SPECIES_ID } from '../data/species'
 import { rollIndividualValues } from '../data/species/stats'
+import { createLevelState } from '../data/species/experience'
 import { gameplayRng } from '../rng'
 import {
   Position,
@@ -22,6 +23,7 @@ import {
   Party,
   TrainerBehavior,
   PartyIndividualValues,
+  PartyProgress,
   PartyFaint,
   PartyVitals,
   PathState,
@@ -63,6 +65,14 @@ const STARTER_INDIVIDUAL_VALUES = Object.fromEntries(
     }),
   ]),
 )
+// Nível/XP inicial de cada um (`PartyProgress`) — o nível inicial da
+// espécie, mesmo motivo do IV acima pra não passar por `equiparCriatura`.
+const STARTER_PROGRESS = Object.fromEntries(
+  Object.entries(STARTER_PARTY).map(([slot, speciesId]) => {
+    const species = getSpecies(speciesId)
+    return [slot, createLevelState(species, species?.level ?? 1)]
+  }),
+)
 
 export const playerEntity = world.spawn(
   Position({ x: 0, y: 2, z: 0 }),
@@ -88,6 +98,7 @@ export const playerEntity = world.spawn(
   // Treinador numa luta fora do controle (`trainerBattleSystem.js`).
   TrainerBehavior,
   PartyIndividualValues(STARTER_INDIVIDUAL_VALUES),
+  PartyProgress(STARTER_PROGRESS),
   // Ninguém do time começa desmaiado (ver `PartyFaint`), e todos começam
   // com a vida/energia cheias na bola (ver `PartyVitals`).
   PartyFaint,

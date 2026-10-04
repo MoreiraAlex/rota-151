@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { resolveFormulaLevel } from '../data/species/formulaLevel'
 import { createRng } from '../rng'
 import { getSpecies } from '../data/species'
 import {
@@ -109,7 +110,7 @@ describe('resolveCombatStats', () => {
   it('usa o fallback pra espécie sem stats migrados (stats: {})', () => {
     const species = { level: 3, stats: {} }
     expect(resolveCombatStats(species, null)).toEqual({
-      level: 3,
+      level: resolveFormulaLevel(3),
       attack: 50,
       defense: 50,
       sp_atk: 50,
@@ -138,7 +139,7 @@ describe('resolveCombatStats', () => {
       speed: 0,
     }
     const resolved = resolveCombatStats(species, individualValues)
-    expect(resolved.level).toBe(5)
+    expect(resolved.level).toBe(resolveFormulaLevel(5))
     expect(resolved.attack).toBeGreaterThan(0)
     expect(resolved.attack).not.toBe(50)
   })
