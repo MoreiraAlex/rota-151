@@ -4,8 +4,15 @@ import { useState } from 'react'
 import { useTrait } from 'koota/react'
 import { playerEntity } from '@/core/world/world'
 import { getSpecies } from '@/core/data/species'
-import { Party, PartyIndividualValues, PartyProgress } from '@/core/traits'
+import {
+  Party,
+  PartyIndividualValues,
+  PartyMoves,
+  PartyProgress,
+} from '@/core/traits'
+import { MAX_MASTERY, MOVE_SLOTS } from '@/core/data/species/moves'
 import { formatSpeciesName } from '@/view/shared/statusDisplay'
+import { formatProgressPercent } from '@/view/shared/formatProgress'
 import { StatsScreen } from '../../shared/StatsScreen'
 
 const SLOTS = [
@@ -36,6 +43,7 @@ export function TeamTab() {
   const party = useTrait(playerEntity, Party)
   const partyIndividualValues = useTrait(playerEntity, PartyIndividualValues)
   const partyProgress = useTrait(playerEntity, PartyProgress)
+  const partyMoves = useTrait(playerEntity, PartyMoves)
   const [selectedSlot, setSelectedSlot] = useState(
     SLOTS.find((slot) => party?.[slot.key])?.key ?? SLOTS[0].key,
   )
@@ -71,15 +79,61 @@ export function TeamTab() {
       </div>
 
       {species ? (
-        <StatsScreen
-          species={species}
-          individualValues={individualValues}
-          progress={partyProgress?.[selectedSlot] ?? null}
-          showIndividual
-        />
+        <>
+          <StatsScreen
+            species={species}
+            individualValues={individualValues}
+            progress={partyProgress?.[selectedSlot] ?? null}
+            showIndividual
+          />
+          <MoveList moves={partyMoves?.[selectedSlot]} />
+        </>
       ) : (
         <p className="p-3 text-xs text-white/50">Slot vazio.</p>
       )}
+    </div>
+  )
+}
+
+const MOVE_KEYS = { 1: 'Q', 2: 'E', 3: 'R' }
+
+/**
+ * Golpes da criatura (só leitura) — os 3 slots com o domínio de cada um
+ * (docs/features/038-aprendizado-treino-e-dominio-de-golpes.md). Trocar e
+ * treinar é pelo menu de ações (segurar a tecla do slot no jogo).
+ */
+function MoveList({ moves }) {
+  if (!moves) return null
+  return (
+    <div className="space-y-1 rounded bg-white/5 p-2">
+      <h3 className="text-[10px] uppercase tracking-wide text-white/50">
+        Golpes
+      </h3>
+      {MOVE_SLOTS.map((moveSlot) => {
+        const move = moves.slots[moveSlot]
+        const fraction = move ? move.mastery / MAX_MASTERY : 0
+        return (
+          <div key={moveSlot} className="flex items-center gap-2 text-[11px]">
+            <span className="w-3 text-white/50">{MOVE_KEYS[moveSlot]}</span>
+            <span className="flex-1">
+              {move ? formatSpeciesName(move.id) : '—'}
+            </span>
+            {move && (
+              <>
+                <div className="h-1.5 w-24 overflow-hidden rounded bg-white/10">
+                  <div
+                    className="h-full bg-sky-400"
+                    style={{ width: `${fraction * 100}%` }}
+                  />
+                </div>
+                <span className="w-14 text-right tabular-nums text-white/70">
+                  {formatProgressPercent(fraction)}
+                </span>
+              </>
+            )}
+          </div>
+        )
+      })}
     </div>
   )
 }

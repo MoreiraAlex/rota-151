@@ -127,6 +127,11 @@ export const GAME_CONFIG = {
     XP_COLOR: '#9fd8ff',
     // Cor do texto "Nível N!" quando ela sobe de nível.
     LEVEL_UP_COLOR: '#ffe066',
+    // Cor do texto "Falhou!" (golpe que não erra, falhando por domínio
+    // baixo — docs/features/038-aprendizado-treino-e-dominio-de-golpes.md).
+    FAIL_COLOR: '#c9b8a6',
+    // Cor dos avisos de golpe: "Pode aprender X!", "Aprendeu X!".
+    MOVE_NOTICE_COLOR: '#b9f6ca',
     FEEDBACK_COLORS: {
       OPPONENT: {
         DAMAGE: '#ff3b30',
@@ -594,6 +599,64 @@ export const GAME_CONFIG = {
     WILD_LEVEL_MAX: 8,
     // XP dado pelo botão "+XP" do `DebugPanel`.
     DEBUG_XP_AMOUNT: 100,
+  },
+
+  // Golpes aprendidos, treino e domínio
+  // (docs/features/038-aprendizado-treino-e-dominio-de-golpes.md).
+  MOVES: {
+    MASTERY: {
+      // Domínio com que um golpe recém-aprendido entra no slot (0–1).
+      INITIAL: 0.15,
+      // Fator de precisão/chance de sair no domínio zero; sobe em linha
+      // até 1 (precisão clássica) no domínio máximo.
+      MIN_ACCURACY_FACTOR: 0.5,
+      // Multiplicadores de energia e de recarga no domínio zero; descem em
+      // linha até 1 no domínio máximo.
+      MAX_COST_FACTOR: 1.6,
+      MAX_COOLDOWN_FACTOR: 1.6,
+      // Domínio ganho por uso em combate (errando); acertar soma o bônus.
+      GAIN_PER_USE: 0.03,
+      HIT_GAIN_BONUS: 0.02,
+      // Retorno decrescente: o ganho é multiplicado pelo que falta até o
+      // máximo, mas nunca por menos que esta fração (pra chegar no teto).
+      MIN_GAIN_FRACTION: 0.25,
+      // Raio em que uma selvagem em combate faz o uso do golpe contar como
+      // "em combate" (usar no vazio não sobe domínio).
+      OPPONENT_RADIUS: 15,
+    },
+    TRAINING: {
+      // Distância máxima entre a criatura e um objeto de treino pra poder
+      // começar (e continuar) o treino.
+      START_RADIUS: 6,
+      // TEMPO de treino (horas) pra APRENDER um golpe: proporcional ao peso
+      // do golpe (o mesmo da conta de energia, `resolveAttackWeight`) —
+      // LEARN_HOURS_PER_100_WEIGHT é o tempo de um golpe de peso 100; nunca
+      // menos que MIN_LEARN_HOURS. Golpe com `trainingHours` escrito foge da
+      // fórmula. Conta só o tempo treinando no objeto (repetindo, esperando
+      // recarga ou descansando), não o de ir até ele.
+      LEARN_HOURS_PER_100_WEIGHT: 20,
+      MIN_LEARN_HOURS: 1,
+      // Tempo de treino pra DOMINAR (de zero ao máximo de domínio), em
+      // múltiplos do tempo de aprender o mesmo golpe.
+      MASTERY_HOURS_MULTIPLIER: 10,
+      // Acelera o relógio do treino (testes em jogo); 1 = tempo real.
+      TIME_MULTIPLIER: 1,
+      // Pausa entre uma repetição e a próxima (segundos).
+      REPETITION_INTERVAL: 0.6,
+      // Sem energia pra repetir, descansa até recuperar esta fração da
+      // energia máxima.
+      REST_STAMINA_FRACTION: 0.6,
+      // Fração do treino que sobra de um golpe esquecido (re-treinar é mais
+      // rápido).
+      FORGET_RETAINED: 0.5,
+      // Progresso dado pelo botão de debug.
+      DEBUG_PROGRESS: 0.5,
+    },
+    // Segurar Q/E/R no modo treinador por este tempo (segundos) abre o menu
+    // de ações daquele Pokémon; soltar antes é um toque (invoca/recolhe).
+    ACTION_MENU_HOLD_TIME: 0.5,
+    // Domínio dado pelo botão de debug.
+    DEBUG_MASTERY: 0.2,
   },
 
   ANIMATION: {

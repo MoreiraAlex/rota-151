@@ -7,6 +7,7 @@ import {
   resolveAttackCooldown,
   resolveAttackWeight,
   resolveLevelCost,
+  resolveTrainingHours,
   withActionCost,
 } from './actionCost'
 import { resolveAttackForEntity, resolveSpeedFactor } from './attackCasting'
@@ -158,5 +159,47 @@ describe('resolveAttackForEntity — o golpe de verdade, com o preço', () => {
     expect(basic.staminaCost).toBeGreaterThan(0)
     expect(basic.staminaCost).toBeLessThan(tackle.staminaCost / 4)
     expect(basic.cooldown).toBe(0)
+  })
+})
+
+describe('resolveTrainingHours — o tempo de treino', () => {
+  const {
+    LEARN_HOURS_PER_100_WEIGHT,
+    MIN_LEARN_HOURS,
+    MASTERY_HOURS_MULTIPLIER,
+  } = GAME_CONFIG.MOVES.TRAINING
+
+  it('aprender: peso ÷ 100 × horas por 100 de peso', () => {
+    const attack = melee({ damage: { power: 100 } })
+    expect(resolveTrainingHours(attack).learn).toBeCloseTo(
+      Math.max(
+        MIN_LEARN_HOURS,
+        (resolveAttackWeight(attack) / 100) * LEARN_HOURS_PER_100_WEIGHT,
+      ),
+    )
+  })
+
+  it('golpe mais pesado leva mais tempo', () => {
+    const light = melee({ damage: { power: 40 } })
+    const heavy = melee({ damage: { power: 120 } })
+    expect(resolveTrainingHours(heavy).learn).toBeGreaterThan(
+      resolveTrainingHours(light).learn,
+    )
+  })
+
+  it('nunca menos que o mínimo (golpe sem peso)', () => {
+    expect(resolveTrainingHours(melee({})).learn).toBe(MIN_LEARN_HOURS)
+  })
+
+  it('dominar leva o multiplicador vezes o tempo de aprender', () => {
+    const { learn, mastery } = resolveTrainingHours(
+      melee({ damage: { power: 60 } }),
+    )
+    expect(mastery).toBeCloseTo(learn * MASTERY_HOURS_MULTIPLIER)
+  })
+
+  it('trainingHours escrito ganha da fórmula', () => {
+    const attack = melee({ damage: { power: 120 }, trainingHours: 2 })
+    expect(resolveTrainingHours(attack).learn).toBe(2)
   })
 })

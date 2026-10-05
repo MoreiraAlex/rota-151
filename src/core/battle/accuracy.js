@@ -1,4 +1,6 @@
 import { accuracyMultiplier } from './statStages'
+import { isChannelAttack, isSelfAttack } from './channelAttack'
+import { resolveMasteryAccuracyFactor, rollMasterySuccess } from './moveMastery'
 
 /** Precisão padrão de um golpe (%) — a convenção do Pokémon: 100. */
 export const DEFAULT_ACCURACY = 100
@@ -16,15 +18,40 @@ export function resolveMoveAccuracy(attack) {
  * Chance (0-1) de o golpe acertar, a regra do Pokémon: precisão do golpe ×
  * multiplicador do estágio de PRECISÃO de quem ataca (`accuracyMultiplier`).
  * Só a precisão existe — não há estágio de evasão. Golpe sem precisão
- * (`accuracy: null`) é 1. Limitada a 0-1.
+ * (`accuracy: null`) é 1. Limitada a 0-1. O domínio do golpe
+ * (`attack.mastery`, docs/features/038-aprendizado-treino-e-dominio-de-
+ * golpes.md) multiplica junto — dominado (ou sem domínio) não muda nada.
  */
 export function resolveHitChance(attack, accuracyStage = 0) {
   const accuracy = resolveMoveAccuracy(attack)
   if (accuracy === null) return 1
-  return Math.min(
-    Math.max((accuracy / 100) * accuracyMultiplier(accuracyStage), 0),
-    1,
+  const chance =
+    (accuracy / 100) *
+    accuracyMultiplier(accuracyStage) *
+    resolveMasteryAccuracyFactor(attack?.mastery)
+  return Math.min(Math.max(chance, 0), 1)
+}
+
+/**
+ * Golpe que NÃO passa pelo sorteio de precisão: sem precisão (`accuracy:
+ * null`), em si mesmo (`area: 'self'`) ou canalizado. Com domínio baixo, esses
+ * podem FALHAR (`rollAttackFails`) em vez de errar.
+ */
+export function isNeverMissAttack(attack) {
+  return (
+    resolveMoveAccuracy(attack) === null ||
+    isSelfAttack(attack) ||
+    isChannelAttack(attack)
   )
+}
+
+/**
+ * O golpe que não erra FALHOU por falta de domínio? Só vale pra
+ * `isNeverMissAttack`; dominado nunca falha.
+ */
+export function rollAttackFails(attack, rng) {
+  if (!isNeverMissAttack(attack)) return false
+  return !rollMasterySuccess(attack?.mastery, rng)
 }
 
 /**

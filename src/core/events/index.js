@@ -7,6 +7,10 @@ export const EVENT_TYPES = {
   LEECH_SEED_DRAINED: 'leechSeedDrained',
   EXPERIENCE_GAINED: 'experienceGained',
   LEVELED_UP: 'leveledUp',
+  ATTACK_FAILED: 'attackFailed',
+  MOVE_UNLOCKED: 'moveUnlocked',
+  MOVE_READY_TO_LEARN: 'moveReadyToLearn',
+  MOVE_LEARNED: 'moveLearned',
 }
 
 /**
@@ -245,5 +249,79 @@ export function leveledUp({ trainer, slot, creature, fromLevel, level }) {
     creature: creature ?? null,
     fromLevel,
     level,
+  }
+}
+
+/**
+ * Um golpe que não erra (sem precisão, em si mesmo ou canalizado) FALHOU
+ * por falta de domínio (docs/features/038-aprendizado-treino-e-dominio-de-
+ * golpes.md) — o efeito não foi aplicado.
+ *
+ * - Quem emite: `core/battle/attackImpact.js` (golpe em si mesmo) e
+ *   `creatureAttackSystem.js` (início de um canalizado).
+ * - Quem consome: `view/systems/damageNumberSystem.js` (texto "Falhou!").
+ *
+ * @returns {{ type: 'attackFailed', entity: import('koota').Entity, attackId: string, slot: string }}
+ */
+export function attackFailed({ entity, attackId, slot }) {
+  return { type: EVENT_TYPES.ATTACK_FAILED, entity, attackId, slot }
+}
+
+/**
+ * Uma criatura do time ficou APTA pra golpes novos (cumpriu as condições ao
+ * subir de nível) — ainda precisa treinar pra aprender.
+ *
+ * - Quem emite: `ganharExperiencia` (`core/actions/experience.js`).
+ * - Quem consome: `view/systems/damageNumberSystem.js` ("Pode aprender X!").
+ *
+ * @returns {{ type: 'moveUnlocked', trainer: import('koota').Entity, slot: string, creature: import('koota').Entity | null, moveIds: string[] }}
+ */
+export function moveUnlocked({ trainer, slot, creature, moveIds }) {
+  return {
+    type: EVENT_TYPES.MOVE_UNLOCKED,
+    trainer,
+    slot,
+    creature: creature ?? null,
+    moveIds,
+  }
+}
+
+/**
+ * O treino de um golpe terminou, mas os 3 slots estão ocupados — o
+ * treinador precisa escolher qual esquecer (ou adiar).
+ *
+ * - Quem emite: `progredirTreino` (`core/actions/moves.js`).
+ * - Quem consome: `tools/menu/ForgetMoveDialog.jsx` (via o pedido guardado
+ *   em `MoveLearnRequest`), `view/systems/damageNumberSystem.js`.
+ *
+ * @returns {{ type: 'moveReadyToLearn', trainer: import('koota').Entity, slot: string, creature: import('koota').Entity | null, moveId: string }}
+ */
+export function moveReadyToLearn({ trainer, slot, creature, moveId }) {
+  return {
+    type: EVENT_TYPES.MOVE_READY_TO_LEARN,
+    trainer,
+    slot,
+    creature: creature ?? null,
+    moveId,
+  }
+}
+
+/**
+ * Uma criatura do time aprendeu um golpe (e, com os slots cheios, esqueceu
+ * `forgottenId`).
+ *
+ * - Quem emite: `aprenderGolpe` (`core/actions/moves.js`).
+ * - Quem consome: `view/systems/damageNumberSystem.js` ("Aprendeu X!").
+ *
+ * @returns {{ type: 'moveLearned', trainer: import('koota').Entity, slot: string, creature: import('koota').Entity | null, moveId: string, forgottenId: string | null }}
+ */
+export function moveLearned({ trainer, slot, creature, moveId, forgottenId }) {
+  return {
+    type: EVENT_TYPES.MOVE_LEARNED,
+    trainer,
+    slot,
+    creature: creature ?? null,
+    moveId,
+    forgottenId: forgottenId ?? null,
   }
 }

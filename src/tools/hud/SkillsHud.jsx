@@ -4,6 +4,7 @@ import { useQueryFirst, useTrait } from 'koota/react'
 import { getSpecies } from '@/core/data/species'
 import { resolveAttackForEntity } from '@/core/battle/attackCasting'
 import {
+  CreatureMoves,
   AttackCooldowns,
   CreatureLevel,
   IndividualValues,
@@ -51,6 +52,9 @@ export function SkillsHud() {
   const individualValues = useTrait(controlled, IndividualValues)
   // ...e do nível dela (o custo/recarga crescem com o nível).
   const progress = useTrait(controlled, CreatureLevel)
+  // ...e dos golpes DELA (docs/features/038-*): qual golpe em cada slot e o
+  // domínio (custo/recarga maiores com domínio baixo).
+  const moves = useTrait(controlled, CreatureMoves)
 
   if (!creature || !cooldowns) return null
 
@@ -63,6 +67,7 @@ export function SkillsHud() {
       key,
       individualValues,
       progress?.level ?? species.level,
+      moves?.slots ?? null,
     ),
   }))
 

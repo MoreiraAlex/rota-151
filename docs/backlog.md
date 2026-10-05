@@ -183,14 +183,25 @@ de puxar ela pra frente.
       líder derrotado, vínculo com o treinador), pra a evolução ser um
       objetivo sem inflar a curva. Saiu da
       `docs/features/037-experiencia-e-nivel.md` (teto 50 + curva mais cara).
-- [ ] **Aprender golpe por nível** — hoje cada espécie tem um kit fixo.
-      Learnsets da série como referência, comprimidos pro teto do jogo (ex.:
-      nível original × `MAX_LEVEL` ÷ 100); golpes que eram depois do 50 na
-      Gen 1 (48 espécies, ex.: Solar Beam do Venusaur, Fire Spin do
-      Charizard, Hydro Pump do Blastoise) viram as recompensas do fim.
-      Itens de XP também ficam pra cá/depois — pensados em relação à curva
-      ("+1 nível"), não XP fixo. Saiu da
-      `docs/features/037-experiencia-e-nivel.md`.
+- [ ] **Aprender golpe por nível** — em andamento na
+      `docs/features/038-aprendizado-treino-e-dominio-de-golpes.md`: o nível
+      deixa o golpe APTO, o treinador treina pra aprender e o domínio sobe
+      com o uso. Fica pendente o conteúdo: learnsets da série como
+      referência, comprimidos pro teto do jogo (ex.: nível original ×
+      `MAX_LEVEL` ÷ 100); golpes que eram depois do 50 na Gen 1 (48
+      espécies, ex.: Solar Beam do Venusaur, Fire Spin do Charizard, Hydro
+      Pump do Blastoise) viram as recompensas do fim. Itens de XP também
+      ficam pra cá/depois — pensados em relação à curva ("+1 nível"), não
+      XP fixo. Saiu da `docs/features/037-experiencia-e-nivel.md`.
+- [ ] **Treino que continua fora da tela** — o treino de golpe é de horas
+      (docs/features/038-aprendizado-treino-e-dominio-de-golpes.md), mas o
+      navegador pausa o jogo com a aba escondida e recarregar perde tudo.
+      Depende da persistência (salvar golpes/treino do time) e, pro treino
+      andar sem a aba, do jogo rodar num servidor (decisão do usuário).
+      Alternativa barata discutida: creditar o tempo fora com teto.
+- [ ] **Tutor/dojo de golpes** — NPC ou lugar que acelera o treino de um
+      golpe (ou relembra um esquecido). Saiu da
+      `docs/features/038-aprendizado-treino-e-dominio-de-golpes.md`.
 
 ## Animação
 

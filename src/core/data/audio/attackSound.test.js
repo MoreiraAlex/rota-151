@@ -8,6 +8,7 @@ import {
   getAttackSoundGroup,
   resolveAttackSound,
   resolveAttackLoopSounds,
+  resolveAttackSoundKey,
   resolveAttackSounds,
 } from './attackSound'
 import { resolveCreatureAttack } from '../../battle/creatureAttack'
@@ -141,26 +142,38 @@ describe('resolveAttackSound por slot / resolveAttackSounds', () => {
     expect(resolveAttackSound(species, 'secondary1')).toBeNull()
   })
 
-  it('resolveAttackSounds junta só os slots que têm som', () => {
+  it('resolveAttackSounds junta, por chave (básico ou id do golpe), só os que têm som', () => {
     const sounds = resolveAttackSounds(species)
-    expect(Object.keys(sounds)).toEqual(['primary', 'secondary2', 'secondary3'])
+    expect(Object.keys(sounds)).toEqual(['primary', 'ember', 'flamethrower'])
     expect(sounds.primary).toHaveLength(1)
-    expect(sounds.secondary2).toHaveLength(2)
+    expect(sounds.ember).toHaveLength(2)
   })
 
-  it('o Charmander real: cada slot resolve o som que a sua skill declara (qualquer que seja o conjunto de skills)', () => {
+  it('golpe do learnset (fora do kit) também ganha som — pode ser aprendido', () => {
+    const sounds = resolveAttackSounds({ ...species, moves: [{ id: 'punch' }] })
+    expect(Object.keys(sounds)).toContain('punch')
+  })
+
+  it('a chave do som é "primary" pro básico e o id do golpe pros outros', () => {
+    expect(resolveAttackSoundKey('primary', { id: 'x-basic' })).toBe('primary')
+    expect(resolveAttackSoundKey('secondary2', { id: 'ember' })).toBe('ember')
+  })
+
+  it('o Charmander real: cada golpe do kit resolve o som que a sua skill declara (qualquer que seja o conjunto de skills)', () => {
     const species = getSpecies('charmander')
     const sounds = resolveAttackSounds(species)
 
     for (const slot of ['primary', 'secondary1', 'secondary2', 'secondary3']) {
-      const audio = resolveCreatureAttack(species, slot)?.audio
+      const attack = resolveCreatureAttack(species, slot)
+      const key = resolveAttackSoundKey(slot, attack)
+      const audio = attack?.audio
       const composite = ATTACK_SOUND_COMPOSITES[audio?.group]
       if (composite) {
         // grupo composto: uma parte por som (ex.: Brasa = atacante + alvo)
-        expect(sounds[slot], slot).toHaveLength(composite.length)
+        expect(sounds[key], slot).toHaveLength(composite.length)
       } else if (audio?.cry && !audio.group) {
         // skill que só vocaliza (Growl): nenhum som de ATAQUE
-        expect(sounds[slot], slot).toBeUndefined()
+        expect(sounds[key], slot).toBeUndefined()
       }
     }
   })

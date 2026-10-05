@@ -15,6 +15,7 @@ import {
 } from '@/core/battle/statStages'
 import { DEFAULT_ACCURACY } from '@/core/battle/accuracy'
 import { resolveLevelCost } from '@/core/battle/levelCost'
+import { resolveTrainingHours } from '@/core/battle/actionCost'
 import { resolveRetaliateChance } from '@/core/battle/wildBehavior'
 import { resolveMovementCostMultiplier } from '@/core/actions/stamina'
 import { resolveSpeedMultiplier } from '@/core/actions/movementSpeed'
@@ -28,6 +29,19 @@ import {
 } from '@/core/data/species/experience'
 import { FORMULA_MAX_LEVEL } from '@/core/data/species/formulaLevel'
 import { getItem } from '@/core/data/items'
+import {
+  MAX_MASTERY,
+  MOVE_SLOTS,
+  createMovesState,
+  findMoveSlot,
+  listLearnset,
+} from '@/core/data/species/moves'
+import {
+  resolveMasteryAccuracyFactor,
+  resolveMasteryAfterUse,
+  resolveMasteryCooldownFactor,
+  resolveMasteryCostFactor,
+} from '@/core/battle/moveMastery'
 import { MAX_ENTRIES as SCAN_HISTORY_LIMIT } from '@/core/traits/components/scanHistory'
 import { resolveDamagePreview } from './damageCalculator'
 import {
@@ -69,6 +83,10 @@ const EXAMPLE_GROWTH_LEVELS = [
   40,
   GAME_CONFIG.EXPERIENCE.MAX_LEVEL,
 ]
+// Domínios de exemplo da tabela de domínio (frações do máximo — o inicial do
+// jogo entra junto, ver `buildMoves`).
+const EXAMPLE_MASTERY = [0, 0.25, 0.5, 0.75, 1]
+
 // Lutas de exemplo da tabela de XP ganho: nível de quem vence, da derrotada
 // e quantas criaturas do time dividem.
 const EXAMPLE_DUELS = [
@@ -139,6 +157,68 @@ function buildSpecies(species) {
     movement: resolveSpeciesMovement(species),
     attacks: resolveSpeciesAttacks(species).map(buildAttack),
     moves: resolveSpeciesMoves(species).map((move) => move.id),
+    learnset: buildLearnset(species),
+  }
+}
+
+/**
+ * Golpes que a espécie pode aprender além do kit inicial, com o nível
+ * exigido (`null` = sem condição de nível) e se há outra condição.
+ */
+function buildLearnset(species) {
+  const kit = createMovesState(species)
+  return listLearnset(species)
+    .filter((entry) => findMoveSlot(kit, entry.id) == null)
+    .map((entry) => ({
+      id: entry.id,
+      level: entry.requires?.level ?? null,
+      otherCondition: Object.keys(entry.requires ?? {}).some(
+        (key) => key !== 'level',
+      ),
+    }))
+}
+
+// Usos em combate pra ir do domínio inicial ao máximo (todos errando ou todos
+// acertando).
+function countUsesToMaster(hit) {
+  let mastery = GAME_CONFIG.MOVES.MASTERY.INITIAL
+  let uses = 0
+  while (mastery < MAX_MASTERY && uses < 100000) {
+    mastery = resolveMasteryAfterUse(mastery, hit)
+    uses++
+  }
+  return uses
+}
+
+/** Domínio, treino e esquecimento de golpes (docs/features/038-*). */
+function buildMoves() {
+  const { MASTERY, TRAINING } = GAME_CONFIG.MOVES
+  const levels = [...new Set([...EXAMPLE_MASTERY, MASTERY.INITIAL])].sort(
+    (a, b) => a - b,
+  )
+  return {
+    initialMastery: MASTERY.INITIAL,
+    minAccuracyFactor: MASTERY.MIN_ACCURACY_FACTOR,
+    maxCostFactor: MASTERY.MAX_COST_FACTOR,
+    maxCooldownFactor: MASTERY.MAX_COOLDOWN_FACTOR,
+    opponentRadius: MASTERY.OPPONENT_RADIUS,
+    usesToMasterMissing: countUsesToMaster(false),
+    usesToMasterHitting: countUsesToMaster(true),
+    masteryRows: levels.map((mastery) => ({
+      mastery,
+      initial: mastery === MASTERY.INITIAL,
+      accuracy: resolveMasteryAccuracyFactor(mastery),
+      cost: resolveMasteryCostFactor(mastery),
+      cooldown: resolveMasteryCooldownFactor(mastery),
+    })),
+    trainingRadius: TRAINING.START_RADIUS,
+    learnHoursPer100Weight: TRAINING.LEARN_HOURS_PER_100_WEIGHT,
+    minLearnHours: TRAINING.MIN_LEARN_HOURS,
+    masteryHoursMultiplier: TRAINING.MASTERY_HOURS_MULTIPLIER,
+    repetitionInterval: TRAINING.REPETITION_INTERVAL,
+    restFraction: TRAINING.REST_STAMINA_FRACTION,
+    forgetRetained: TRAINING.FORGET_RETAINED,
+    slots: MOVE_SLOTS.length,
   }
 }
 
@@ -177,6 +257,7 @@ function buildSkill(skill) {
     channel: summary.channel,
     effects: summary.effects.map(describeEffect),
     weight: summary.weight,
+    trainingHours: resolveTrainingHours(skill),
     baseCooldown: summary.baseCooldown,
     fixedCost: summary.fixedCost,
     costByLevel: EXAMPLE_LEVELS.map((level) => ({
@@ -412,6 +493,7 @@ export function buildWikiData() {
       historyLimit: SCAN_HISTORY_LIMIT,
     },
     experience: buildExperience(speciesList),
+    moves: buildMoves(),
     species: speciesList.map(buildSpecies),
     skills: listWikiSkills().map(buildSkill),
     ivExample: buildIvExample(speciesList[0]),

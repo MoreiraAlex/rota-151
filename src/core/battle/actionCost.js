@@ -37,6 +37,30 @@ export function resolveAttackWeight(attack) {
 }
 
 /**
+ * Tempo de TREINO do golpe, em horas (docs/features/038-aprendizado-treino-e-
+ * dominio-de-golpes.md) — mesma régua do custo, o peso:
+ * - `learn` — pra aprender: `peso ÷ 100 × LEARN_HOURS_PER_100_WEIGHT`, nunca
+ *   menos que `MIN_LEARN_HOURS`; `trainingHours` escrito no golpe (ou no
+ *   override da espécie) ganha da fórmula;
+ * - `mastery` — pra ir de zero ao domínio máximo treinando:
+ *   `learn × MASTERY_HOURS_MULTIPLIER`.
+ */
+export function resolveTrainingHours(attack) {
+  const {
+    LEARN_HOURS_PER_100_WEIGHT,
+    MIN_LEARN_HOURS,
+    MASTERY_HOURS_MULTIPLIER,
+  } = GAME_CONFIG.MOVES.TRAINING
+  const learn =
+    attack?.trainingHours ??
+    Math.max(
+      MIN_LEARN_HOURS,
+      (resolveAttackWeight(attack) / 100) * LEARN_HOURS_PER_100_WEIGHT,
+    )
+  return { learn, mastery: learn * MASTERY_HOURS_MULTIPLIER }
+}
+
+/**
  * Recarga: `peso × COOLDOWN_PER_WEIGHT × speedFactor` — sem nível (é tempo);
  * `speedFactor` é o mesmo do básico (`calculateAttackDurationFactor`: < 1
  * pra quem é rápido).

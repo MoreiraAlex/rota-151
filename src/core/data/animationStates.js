@@ -97,6 +97,10 @@ export const ANIMATION_STATES = [
   // presença) — nenhum dado novo precisou ser calculado aqui, só faltava
   // esta entrada na tabela.
   { id: 'fall', when: (ctx) => !ctx.grounded },
+  // Treinando um golpe, parada esperando a próxima repetição (energia,
+  // pausa ou recarga — `Training.waiting`, `trainingSystem.js`). Espécie
+  // sem animação de descanso toca a idle.
+  { id: 'rest', fallback: 'idle', when: (ctx) => ctx.trainingWait === true },
   // Parado no chão em modo combate (`CombatMode`) — postura de luta no
   // lugar do olho bravo por textura. Espécie sem animação própria toca a
   // idle.

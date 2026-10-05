@@ -8,6 +8,7 @@ import {
 } from '../data/species/experience'
 import { experienceGained, leveledUp } from '../events'
 import { GAME_CONFIG } from '../gameConfig'
+import { anunciarGolpesAptos } from './moves'
 import {
   CreatureLevel,
   Fainted,
@@ -97,7 +98,8 @@ function canReceiveExperience(world, trainer, slot) {
 }
 
 /** A criatura em campo do `slot`, ou `null` se está na bola. */
-function findSummonedCreature(world, slot) {
+/** A criatura em campo do slot do time (ou `null`, se está na bola). */
+export function findSummonedCreature(world, slot) {
   let found = null
   world.query(SummonedCreature).readEach(([summoned], entity) => {
     if (summoned.slot === slot) found = entity
@@ -130,6 +132,7 @@ export function ganharExperiencia(world, events, trainer, slot, amount) {
 
   subirDeNivel(trainer, slot, creature, species, fromLevel, level)
   events?.emit(leveledUp({ trainer, slot, creature, fromLevel, level }))
+  anunciarGolpesAptos(events, trainer, slot, creature, fromLevel, level)
 }
 
 /**

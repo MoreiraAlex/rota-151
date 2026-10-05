@@ -1,4 +1,6 @@
 import { resolveCreatureAttack } from '../../battle/creatureAttack'
+import { resolveSkill } from '../skills'
+import { listLearnset, resolveSpeciesMoveReference } from '../species/moves'
 import { IMPACT_TYPES, resolveAttackImpactType } from '../impactTypes'
 
 /**
@@ -146,13 +148,32 @@ export function getAttackSoundGroup(id, groups = ATTACK_SOUND_GROUPS) {
   return groups[id] ?? null
 }
 
-/** Slots de ataque que podem ter som: o básico (mouse) e as 3 habilidades (Q/E/R). */
-export const ATTACK_AUDIO_SLOTS = [
-  'primary',
-  'secondary1',
-  'secondary2',
-  'secondary3',
-]
+/**
+ * Chave do som de um ataque: `'primary'` pro básico; o id do golpe pros
+ * outros (docs/features/038-aprendizado-treino-e-dominio-de-golpes.md) — o
+ * golpe de cada slot muda por criatura (aprender, reordenar, treinar), então o
+ * som é registrado por golpe, não por slot.
+ */
+export function resolveAttackSoundKey(slot, attack) {
+  if (slot === 'primary') return 'primary'
+  return attack?.id ?? null
+}
+
+/**
+ * Todos os ataques que uma criatura da espécie pode usar, por chave de som:
+ * o básico e cada golpe do learnset (kit + `moves`), com os overrides da
+ * espécie.
+ */
+function listSpeciesAttacks(species) {
+  const attacks = []
+  const basic = resolveCreatureAttack(species, 'primary')
+  if (basic) attacks.push(['primary', basic])
+  for (const { id } of listLearnset(species)) {
+    const attack = resolveSkill(resolveSpeciesMoveReference(species, id))
+    if (attack) attacks.push([id, attack])
+  }
+  return attacks
+}
 
 function toPart(spec, delay) {
   return { ...spec, delay: delay ?? spec.delay ?? 0 }
@@ -175,7 +196,11 @@ function toPart(spec, delay) {
  *   fallback gracioso de sempre.
  */
 export function resolveAttackSound(species, slot = 'primary') {
-  const attack = resolveCreatureAttack(species, slot)
+  return resolveAttackSoundParts(resolveCreatureAttack(species, slot))
+}
+
+/** As partes do som de UMA definição de ataque (ver `resolveAttackSound`). */
+export function resolveAttackSoundParts(attack) {
   const audio = attack?.audio
   if (!audio) return null
   if (audio.clips) return [toPart(audio)]
@@ -203,19 +228,23 @@ export function resolveAttackSound(species, slot = 'primary') {
   return group ? [toPart(group)] : null
 }
 
-/** Os sons de TODOS os slots da espécie que têm som: `{ [slot]: partes }`. */
+/**
+ * Os sons de TODOS os ataques que a espécie pode usar e que têm som:
+ * `{ [chave]: partes }` (chave em `resolveAttackSoundKey`).
+ */
 export function resolveAttackSounds(species) {
   const sounds = {}
-  for (const slot of ATTACK_AUDIO_SLOTS) {
-    const parts = resolveAttackSound(species, slot)
-    if (parts) sounds[slot] = parts
+  for (const [key, attack] of listSpeciesAttacks(species)) {
+    const parts = resolveAttackSoundParts(attack)
+    if (parts) sounds[key] = parts
   }
   return sounds
 }
 
 /**
- * Sons em LOOP do ataque de cada slot (um grupo simples de
- * `ATTACK_SOUND_GROUPS`): `{ [slot]: { clips, volume?, refDistance?, phase } }`.
+ * Sons em LOOP de cada ataque da espécie (um grupo simples de
+ * `ATTACK_SOUND_GROUPS`): `{ [chave]: { clips, volume?, refDistance?, phase } }`
+ * (chave em `resolveAttackSoundKey`).
  * `phase` diz QUANDO toca:
  *
  * - `'charge'` (`audio.chargeGroup`, ex.: o Growth): do disparo até o
@@ -225,17 +254,17 @@ export function resolveAttackSounds(species) {
  *   ação ACABAR (fim da `duration`) — cortado no fim se for mais longo,
  *   repetido se for mais curto.
  *
- * Um slot tem no máximo um; com os dois configurados, vale o de carga. Quem
+ * Um ataque tem no máximo um; com os dois configurados, vale o de carga. Quem
  * toca é `view/systems/attackAudioSystem.js`.
  */
 export function resolveAttackLoopSounds(species) {
   const sounds = {}
-  for (const slot of ATTACK_AUDIO_SLOTS) {
-    const audio = resolveCreatureAttack(species, slot)?.audio
+  for (const [key, attack] of listSpeciesAttacks(species)) {
+    const audio = attack.audio
     const phase = audio?.chargeGroup ? 'charge' : 'action'
     const group = audio?.chargeGroup ?? audio?.actionGroup
     const spec = group ? getAttackSoundGroup(group) : null
-    if (spec) sounds[slot] = { ...spec, phase }
+    if (spec) sounds[key] = { ...spec, phase }
   }
   return sounds
 }

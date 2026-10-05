@@ -15,6 +15,7 @@ import {
   MovementStats,
   PartyBehavior,
   TrainerBehavior,
+  Training,
   PathState,
   PhysicsBody,
   Position,
@@ -245,6 +246,8 @@ export function creatureFollowSystem(context) {
       if (entity.has(Fainted)) return
       // Lutando pra defender o grupo: quem move é o `partyBehaviorSystem.js`.
       if (entity.get(PartyBehavior)?.state === 'fight') return
+      // Treinando um golpe: quem move é o `trainingSystem.js`.
+      if (entity.has(Training)) return
       // Treinador numa luta (longe dela, desviando, fugindo pro time): quem
       // move é o `trainerBattleSystem.js`.
       const trainerState = entity.get(TrainerBehavior)?.state

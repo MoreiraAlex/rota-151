@@ -96,6 +96,11 @@ export const SKILL_TEMPLATE = {
   // espécie, `skills[N].overrides`) — escrito sempre ganha:
   // staminaCost: 2,
   // cooldown: 3,
+  // Horas de TREINO pra aprender o golpe (docs/features/038-*) — pela mesma
+  // régua: peso ÷ 100 × MOVES.TRAINING.LEARN_HOURS_PER_100_WEIGHT (mínimo
+  // MIN_LEARN_HOURS); dominar treinando leva MASTERY_HOURS_MULTIPLIER vezes
+  // isso. Escrito aqui (ou no override) ganha da fórmula:
+  // trainingHours: 8,
   //
   // `ai.weight` (mais abaixo) mexe só na nota da IA, não no preço.
   // Como o dano é aplicado:

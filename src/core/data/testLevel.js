@@ -21,6 +21,11 @@
  *   (`GAME_CONFIG.EXPERIENCE.WILD_LEVEL_MIN/MAX`). Vagam sozinhas (`wildWanderSystem.js`), sem
  *   pertencer ao time do treinador. Ver docs/features/020-fox-selvagens-
  *   cena-e-texturas.md.
+ * - trainingObjects (opcional): objetos de treino fixos (tronco, pedra,
+ *   boneco) — `{ id, kind, position, size }`. Perto de um deles a criatura do
+ *   time pode treinar um golpe (docs/features/038-aprendizado-treino-e-
+ *   dominio-de-golpes.md). Também entram em `obstacles` (colisão, pathfind e
+ *   mesh, com a cor do `kind`) — ver `TRAINING_OBJECTS` abaixo.
  */
 
 const WILD_CREATURE_COUNT = 5
@@ -36,6 +41,33 @@ const generateWildCreatures = (count) =>
       ],
     position: [Math.random() * 120 - 60, 1, Math.random() * 120 - 60],
   }))
+
+// Objetos de treino (ver `trainingObjects` no cabeçalho). Viram também
+// obstáculos `box` comuns — sem mecanismo novo em colliders/pathfinding/mesh.
+const TRAINING_OBJECTS = [
+  {
+    id: 'training-log-1',
+    kind: 'log',
+    position: [-9, 0.6, -5],
+    size: [0.8, 1.2, 0.8],
+  },
+  {
+    id: 'training-rock-1',
+    kind: 'rock',
+    position: [9, 0.5, -6],
+    size: [1.2, 1, 1.2],
+  },
+]
+
+const TRAINING_OBSTACLES = TRAINING_OBJECTS.map(
+  ({ id, kind, position, size }) => ({
+    id,
+    type: 'box',
+    position,
+    size,
+    trainingKind: kind,
+  }),
+)
 
 export const TEST_LEVEL = {
   ambientSound: {
@@ -375,4 +407,8 @@ export const TEST_LEVEL = {
   ],
 
   wildCreatures: generateWildCreatures(WILD_CREATURE_COUNT),
+
+  trainingObjects: TRAINING_OBJECTS,
 }
+
+TEST_LEVEL.obstacles.push(...TRAINING_OBSTACLES)

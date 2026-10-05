@@ -1,5 +1,9 @@
 import { resolveAttackDirection } from './attackAim'
-import { resolveCreatureAttack } from './creatureAttack'
+import { resolveCreatureAttack, resolveSlotMove } from './creatureAttack'
+import {
+  resolveMasteryCooldownFactor,
+  resolveMasteryCostFactor,
+} from './moveMastery'
 import {
   calculateAttackDurationFactor,
   calculateStat,
@@ -83,14 +87,21 @@ function resolvePrimaryDuration(attack, speedFactor) {
  *
  * `level` — nível DESTA criatura (`resolveEntityLevel`); sem ele, o
  * `species.level` (previews da wiki).
+ *
+ * `moveSet` — golpes DESTA criatura por slot (`resolveEntityMoveSet`,
+ * `core/battle/creatureAttack.js`); sem ele, o kit da espécie (wiki). O
+ * domínio do golpe (docs/features/038-aprendizado-treino-e-dominio-de-
+ * golpes.md) multiplica energia e recarga, e vai junto no ataque
+ * (`attack.mastery`) pro sorteio de precisão/falha.
  */
 export function resolveAttackForEntity(
   species,
   slot,
   individualValues,
   level = species?.level ?? 1,
+  moveSet = null,
 ) {
-  const attack = resolveCreatureAttack(species, slot)
+  const attack = resolveCreatureAttack(species, slot, moveSet)
   if (!attack) return null
 
   const speedFactor = resolveSpeedFactor(species, individualValues, level)
@@ -98,11 +109,23 @@ export function resolveAttackForEntity(
     slot === 'primary' && speedFactor !== null
       ? { ...attack, ...resolvePrimaryDuration(attack, speedFactor) }
       : attack
-  return withActionCost(timed, {
+  const costed = withActionCost(timed, {
     slot,
     level,
     speedFactor: speedFactor ?? 1,
   })
+  return withMastery(costed, resolveSlotMove(species, slot, moveSet)?.mastery)
+}
+
+// Domínio baixo: mais energia e mais recarga. Sem domínio (básico), igual.
+function withMastery(attack, mastery) {
+  if (mastery == null) return attack
+  return {
+    ...attack,
+    mastery,
+    staminaCost: attack.staminaCost * resolveMasteryCostFactor(mastery),
+    cooldown: attack.cooldown * resolveMasteryCooldownFactor(mastery),
+  }
 }
 
 // Ordem de prioridade de disparo por tick — botão esquerdo do mouse
@@ -124,11 +147,24 @@ export const ATTACK_SLOTS = [
  * stamina e cooldown ok. `null` se não der.
  */
 function resolveCastableAttack(castContext, slot) {
-  const { species, individualValues, level, action, vitals, cooldowns } =
-    castContext
+  const {
+    species,
+    individualValues,
+    level,
+    moveSet,
+    action,
+    vitals,
+    cooldowns,
+  } = castContext
   if (action.current !== null) return null
 
-  const attack = resolveAttackForEntity(species, slot, individualValues, level)
+  const attack = resolveAttackForEntity(
+    species,
+    slot,
+    individualValues,
+    level,
+    moveSet,
+  )
   if (!attack) return null
   if (vitals.stamina < attack.staminaCost) return null
   if (cooldowns[slot] > 0) return null
@@ -157,8 +193,15 @@ function resolveFacingDirection(rot) {
  * ação, desconta stamina, trava cooldown e trava a direção do golpe.
  * Devolve se lançou. `direction` (horizontal, unitária) é a mira pronta
  * da IA; sem ela, mira pela câmera (`resolveAttackDirection` — jogador).
+ * `enterCombat: false` — o treino (`trainingSystem.js`) não põe a criatura
+ * em modo combate.
  */
-export function tryStartAttack(castContext, slot, direction = null) {
+export function tryStartAttack(
+  castContext,
+  slot,
+  direction = null,
+  { enterCombat = true } = {},
+) {
   const attack = resolveCastableAttack(castContext, slot)
   if (!attack) return false
 
@@ -207,7 +250,7 @@ export function tryStartAttack(castContext, slot, direction = null) {
   if (!self) rot.y = Math.atan2(aim.x, aim.z)
 
   // Todo ataque lançado põe (ou mantém) a criatura em modo combate.
-  entrarEmCombate(castContext.entity)
+  if (enterCombat) entrarEmCombate(castContext.entity)
   return true
 }
 
@@ -230,7 +273,7 @@ export function resolveCastMode(attack, castModeOverride) {
  * - `castMode: 'instant'`: lança na hora, se der; senão tenta o próximo.
  */
 export function handleAttackPress(castContext, aim, input, castModeOverride) {
-  const { species, individualValues, level, cooldowns } = castContext
+  const { species, individualValues, level, moveSet, cooldowns } = castContext
 
   for (const { input: inputKey, slot } of ATTACK_SLOTS) {
     if (!input[inputKey] || slot === aim.slot) continue
@@ -240,6 +283,7 @@ export function handleAttackPress(castContext, aim, input, castModeOverride) {
       slot,
       individualValues,
       level,
+      moveSet,
     )
     if (!attack) continue
 

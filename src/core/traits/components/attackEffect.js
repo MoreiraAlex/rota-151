@@ -98,11 +98,12 @@ export const AttackEffect = trait({
  * `presentation`, então quem limpa cedo demais arrisca apagar o pulso
  * antes da `presentation` chegar a vê-lo).
  *
- * Carrega `slot` (`primary`/`secondary1-3`): QUAL ataque disparou, pra o som
- * tocar o do ataque certo (cada slot tem o seu — ver `core/data/audio/
- * attackSound.js`).
+ * Carrega `slot` (`primary`/`secondary1-3`/`training`) e `key` (chave do som,
+ * `resolveAttackSoundKey`: `'primary'` ou o id do golpe): QUAL ataque
+ * disparou, pra o som tocar o do ataque certo (ver `core/data/audio/
+ * attackSound.js`). Sem `key`, vale o `slot`.
  */
-export const AttackPulse = trait({ slot: 'primary' })
+export const AttackPulse = trait({ slot: 'primary', key: '' })
 
 /**
  * Pulso de UM tick pedindo que a criatura VOCALIZE agora (o grito dela, com a
@@ -141,6 +142,8 @@ export const AttackCooldowns = trait({
   secondary1: 0,
   secondary2: 0,
   secondary3: 0,
+  // Golpe em treino (`Training`, slot interno sem botão).
+  training: 0,
 })
 
 /**

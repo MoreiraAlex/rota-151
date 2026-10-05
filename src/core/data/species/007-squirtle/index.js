@@ -70,6 +70,11 @@ export const SQUIRTLE = {
       loop: 'faintLoop',
       end: 'faintEnd',
     },
+    rest: {
+      start: 'restStart',
+      loop: 'restLoop',
+      end: 'restEnd',
+    },
     fall: 'fallLoop',
     jump: 'jumpLoop',
     dash: { sequence: ['stepIn', { animation: 'stepInEnd', frames: 10 }] },

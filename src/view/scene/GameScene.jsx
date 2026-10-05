@@ -35,6 +35,14 @@ const OBSTACLE_COLOR = {
   floor: '#9c9182',
 }
 
+// Cor dos objetos de treino (`trainingKind`, ver `trainingObjects` em
+// core/data/testLevel.js) — destacados do resto do cenário.
+const TRAINING_OBJECT_COLOR = {
+  log: '#7a4a24',
+  rock: '#6f7b86',
+  dummy: '#c9a66b',
+}
+
 /**
  * Desenha o nível de teste a partir de TEST_LEVEL — o mesmo dado que gera os
  * colliders em core/physics, então o visível bate com o colidível.
@@ -60,7 +68,11 @@ function TestLevelView() {
         >
           <boxGeometry args={obstacle.size} />
           <meshStandardMaterial
-            color={OBSTACLE_COLOR[obstacle.type] ?? '#8a8a8a'}
+            color={
+              TRAINING_OBJECT_COLOR[obstacle.trainingKind] ??
+              OBSTACLE_COLOR[obstacle.type] ??
+              '#8a8a8a'
+            }
           />
         </mesh>
       ))}

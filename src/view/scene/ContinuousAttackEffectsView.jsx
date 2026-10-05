@@ -4,7 +4,7 @@ import { useTexture } from '@react-three/drei'
 import { world } from '@/core/world/world'
 import { getSpecies } from '@/core/data/species'
 import { verticalClearance } from '@/core/physics/colliders'
-import { resolveCreatureAttack } from '@/core/battle/creatureAttack'
+import { resolveEntityAttack } from '@/core/battle/creatureAttack'
 import {
   isAttackChanneling,
   isAttackCharging,
@@ -133,7 +133,7 @@ export function ContinuousAttackEffectsView() {
             ? getSpecies(resolveCreatureSpeciesId(entity))
             : null
         const attack = species
-          ? resolveCreatureAttack(species, action.pendingSlot)
+          ? resolveEntityAttack(entity, species, action.pendingSlot)
           : null
         followers.push(chargeFollower(entity, action, attack))
         followers.push(channelFollower(entity, action, attack, species))

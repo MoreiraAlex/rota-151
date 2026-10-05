@@ -5,7 +5,7 @@ import { useFrame } from '@react-three/fiber'
 import { world } from '@/core/world/world'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import { getSpecies } from '@/core/data/species'
-import { resolveCreatureAttack } from '@/core/battle/creatureAttack'
+import { resolveEntityAttack } from '@/core/battle/creatureAttack'
 import { resolveAttackTelegraphProgress } from '@/core/battle/attackTelegraph'
 import { isSelfAttack } from '@/core/battle/channelAttack'
 import {
@@ -70,7 +70,7 @@ export function AttackTelegraphView() {
         if (action.current !== 'attack') return
 
         const species = getSpecies(resolveCreatureSpeciesId(entity))
-        const attack = resolveCreatureAttack(species, action.pendingSlot)
+        const attack = resolveEntityAttack(entity, species, action.pendingSlot)
         const progress = resolveAttackTelegraphProgress(action, attack)
         if (progress === null) return
 

@@ -9,6 +9,7 @@ import {
   CombatMode,
   Fainted,
   Jumping,
+  Training,
 } from '../traits'
 
 /**
@@ -47,6 +48,7 @@ export function animationStateSystem(context) {
         action: action.current,
         fainted: entity.has(Fainted),
         inCombat: entity.has(CombatMode),
+        trainingWait: entity.get(Training)?.waiting === true,
         // Só a SUBIDA do pulo; do ponto mais alto em diante é `fall`.
         jumping: entity.has(Jumping) && vel.y > 0,
       })

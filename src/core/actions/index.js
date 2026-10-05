@@ -22,3 +22,28 @@ export {
   ganharExperiencia,
   subirDeNivel,
 } from './experience'
+export {
+  podeTreinarGolpe,
+  progredirTreino,
+  pedirAprendizado,
+  adiarAprendizado,
+  aprenderGolpe,
+  reordenarGolpes,
+  ganharDominio,
+  treinarDominio,
+  somarDominio,
+  anunciarGolpesAptos,
+} from './moves'
+export {
+  findNearbyTrainingObject,
+  resolveTrainingBlock,
+  resolveTrainingGoal,
+  iniciarTreino,
+  pararTreino,
+  resolveTrainingMove,
+} from './training'
+export {
+  abrirMenuDeAcoes,
+  fecharMenuDeAcoes,
+  isPartyMenuOpen,
+} from './partyActionMenu'

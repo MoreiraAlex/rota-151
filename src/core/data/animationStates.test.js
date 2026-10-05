@@ -9,6 +9,23 @@ import {
 const { WALK_MIN_SPEED, RUN_MIN_SPEED } = GAME_CONFIG.ANIMATION
 
 describe('resolveAnimationState', () => {
+  it('esperando no treino, parada no chão → rest (sem rest, a idle)', () => {
+    const ctx = { speed: 0, grounded: true, trainingWait: true }
+    expect(resolveAnimationState(ctx)).toBe('rest')
+    expect(resolveAnimationFallback('rest')).toBe('idle')
+  })
+
+  it('o golpe de treino vence a espera', () => {
+    expect(
+      resolveAnimationState({
+        speed: 0,
+        grounded: true,
+        trainingWait: true,
+        action: 'attack',
+      }),
+    ).toBe('attack')
+  })
+
   it('velocidade zero e no chão → idle', () => {
     expect(resolveAnimationState({ speed: 0, grounded: true })).toBe('idle')
   })

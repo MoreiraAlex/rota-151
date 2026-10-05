@@ -4,7 +4,8 @@ import {
   resolveCreatureSpeciesId,
 } from '@/core/traits'
 import { getSpecies } from '@/core/data/species'
-import { resolveCreatureAttack } from '@/core/battle/creatureAttack'
+import { resolveEntityAttack } from '@/core/battle/creatureAttack'
+import { resolveAttackSoundKey } from '@/core/data/audio/attackSound'
 import {
   isAttackCharging,
   isAttackPastEffect,
@@ -48,17 +49,17 @@ export function attackAudioSystem(context) {
   const delta = context?.delta ?? 0
 
   for (const [entity, entry] of getAttackAudioEntries()) {
-    const playing = resolveLoopingSlots(entity)
-    for (const [slot, voice] of Object.entries(entry.loops)) {
-      if (slot === playing[voice.phase]) playLoopVoice(voice)
+    const playing = resolveLoopingKeys(entity)
+    for (const [key, voice] of Object.entries(entry.loops)) {
+      if (key === playing[voice.phase]) playLoopVoice(voice)
       else stopLoopVoice(voice)
     }
 
     if (entity.has(AttackPulse)) {
-      const { slot } = entity.get(AttackPulse)
+      const { slot, key } = entity.get(AttackPulse)
       entity.remove(AttackPulse)
 
-      for (const voice of entry.voices[slot] ?? []) {
+      for (const voice of entry.voices[key || slot] ?? []) {
         if (voice.delay > 0) {
           entry.pending.push({ voice, remaining: voice.delay })
         } else {
@@ -85,19 +86,22 @@ function playVoice({ audio, buffers }) {
 }
 
 /**
- * Slot de cada fase de som em loop agora: `action` = o golpe em andamento já
- * passado do `effectAt`, `charge` = o golpe que está CARREGANDO (ou `null`).
+ * Chave de som (`resolveAttackSoundKey`) de cada fase de som em loop agora:
+ * `action` = o golpe em andamento já passado do `effectAt`, `charge` = o golpe
+ * que está CARREGANDO (ou `null`).
  */
-function resolveLoopingSlots(entity) {
+function resolveLoopingKeys(entity) {
   const action = entity.has(ActionState) ? entity.get(ActionState) : null
   if (action?.current !== 'attack') return { action: null, charge: null }
-  const attack = resolveCreatureAttack(
+  const attack = resolveEntityAttack(
+    entity,
     getSpecies(resolveCreatureSpeciesId(entity)),
     action.pendingSlot,
   )
+  const key = resolveAttackSoundKey(action.pendingSlot, attack)
   return {
-    action: isAttackPastEffect(action, attack) ? action.pendingSlot : null,
-    charge: isAttackCharging(action, attack) ? action.pendingSlot : null,
+    action: isAttackPastEffect(action, attack) ? key : null,
+    charge: isAttackCharging(action, attack) ? key : null,
   }
 }
 

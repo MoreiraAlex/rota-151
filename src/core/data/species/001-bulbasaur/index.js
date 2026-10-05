@@ -76,6 +76,11 @@ export const BULBASAUR = {
       loop: 'faintLoop',
       end: 'faintEnd',
     },
+    rest: {
+      start: 'restStart',
+      loop: 'restLoop',
+      end: 'restEnd',
+    },
     fall: 'fallLoop',
     jump: 'jumpLoop',
     dash: { sequence: ['stepIn', { animation: 'stepInEnd', frames: 10 }] },
@@ -138,16 +143,15 @@ export const BULBASAUR = {
         },
       },
     },
-    2: { id: 'leech-seed' },
-    // {
-    //   id: 'tackle',
-    //   overrides: {
-    //     range: 1.4,
-    //     duration: 1,
-    //     effectAt: 0.4,
-    //     animation: { clipKey: 'attackBasicAlt' },
-    //   },
-    // },
+    2: {
+      id: 'tackle',
+      overrides: {
+        range: 1.4,
+        duration: 1,
+        effectAt: 0.4,
+        animation: { clipKey: 'attackBasicAlt' },
+      },
+    },
     3: {
       id: 'vine-whip',
       overrides: {

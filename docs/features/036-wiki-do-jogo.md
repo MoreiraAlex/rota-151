@@ -64,25 +64,32 @@ mecânica genérica sim ("roubo de vida"); a skill aparece só no catálogo.
 
 ## Como as versões funcionam
 
+> **Mudança (feature 038):** a wiki passou a ter **uma versão por beta**
+> (MINOR do semver: `0.0.x`, `0.1.x`, ...), não uma por feature — com uma por
+> feature a lista de versões ficaria imensa pra pouca diferença entre elas. As
+> versões 0.0.36 e 0.0.37 foram juntadas na `0.0.x` (o conteúdo atual); as
+> pastas antigas saíram (recuperáveis pelo git). Durante um beta, a versão
+> atual é atualizada no lugar, e só no fim de cada feature.
+
 - **Retrato de números** — `buildWikiData()` (`src/tools/wiki/wikiData.js`)
   monta um objeto simples (só número/texto/lista, sobrevive a JSON) com tudo
   que as páginas mostram, tirado do jogo pelas funções dele. As páginas só
   leem esse retrato, nunca o jogo direto.
 - **Versão atual** (`data: null` no `meta.js`) monta o retrato ao vivo.
-- **Versão antiga** tem `data.json` congelado e mostra os números da época
-  pra sempre.
-- Endereços: `/wiki/<versão>/<página>`; `/wiki` vai pra mais nova. Trocar de
-  versão na caixa mantém a página quando ela existe na outra versão.
+- **Versão antiga** (de um beta anterior) tem `data.json` congelado e mostra
+  os números da época pra sempre.
+- Endereços: `/wiki/<versão>/<página>` (ex.: `/wiki/0.0.x/batalha/dano`);
+  `/wiki` vai pra mais nova. Trocar de versão na caixa mantém a página quando
+  ela existe na outra versão.
 
-**Passo a passo pra abrir uma versão nova da wiki** (quando uma mecânica
-mudar e precisar entrar):
+**Passo a passo quando um beta novo sair** (ex.: 0.1.0):
 
-1. Antes de mexer nas regras (ou com o jogo ainda nas regras antigas):
-   `npm run wiki:freeze -- 0.0.36` → grava
-   `src/tools/wiki/versions/v0-0-36/data.json`; no `meta.js` dela, troca
+1. Com o jogo ainda nas regras do beta anterior:
+   `npm run wiki:freeze -- 0.0.x` → grava
+   `src/tools/wiki/versions/v0-0-x/data.json`; no `meta.js` dela, troca
    `data: null` por `data: DATA` (`import DATA from './data.json'`).
-2. Copia `versions/v0-0-36/` pra `versions/v<nova>/`, troca o `id` no
-   `meta.js` e volta `data` pra `null`; edita só as páginas que mudaram.
+2. Copia `versions/v0-0-x/` pra `versions/v0-1-x/`, troca o `id` (`0.1.x`) no
+   `meta.js` e volta `data` pra `null`.
 3. Adiciona a nova no **começo** de `WIKI_VERSIONS` (`versions/index.js`) e em
    `WIKI_PAGES` (`versions/pages.js`).
 

@@ -2,9 +2,12 @@ import { afterEach, describe, expect, it } from 'vitest'
 import * as THREE from 'three'
 import { createWorld } from 'koota'
 import {
+  attackFailed,
   attackInterrupted,
   attackResolved,
   leechSeedDrained,
+  moveLearned,
+  moveUnlocked,
   statStageChanged,
 } from '@/core/events'
 import { GAME_CONFIG } from '@/core/gameConfig'
@@ -18,6 +21,8 @@ import { damageNumberPool } from '../vfx/damageNumberPool'
 import {
   damageNumberSystem,
   formatDamage,
+  formatMoveLearned,
+  formatMoveUnlocked,
   formatStatChange,
 } from './damageNumberSystem'
 
@@ -254,6 +259,47 @@ describe('damageNumberSystem — golpes de status (Growl)', () => {
     expect(slot.text).toBe('Interrompido!')
     expect(slot.color).toBe(GAME_CONFIG.FEEDBACK.INTERRUPT_COLOR)
     expect(slot.y).toBeCloseTo(0.9 + HEAD_MARGIN)
+  })
+
+  it('golpe que falhou por domínio baixo: "Falhou!" acima de quem usou', () => {
+    const user = spawnTarget({ x: 0, y: 0.45, z: 0 })
+
+    run([
+      attackFailed({ entity: user, attackId: 'growth', slot: 'secondary1' }),
+    ])
+
+    const [slot] = activeSlots()
+    expect(slot.text).toBe('Falhou!')
+    expect(slot.color).toBe(GAME_CONFIG.FEEDBACK.FAIL_COLOR)
+  })
+
+  it('avisos de golpe: apto ao subir de nível e aprendido, com o nome do golpe', () => {
+    const creature = spawnTarget({ x: 0, y: 0.45, z: 0 })
+
+    run([
+      moveUnlocked({
+        trainer: null,
+        slot: 'slot1',
+        creature,
+        moveIds: ['smokescreen'],
+      }),
+      moveLearned({
+        trainer: null,
+        slot: 'slot1',
+        creature,
+        moveId: 'leech-seed',
+      }),
+    ])
+
+    const texts = activeSlots().map((slot) => slot.text)
+    expect(texts).toContain(formatMoveUnlocked(['smokescreen']))
+    expect(texts).toContain(formatMoveLearned('leech-seed'))
+    expect(formatMoveLearned('leech-seed')).toContain('Leech Seed')
+  })
+
+  it('golpe aprendido com a criatura na bola não mostra nada', () => {
+    run([moveLearned({ trainer: null, slot: 'slot1', moveId: 'ember' })])
+    expect(activeSlots()).toHaveLength(0)
   })
 
   it('o attackResolved de STATUS (damage 0) não cria número de dano', () => {

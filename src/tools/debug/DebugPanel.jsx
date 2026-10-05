@@ -3,8 +3,22 @@
 import { useTrait, useTag, useQuery, useQueryFirst } from 'koota/react'
 import { playerEntity, cameraEntity, world } from '@/core/world/world'
 import { getItem, listItems } from '@/core/data/items'
-import { listSpecies, resolveSpeciesKind } from '@/core/data/species'
-import { equiparCriatura, ganharExperiencia } from '@/core/actions'
+import {
+  getSpecies,
+  listSpecies,
+  resolveSpeciesKind,
+} from '@/core/data/species'
+import {
+  equiparCriatura,
+  ganharExperiencia,
+  progredirTreino,
+  somarDominio,
+} from '@/core/actions'
+import {
+  MOVE_SLOTS,
+  listLearnset,
+  resolveMoveStatus,
+} from '@/core/data/species/moves'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import {
   Position,
@@ -20,6 +34,7 @@ import {
   Vitals,
   HeldItem,
   Party,
+  PartyMoves,
   PartyProgress,
   Projectile,
   SummonBall,
@@ -217,7 +232,10 @@ export function DebugPanel() {
       <PartySlotSelect slot="slot2" value={party.slot2} />
       <PartySlotSelect slot="slot3" value={party.slot3} />
       {['slot1', 'slot2', 'slot3'].map((slot) => (
-        <PartySlotExperience key={slot} slot={slot} />
+        <div key={slot}>
+          <PartySlotExperience slot={slot} />
+          <PartySlotMoves slot={slot} />
+        </div>
       ))}
       <hr className="border-white/20" />
       <p>projéteis ativos: {projectiles.length}</p>
@@ -339,6 +357,73 @@ function PartySlotExperience({ slot }) {
       >
         +{GAME_CONFIG.EXPERIENCE.DEBUG_XP_AMOUNT} xp
       </button>
+    </div>
+  )
+}
+
+/**
+ * Golpes de um slot do time (docs/features/038-aprendizado-treino-e-dominio-
+ * de-golpes.md) + botões de debug: "+treino" soma progresso no primeiro golpe
+ * APTO (ou pronto), "+domínio" soma domínio nos 3 slots — pra testar o ciclo
+ * sem treinar nem lutar. Sem a fila de eventos do loop (como o "+XP").
+ */
+function PartySlotMoves({ slot }) {
+  const moves = useTrait(playerEntity, PartyMoves)?.[slot]
+  const speciesId = useTrait(playerEntity, Party)?.[slot]
+  const level = useTrait(playerEntity, PartyProgress)?.[slot]?.level ?? 1
+  if (!moves || !speciesId) return null
+
+  const apt = listLearnset(getSpecies(speciesId)).find(
+    (entry) => resolveMoveStatus(moves, entry, { level }) === 'apt',
+  )
+  const summary = MOVE_SLOTS.map((moveSlot) => {
+    const move = moves.slots[moveSlot]
+    return move ? `${move.id} ${Math.round(move.mastery * 100)}%` : '—'
+  }).join(' · ')
+  const training = Object.entries(moves.training)
+    .map(([id, progress]) => `${id} ${Math.round(progress * 100)}%`)
+    .join(' · ')
+
+  return (
+    <div className="space-y-0.5 text-[10px] text-white/60">
+      <div>{summary}</div>
+      {training && <div className="text-amber-300/70">treino: {training}</div>}
+      <div className="flex gap-1">
+        <button
+          type="button"
+          disabled={!apt}
+          className="pointer-events-auto rounded bg-amber-900 px-1.5 py-0.5 hover:bg-amber-800 disabled:opacity-30"
+          onClick={() =>
+            progredirTreino(
+              world,
+              null,
+              playerEntity,
+              slot,
+              apt.id,
+              GAME_CONFIG.MOVES.TRAINING.DEBUG_PROGRESS,
+            )
+          }
+        >
+          +treino{apt ? ` (${apt.id})` : ''}
+        </button>
+        <button
+          type="button"
+          className="pointer-events-auto rounded bg-sky-900 px-1.5 py-0.5 hover:bg-sky-800"
+          onClick={() => {
+            for (const moveSlot of MOVE_SLOTS) {
+              somarDominio(
+                world,
+                playerEntity,
+                slot,
+                moveSlot,
+                GAME_CONFIG.MOVES.DEBUG_MASTERY,
+              )
+            }
+          }}
+        >
+          +domínio
+        </button>
+      </div>
     </div>
   )
 }

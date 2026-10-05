@@ -1,12 +1,14 @@
 import { getSpecies } from '../data/species'
 import { rollIndividualValues } from '../data/species/stats'
 import { createLevelState } from '../data/species/experience'
+import { createMovesState } from '../data/species/moves'
 import { gameplayRng } from '../rng'
 import { GAME_CONFIG } from '../gameConfig'
 import {
   Party,
   PartyFaint,
   PartyIndividualValues,
+  PartyMoves,
   PartyProgress,
   PartyVitals,
 } from '../traits'
@@ -31,7 +33,8 @@ import {
  * Mesmo motivo pro desmaio (`PartyFaint`) e pra vida/energia guardadas
  * na bola (`PartyVitals`): criatura nova no slot não herda nada da
  * anterior — sai cheia. E pro nível (`PartyProgress`): começa no nível
- * inicial da espécie (`species.level`), com o XP do começo dele.
+ * inicial da espécie (`species.level`), com o XP do começo dele. E pros
+ * golpes (`PartyMoves`): o kit da espécie, dominado, sem treino nenhum.
  */
 export function equiparCriatura(trainer, slot, speciesId) {
   const species = speciesId ? getSpecies(speciesId) : null
@@ -48,6 +51,11 @@ export function equiparCriatura(trainer, slot, speciesId) {
   if (trainer.has(PartyProgress)) {
     trainer.set(PartyProgress, {
       [slot]: species ? createLevelState(species, species.level ?? 1) : null,
+    })
+  }
+  if (trainer.has(PartyMoves)) {
+    trainer.set(PartyMoves, {
+      [slot]: species ? createMovesState(species) : null,
     })
   }
   if (trainer.has(PartyFaint)) trainer.set(PartyFaint, { [slot]: null })

@@ -4,10 +4,8 @@
  * `clips/` com um .json por ação (`idle.json`, `walk.json`, `run.json`, ...).
  * Ver `../004-charmander/` como exemplo completo e funcional.
  *
- * `stats` e `moves` ainda não têm formato fechado — o sistema de batalha
- * ainda não foi desenhado. Preenche do jeito que fizer sentido por enquanto;
- * formalizamos o formato de verdade quando desenharmos batalha, sem precisar
- * migrar nada — são só objetos.
+ * `moves` é o learnset (formato documentado no campo, abaixo); `stats`
+ * segue o formato de `../004-charmander/`.
  */
 // import IDLE_CLIP from './clips/idle.json'
 // import WALK_CLIP from './clips/walk.json'
@@ -349,6 +347,16 @@ export const SPECIES_TEMPLATE = {
   //        },
   //      },
   stats: {},
+  // LEARNSET — golpes que a criatura pode aprender além do kit (`skills`),
+  // docs/features/038-aprendizado-treino-e-dominio-de-golpes.md. Cumprindo
+  // `requires`, o golpe fica APTO (não aprende sozinho): o treinador treina
+  // a criatura perto de um objeto de treino e ela aprende com domínio baixo.
+  // Sem `requires`, fica apto de imediato. `overrides` igual ao de `skills`.
+  // Hoje só `level` é avaliado; outra condição conta como não cumprida.
+  //      moves: [
+  //        { id: 'smokescreen', requires: { level: 5 } },
+  //        { id: 'flamethrower', requires: { level: 19 }, overrides: { range: 2 } },
+  //      ],
   moves: [],
   // Opcional — tipo(s) elemental(is) da espécie (1 ou 2, ex.:
   // `['grass', 'poison']`), usado hoje só pro STAB (`resolveStab`,

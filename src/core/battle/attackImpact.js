@@ -4,9 +4,10 @@ import { resolveDamageAmount } from './calculateDamage'
 import { isChannelAttack, isSelfAttack } from './channelAttack'
 import { resolveAttackOrigin, resolveFootElevation } from './attackGeometry'
 import { readStatStages } from './statStages'
-import { rollHit } from './accuracy'
+import { rollAttackFails, rollHit } from './accuracy'
 import { gameplayRng } from '../rng'
-import { attackResolved } from '../events'
+import { attackFailed, attackResolved } from '../events'
+import { resolveAttackSoundKey } from '../data/audio/attackSound'
 import { resolveAttackImpactPoint } from './attackTrajectory'
 import { resolveAttackTarget, resolveEffectTargets } from './attackTargets'
 import { resolveEffectPlacement } from './attackEffectPlacement'
@@ -50,6 +51,11 @@ function damageTarget(attack, attacker, target, attackerStages) {
  * nasce o VFX e marca os pulsos de som/grito. O canalizado não passa por aqui
  * pro dano (os ticks são do `applyChannelTick`), só pelo visual e pelo som.
  * Ver a docstring de `creatureAttackSystem` ("Dano", "Som do impacto").
+ *
+ * Golpe que não erra (`isNeverMissAttack`) com domínio baixo pode FALHAR
+ * (docs/features/038-aprendizado-treino-e-dominio-de-golpes.md): nada é
+ * aplicado nem nasce, só o evento `attackFailed`. Devolve `{ failed }` — o
+ * canalizado que falhou acaba ali (`creatureAttackSystem`).
  */
 export function resolveAttackImpact(world, events, context) {
   const {
@@ -64,6 +70,13 @@ export function resolveAttackImpact(world, events, context) {
     damaged,
   } = context
   const channel = isChannelAttack(attack)
+
+  if (rollAttackFails(attack, gameplayRng)) {
+    events.emit(
+      attackFailed({ entity, attackId: attack.id, slot: action.pendingSlot }),
+    )
+    return { failed: true }
+  }
 
   // Trajetória do golpe: da origem (centro do corpo + altura
   // opcional da espécie, `resolveAttackOrigin`) por `range` metros
@@ -216,14 +229,19 @@ export function resolveAttackImpact(world, events, context) {
   // espírito de sempre.
   // `slot`: qual ataque disparou (cada um tem o seu som). Se o pulso
   // anterior ainda não foi consumido, só troca o slot.
+  const pulse = {
+    slot: action.pendingSlot,
+    key: resolveAttackSoundKey(action.pendingSlot, attack) ?? '',
+  }
   if (entity.has(AttackPulse)) {
-    entity.set(AttackPulse, { slot: action.pendingSlot })
+    entity.set(AttackPulse, pulse)
   } else {
-    entity.add(AttackPulse({ slot: action.pendingSlot }))
+    entity.add(AttackPulse(pulse))
   }
   // `audio.cry`: a criatura VOCALIZA agora (o grito dela, com a boca
   // sincronizada) — pulso consumido por `voiceAudioSystem.js`.
   if (attack.audio?.cry && !entity.has(CryPulse)) {
     entity.add(CryPulse)
   }
+  return { failed: false }
 }

@@ -3,6 +3,7 @@ import { createWorld } from 'koota'
 import { ActionState, AttackPulse, SummonedCreature } from '@/core/traits'
 import { getSpecies } from '@/core/data/species'
 import { resolveSkill } from '@/core/data/skills'
+import { resolveCreatureAttack } from '@/core/battle/creatureAttack'
 import {
   registerAttackAudio,
   unregisterAttackAudio,
@@ -169,7 +170,7 @@ describe('attackAudioSystem — som de CARGA', () => {
       SummonedCreature({ slot: 'slot1', speciesId: 'charmander' }),
     )
     const charge = { ...voice(0), phase: 'charge' }
-    registerAttackAudio(entity, {}, { secondary1: charge })
+    registerAttackAudio(entity, {}, { growth: charge })
     return charge
   }
 
@@ -233,7 +234,14 @@ describe('attackAudioSystem — som da AÇÃO (audio.actionGroup)', () => {
       SummonedCreature({ slot: 'slot1', speciesId: 'charmander' }),
     )
     const loop = { ...voice(0), phase: 'action' }
-    registerAttackAudio(entity, {}, { secondary1: loop })
+    registerAttackAudio(
+      entity,
+      {},
+      {
+        [resolveCreatureAttack(getSpecies('charmander'), 'secondary1').id]:
+          loop,
+      },
+    )
     return loop
   }
 

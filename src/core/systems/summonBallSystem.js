@@ -2,6 +2,7 @@ import { GAME_CONFIG } from '../gameConfig'
 import { castRay } from '../physics/raycast'
 import { getSpecies, getPlayerSpecies } from '../data/species'
 import { createLevelState } from '../data/species/experience'
+import { cloneMovesState, createMovesState } from '../data/species/moves'
 import { isPhysicsReady } from '../physics/physicsWorld'
 import { createCharacterBody, verticalClearance } from '../physics/colliders'
 import {
@@ -21,6 +22,8 @@ import {
   PartyBehavior,
   PartyIndividualValues,
   PartyProgress,
+  PartyMoves,
+  CreatureMoves,
   PartyVitals,
   PathState,
   PhysicsBody,
@@ -94,6 +97,11 @@ function spawnCreature(
   const progress =
     trainer?.get(PartyProgress)?.[slot] ??
     createLevelState(species, species.level ?? 1)
+  // Golpes do slot (`PartyMoves`) — CÓPIA: as actions de golpe escrevem nos
+  // dois (`core/actions/moves.js`), nunca um objeto compartilhado.
+  const moves = cloneMovesState(
+    trainer?.get(PartyMoves)?.[slot] ?? createMovesState(species),
+  )
 
   const creature = world.spawn(
     Position(spawnPosition),
@@ -101,6 +109,7 @@ function spawnCreature(
     SummonedCreature({ slot, speciesId }),
     IndividualValues(individualValues ?? {}),
     CreatureLevel(progress),
+    CreatureMoves(moves),
     AnimationState,
     // Nasce já fazendo a apresentação (`appeal`), se a espécie tiver.
     ActionState(resolveAppealActionState(species)),

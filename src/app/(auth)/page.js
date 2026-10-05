@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { Stats } from '@react-three/drei'
 import { useTrait } from 'koota/react'
@@ -16,6 +16,8 @@ import { WildBehaviorDebugView } from '@/tools/debug/WildBehaviorDebugView'
 import { PartyBehaviorDebugView } from '@/tools/debug/PartyBehaviorDebugView'
 import { DebugPanel } from '@/tools/debug/DebugPanel'
 import { PauseMenu } from '@/tools/menu/PauseMenu'
+import { PartyMenus } from '@/tools/menu/PartyMenus'
+import { isPartyMenuOpen } from '@/core/actions'
 import { ActionSlotHud } from '@/tools/hud/ActionSlotHud'
 import { PartyHud } from '@/tools/hud/PartyHud'
 import { SkillsHud } from '@/tools/hud/SkillsHud'
@@ -110,8 +112,7 @@ export default function GamePage() {
   // sempre imediato; travar de novo é só melhor esforço (silenciosamente
   // ignorado se o browser recusar) — sem isso, o próximo clique no canvas
   // trava do jeito de sempre (pointerInput.js).
-  const closeMenu = () => {
-    setMenuOpen(false)
+  const relockPointer = useCallback(() => {
     try {
       containerRef.current
         ?.querySelector('canvas')
@@ -120,6 +121,11 @@ export default function GamePage() {
     } catch {
       // Cooldown do browser — ignora, o próximo clique trava normalmente.
     }
+  }, [])
+
+  const closeMenu = () => {
+    setMenuOpen(false)
+    relockPointer()
   }
 
   useEffect(() => {
@@ -143,6 +149,9 @@ export default function GamePage() {
     // ativo).
     const onKeyDown = (event) => {
       if (event.code !== 'Escape') return
+      // Menu de ações / "esquecer qual golpe?" aberto: o Esc é dele
+      // (`PartyMenus`), não abre o menu de pausa.
+      if (isPartyMenuOpen(playerEntity)) return
       event.preventDefault()
       if (menuOpen) {
         closeMenu()
@@ -247,6 +256,10 @@ export default function GamePage() {
           />
 
           {showDebug && <DebugPanel />}
+
+          {/* Menu de ações (segurar Q/E/R) e "esquecer qual golpe?" —
+              docs/features/038-aprendizado-treino-e-dominio-de-golpes.md. */}
+          <PartyMenus trainer={playerEntity} onRelock={relockPointer} />
 
           {menuOpen && (
             <PauseMenu

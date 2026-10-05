@@ -6,7 +6,7 @@ import { world } from '@/core/world/world'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import { resolveAttackDirection } from '@/core/battle/attackAim'
 import { getSpecies } from '@/core/data/species'
-import { resolveCreatureAttack } from '@/core/battle/creatureAttack'
+import { resolveEntityAttack } from '@/core/battle/creatureAttack'
 import { isSelfAttack } from '@/core/battle/channelAttack'
 import { AttackShape, placeAttackShape } from './AttackShape'
 import {
@@ -57,7 +57,9 @@ export function AttackIndicatorView() {
     const species = slot
       ? getSpecies(controlled.get(SummonedCreature).speciesId)
       : null
-    const resolved = species ? resolveCreatureAttack(species, slot) : null
+    const resolved = species
+      ? resolveEntityAttack(controlled, species, slot)
+      : null
     // golpe em si mesmo (Growth) não tem pra onde mirar: sem indicador
     const attack = isSelfAttack(resolved) ? null : resolved
     shape.root.visible = !!attack

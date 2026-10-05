@@ -20,6 +20,9 @@ import { creatureHitStunSystem } from '@/core/systems/creatureHitStunSystem'
 import { leechSeedSystem } from '@/core/systems/leechSeedSystem'
 import { creatureFollowSystem } from '@/core/systems/creatureFollowSystem'
 import { wildCreatureSpawnSystem } from '@/core/systems/wildCreatureSpawnSystem'
+import { trainingObjectSpawnSystem } from '@/core/systems/trainingObjectSpawnSystem'
+import { trainingSystem } from '@/core/systems/trainingSystem'
+import { partyActionMenuInputSystem } from '@/core/systems/partyActionMenuInputSystem'
 import { wildWanderSystem } from '@/core/systems/wildWanderSystem'
 import { wildBehaviorSystem } from '@/core/systems/wildBehaviorSystem'
 import { wildReactionSystem } from '@/core/systems/wildReactionSystem'
@@ -155,6 +158,9 @@ export function registerGameSystems() {
   registered = true
 
   registerSystem(GAME_PHASES.INPUT, inputSystem)
+  // Toque × segurar em Q/E/R no modo treinador (segurar abre o menu de
+  // ações) e bloqueio de input com o menu aberto — docs/features/038-*.
+  registerSystem(GAME_PHASES.INPUT, partyActionMenuInputSystem)
 
   registerSystem(GAME_PHASES.SIMULATION, physicsBootstrapSystem)
   registerSystem(GAME_PHASES.SIMULATION, controlSwitchSystem)
@@ -164,6 +170,10 @@ export function registerGameSystems() {
   registerSystem(GAME_PHASES.SIMULATION, dashCooldownSystem)
   registerSystem(GAME_PHASES.SIMULATION, playerActionSystem)
   registerSystem(GAME_PHASES.SIMULATION, scannerModeSystem)
+  // Objetos de treino do nível (uma vez) e o treino automático de golpe —
+  // antes do ataque, que lança o golpe de treino pedido aqui no mesmo tick.
+  registerSystem(GAME_PHASES.SIMULATION, trainingObjectSpawnSystem)
+  registerSystem(GAME_PHASES.SIMULATION, trainingSystem)
   registerSystem(GAME_PHASES.SIMULATION, creatureAttackSystem)
   // Logo depois do ataque: avança o atordoamento de quem teve um golpe de
   // status interrompido (a ação `'hit'`, iniciada pelo ataque).

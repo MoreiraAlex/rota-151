@@ -35,15 +35,7 @@ import {
  * StatusHud.jsx` (4, voltar a pilotar o treinador, no card compacto).
  */
 
-/** "bulbasaur" → "Bulbasaur", "leech-seed" → "Leech Seed" — sem apelido
- * individual (nenhuma criatura tem nome próprio hoje), só a espécie
- * formatada. */
-export function formatSpeciesName(id) {
-  return id
-    .split('-')
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ')
-}
+export { formatSpeciesName } from './formatName'
 
 /**
  * Barra fina (vida OU stamina) — preenchimento por `width` em

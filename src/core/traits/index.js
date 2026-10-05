@@ -34,6 +34,14 @@ export {
   FoughtBy,
   resolveEntityLevel,
 } from './components/creatureLevel'
+export {
+  CreatureMoves,
+  PartyMoves,
+  MoveLearnRequest,
+  resolveEntityMoves,
+} from './components/creatureMoves'
+export { Training, TrainingObject } from './components/training'
+export { PartyActionMenu, SlotHold } from './components/partyActionMenu'
 export { PokedexEntries } from './components/pokedexEntries'
 export { ScanHistory, pushScanHistoryEntry } from './components/scanHistory'
 export { HeldItem } from './components/heldItem'

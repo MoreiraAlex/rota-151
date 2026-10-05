@@ -4,6 +4,7 @@ import { GAME_CONFIG } from '@/core/gameConfig'
 import { verticalClearance } from '@/core/physics/colliders'
 import { CharacterController, Position } from '@/core/traits'
 import { damageNumberPool } from '../vfx/damageNumberPool'
+import { formatSpeciesName } from '../shared/formatName'
 import { resolveFeedbackColor, resolveSide } from '../vfx/feedbackColors'
 
 const { LIFETIME, CRIT_LIFETIME, HEAD_MARGIN, SPREAD } =
@@ -35,6 +36,16 @@ export function formatExperienceGain(amount) {
 /** Texto da subida de nível: "Nível N!". */
 export function formatLevelUp(level) {
   return `Nível ${level}!`
+}
+
+/** "Pode aprender Smokescreen!" (um ou mais golpes aptos ao subir de nível). */
+export function formatMoveUnlocked(moveIds) {
+  return `Pode aprender ${moveIds.map(formatSpeciesName).join(', ')}!`
+}
+
+/** "Aprendeu Smokescreen!" */
+export function formatMoveLearned(moveId) {
+  return `Aprendeu ${formatSpeciesName(moveId)}!`
 }
 
 /** Texto do número: inteiro, nunca menos que 1 num acerto. */
@@ -84,6 +95,33 @@ export function damageNumberSystem(context) {
         event.creature,
         formatExperienceGain(event.amount),
         GAME_CONFIG.FEEDBACK.XP_COLOR,
+        cameraRight,
+      )
+      continue
+    }
+    if (event.type === EVENT_TYPES.ATTACK_FAILED) {
+      spawnNotice(
+        event.entity,
+        'Falhou!',
+        GAME_CONFIG.FEEDBACK.FAIL_COLOR,
+        cameraRight,
+      )
+      continue
+    }
+    if (event.type === EVENT_TYPES.MOVE_UNLOCKED) {
+      spawnNotice(
+        event.creature,
+        formatMoveUnlocked(event.moveIds),
+        GAME_CONFIG.FEEDBACK.MOVE_NOTICE_COLOR,
+        cameraRight,
+      )
+      continue
+    }
+    if (event.type === EVENT_TYPES.MOVE_LEARNED) {
+      spawnNotice(
+        event.creature,
+        formatMoveLearned(event.moveId),
+        GAME_CONFIG.FEEDBACK.MOVE_NOTICE_COLOR,
         cameraRight,
       )
       continue

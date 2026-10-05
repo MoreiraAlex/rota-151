@@ -3,6 +3,7 @@ import { GAME_CONFIG } from '../gameConfig'
 import { getSpecies, PLAYER_SPECIES_ID } from '../data/species'
 import { rollIndividualValues } from '../data/species/stats'
 import { createLevelState } from '../data/species/experience'
+import { createMovesState } from '../data/species/moves'
 import { gameplayRng } from '../rng'
 import {
   Position,
@@ -24,6 +25,10 @@ import {
   TrainerBehavior,
   PartyIndividualValues,
   PartyProgress,
+  PartyMoves,
+  MoveLearnRequest,
+  PartyActionMenu,
+  SlotHold,
   PartyFaint,
   PartyVitals,
   PathState,
@@ -74,6 +79,15 @@ const STARTER_PROGRESS = Object.fromEntries(
   }),
 )
 
+// Golpes de cada um (`PartyMoves`) — o kit da espécie, dominado, mesmo
+// motivo do IV acima pra não passar por `equiparCriatura`.
+const STARTER_MOVES = Object.fromEntries(
+  Object.entries(STARTER_PARTY).map(([slot, speciesId]) => [
+    slot,
+    createMovesState(getSpecies(speciesId)),
+  ]),
+)
+
 export const playerEntity = world.spawn(
   Position({ x: 0, y: 2, z: 0 }),
   Rotation,
@@ -99,6 +113,12 @@ export const playerEntity = world.spawn(
   TrainerBehavior,
   PartyIndividualValues(STARTER_INDIVIDUAL_VALUES),
   PartyProgress(STARTER_PROGRESS),
+  PartyMoves(STARTER_MOVES),
+  // Nenhum "esquecer qual golpe?" pendente no começo.
+  MoveLearnRequest,
+  // Menu de ações treinador↔Pokémon (segurar Q/E/R) fechado.
+  PartyActionMenu,
+  SlotHold,
   // Ninguém do time começa desmaiado (ver `PartyFaint`), e todos começam
   // com a vida/energia cheias na bola (ver `PartyVitals`).
   PartyFaint,

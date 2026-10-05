@@ -9,6 +9,8 @@ import {
   resolveEntityLevel,
 } from '../traits'
 import { ATTACK_SLOTS, resolveAttackForEntity } from './attackCasting'
+import { resolveEntityMoveSet } from './creatureAttack'
+import { resolveMasteryAccuracyFactor } from './moveMastery'
 import { isInsideAttackCone } from './attackGeometry'
 import { evaluateEffect } from './aiEffectEvaluators'
 import { fitsEnergyReserve } from './aiEnergy'
@@ -73,7 +75,9 @@ function resolveRecipients(attack, situation) {
  * atingido (`evaluateEffect`, um avaliador por tipo de efeito), × bônus se já
  * alcança o alvo (`IN_REACH_BONUS`), × `ai.weight` (ajuste fino opcional da
  * skill). Golpe em si mesmo com inimigo perto (`SELF_CAST_SAFE_DISTANCE`) vale
- * 0 — a carga seria interrompida por dano.
+ * 0 — a carga seria interrompida por dano. Golpe com domínio baixo
+ * (docs/features/038-*) vale menos, na proporção da chance de sair
+ * (`resolveMasteryAccuracyFactor`).
  *
  * `situation`: `{ attacker, attackerPos, target, targetPos, targetBody,
  * enemies: [{ entity, pos }] }`.
@@ -105,7 +109,11 @@ export function scoreAiAttack(attack, situation) {
 
   const distance = horizontalDistance(attackerPos, targetPos)
   if (distance <= resolveReachFor(attack, targetBody)) score *= IN_REACH_BONUS
-  return score * (attack.ai?.weight ?? 1)
+  return (
+    score *
+    (attack.ai?.weight ?? 1) *
+    resolveMasteryAccuracyFactor(attack.mastery)
+  )
 }
 
 /**
@@ -138,6 +146,7 @@ function resolveReadyAttack(entity, species, slot) {
     slot,
     entity.get(IndividualValues),
     resolveEntityLevel(entity, species),
+    resolveEntityMoveSet(entity, species),
   )
   if (!attack) return null
   if (entity.get(Vitals).stamina < attack.staminaCost) return null

@@ -1,12 +1,13 @@
 /**
  * Congela os números de uma versão da wiki (docs/features/036-wiki-do-jogo.md):
  * grava o retrato atual do jogo (`buildWikiData`, `src/tools/wiki/wikiData.js`)
- * em `src/tools/wiki/versions/v<versão>/data.json`. Rodar ANTES de abrir a
- * versão nova da wiki, enquanto o jogo ainda está com as regras da versão que
- * vai ser congelada; depois, apontar o `data` do `meta.js` dela pro arquivo.
+ * em `src/tools/wiki/versions/v<versão>/data.json`. A wiki tem uma versão por
+ * BETA (`0.0.x`, `0.1.x`, ...): rodar quando um beta novo sair, ANTES de abrir
+ * a versão nova da wiki, enquanto o jogo ainda está com as regras do beta que
+ * vai ser congelado; depois, apontar o `data` do `meta.js` dela pro arquivo.
  *
- *   npm run wiki:freeze -- 0.0.36
- *   npm run wiki:freeze -- 0.0.36 --out /outro/caminho/data.json
+ *   npm run wiki:freeze -- 0.0.x
+ *   npm run wiki:freeze -- 0.0.x --out /outro/caminho/data.json
  *
  * Usa o Vite pra carregar o código do jogo (resolve o atalho `@/` e os JSON
  * das espécies, como o build faz) — Node puro não carrega `src/` direto.

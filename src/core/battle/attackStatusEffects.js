@@ -7,6 +7,7 @@ import { plantarSemente } from '../actions/leechSeed'
 import { gameplayRng } from '../rng'
 import { rollHit } from './accuracy'
 import { finishAttack, resolveAttackForEntity } from './attackCasting'
+import { resolveEntityMoveSet } from './creatureAttack'
 import {
   ActionState,
   AttackEffect,
@@ -143,6 +144,7 @@ export function interruptStatusAttacks(events, damaged) {
       slot,
       entity.get(IndividualValues),
       resolveEntityLevel(entity, species),
+      resolveEntityMoveSet(entity, species),
     )
     if (!isInterruptible(action, attack)) continue
 

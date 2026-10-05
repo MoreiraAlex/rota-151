@@ -24,6 +24,7 @@ import {
   resolveEntityLevel,
 } from '../traits'
 import { resolveAttackForEntity } from './attackCasting'
+import { resolveEntityMoveSet } from './creatureAttack'
 import { isInsideAttackCone } from './attackGeometry'
 import { resolveAttackHitTime } from './attackTelegraph'
 import { isConeAttack, isSelfAttack } from './channelAttack'
@@ -49,6 +50,7 @@ export function resolveIncomingAttack(attacker, attackerPos, pos, bodyRadius) {
     action.pendingSlot,
     attacker.get(IndividualValues),
     resolveEntityLevel(attacker, species),
+    resolveEntityMoveSet(attacker, species),
   )
   if (!attack || isSelfAttack(attack)) return null
   const hitAt = resolveAttackHitTime(action, attack)

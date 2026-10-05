@@ -20,6 +20,8 @@ import {
 } from '../battle/attackCasting'
 import { resolveAiTarget, steerAiBeam } from '../battle/aiMovement'
 import { resolveAttackImpact } from '../battle/attackImpact'
+import { TRAINING_SLOT, resolveEntityMoveSet } from '../battle/creatureAttack'
+import { registrarUsoDeGolpe } from '../battle/moveMasteryUse'
 import { applyChannelTick } from '../battle/attackChannelTick'
 import { interruptStatusAttacks } from '../battle/attackStatusEffects'
 import {
@@ -193,6 +195,9 @@ import {
  * Headless. Fase: simulation, junto de `playerActionSystem`/
  * `partySummonSystem` (mesma família de "ações disparadas por input").
  */
+// Todo slot com recarga própria: os dos botões e o do golpe em treino.
+const COOLDOWN_SLOTS = [...ATTACK_SLOTS.map(({ slot }) => slot), TRAINING_SLOT]
+
 export function creatureAttackSystem(context) {
   const { world, delta, events } = context
   const input = context.input ?? {}
@@ -201,7 +206,7 @@ export function creatureAttackSystem(context) {
   // 1. Cooldowns de TODO atacante (criatura do time ou selvagem) — correm
   // independente de qual ação está em andamento, antes de qualquer disparo.
   world.query(AttackCooldowns).updateEach(([cooldowns]) => {
-    for (const { slot } of ATTACK_SLOTS) {
+    for (const slot of COOLDOWN_SLOTS) {
       if (cooldowns[slot] > 0) {
         cooldowns[slot] = Math.max(0, cooldowns[slot] - delta)
       }
@@ -244,6 +249,8 @@ export function creatureAttackSystem(context) {
           species,
           individualValues,
           level: resolveEntityLevel(entity, species),
+          // Golpes DESTA criatura por slot (docs/features/038-*).
+          moveSet: resolveEntityMoveSet(entity, species),
           action,
           cooldowns,
           vitals,
@@ -260,6 +267,7 @@ export function creatureAttackSystem(context) {
             action.pendingSlot,
             individualValues,
             castContext.level,
+            castContext.moveSet,
           )
           if (
             requiresHold(action, running) &&
@@ -332,6 +340,8 @@ export function creatureAttackSystem(context) {
           species,
           individualValues,
           level: resolveEntityLevel(entity, species),
+          // Golpes DESTA criatura por slot (docs/features/038-*).
+          moveSet: resolveEntityMoveSet(entity, species),
           action,
           cooldowns,
           vitals,
@@ -380,7 +390,14 @@ export function creatureAttackSystem(context) {
           action.pendingSlot,
           individualValues,
           level,
+          resolveEntityMoveSet(entity, species),
         )
+        // O golpe do slot deixou de existir no meio da ação (ex.: treino
+        // parado durante uma repetição): a ação acaba aqui.
+        if (!ATTACK) {
+          finishAttack(entity, action, { cooldown: 0 })
+          return
+        }
         const previousElapsed = action.elapsed
         action.elapsed += delta
         // Canalizado: dano no CONE a cada `damageInterval`, do `effectAt`
@@ -425,7 +442,7 @@ export function creatureAttackSystem(context) {
           previousElapsed < ATTACK.effectAt &&
           action.elapsed >= ATTACK.effectAt
         ) {
-          resolveAttackImpact(world, events, {
+          const { failed } = resolveAttackImpact(world, events, {
             entity,
             action,
             species,
@@ -437,6 +454,18 @@ export function creatureAttackSystem(context) {
             physicsBody,
             targetSide,
             damaged,
+          })
+          // Golpe que falhou por falta de domínio (docs/features/038-*):
+          // acaba aqui — no canalizado, o canal inteiro.
+          if (failed) {
+            finishAttack(entity, action, ATTACK)
+            return
+          }
+          registrarUsoDeGolpe(world, events, {
+            entity,
+            attack: ATTACK,
+            slot: action.pendingSlot,
+            pos,
           })
         }
 
