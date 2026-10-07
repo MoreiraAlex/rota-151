@@ -1,10 +1,13 @@
 import { createWorld } from 'koota'
 import { GAME_CONFIG } from '../gameConfig'
-import { getSpecies, PLAYER_SPECIES_ID } from '../data/species'
-import { rollIndividualValues } from '../data/species/stats'
-import { createLevelState } from '../data/species/experience'
-import { createMovesState } from '../data/species/moves'
-import { gameplayRng } from '../rng'
+import {
+  getSpecies,
+  listSpecies,
+  resolveSpeciesKind,
+  PLAYER_SPECIES_ID,
+} from '../data/species'
+import { criarPokemon, colocarNoTime } from '../actions/pokemon'
+import { adicionarItem } from '../actions/inventory'
 import {
   Position,
   Rotation,
@@ -23,14 +26,8 @@ import {
   Inventory,
   Party,
   TrainerBehavior,
-  PartyIndividualValues,
-  PartyProgress,
-  PartyMoves,
-  MoveLearnRequest,
   PartyActionMenu,
   SlotHold,
-  PartyFaint,
-  PartyVitals,
   PathState,
   Mood,
   ScanMode,
@@ -49,44 +46,17 @@ const PLAYER_SPECIES = getSpecies(PLAYER_SPECIES_ID)
 
 const vitals = vitalsFromSpecies(PLAYER_SPECIES)
 
-// Time inicial — sorteia o IV de cada um dos 3 iniciais aqui (não via
-// `equiparCriatura`, `core/actions/party.js`: aquela action escreve num
-// `trainer` que já existe, e o treinador ainda está sendo montado
-// nesta chamada de `world.spawn`) e congela em `PartyIndividualValues`,
-// mesmo mecanismo/range (`GAME_CONFIG.BATTLE.IV_MIN/MAX`) que
-// `equiparCriatura` usa depois pra qualquer troca em tempo de jogo —
-// "IV é aleatório pra todo mundo", pedido do usuário.
+// Kit inicial (docs/features/041-inventario-de-itens-e-pokemon.md): só a
+// Pokédex — os itens de verdade chegam na 042.
+const STARTING_ITEMS = { pokedex: 1 }
+
+// Quem começa no time, por slot. Os outros Pokémon iniciais (um de cada
+// espécie `kind: 'pokemon'`) começam no inventário.
 const STARTER_PARTY = {
   slot1: 'bulbasaur',
   slot2: 'charmander',
   slot3: 'squirtle',
 }
-const STARTER_INDIVIDUAL_VALUES = Object.fromEntries(
-  Object.keys(STARTER_PARTY).map((slot) => [
-    slot,
-    rollIndividualValues(gameplayRng, {
-      min: GAME_CONFIG.BATTLE.IV_MIN,
-      max: GAME_CONFIG.BATTLE.IV_MAX,
-    }),
-  ]),
-)
-// Nível/XP inicial de cada um (`PartyProgress`) — o nível inicial da
-// espécie, mesmo motivo do IV acima pra não passar por `equiparCriatura`.
-const STARTER_PROGRESS = Object.fromEntries(
-  Object.entries(STARTER_PARTY).map(([slot, speciesId]) => {
-    const species = getSpecies(speciesId)
-    return [slot, createLevelState(species, species?.level ?? 1)]
-  }),
-)
-
-// Golpes de cada um (`PartyMoves`) — o kit da espécie, dominado, mesmo
-// motivo do IV acima pra não passar por `equiparCriatura`.
-const STARTER_MOVES = Object.fromEntries(
-  Object.entries(STARTER_PARTY).map(([slot, speciesId]) => [
-    slot,
-    createMovesState(getSpecies(speciesId)),
-  ]),
-)
 
 export const playerEntity = world.spawn(
   Position({ x: 0, y: 2, z: 0 }),
@@ -101,28 +71,16 @@ export const playerEntity = world.spawn(
   AnimationState,
   ActionState,
   vitals,
-  // Começa com a mão e o time já equipados — sem isso o jogo abre sem
-  // nada pra arremessar/invocar, mesmo já tendo itens/criaturas
-  // disponíveis (Inventory já começa com um kit de teste, ver
-  // core/traits/components/inventory.js). O time começa com as três
-  // iniciais (`STARTER_PARTY`, acima).
+  // Começa com a Pokédex na mão; o kit e os Pokémon entram logo abaixo
+  // (`giveStartingKit`).
   HeldItem({ itemId: 'pokedex' }),
   Inventory,
-  Party(STARTER_PARTY),
+  Party,
   // Treinador numa luta fora do controle (`trainerBattleSystem.js`).
   TrainerBehavior,
-  PartyIndividualValues(STARTER_INDIVIDUAL_VALUES),
-  PartyProgress(STARTER_PROGRESS),
-  PartyMoves(STARTER_MOVES),
-  // Nenhum "esquecer qual golpe?" pendente no começo.
-  MoveLearnRequest,
   // Menu de ações treinador↔Pokémon (segurar Q/E/R) fechado.
   PartyActionMenu,
   SlotHold,
-  // Ninguém do time começa desmaiado (ver `PartyFaint`), e todos começam
-  // com a vida/energia cheias na bola (ver `PartyVitals`).
-  PartyFaint,
-  PartyVitals,
   ScanMode,
   // Coleção de espécies já escaneadas (aba "Pokémons") e histórico dos
   // últimos scans (aba "Histórico") — ambas vivem só no treinador, quem
@@ -141,6 +99,30 @@ export const playerEntity = world.spawn(
   // humor-e-piscar-de-olhos.md.
   Mood,
 )
+
+giveStartingKit(world, playerEntity)
+
+/**
+ * Kit inicial do treinador: os itens de `STARTING_ITEMS` e um Pokémon de cada
+ * espécie `kind: 'pokemon'` (IV sorteado, nível inicial da espécie), com os
+ * de `STARTER_PARTY` já no time.
+ */
+function giveStartingKit(world, trainer) {
+  for (const [itemId, amount] of Object.entries(STARTING_ITEMS)) {
+    adicionarItem(world, trainer, itemId, amount)
+  }
+  const pokemonSpecies = listSpecies().filter(
+    (species) => resolveSpeciesKind(species) === 'pokemon',
+  )
+  const created = new Map()
+  for (const species of pokemonSpecies) {
+    created.set(species.id, criarPokemon(world, trainer, species.id))
+  }
+  for (const [slot, speciesId] of Object.entries(STARTER_PARTY)) {
+    const pokemon = created.get(speciesId)
+    if (pokemon) colocarNoTime(trainer, pokemon, slot)
+  }
+}
 
 export const cameraEntity = world.spawn(
   OrbitCamera({

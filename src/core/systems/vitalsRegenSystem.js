@@ -1,6 +1,4 @@
-import { Fainted, PartyFaint, PartyVitals, Vitals } from '../traits'
-
-const PARTY_SLOTS = ['slot1', 'slot2', 'slot3']
+import { Fainted, StoredFaint, StoredVitals, Vitals } from '../traits'
 
 /**
  * Um tick de regeneração num objeto com os campos de `Vitals` (muta ele):
@@ -10,7 +8,7 @@ const PARTY_SLOTS = ['slot1', 'slot2', 'slot3']
  * uso — contados pra baixo aqui). Devolve se mudou algo.
  *
  * Exportada: a MESMA regra vale pra criatura em campo (`Vitals`) e pra
- * criatura do time dentro da bola (`PartyVitals`).
+ * Pokémon fora de campo, no time ou no inventário (`StoredVitals`).
  */
 export function regenerateVitals(vitals, delta) {
   let changed = false
@@ -38,10 +36,10 @@ export function regenerateVitals(vitals, delta) {
 
 /**
  * Regenera HP e stamina com o tempo (`regenerateVitals`) de toda entidade
- * com `Vitals` e, no treinador, de cada criatura do time guardada na bola
- * (`PartyVitals`) — dentro da bola ela continua exatamente como se
- * estivesse fora. Desmaiada não regenera, em campo (`Fainted`) nem na bola
- * (`PartyFaint`).
+ * com `Vitals` e de cada Pokémon fora de campo, no time ou no inventário
+ * (`StoredVitals`) — fora de campo ele continua exatamente como se estivesse
+ * fora da bola. Desmaiado não regenera, em campo (`Fainted`) nem fora
+ * (`StoredFaint`).
  *
  * HP tem um delay pós-dano: enquanto não chega a zero, HP não regenera.
  * Stamina tem o mesmo princípio, mas contado a partir do último uso
@@ -64,14 +62,10 @@ export function vitalsRegenSystem(context) {
     regenerateVitals(vitals, delta)
   })
 
-  world.query(PartyVitals).updateEach(([partyVitals], entity) => {
-    const partyFaint = entity.get(PartyFaint)
-    for (const slot of PARTY_SLOTS) {
-      const stored = partyVitals[slot]
-      if (!stored || partyFaint?.[slot]) continue
-      // Objeto novo (não muta o guardado): a HUD só percebe a troca.
-      const next = { ...stored }
-      if (regenerateVitals(next, delta)) partyVitals[slot] = next
-    }
+  world.query(StoredVitals).updateEach(([stored], pokemon) => {
+    if (!stored.vitals || pokemon.has(StoredFaint)) return
+    // Objeto novo (não muta o guardado): a HUD só percebe a troca.
+    const next = { ...stored.vitals }
+    if (regenerateVitals(next, delta)) stored.vitals = next
   })
 }

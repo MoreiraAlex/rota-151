@@ -6,14 +6,14 @@ import { ArrowLeftRight } from 'lucide-react'
 import { playerEntity } from '@/core/world/world'
 import { getSpecies } from '@/core/data/species'
 import {
+  CreatureLevel,
   Fainted,
+  IndividualValues,
   InputControlled,
   OwnedBy,
-  Party,
-  PartyFaint,
-  PartyIndividualValues,
-  PartyProgress,
-  PartyVitals,
+  Pokemon,
+  StoredFaint,
+  StoredVitals,
   resolveMaxHp,
   resolveMaxStamina,
   SummonedCreature,
@@ -30,6 +30,7 @@ import {
   TypeBadges,
   VitalBar,
 } from '@/view/shared/statusDisplay'
+import { usePartyPokemon } from '@/view/hooks/usePartyPokemon'
 import { CARD_TRANSITION, statusLayoutId } from './statusMotion'
 
 const PARTY_SLOTS = [
@@ -170,23 +171,17 @@ const POKEBALL_OPEN = '/assets/sprites/pokebola/default/poke_aberta.png'
  * também não faz nada nos slots vazios enquanto isso.
  */
 export function PartyHud() {
-  const party = useTrait(playerEntity, Party)
-  const partyIndividualValues = useTrait(playerEntity, PartyIndividualValues)
-  const partyFaint = useTrait(playerEntity, PartyFaint)
-  const partyVitals = useTrait(playerEntity, PartyVitals)
-  const partyProgress = useTrait(playerEntity, PartyProgress)
+  const party = usePartyPokemon(playerEntity)
   const summoned = useQuery(SummonedCreature, OwnedBy(playerEntity))
   const controlled = useQueryFirst(InputControlled)
   const controllingCreature = !!controlled && controlled !== playerEntity
-
-  if (!party) return null
 
   return (
     <div className="pointer-events-none absolute top-1/4 left-4 flex flex-col items-start gap-2 font-mono text-xs text-white">
       <AnimatePresence mode="popLayout">
         {PARTY_SLOTS.map(({ key: slot, label, trade }) => {
-          const speciesId = party[slot]
-          if (!speciesId) {
+          const pokemon = party[slot]
+          if (!pokemon) {
             return (
               <HudSlot
                 key={slot}
@@ -209,12 +204,8 @@ export function PartyHud() {
               slot={slot}
               label={label}
               trade={trade}
-              speciesId={speciesId}
+              pokemon={pokemon}
               activeEntity={activeEntity}
-              individualValues={partyIndividualValues?.[slot]}
-              progress={partyProgress?.[slot] ?? null}
-              slotFaint={partyFaint?.[slot] ?? null}
-              storedVitals={partyVitals?.[slot] ?? null}
               dimInvoke={controllingCreature}
             />
           )
@@ -239,38 +230,39 @@ export function PartyHud() {
  * ler). Sem entidade viva e sem nada guardado na bola (criatura só
  * equipada, nunca invocada — ver `storedVitals` abaixo), cai no máximo
  * via `resolveMaxHp`/`resolveMaxStamina` (`core/traits/components/
- * vitals.js`) mostrado CHEIO. Recebe `individualValues`
- * (o IV congelado deste slot, `PartyIndividualValues` — ver `PartyHud`
- * acima) pra essa conta bater com o IV de VERDADE desta criatura —
+ * vitals.js`) mostrado CHEIO. Lê o `individualValues` do registro do
+ * Pokémon (o IV congelado dele) pra essa conta bater com o IV de VERDADE desta criatura —
  * MESMA função e mesmo `individualValues` que `summonBallSystem.js`
  * usa pra decidir o máximo de verdade no spawn, evita esta tela
  * mostrar um número diferente do que a criatura nasce tendo.
  *
- * **Na bola, a vida/energia guardadas** (`storedVitals`, `PartyVitals`
+ * **Na bola, a vida/energia guardadas** (`StoredVitals` do registro
  * — docs/features/031-ia-de-combate-e-desmaio.md): recolhida, a
  * criatura mantém o que tinha e regenera lá dentro; o card mostra isso
  * (o mesmo que ela vai ter ao sair), e só cai no máximo quando não há
- * nada guardado (nunca saiu, ou criatura nova no slot).
+ * nada guardado (nunca saiu).
  *
  * **Desmaio**: a contagem pra reanimar vem da criatura em campo
- * (`Fainted`) ou, já recolhida, do slot no treinador (`slotFaint`,
- * `PartyFaint`). Enquanto conta, mostra o tempo que falta e a tecla de
+ * (`Fainted`) ou, já recolhida, do registro (`StoredFaint`). Enquanto conta, mostra o tempo que falta e a tecla de
  * invocar apagada (não sai da bola).
  */
 function PartySlotCard({
   slot,
   label,
   trade,
-  speciesId,
+  pokemon,
   activeEntity,
-  individualValues,
-  progress,
-  slotFaint,
-  storedVitals,
   dimInvoke,
 }) {
   const liveVitals = useTrait(activeEntity, Vitals)
   const fainted = useTrait(activeEntity, Fainted)
+  // Dados do registro do Pokémon (docs/features/041-inventario-de-itens-e-
+  // pokemon.md): IV, nível, vida guardada e desmaio fora de campo.
+  const speciesId = useTrait(pokemon, Pokemon)?.speciesId
+  const individualValues = useTrait(pokemon, IndividualValues)
+  const progress = useTrait(pokemon, CreatureLevel) ?? null
+  const storedVitals = useTrait(pokemon, StoredVitals)?.vitals ?? null
+  const slotFaint = useTrait(pokemon, StoredFaint) ?? null
 
   const species = getSpecies(speciesId)
   const active = !!activeEntity
@@ -279,7 +271,7 @@ function PartySlotCard({
     return <HudSlot label={label} value={null} dimInvoke={dimInvoke} />
   }
 
-  // Nível do slot (`PartyProgress`) — o máximo acompanha a subida de nível.
+  // Nível do registro — o máximo acompanha a subida de nível.
   const level = resolveDisplayLevel(species, progress)
   const maxHp = resolveMaxHp(species, individualValues, progress?.level)
   const maxStamina = resolveMaxStamina(

@@ -65,7 +65,7 @@ const RADAR_SHORT_LABELS = {
  * pra "sem indivíduo", ver `showIndividual` abaixo).
  *
  * `progress` (opcional, `{ level, xp }`) — nível/XP DESTA criatura
- * (`PartyProgress` do slot; o histórico de scan só tem `level`). Sem ele,
+ * (`CreatureLevel` do registro do Pokémon; o histórico de scan só tem `level`). Sem ele,
  * o nível inicial da espécie (docs/features/037-experiencia-e-nivel.md).
  *
  * `showIndividual` (novo, docs/features/033-*.md) — pedido do usuário:

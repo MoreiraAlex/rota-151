@@ -5,11 +5,12 @@ import { useTrait } from 'koota/react'
 import { playerEntity } from '@/core/world/world'
 import { getSpecies } from '@/core/data/species'
 import {
-  Party,
-  PartyIndividualValues,
-  PartyMoves,
-  PartyProgress,
+  CreatureLevel,
+  CreatureMoves,
+  IndividualValues,
+  Pokemon,
 } from '@/core/traits'
+import { usePartyPokemon } from '@/view/hooks/usePartyPokemon'
 import { MAX_MASTERY, MOVE_SLOTS } from '@/core/data/species/moves'
 import { formatSpeciesName, TypeBadge } from '@/view/shared/statusDisplay'
 import { getSkill } from '@/core/data/skills'
@@ -35,65 +36,78 @@ const SLOTS = [
  * criatura de verdade, com `IndividualValues` próprio, diferente da aba
  * "Pokémons"/genérica).
  *
- * Lê só `Party`/`PartyIndividualValues` do treinador — mesmos traits
- * que `PartyHud.jsx` já lê, sem duplicar a lógica de resolução de
- * espécie/IV (`getSpecies(party[slot])` + `partyIndividualValues[slot]`
- * é exatamente o par que `resolveCreatureStats`, `core/data/species/
- * stats.js`, já espera).
+ * Lê o registro de cada Pokémon do time (`usePartyPokemon`, docs/features/
+ * 041-inventario-de-itens-e-pokemon.md): espécie, IV, nível e golpes.
  */
 export function TeamTab() {
-  const party = useTrait(playerEntity, Party)
-  const partyIndividualValues = useTrait(playerEntity, PartyIndividualValues)
-  const partyProgress = useTrait(playerEntity, PartyProgress)
-  const partyMoves = useTrait(playerEntity, PartyMoves)
+  const party = usePartyPokemon(playerEntity)
   const [selectedSlot, setSelectedSlot] = useState(
-    SLOTS.find((slot) => party?.[slot.key])?.key ?? SLOTS[0].key,
+    SLOTS.find((slot) => party[slot.key])?.key ?? SLOTS[0].key,
   )
-
-  if (!party) return null
-
-  const species = party[selectedSlot] ? getSpecies(party[selectedSlot]) : null
-  const individualValues = partyIndividualValues?.[selectedSlot]
+  const selected = party[selectedSlot]
 
   return (
     <div className="space-y-2">
       <div className="flex gap-1">
-        {SLOTS.map(({ key, label }) => {
-          const speciesId = party[key]
-          return (
-            <button
-              key={key}
-              type="button"
-              disabled={!speciesId}
-              onClick={() => setSelectedSlot(key)}
-              className={`flex-1 rounded px-2 py-1 text-[11px] ${
-                selectedSlot === key
-                  ? 'bg-white/20 text-white'
-                  : speciesId
-                    ? 'bg-white/5 text-white/70 hover:bg-white/10'
-                    : 'cursor-default bg-black/30 text-white/30'
-              }`}
-            >
-              {label} · {speciesId ? formatSpeciesName(speciesId) : 'vazio'}
-            </button>
-          )
-        })}
+        {SLOTS.map(({ key, label }) => (
+          <SlotButton
+            key={key}
+            label={label}
+            pokemon={party[key]}
+            selected={selectedSlot === key}
+            onSelect={() => setSelectedSlot(key)}
+          />
+        ))}
       </div>
 
-      {species ? (
-        <>
-          <StatsScreen
-            species={species}
-            individualValues={individualValues}
-            progress={partyProgress?.[selectedSlot] ?? null}
-            showIndividual
-          />
-          <MoveList moves={partyMoves?.[selectedSlot]} />
-        </>
+      {selected ? (
+        <TeamMemberDetails pokemon={selected} />
       ) : (
         <p className="p-3 text-xs text-white/50">Slot vazio.</p>
       )}
     </div>
+  )
+}
+
+function SlotButton({ label, pokemon, selected, onSelect }) {
+  const speciesId = useTrait(pokemon, Pokemon)?.speciesId
+  return (
+    <button
+      type="button"
+      disabled={!pokemon}
+      onClick={onSelect}
+      className={`flex-1 rounded px-2 py-1 text-[11px] ${
+        selected
+          ? 'bg-white/20 text-white'
+          : pokemon
+            ? 'bg-white/5 text-white/70 hover:bg-white/10'
+            : 'cursor-default bg-black/30 text-white/30'
+      }`}
+    >
+      {label} · {speciesId ? formatSpeciesName(speciesId) : 'vazio'}
+    </button>
+  )
+}
+
+/** Status e golpes do Pokémon selecionado, ao vivo. */
+function TeamMemberDetails({ pokemon }) {
+  const speciesId = useTrait(pokemon, Pokemon)?.speciesId
+  const individualValues = useTrait(pokemon, IndividualValues)
+  const progress = useTrait(pokemon, CreatureLevel) ?? null
+  const moves = useTrait(pokemon, CreatureMoves)
+  const species = speciesId ? getSpecies(speciesId) : null
+  if (!species) return null
+
+  return (
+    <>
+      <StatsScreen
+        species={species}
+        individualValues={individualValues}
+        progress={progress}
+        showIndividual
+      />
+      <MoveList moves={moves} />
+    </>
   )
 }
 
@@ -104,7 +118,7 @@ const MOVE_KEYS = { 1: 'Q', 2: 'E', 3: 'R' }
  * (docs/features/038-aprendizado-treino-e-dominio-de-golpes.md). Trocar e
  * treinar é pelo menu de ações (segurar a tecla do slot no jogo).
  */
-function MoveList({ moves }) {
+export function MoveList({ moves }) {
   if (!moves) return null
   return (
     <div className="space-y-1 rounded bg-white/5 p-2">

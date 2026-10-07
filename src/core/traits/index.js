@@ -15,7 +15,7 @@ export { AnimationState } from './components/animation'
 export { ActionState } from './components/action'
 export { Mood } from './components/mood'
 export { CombatMode } from './components/combatMode'
-export { Fainted, PartyFaint } from './components/faint'
+export { Fainted } from './components/faint'
 export {
   Vitals,
   applyDamage,
@@ -26,17 +26,13 @@ export {
   resolveMovementCosts,
 } from './components/vitals'
 export { IndividualValues } from './components/individualValues'
-export { PartyIndividualValues } from './components/partyIndividualValues'
-export { PartyVitals } from './components/partyVitals'
 export {
   CreatureLevel,
-  PartyProgress,
   FoughtBy,
   resolveEntityLevel,
 } from './components/creatureLevel'
 export {
   CreatureMoves,
-  PartyMoves,
   MoveLearnRequest,
   resolveEntityMoves,
 } from './components/creatureMoves'
@@ -64,6 +60,15 @@ export {
 export { StatStages } from './components/statStages'
 export { SummonedCreature } from './components/summonedCreature'
 export { OwnedBy } from './components/owner'
+export {
+  Pokemon,
+  StoredVitals,
+  StoredFaint,
+  PartySlots,
+  PARTY_SLOT_IDS,
+  SummonedFrom,
+  InventoryCell,
+} from './components/pokemon'
 export { SummonBall } from './components/summonBall'
 export { SummonFlash } from './components/summonFlash'
 export { RecallBeam } from './components/recallBeam'

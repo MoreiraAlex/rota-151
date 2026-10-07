@@ -7,9 +7,13 @@ import { relation, trait } from 'koota'
  * níveis diferentes. `xp` é o total acumulado (curva de
  * `core/data/species/experience.js`), não o do nível atual.
  *
+ * Também é o trait do nível no registro do Pokémon (`Pokemon`), fonte de
+ * verdade de quem está fora de campo.
+ *
  * Donos de escrita: `wildCreatureSpawnSystem.js` (sorteia no spawn),
- * `summonBallSystem.js` (copia de `PartyProgress` ao invocar) e
- * `ganharExperiencia` (`core/actions/experience.js`).
+ * `criarPokemon` (nível inicial da espécie), `summonBallSystem.js` (copia do
+ * registro ao invocar) e `ganharExperiencia` (`core/actions/experience.js`,
+ * no registro e na criatura em campo).
  */
 export const CreatureLevel = trait({
   level: 1,
@@ -17,25 +21,10 @@ export const CreatureLevel = trait({
 })
 
 /**
- * Nível e XP de cada criatura do TIME, por slot, no treinador — fonte de
- * verdade da do time (a `SummonedCreature` é destruída/recriada a cada
- * recolher/invocar). Mesmo formato de `PartyIndividualValues` (um valor por
- * slot): `null` (slot vazio) ou `{ level, xp }`.
- *
- * Donos de escrita: `equiparCriatura` (cria com o nível inicial da espécie
- * ao trocar a criatura do slot) e `ganharExperiencia`.
- */
-export const PartyProgress = trait({
-  slot1: null,
-  slot2: null,
-  slot3: null,
-})
-
-/**
- * Quem lutou contra esta criatura (selvagem): relação pro TREINADOR, com os
- * slots do time que causaram dano nela. Pro treinador (e não pra criatura
- * invocada) porque a do time pode ser recolhida no meio da luta e continua
- * tendo direito ao XP — a relação com a entidade dela sumiria junto.
+ * Quem lutou contra esta criatura (selvagem): relação pro REGISTRO do
+ * Pokémon do time que causou dano nela (`Pokemon`). Pro registro (e não pra
+ * criatura invocada) porque a do time pode ser recolhida no meio da luta e
+ * continua tendo direito ao XP — a entidade em campo sumiria junto.
  *
  * Vale até ela desmaiar — não limpa ao sair do modo combate (a selvagem
  * pacífica que só foge nem entra nele).
@@ -43,9 +32,7 @@ export const PartyProgress = trait({
  * Donos de escrita: `registrarParticipante` (`core/actions/experience.js`,
  * no dano) adiciona; `distribuirExperiencia` (no desmaio) limpa.
  */
-export const FoughtBy = relation({
-  store: { slot1: false, slot2: false, slot3: false },
-})
+export const FoughtBy = relation()
 
 /**
  * Nível de uma entidade: o `CreatureLevel` dela; sem ele (treinador, testes

@@ -1,4 +1,28 @@
-export { equiparCriatura } from './party'
+export {
+  criarPokemon,
+  findPartyPokemon,
+  resolvePartySlot,
+  listOwnedPokemon,
+  listInventoryPokemon,
+  colocarNoTime,
+  tirarDoTime,
+  isPokemonFainted,
+  resolvePokemonOf,
+  findSummonedCreature,
+  resolvePokemonSpeciesId,
+} from './pokemon'
+export {
+  countItem,
+  countVisibleItem,
+  adicionarItem,
+  gastarItem,
+  equiparNaMao,
+  desequiparMao,
+  resolveInventoryCells,
+  resolveEntryCell,
+  moverNoInventario,
+  organizarInventario,
+} from './inventory'
 export { registrarScan } from './scanning'
 export { entrarEmCombate, sairDeCombate } from './combat'
 export {
@@ -27,6 +51,7 @@ export {
   podeTreinarGolpe,
   progredirTreino,
   pedirAprendizado,
+  resolveMoveLearnRequest,
   adiarAprendizado,
   aprenderGolpe,
   reordenarGolpes,

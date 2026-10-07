@@ -6,6 +6,7 @@ import {
 } from '../actions/dash'
 import { resolveMoveSpeed } from '../actions/movementSpeed'
 import { resolveDashCost } from '../actions/stamina'
+import { gastarItem } from '../actions/inventory'
 import { getItem } from '../data/items'
 import { getPlayerSpecies } from '../data/species'
 import { resolveAimPoint, resolveHandOrigin } from '../aim'
@@ -16,7 +17,6 @@ import {
   Velocity,
   Vitals,
   HeldItem,
-  Inventory,
   Grounded,
   InputControlled,
   InputState,
@@ -61,32 +61,15 @@ function resolveThrowLaunch(aimPoint, throwOrigin, throwConfig) {
 }
 
 /**
- * Remove uma unidade de `itemId` do inventário da entidade (se houver) e
- * devolve a nova lista. Lê/escreve via `entity.get`/`entity.set` — **não**
- * por destructuring de uma query que inclua `Inventory` (ver nota abaixo).
- *
- * `Inventory` é AoS (schema função, ver core/traits/components/
- * inventory.js). Fica só com `entity.set()` de propósito, não com mutação
- * direta (`.splice()`) no valor de uma query: se `Inventory` estivesse na
- * query deste system, o próprio `updateEach` reescreve o valor antigo por
- * cima no fim de cada iteração (ele guarda o valor de antes de chamar o
- * callback e o grava de volta pra detectar mudança — pego de surpresa
- * testando isolado: um `entity.set()` no meio do callback, pra um trait que
- * está na mesma query, simplesmente desaparece; sobra o valor de antes). Só
- * funciona de verdade — persiste E dispara a notificação que `useTrait`
- * (`PartyHud`/`InventoryPanel`/`EquipmentPanel`) escuta — quando `Inventory`
- * não é um dos traits da query ativa, por isso não está na `world.query(...)`
- * abaixo mesmo sendo lido/escrito aqui dentro.
+ * Gasta uma unidade do item em mãos (`gastarItem`); sem nenhuma sobrando, a
+ * mão desequipa. `Inventory` fica FORA da query deste system de propósito:
+ * `gastarItem` escreve com `entity.set()`, e um `set` no meio do
+ * `updateEach` pra um trait que está na mesma query some (o `updateEach`
+ * grava o valor de antes por cima no fim da iteração).
  */
-function removeOneFromInventory(entity, itemId) {
-  const { itemIds } = entity.get(Inventory)
-  const index = itemIds.indexOf(itemId)
-  const newItemIds =
-    index === -1
-      ? itemIds
-      : [...itemIds.slice(0, index), ...itemIds.slice(index + 1)]
-  entity.set(Inventory, { itemIds: newItemIds })
-  return newItemIds
+function spendHeldItem(entity, heldItem) {
+  const left = gastarItem(entity, heldItem.itemId)
+  if (!(left > 0)) heldItem.itemId = null
 }
 
 // Movido pra `core/actions/dash.js` (a IA também dá dash); reexportado aqui
@@ -271,8 +254,7 @@ export function playerActionSystem(context) {
             Velocity({ x: action.dirX, y: action.dirY, z: action.dirZ }),
             Projectile({ lifetime: THROW.lifetime }),
           )
-          const newItemIds = removeOneFromInventory(entity, heldItem.itemId)
-          if (!newItemIds.includes(heldItem.itemId)) heldItem.itemId = null
+          spendHeldItem(entity, heldItem)
         }
 
         if (action.elapsed >= THROW.duration) {
@@ -295,8 +277,7 @@ export function playerActionSystem(context) {
             Rotation, // exigido por syncTransformSystem — sem uso real (partículas)
             ConsumeEffect({ lifetime: CONSUME.effectVisualDuration }),
           )
-          const newItemIds = removeOneFromInventory(entity, heldItem.itemId)
-          if (!newItemIds.includes(heldItem.itemId)) heldItem.itemId = null
+          spendHeldItem(entity, heldItem)
         }
 
         if (action.elapsed >= CONSUME.duration) {

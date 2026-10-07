@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { makeWorld } from '@/test/makeWorld'
+import { givePokemon, makeWorld } from '@/test/makeWorld'
 import { GAME_CONFIG } from '../gameConfig'
 import { InputControlled, MoveLearnRequest, PartyActionMenu } from '../traits'
 import { fecharMenuDeAcoes } from '../actions/partyActionMenu'
@@ -58,7 +58,8 @@ describe('partyActionMenuInputSystem', () => {
   })
 
   it('"esquecer qual golpe?" pendente também bloqueia', () => {
-    player.set(MoveLearnRequest, { slot: 'slot1', moveId: 'ember' })
+    const pokemon = givePokemon(world, player, 'charmander', 'slot1')
+    player.add(MoveLearnRequest(pokemon, { moveId: 'ember' }))
     expect(tick({ primary: true }).primary).toBe(false)
   })
 

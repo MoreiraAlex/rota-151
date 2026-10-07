@@ -1,6 +1,7 @@
 import { afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { createWorld } from 'koota'
-import { makeWorld } from '@/test/makeWorld'
+import { givePartyPokemon, makeWorld } from '@/test/makeWorld'
+import { findPartyPokemon, isPokemonFainted } from '../actions/pokemon'
 import { initTestTerrain, settleTerrain } from '@/test/physicsTerrain'
 import { getSpecies } from '../data/species'
 import { resolveAnimationState } from '../data/animationStates'
@@ -24,12 +25,12 @@ import {
   Mood,
   MovementStats,
   Party,
-  PartyFaint,
-  PartyVitals,
   PathState,
   PhysicsBody,
   Position,
   Rotation,
+  StoredFaint,
+  StoredVitals,
   SummonBall,
   SummonedCreature,
   Velocity,
@@ -42,7 +43,7 @@ import {
 } from '../traits'
 import { controlSwitchSystem } from './controlSwitchSystem'
 import { creatureFollowSystem } from './creatureFollowSystem'
-import { faintSystem, isPartySlotFainted } from './faintSystem'
+import { faintSystem } from './faintSystem'
 import { partySummonSystem } from './partySummonSystem'
 import { summonBallSystem } from './summonBallSystem'
 import { vitalsRegenSystem } from './vitalsRegenSystem'
@@ -335,7 +336,7 @@ function recallUntilDone(world, player) {
 function setupParty() {
   const { world, player } = makeWorld()
   worlds.push(world)
-  player.set(Party, { slot1: 'bulbasaur' })
+  givePartyPokemon(world, player, { slot1: 'bulbasaur' })
   const creature = summonSlot1(world, player)
   return { world, player, creature }
 }
@@ -359,7 +360,7 @@ describe('faintSystem — criatura do time', () => {
     expect(player.has(InputControlled)).toBe(true)
   })
 
-  it(`é recolhida sozinha ${PARTY_RECALL_DELAY}s depois de desmaiar, e a contagem segue no treinador`, () => {
+  it(`é recolhida sozinha ${PARTY_RECALL_DELAY}s depois de desmaiar, e a contagem segue no registro`, () => {
     const { world, player, creature } = setupParty()
     creature.set(Vitals, { hp: 0 })
     tickParty(world)
@@ -378,32 +379,34 @@ describe('faintSystem — criatura do time', () => {
     }
     expect(world.query(SummonedCreature).length).toBe(0)
 
-    const slotFaint = player.get(PartyFaint).slot1
+    const pokemon = findPartyPokemon(player, 'slot1')
+    const slotFaint = pokemon.get(StoredFaint)
     expect(slotFaint.timeLeft).toBeGreaterThan(
       DURATION - PARTY_RECALL_DELAY - 2,
     )
     expect(slotFaint.timeLeft).toBeLessThan(DURATION - PARTY_RECALL_DELAY)
-    expect(isPartySlotFainted(player, 'slot1')).toBe(true)
+    expect(isPokemonFainted(pokemon)).toBe(true)
   })
 
-  it('desmaiada na bola não pode ser invocada; reanima lá dentro e sai com o HP de quem acorda', () => {
+  it('desmaiada fora de campo não pode ser invocada; reanima lá fora e sai com o HP de quem acorda', () => {
     const { world, player, creature } = setupParty()
     creature.set(Vitals, { hp: 0 })
     tickParty(world)
     tickParty(world, { secondary1: true }) // recolhe na hora
     recallUntilDone(world, player)
-    expect(player.get(PartyVitals).slot1.hp).toBe(0)
+    const pokemon = findPartyPokemon(player, 'slot1')
+    expect(pokemon.get(StoredVitals).vitals.hp).toBe(0)
     // Encurta a contagem (a regra é a mesma com 3s ou 2 min).
-    player.set(PartyFaint, { slot1: { timeLeft: 3 } })
+    pokemon.set(StoredFaint, { timeLeft: 3 })
 
     tickParty(world, { secondary1: true })
     expect(player.get(ActionState).current).toBe(null)
     expect(world.query(SummonBall).length).toBe(0)
 
     tickPartyFor(world, 3 + DELTA)
-    expect(player.get(PartyFaint).slot1).toBe(null)
-    expect(isPartySlotFainted(player, 'slot1')).toBe(false)
-    const stored = player.get(PartyVitals).slot1
+    expect(pokemon.has(StoredFaint)).toBe(false)
+    expect(isPokemonFainted(pokemon)).toBe(false)
+    const stored = pokemon.get(StoredVitals).vitals
     expect(stored.hp).toBe(resolveReviveHp(stored.maxHp))
     expect(stored.hpRegenDelay).toBe(0)
 
@@ -411,7 +414,7 @@ describe('faintSystem — criatura do time', () => {
     const vitals = revived.get(Vitals)
     expect(vitals.hp).toBe(resolveReviveHp(vitals.maxHp))
     expect(vitals.hp).toBeLessThan(vitals.maxHp)
-    expect(player.get(PartyVitals).slot1).toBe(null)
+    expect(pokemon.get(StoredVitals).vitals).toBe(null)
   })
 
   it('desmaiada não segue o treinador (fica largada no chão)', () => {

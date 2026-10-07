@@ -11,7 +11,14 @@ export function TeamPage({ data, version }) {
       <Section id="time" title="O time">
         <p>
           O treinador leva até <strong>três criaturas</strong>, cada uma num
-          lugar do time. Elas ficam guardadas na bola até serem chamadas.
+          lugar do time. Elas ficam guardadas na bola até serem chamadas. As
+          outras ficam no{' '}
+          <WikiLink version={version} to="inventario">
+            Inventário
+          </WikiLink>
+          , que é onde se monta e se reordena o time. Cada criatura é única:
+          tirando do time e pondo de volta, ela continua com o mesmo nível,
+          golpes e vida.
         </p>
         <Notice tone="soon">
           <p>
@@ -32,6 +39,10 @@ export function TeamPage({ data, version }) {
           <li>
             <strong>Recolher</strong>: um feixe de luz puxa a criatura de volta
             pra bola.
+          </li>
+          <li>
+            Uma criatura que sai do time, ou é trocada por outra, enquanto está
+            fora da bola é recolhida sozinha.
           </li>
           <li>
             Uma criatura <strong>desmaiada</strong> não sai da bola até acordar
@@ -69,12 +80,13 @@ export function TeamPage({ data, version }) {
       <Section id="na-bola" title="Vida e energia na bola">
         <p>
           A criatura volta pra bola do jeito que estava: se foi recolhida
-          machucada, sai machucada da próxima vez. Guardada, ela continua se
-          recuperando no mesmo ritmo de fora (
+          machucada, sai machucada da próxima vez. Guardada — no time ou no
+          inventário — ela continua se recuperando no mesmo ritmo de fora (
           <WikiLink version={version} to="criaturas/vida-e-energia">
             Vida e energia
           </WikiLink>
-          ). Desmaiada, não se recupera.
+          ). Desmaiada, não se recupera, mas o tempo pra acordar continua
+          correndo.
         </p>
         <p>
           O nível e a experiência também ficam guardados: a criatura sai da bola

@@ -1,5 +1,10 @@
 import { describe, it, expect, afterEach } from 'vitest'
-import { makeWorld } from '@/test/makeWorld'
+import { givePartyPokemon, makeWorld } from '@/test/makeWorld'
+import {
+  colocarNoTime,
+  findPartyPokemon,
+  tirarDoTime,
+} from '@/core/actions/pokemon'
 import { getPlayerSpecies } from '@/core/data/species'
 import { computeAimRay } from '@/core/camera/orbitCamera'
 import { GAME_CONFIG } from '@/core/gameConfig'
@@ -10,7 +15,8 @@ import {
   InputControlled,
   MovementStats,
   OrbitCamera,
-  Party,
+  OwnedBy,
+  Pokemon,
   PathState,
   PhysicsBody,
   Position,
@@ -193,7 +199,12 @@ describe('partySummonSystem', () => {
 
   it('espécie desconhecida no slot não invoca nada, nem inicia ação', () => {
     const { world, player } = spawnWorld()
-    player.set(Party, { slot1: 'nao-existe' })
+    // Registro montado à mão: `criarPokemon` nem cria espécie desconhecida.
+    colocarNoTime(
+      player,
+      world.spawn(Pokemon({ speciesId: 'nao-existe' }), OwnedBy(player)),
+      'slot1',
+    )
 
     tick(world, { secondary1: true })
 
@@ -205,7 +216,7 @@ describe('partySummonSystem', () => {
     const { world, player, camera } = spawnWorld({
       playerPosition: { x: 0, y: 1, z: 0 },
     })
-    player.set(Party, { slot1: 'bulbasaur' })
+    givePartyPokemon(world, player, { slot1: 'bulbasaur' })
     camera.set(OrbitCamera, { yaw: 1.1, pitch: 0.3 })
     player.set(Rotation, { y: -2 }) // deve ser sobrescrito
 
@@ -223,7 +234,7 @@ describe('partySummonSystem', () => {
 
   it('a esfera nasce no instante de efeito (EFFECT_AT), exatamente uma vez — a criatura só nasce quando ela pousa', () => {
     const { world, player } = spawnWorld()
-    player.set(Party, { slot1: 'bulbasaur' })
+    givePartyPokemon(world, player, { slot1: 'bulbasaur' })
 
     tick(world, { secondary1: true })
 
@@ -250,7 +261,7 @@ describe('partySummonSystem', () => {
 
   it('a ação termina sozinha (current volta a null) depois de DURATION — a esfera continua voando', () => {
     const { world, player } = spawnWorld()
-    player.set(Party, { slot1: 'bulbasaur' })
+    givePartyPokemon(world, player, { slot1: 'bulbasaur' })
 
     tick(world, { secondary1: true })
     advanceUntilFree(world, player)
@@ -264,7 +275,7 @@ describe('partySummonSystem', () => {
     const { world, player, camera } = spawnWorld({
       playerPosition: { x: 5, y: 1, z: 5 },
     })
-    player.set(Party, { slot1: 'bulbasaur' })
+    givePartyPokemon(world, player, { slot1: 'bulbasaur' })
     camera.set(OrbitCamera, { yaw: Math.PI / 2, pitch: 0.2 })
 
     tick(world, { secondary1: true })
@@ -298,7 +309,7 @@ describe('partySummonSystem', () => {
 
   it('a criatura invocada guarda a espécie e nasce com física/animação de verdade', () => {
     const { world, player } = spawnWorld()
-    player.set(Party, { slot1: 'bulbasaur' })
+    givePartyPokemon(world, player, { slot1: 'bulbasaur' })
 
     tick(world, { secondary1: true })
     advanceUntilResolved(world, player)
@@ -323,7 +334,7 @@ describe('partySummonSystem', () => {
 
   it('enquanto invoca, apertar outro secondaryN não inicia nada', () => {
     const { world, player } = spawnWorld()
-    player.set(Party, { slot1: 'bulbasaur', slot2: 'charmander' })
+    givePartyPokemon(world, player, { slot1: 'bulbasaur', slot2: 'charmander' })
 
     tick(world, { secondary1: true })
     expect(player.get(ActionState).current).toBe('summon')
@@ -339,7 +350,7 @@ describe('partySummonSystem', () => {
     const { world, player } = spawnWorld({
       playerPosition: { x: 0, y: 1, z: 0 },
     })
-    player.set(Party, { slot1: 'bulbasaur' })
+    givePartyPokemon(world, player, { slot1: 'bulbasaur' })
     tick(world, { secondary1: true })
     advanceUntilResolved(world, player) // esfera precisa pousar — só aí a criatura existe pra recolher
     const [creature] = world.query(SummonedCreature, Position)
@@ -383,14 +394,14 @@ describe('partySummonSystem', () => {
     expect(beam.get(RecallBeam).speciesId).toBe('bulbasaur')
   })
 
-  it('desequipar uma criatura já invocada (Party[slot] = null) dispara o recolhimento como ação — não é instantâneo', () => {
+  it('desequipar uma criatura já invocada (tirar do time) dispara o recolhimento como ação — não é instantâneo', () => {
     const { world, player } = spawnWorld()
-    player.set(Party, { slot1: 'bulbasaur' })
+    givePartyPokemon(world, player, { slot1: 'bulbasaur' })
     tick(world, { secondary1: true })
     advanceUntilResolved(world, player)
     expect(world.query(SummonedCreature).length).toBe(1)
 
-    player.set(Party, { slot1: null }) // desequipa (ex.: InventoryPanel)
+    tirarDoTime(world, player, findPartyPokemon(player, 'slot1')) // desequipa (ex.: InventoryPanel)
     tick(world, {}) // sem secondaryN nenhum
 
     expect(player.get(ActionState).current).toBe('recall') // iniciou a ação...
@@ -402,7 +413,7 @@ describe('partySummonSystem', () => {
 
   it('recolhimento automático dispara mesmo com o treinador fora do controle (troca de controle pra outra criatura, ver controlSwitchSystem.js)', () => {
     const { world, player } = spawnWorld()
-    player.set(Party, { slot1: 'bulbasaur' })
+    givePartyPokemon(world, player, { slot1: 'bulbasaur' })
     tick(world, { secondary1: true })
     advanceUntilResolved(world, player)
     expect(world.query(SummonedCreature).length).toBe(1)
@@ -411,7 +422,7 @@ describe('partySummonSystem', () => {
     // (docs/features/018-troca-de-controle-treinador-criatura.md) — o
     // desequipar ainda tem que recolher, não importa quem está pilotando.
     player.remove(InputControlled)
-    player.set(Party, { slot1: null })
+    tirarDoTime(world, player, findPartyPokemon(player, 'slot1'))
     tick(world, {})
 
     expect(player.get(ActionState).current).toBe('recall')
@@ -421,7 +432,7 @@ describe('partySummonSystem', () => {
 
   it('secondaryN não invoca/recolhe enquanto o treinador está fora do controle (reservado pras skills da criatura, ver docs/features/018-troca-de-controle-treinador-criatura.md)', () => {
     const { world, player } = spawnWorld()
-    player.set(Party, { slot1: 'bulbasaur' })
+    givePartyPokemon(world, player, { slot1: 'bulbasaur' })
     player.remove(InputControlled)
 
     tick(world, { secondary1: true })
@@ -430,17 +441,36 @@ describe('partySummonSystem', () => {
     expect(player.get(ActionState).current).toBe(null)
   })
 
+  it('outro Pokémon no slot de quem está em campo também recolhe (troca pelo Inventário)', () => {
+    const { world, player } = spawnWorld()
+    const { slot1: first, slot2: second } = givePartyPokemon(world, player, {
+      slot1: 'bulbasaur',
+      slot2: 'charmander',
+    })
+    tick(world, { secondary1: true })
+    advanceUntilResolved(world, player)
+    expect(world.query(SummonedCreature).length).toBe(1)
+
+    colocarNoTime(player, second, 'slot1') // troca slot1 ↔ slot2
+    tick(world, {})
+
+    expect(player.get(ActionState).current).toBe('recall')
+    advanceUntilFree(world, player)
+    expect(world.query(SummonedCreature).length).toBe(0)
+    expect(findPartyPokemon(player, 'slot2')).toBe(first)
+  })
+
   it('desequipar também gira o treinador pra encarar a criatura recolhida automaticamente', () => {
     const { world, player } = spawnWorld({
       playerPosition: { x: 0, y: 1, z: 0 },
     })
-    player.set(Party, { slot1: 'bulbasaur' })
+    givePartyPokemon(world, player, { slot1: 'bulbasaur' })
     tick(world, { secondary1: true })
     advanceUntilResolved(world, player)
     const [creature] = world.query(SummonedCreature, Position)
     const creaturePos = { ...creature.get(Position) }
 
-    player.set(Party, { slot1: null })
+    tirarDoTime(world, player, findPartyPokemon(player, 'slot1'))
     tick(world, {})
 
     expect(player.get(Rotation).y).toBeCloseTo(
@@ -450,14 +480,14 @@ describe('partySummonSystem', () => {
 
   it('desequipar durante outra ação em andamento espera ela terminar antes de recolher', () => {
     const { world, player } = spawnWorld()
-    player.set(Party, { slot1: 'bulbasaur', slot2: 'charmander' })
+    givePartyPokemon(world, player, { slot1: 'bulbasaur', slot2: 'charmander' })
     tick(world, { secondary1: true })
     advanceUntilResolved(world, player)
 
     tick(world, { secondary2: true }) // começa a invocar o slot2
     expect(player.get(ActionState).current).toBe('summon')
 
-    player.set(Party, { slot1: null }) // desequipa o slot1 (já invocado) no meio da ação do slot2
+    tirarDoTime(world, player, findPartyPokemon(player, 'slot1')) // desequipa o slot1 (já invocado) no meio da ação do slot2
     tick(world, {})
     expect(player.get(ActionState).current).toBe('summon') // não foi interrompida
     expect(world.query(SummonedCreature).length).toBe(1) // slot1 continua invocado por enquanto
@@ -476,7 +506,7 @@ describe('partySummonSystem', () => {
 
   it('invocar sequencialmente as 3 criaturas — uma ação de cada vez, mas dá pra ter as 3 de fora ao final', () => {
     const { world, player } = spawnWorld()
-    player.set(Party, {
+    givePartyPokemon(world, player, {
       slot1: 'bulbasaur',
       slot2: 'charmander',
       slot3: 'squirtle',
@@ -498,7 +528,7 @@ describe('partySummonSystem', () => {
 
   it('enquanto uma ação do jogador (dash) está em andamento, invocar não começa', () => {
     const { world, player } = spawnWorld()
-    player.set(Party, { slot1: 'bulbasaur' })
+    givePartyPokemon(world, player, { slot1: 'bulbasaur' })
     player.set(ActionState, { current: 'dash', elapsed: 0 })
 
     tick(world, { secondary1: true })
@@ -509,7 +539,7 @@ describe('partySummonSystem', () => {
 
   it('enquanto invoca/recolhe, nenhuma outra ação do jogador (dash) pode começar', () => {
     const { world, player } = spawnWorld()
-    player.set(Party, { slot1: 'bulbasaur' })
+    givePartyPokemon(world, player, { slot1: 'bulbasaur' })
 
     tick(world, { secondary1: true })
     expect(player.get(ActionState).current).toBe('summon')
@@ -523,7 +553,7 @@ describe('partySummonSystem', () => {
     const { world, player, camera } = spawnWorld({
       playerPosition: { x: 0, y: 1, z: 0 },
     })
-    player.set(Party, { slot1: 'bulbasaur' })
+    givePartyPokemon(world, player, { slot1: 'bulbasaur' })
     const partyConfig = getPlayerSpecies().party
     const original = partyConfig.summonOffset
     partyConfig.summonOffset = original * 3
@@ -558,7 +588,7 @@ describe('partySummonSystem', () => {
 
   it('esfera duplicada: apertar secondaryN de novo assim que o gesto destrava (mas a esfera anterior ainda em voo) não lança uma segunda esfera pro mesmo slot', () => {
     const { world, player } = spawnWorld()
-    player.set(Party, { slot1: 'bulbasaur' })
+    givePartyPokemon(world, player, { slot1: 'bulbasaur' })
 
     tick(world, { secondary1: true })
     advanceUntilFree(world, player) // gesto livre, esfera ainda voando

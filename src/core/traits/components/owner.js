@@ -8,10 +8,11 @@ import { relation } from 'koota'
  * só funciona com um treinador no mundo (ver
  * docs/features/040-dono-da-criatura.md).
  *
- * Os dados do Pokémon continuam no treinador, por slot (`Party`,
- * `PartyVitals`…); a relação só liga a entidade em campo ao dono.
+ * O registro do Pokémon (`Pokemon`) também tem `OwnedBy` pro treinador — é
+ * por ela que se listam os Pokémon de um treinador (time e inventário).
  *
- * Dono de escrita: `spawnSummonBall` (`partySummonSystem.js`, na esfera) e
- * `spawnCreature` (`summonBallSystem.js`, na criatura, copiando o da esfera).
+ * Dono de escrita: `criarPokemon` (`core/actions/pokemon.js`, no registro),
+ * `spawnSummonBall` (`partySummonSystem.js`, na esfera) e `spawnCreature`
+ * (`summonBallSystem.js`, na criatura, copiando o da esfera).
  */
 export const OwnedBy = relation({ exclusive: true })

@@ -2,7 +2,7 @@
 
 ---
 
-# ✅ Já feito (0.0.1 – 0.0.40)
+# ✅ Já feito (0.0.1 – 0.0.41)
 
 Base construída antes da beta 0.1. Detalhes de cada uma em `docs/features/`.
 
@@ -36,6 +36,7 @@ Base construída antes da beta 0.1. Detalhes de cada uma em `docs/features/`.
 - [x] **024 — Esfera de invocar**
 - [x] **026 — Preparo do treinador `boy`**
 - [x] **040 — Dono da criatura**
+- [x] **041 — Inventário de itens e Pokémon**
 
 ### Pokémon e mundo
 - [x] **020 — Selvagens, cena maior e textura por espécie**
@@ -78,13 +79,12 @@ Desenvolvimento offline primeiro (Marcos 1 a 3); o multiplayer vem por último
 
 ## Marco 1 — Ciclo offline completo
 
-**Objetivo:** jogar sozinho, capturar Pokémon, organizar o time e a caixa e,
+**Objetivo:** jogar sozinho, capturar Pokémon, organizar o time e o inventário e,
 ao fechar e abrir o jogo, encontrar tudo como deixou.
 
-- [ ] **041 — Inventário e PC/caixa** — quantidade de cada item, kit inicial, usar gasta uma unidade; time de 3 + caixa com o resto e tela para trocar. Estende o `InventoryPanel` da 015.
 - [ ] **042 — Itens da beta** — catálogo de itens de verdade: **Pokébolas** (Poké Ball, Great Ball, Ultra Ball, cada uma com multiplicador de captura), **cura** (Potion, Super Potion, Hyper Potion, no lugar da Poção e do Elixir de teste) e **frutas** (Oran, Sitrus: o Pokémon segura e usa sozinho com HP baixo, ou come quando você dá). Pedra e Pedrinha de teste saem ou ficam só no debug.
-- [ ] **043 — Captura** — arremessar uma Pokébola (gasta do inventário) num selvagem; chance pelo HP restante e pelo tipo de bola; a bola balança, captura ou escapa. Mantém nível, IV e golpes; vai para o time ou para a caixa. Capturar dá XP. Retorno visual e sonoro de "Capturado!" / "Escapou!".
-- [ ] **044 — Salvar o jogo** — treinador, Pokémon do time e da caixa (espécie, nível, XP, IV, golpes, domínio e item segurado) e inventário no banco (Prisma). Salva automático, carrega ao entrar. Formato salvo com número de versão.
+- [ ] **043 — Captura** — arremessar uma Pokébola (gasta do inventário) num selvagem; chance pelo HP restante e pelo tipo de bola; a bola balança, captura ou escapa. Mantém nível, IV e golpes; vai para o inventário. Capturar dá XP. Retorno visual e sonoro de "Capturado!" / "Escapou!".
+- [ ] **044 — Salvar o jogo** — treinador, Pokémon do time e do inventário (espécie, nível, XP, IV, golpes, domínio e item segurado) e inventário no banco (Prisma). Salva automático, carrega ao entrar. Formato salvo com número de versão.
 
 ---
 
@@ -142,7 +142,7 @@ cada um com o próprio progresso salvo. O jogo vai para o ar.
 - [ ] **064 — Mundo compartilhado** — servidor é dono da seed, do horário e do clima; clientes e servidor geram os mesmos chunks.
 - [ ] **065 — Selvagens no servidor** — spawn e IA no servidor, limite por jogadores ativos, cada jogador só recebe os selvagens perto dele. Entram aqui o bando e as regras de acerto pendentes do backlog.
 - [ ] **066 — Combate no servidor** — cliente manda a intenção, servidor calcula dano, efetividade, status, desmaio e XP. A mira deixa de ler a câmera dentro do `core/` (`aim.js`).
-- [ ] **067 — Captura, itens e save no servidor** — captura decidida no servidor; pegar itens do mundo e colher frutas passam pelo servidor (cada item pego some para todos); inventário e caixa mudam pelo servidor; só o servidor grava no banco.
+- [ ] **067 — Captura, itens e save no servidor** — captura decidida no servidor; pegar itens do mundo e colher frutas passam pelo servidor (cada item pego some para todos); inventário e time mudam pelo servidor; só o servidor grava no banco.
 - [ ] **068 — Troca entre jogadores** — pedir troca, os dois escolhem e confirmam; transação única no banco.
 - [ ] **069 — Duelo PvP** — desafiar e lutar time contra time com o combate existente; usa a derrota do treinador da 057.
 - [ ] **070 — Deploy** — jogo na Vercel e servidor na VPS da Hostinger (`wss://` com SSL via nginx, PM2 ou Docker, acesso ao banco). Fecha a beta 0.1.
@@ -154,6 +154,7 @@ cada um com o próprio progresso salvo. O jogo vai para o ar.
 
 ## 🔭 Depois da beta 0.1
 
+- PC/caixa de Pokémon
 - Evolução
 - Nado
 - Loja e dinheiro

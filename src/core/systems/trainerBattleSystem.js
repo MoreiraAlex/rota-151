@@ -134,7 +134,8 @@ export function trainerBattleSystem(context) {
       MovementStats,
       Vitals,
     )
-    .updateEach(([, trainer, pos, rot, vel, stats, vitals], entity) => {
+    // `Party` é tag (sem dados): não entra no array do `updateEach`.
+    .updateEach(([trainer, pos, rot, vel, stats, vitals], entity) => {
       // Tudo do grupo DESTE treinador: quem ele segue, as selvagens brigando
       // com o time dele e as criaturas dele.
       const leader = resolveGroupLeader(world, entity)

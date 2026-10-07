@@ -5,5 +5,8 @@
  */
 export const ROCK = {
   id: 'rock',
+  name: 'Pedra',
+  // Texto provisório (docs/features/041-inventario-de-itens-e-pokemon.md).
+  description: 'Uma pedra pesada. Dá pra arremessar.',
   category: 'throwable',
 }

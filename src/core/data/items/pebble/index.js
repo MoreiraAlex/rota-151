@@ -4,5 +4,8 @@
  */
 export const PEBBLE = {
   id: 'pebble',
+  name: 'Pedrinha',
+  // Texto provisório (docs/features/041-inventario-de-itens-e-pokemon.md).
+  description: 'Uma pedrinha leve. Dá pra arremessar.',
   category: 'throwable',
 }

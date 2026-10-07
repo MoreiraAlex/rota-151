@@ -2,29 +2,35 @@ import { getSpecies, getPlayerSpecies } from '../data/species'
 import { resolveAimPoint, resolveHandOrigin } from '../aim'
 import { GAME_CONFIG } from '../gameConfig'
 import { destroyCharacterBody } from '../physics/colliders'
-import { isPartySlotFainted } from './faintSystem'
 import { findOwnedCreature, hasOwnedBallInFlight } from '../actions/owner'
+import {
+  findPartyPokemon,
+  isPokemonFainted,
+  resolvePokemonOf,
+  resolvePokemonSpeciesId,
+} from '../actions/pokemon'
 import {
   ActionState,
   Fainted,
   InputControlled,
   OwnedBy,
   Party,
-  PartyFaint,
-  PartyVitals,
   PhysicsBody,
   Position,
   RecallBeam,
   RecallPulse,
   Rotation,
+  StoredFaint,
+  StoredVitals,
   SummonBall,
   SummonedCreature,
+  SummonedFrom,
   Velocity,
   Vitals,
 } from '../traits'
 
 // Mapeia o pulso de input (`secondaryN`, ver docs/features/011-slots-de-
-// acao.md) pro slot correspondente do time (`Party.slotN`).
+// acao.md) pro slot correspondente do time (`PartySlots`).
 const SLOTS = [
   { input: 'secondary1', slot: 'slot1' },
   { input: 'secondary2', slot: 'slot2' },
@@ -32,13 +38,16 @@ const SLOTS = [
 ]
 
 /**
- * Se a criatura deste slot tem que ser recolhida sozinha: o slot foi
- * esvaziado (desequipada), ou ela está desmaiada no chão há pelo menos
+ * Se a criatura deste slot tem que ser recolhida sozinha: o Pokémon dela não
+ * está mais neste slot (slot esvaziado, ou outro Pokémon no lugar —
+ * docs/features/041-inventario-de-itens-e-pokemon.md), ou ela está desmaiada
+ * no chão há pelo menos
  * `FAINT.PARTY_RECALL_DELAY` (docs/features/031-ia-de-combate-e-
  * desmaio.md — "pouco tempo depois tem que ser recolhida pelo trainer").
  */
-function needsAutoRecall(party, slot, creature) {
-  if (!party[slot]) return true
+function needsAutoRecall(trainer, slot, creature) {
+  const pokemon = resolvePokemonOf(creature)
+  if (!pokemon || findPartyPokemon(trainer, slot) !== pokemon) return true
   const fainted = creature.get(Fainted)
   return !!fainted && fainted.elapsed >= GAME_CONFIG.FAINT.PARTY_RECALL_DELAY
 }
@@ -123,10 +132,23 @@ function beginSummon(world, action, pos, rot, body, slot) {
   rot.y = Math.atan2(action.dirX, action.dirZ)
 }
 
-/** Escreve um slot de um trait por-slot do treinador (adiciona se faltar). */
-function setTrainerSlot(trainer, slotTrait, slot, value) {
-  if (trainer.has(slotTrait)) trainer.set(slotTrait, { [slot]: value })
-  else trainer.add(slotTrait({ [slot]: value }))
+/**
+ * Guarda no registro do Pokémon (`SummonedFrom`) como a criatura estava ao
+ * ser recolhida: a vida (`StoredVitals`) e, se desmaiada, o que falta pra
+ * reanimar (`StoredFaint`) — a entidade some, o registro continua.
+ */
+function storeOutOfField(creature) {
+  const pokemon = resolvePokemonOf(creature)
+  if (!pokemon) return
+
+  const vitals = creature.get(Vitals)
+  if (vitals) pokemon.set(StoredVitals, { vitals: { ...vitals } })
+
+  const fainted = creature.get(Fainted)
+  if (!fainted) return
+  const timeLeft = Math.max(0, fainted.timeLeft)
+  if (pokemon.has(StoredFaint)) pokemon.set(StoredFaint, { timeLeft })
+  else pokemon.add(StoredFaint({ timeLeft }))
 }
 
 /**
@@ -148,13 +170,11 @@ function setTrainerSlot(trainer, slotTrait, slot, value) {
  * dimensionar o "envelope" genérico que cobre a criatura quando o feixe
  * chega nela.
  *
- * A vida/energia dela vai pro treinador (`PartyVitals[slot]`) — a
- * entidade some, mas a próxima invocação sai do jeito que entrou (e
- * regenerando na bola enquanto isso, `vitalsRegenSystem.js`), não cheia.
- *
- * Criatura desmaiada (`Fainted`): o que falta pra reanimar passa pro
- * treinador (`PartyFaint[slot]`) — a entidade some, a contagem continua
- * (`faintSystem.js`), e o slot fica bloqueado pra invocar até lá.
+ * A vida/energia dela e, se desmaiada, o que falta pra reanimar vão pro
+ * registro do Pokémon (`storeOutOfField`) — a próxima invocação sai do
+ * jeito que entrou (regenerando fora de campo enquanto isso,
+ * `vitalsRegenSystem.js`), e desmaiado não pode ser invocado até reanimar
+ * (`faintSystem.js`).
  */
 function applyRecall(world, trainer, pos, rot, slot) {
   const creature = findOwnedCreature(world, trainer, slot)
@@ -176,15 +196,7 @@ function applyRecall(world, trainer, pos, rot, slot) {
     }),
   )
 
-  const vitals = creature.get(Vitals)
-  if (vitals) setTrainerSlot(trainer, PartyVitals, slot, { ...vitals })
-
-  const fainted = creature.get(Fainted)
-  if (fainted) {
-    setTrainerSlot(trainer, PartyFaint, slot, {
-      timeLeft: Math.max(0, fainted.timeLeft),
-    })
-  }
+  storeOutOfField(creature)
 
   destroyCharacterBody(creature.get(PhysicsBody).bodyHandle)
   creature.destroy()
@@ -214,7 +226,7 @@ function spawnSummonBall(
   dirY,
   dirZ,
   slot,
-  speciesId,
+  pokemon,
 ) {
   const SUMMON = getPlayerSpecies().actions.summon
   const { summonOffset, summonBallSpeed } = getPlayerSpecies().party
@@ -228,9 +240,16 @@ function spawnSummonBall(
       y: dirY * summonBallSpeed,
       z: dirZ * summonBallSpeed,
     }),
-    SummonBall({ slot, speciesId, maxDistance: summonOffset, traveled: 0 }),
-    // A criatura que nascer dela herda o dono (`summonBallSystem.js`).
+    SummonBall({
+      slot,
+      speciesId: resolvePokemonSpeciesId(pokemon),
+      maxDistance: summonOffset,
+      traveled: 0,
+    }),
+    // A criatura que nascer dela herda o dono e o registro
+    // (`summonBallSystem.js`).
     OwnedBy(trainer),
+    SummonedFrom(pokemon),
   )
 }
 
@@ -276,10 +295,10 @@ function spawnSummonBall(
  * sendo recolhido.
  *
  * Duas fontes disparam `beginRecall`, a mesma função pras duas:
- * 1. **Automática**: pra toda `SummonedCreature` cujo `Party[slot]`
- *    esteja vazio agora (desequipado em qualquer lugar — hoje só o
- *    `InventoryPanel`, arrastar a criatura pra fora do slot) — invariante
- *    "nenhuma criatura invocada de um slot vazio" — ou que esteja
+ * 1. **Automática**: pra toda `SummonedCreature` cujo Pokémon não está
+ *    mais no slot dela (slot esvaziado ou ocupado por outro — hoje só o
+ *    `InventoryPanel`) — invariante "a criatura em campo de um slot é a do
+ *    Pokémon desse slot" — ou que esteja
  *    desmaiada há `FAINT.PARTY_RECALL_DELAY` (`needsAutoRecall`),
  *    verificada só quando o treinador está livre (`current === null`, não
  *    interrompe uma ação já em andamento).
@@ -310,15 +329,16 @@ export function partySummonSystem(context) {
 
   world
     .query(Party, Position, Rotation, ActionState, PhysicsBody)
-    .updateEach(([party, pos, rot, action, body], entity) => {
+    // `Party` é tag (sem dados): não entra no array do `updateEach`.
+    .updateEach(([pos, rot, action, body], entity) => {
       // Recolhimento automático — só quando o treinador está livre (não
       // interrompe uma ação já em andamento). Só uma por tick: se sobrar
       // mais de um slot órfão, os próximos são pegos nos ticks seguintes,
       // um de cada vez (mesma trava de "uma ação por vez" do resto).
       if (action.current === null) {
-        for (const slot of ['slot1', 'slot2', 'slot3']) {
+        for (const { slot } of SLOTS) {
           const creature = findOwnedCreature(world, entity, slot)
-          if (creature && needsAutoRecall(party, slot, creature)) {
+          if (creature && needsAutoRecall(entity, slot, creature)) {
             beginRecall(world, entity, action, pos, rot, slot, RECALL.duration)
             break
           }
@@ -345,7 +365,7 @@ export function partySummonSystem(context) {
               action.dirY,
               action.dirZ,
               action.pendingSlot,
-              party[action.pendingSlot],
+              findPartyPokemon(entity, action.pendingSlot),
             )
             // Sem SummonPulse aqui — a criatura (e o som que acompanha
             // ela nascer, ver view/systems/summonAudioSystem.js) só existe
@@ -378,13 +398,14 @@ export function partySummonSystem(context) {
       for (const { input: inputKey, slot } of SLOTS) {
         if (!input[inputKey]) continue
 
+        const pokemon = findPartyPokemon(entity, slot)
         if (findOwnedCreature(world, entity, slot)) {
           beginRecall(world, entity, action, pos, rot, slot, RECALL.duration)
         } else if (
-          party[slot] &&
-          getSpecies(party[slot]) &&
+          pokemon &&
+          getSpecies(resolvePokemonSpeciesId(pokemon)) &&
           !hasOwnedBallInFlight(world, entity, slot) &&
-          !isPartySlotFainted(entity, slot)
+          !isPokemonFainted(pokemon)
         ) {
           // Confere a espécie ANTES de travar a ação — espécie inválida
           // não deve nem começar a ocupar o treinador (mesmo padrão de
@@ -394,7 +415,7 @@ export function partySummonSystem(context) {
           // enquanto a primeira ainda está em voo — a esfera vive bem mais
           // que o gesto (`duration`), e duas pousando nasceriam duas
           // criaturas do mesmo slot.
-          // Desmaiada (`PartyFaint`) não sai da bola até reanimar.
+          // Desmaiado (`StoredFaint`) não sai da bola até reanimar.
           beginSummon(world, action, pos, rot, body, slot)
         }
         break // só um secondaryN processado por tick

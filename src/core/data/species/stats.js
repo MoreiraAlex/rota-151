@@ -82,9 +82,9 @@ const STAT_KEYS = ['hp', 'attack', 'defense', 'sp_atk', 'sp_def', 'speed']
 /**
  * Sorteia um IV (individual value) por status, dentro de `[min, max]` —
  * usado tanto por `wildCreatureSpawnSystem.js` (cada SELVAGEM sorteia o
- * próprio, no spawn) quanto por `core/actions/party.js`
- * (`equiparCriatura`, sorteia e CONGELA quando uma espécie nova entra
- * num slot do time do jogador) — mesmo mecanismo pros dois, "IV é
+ * próprio, no spawn) quanto por `core/actions/pokemon.js`
+ * (`criarPokemon`, sorteia e CONGELA no registro de um Pokémon do
+ * jogador) — mesmo mecanismo pros dois, "IV é
  * aleatório pra todo mundo" (pedido do usuário). `rng` é sempre
  * passado de fora (`core/rng.js`, `gameplayRng`) — sem `Math.random()`
  * aqui, regra 3.5 de `docs/rules/README.md`.
@@ -101,7 +101,7 @@ export function rollIndividualValues(rng, { min, max }) {
  * Combina `base`/`ev` da espécie (os dois únicos campos que
  * `species.stats.<key>` ainda guarda — ver `_template`/qualquer espécie
  * migrada) com o `level` e o `individualValues` de UMA
- * ENTIDADE (`IndividualValues`/`PartyIndividualValues`, sorteado uma
+ * ENTIDADE (`IndividualValues`, sorteado uma
  * vez e congelado — ver docstring dos traits) pra chegar no status de
  * verdade DESTA criatura. Não existe mais um `iv`/`stat`/`cp`
  * pré-calculado guardado na espécie (removido — IV é sempre sorteado
@@ -110,7 +110,7 @@ export function rollIndividualValues(rng, { min, max }) {
  * selvagens") — por isso `individualValues` não é mais opcional de
  * verdade: sem ele, todo `iv` cai em `0`.
  *
- * `level` é o nível DESTA criatura (`resolveEntityLevel`/`PartyProgress`,
+ * `level` é o nível DESTA criatura (`resolveEntityLevel`/`CreatureLevel`,
  * docs/features/037-experiencia-e-nivel.md); sem ele, cai no
  * `species.level` (nível inicial da espécie — previews da wiki, testes).
  * É o nível do JOGO — as fórmulas recebem o da escala delas

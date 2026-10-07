@@ -1,6 +1,7 @@
 import { createWorld } from 'koota'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import { getSpecies } from '@/core/data/species'
+import { colocarNoTime, criarPokemon } from '@/core/actions/pokemon'
 import {
   Position,
   Rotation,
@@ -19,14 +20,8 @@ import {
   Inventory,
   Party,
   TrainerBehavior,
-  PartyIndividualValues,
-  PartyProgress,
-  PartyMoves,
-  MoveLearnRequest,
   PartyActionMenu,
   SlotHold,
-  PartyFaint,
-  PartyVitals,
   PathState,
   ScanMode,
   PokedexEntries,
@@ -71,20 +66,11 @@ export function spawnTrainer(
     vitals,
     HeldItem,
     Inventory,
+    // Time de teste nasce vazio (sem Pokémon) — `givePartyPokemon` monta.
     Party,
-    // Party de teste nasce vazia (sem starters) — trait ainda entra
-    // junto, mesma composição de `core/world/world.js`, pra
-    // `equiparCriatura` (`core/actions/party.js`) poder ser chamada num
-    // player de teste sem precisar de `.add()` antes de `.set()`.
-    PartyIndividualValues,
-    PartyProgress,
-    PartyMoves,
-    MoveLearnRequest,
     PartyActionMenu,
     SlotHold,
     TrainerBehavior,
-    PartyFaint,
-    PartyVitals,
     PathState,
     ScanMode,
     PokedexEntries,
@@ -126,4 +112,28 @@ export function makeWorld({ playerPosition = { x: 0, y: 2, z: 0 } } = {}) {
 export function ownedByPlayer(world) {
   const trainer = world.queryFirst(Party)
   return trainer ? [OwnedBy(trainer)] : []
+}
+
+/**
+ * Cria um Pokémon (registro) de `speciesId` pro `trainer` e, com `slot`, já
+ * o põe no time. Devolve o registro. Ver docs/features/041-inventario-de-
+ * itens-e-pokemon.md.
+ */
+export function givePokemon(world, trainer, speciesId, slot = null) {
+  const pokemon = criarPokemon(world, trainer, speciesId)
+  if (pokemon && slot) colocarNoTime(trainer, pokemon, slot)
+  return pokemon
+}
+
+/**
+ * Monta o time do `trainer` a partir de `{ slot1: 'charmander', ... }`.
+ * Devolve `{ slot1: registro, ... }`.
+ */
+export function givePartyPokemon(world, trainer, party) {
+  return Object.fromEntries(
+    Object.entries(party).map(([slot, speciesId]) => [
+      slot,
+      givePokemon(world, trainer, speciesId, slot),
+    ]),
+  )
 }

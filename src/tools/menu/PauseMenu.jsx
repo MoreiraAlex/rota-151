@@ -14,7 +14,7 @@ import { PokedexMenu } from './pokedex/PokedexMenu'
 const BOX_WIDTH = {
   main: 'w-80',
   settings: 'w-80',
-  inventory: 'w-[34rem]',
+  inventory: 'w-[36rem]',
   pokedex: 'w-[800px]',
 }
 
@@ -25,10 +25,10 @@ const BOX_WIDTH = {
  * fecha o menu (o próprio `pointerlockchange` já dirige o estado em
  * `page.js`).
  *
- * Duas opções no menu principal: Inventário (grade 5x5 com tudo que o
- * jogador tem + preview de equipamento — `InventoryPanel.jsx`; é onde
- * se equipa mão principal/time, único lugar com essa responsabilidade
- * — ver docs/features/018-preview-de-equipamento-no-inventario.md) e
+ * Duas opções no menu principal: Inventário (grade com os itens e os
+ * Pokémon fora do time, o time, a mão e os detalhes do que foi clicado —
+ * `InventoryPanel.jsx`; é onde se equipa a mão e se monta o time, único
+ * lugar com essa responsabilidade) e
  * Configurações (edita `GAME_CONFIG` ao vivo). Sem pausar a simulação
  * em si: o jogo continua rodando atrás do menu.
  *
@@ -46,6 +46,9 @@ const BOX_WIDTH = {
  * `DebugPanel` (canto inferior esquerdo) continua visível e manipulável com
  * o menu aberto ao mesmo tempo.
  *
+ * `canOpenInventory`: o Inventário só abre com o treinador no controle
+ * (pilotando uma criatura, o botão fica desligado).
+ *
  * `view`/`onViewChange` vêm de fora (`page.js`) em vez de estado interno —
  * a tecla `I` (e o scanner, pra `pokedex`) precisa abrir direto na
  * subtela, sem passar pela principal primeiro. `pokedexInitialTab`/
@@ -56,6 +59,7 @@ export function PauseMenu({
   onResume,
   view,
   onViewChange,
+  canOpenInventory = true,
   pokedexInitialTab,
   pokedexInitialHistoryEntryId,
 }) {
@@ -71,7 +75,10 @@ export function PauseMenu({
             <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide">
               Menu
             </h2>
-            <MenuButton onClick={() => setView('inventory')}>
+            <MenuButton
+              disabled={!canOpenInventory}
+              onClick={() => setView('inventory')}
+            >
               Inventário
             </MenuButton>
             <MenuButton onClick={() => setView('settings')}>
@@ -106,11 +113,12 @@ export function PauseMenu({
   )
 }
 
-function MenuButton({ onClick, children }) {
+function MenuButton({ onClick, disabled = false, children }) {
   return (
     <button
       type="button"
-      className="w-full rounded bg-white/10 px-3 py-2 text-left text-sm hover:bg-white/20"
+      disabled={disabled}
+      className="w-full rounded bg-white/10 px-3 py-2 text-left text-sm hover:bg-white/20 disabled:cursor-default disabled:opacity-30 disabled:hover:bg-white/10"
       onClick={onClick}
     >
       {children}

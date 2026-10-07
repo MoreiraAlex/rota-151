@@ -40,7 +40,7 @@ function ActionSlotItem({ heldItem, inventory }) {
   if (!heldItem || !inventory) return null
 
   const heldItemCount = heldItem.itemId
-    ? inventory.itemIds.filter((id) => id === heldItem.itemId).length
+    ? (inventory.counts[heldItem.itemId] ?? 0)
     : null
 
   return (

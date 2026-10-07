@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { makeWorld, spawnTrainer } from '@/test/makeWorld'
+import { givePartyPokemon, makeWorld, spawnTrainer } from '@/test/makeWorld'
 import { getSpecies } from '../data/species'
 import { createLevelState } from '../data/species/experience'
 import { attackResolved, createEventQueue } from '../events'
@@ -14,9 +14,8 @@ import {
   InputControlled,
   MovementStats,
   OwnedBy,
-  Party,
   PartyBehavior,
-  PartyProgress,
+  SummonedFrom,
   PathState,
   PhysicsBody,
   Position,
@@ -39,7 +38,7 @@ import {
   resolveLocalTrainer,
   resolveOwner,
 } from './owner'
-import { equiparCriatura } from './party'
+import { findPartyPokemon, tirarDoTime } from './pokemon'
 
 // Dois treinadores no mesmo world (docs/features/040-dono-da-criatura.md):
 // `trainer` é o do jogador desta máquina (`makeWorld`), `other` um segundo,
@@ -59,17 +58,19 @@ function setup() {
   worlds.push(world)
   const other = spawnTrainer(world, { position: at(0, 20) })
   for (const owner of [trainer, other]) {
-    equiparCriatura(owner, 'slot1', SPECIES_ID)
+    givePartyPokemon(world, owner, { slot1: SPECIES_ID })
   }
   return { world, trainer, other }
 }
 
 /** Criatura do time do `owner` em campo, como o `summonBallSystem` cria. */
 function spawnOwned(world, owner, slot, position = at(0, 0)) {
-  const progress = owner.get(PartyProgress)[slot]
+  const pokemon = findPartyPokemon(owner, slot)
+  const progress = pokemon.get(CreatureLevel)
   return world.spawn(
     SummonedCreature({ slot, speciesId: SPECIES_ID }),
     OwnedBy(owner),
+    SummonedFrom(pokemon),
     Position(position),
     Rotation,
     Velocity,
@@ -141,14 +142,16 @@ describe('dois treinadores no mesmo mundo', () => {
     const wild = spawnWild(world)
     registrarParticipante(world, spawnOwned(world, other, 'slot1'), wild)
 
-    expect(wild.has(FoughtBy(other))).toBe(true)
-    expect(wild.has(FoughtBy(trainer))).toBe(false)
+    const mine = findPartyPokemon(trainer, 'slot1')
+    const theirs = findPartyPokemon(other, 'slot1')
+    expect(wild.has(FoughtBy(theirs))).toBe(true)
+    expect(wild.has(FoughtBy(mine))).toBe(false)
 
-    const mineBefore = trainer.get(PartyProgress).slot1.xp
-    const theirsBefore = other.get(PartyProgress).slot1.xp
+    const mineBefore = mine.get(CreatureLevel).xp
+    const theirsBefore = theirs.get(CreatureLevel).xp
     distribuirExperiencia(world, createEventQueue(), wild)
-    expect(other.get(PartyProgress).slot1.xp).toBeGreaterThan(theirsBefore)
-    expect(trainer.get(PartyProgress).slot1.xp).toBe(mineBefore)
+    expect(theirs.get(CreatureLevel).xp).toBeGreaterThan(theirsBefore)
+    expect(mine.get(CreatureLevel).xp).toBe(mineBefore)
   })
 
   it('a criatura pilotada que desmaia devolve o controle pro PRÓPRIO dono', () => {
@@ -167,7 +170,7 @@ describe('dois treinadores no mesmo mundo', () => {
     const { world, trainer, other } = setup()
     spawnOwned(world, trainer, 'slot1')
     spawnOwned(world, other, 'slot1')
-    other.set(Party, { slot1: null })
+    tirarDoTime(world, other, findPartyPokemon(other, 'slot1'))
 
     partySummonSystem({ world, delta: 1 / 60, input: {} })
 

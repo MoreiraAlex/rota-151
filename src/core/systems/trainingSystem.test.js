@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { makeWorld, ownedByPlayer } from '@/test/makeWorld'
+import { givePokemon, makeWorld, ownedByPlayer } from '@/test/makeWorld'
 import { getSpecies } from '../data/species'
 import { createLevelState } from '../data/species/experience'
 import {
@@ -24,8 +24,7 @@ import {
   InputControlled,
   MovementStats,
   PartyBehavior,
-  PartyMoves,
-  PartyProgress,
+  SummonedFrom,
   PhysicsBody,
   Position,
   Rotation,
@@ -37,7 +36,6 @@ import {
   WildCreature,
   vitalsFromSpecies,
 } from '../traits'
-import { equiparCriatura } from '../actions/party'
 import { iniciarTreino, resolveTrainingBlock } from '../actions/training'
 import { creatureAttackSystem } from './creatureAttackSystem'
 import { trainingSystem } from './trainingSystem'
@@ -49,6 +47,8 @@ const DELTA = 1 / 60
 let world
 let player
 let events
+// Registro do Pokémon treinado (no slot `SLOT`).
+let pokemon
 
 // Espécie com golpe no learnset fora do kit (conteúdo do usuário: acha um).
 function findTrainable() {
@@ -67,7 +67,7 @@ const found = findTrainable()
 
 function spawnCreature(speciesId, position = { x: 0, y: 1, z: 0 }) {
   const species = getSpecies(speciesId)
-  const progress = player.get(PartyProgress)[SLOT]
+  const progress = pokemon.get(CreatureLevel)
   return world.spawn(
     Position(position),
     Rotation,
@@ -80,9 +80,10 @@ function spawnCreature(speciesId, position = { x: 0, y: 1, z: 0 }) {
     vitalsFromSpecies(species, null, progress.level),
     SummonedCreature({ slot: SLOT, speciesId }),
     ...ownedByPlayer(world),
+    SummonedFrom(pokemon),
     IndividualValues({}),
     CreatureLevel(progress),
-    CreatureMoves(cloneMovesState(player.get(PartyMoves)[SLOT])),
+    CreatureMoves(cloneMovesState(pokemon.get(CreatureMoves))),
     PartyBehavior,
   )
 }
@@ -117,20 +118,21 @@ function withTimeMultiplier(value, run) {
 }
 
 function progressOf(moveId) {
-  return player.get(PartyMoves)[SLOT].training[moveId] ?? 0
+  return pokemon.get(CreatureMoves).training[moveId] ?? 0
 }
 
 beforeEach(() => {
   ;({ world, player } = makeWorld())
   events = createEventQueue()
   if (!found) return
-  equiparCriatura(player, SLOT, found.speciesId)
-  player.set(PartyProgress, {
-    [SLOT]: createLevelState(
+  pokemon = givePokemon(world, player, found.speciesId, SLOT)
+  pokemon.set(
+    CreatureLevel,
+    createLevelState(
       getSpecies(found.speciesId),
       GAME_CONFIG.EXPERIENCE.MAX_LEVEL,
     ),
-  })
+  )
 })
 
 afterEach(() => world?.destroy())
@@ -139,7 +141,7 @@ describe.skipIf(!found)('treino de golpe', () => {
   it('o progresso de uma repetição é o tempo dela sobre as horas do golpe', () => {
     spawnCreature(found.speciesId)
     spawnObject()
-    iniciarTreino(world, player, SLOT, found.moveId)
+    iniciarTreino(world, pokemon, found.moveId)
 
     let ticks = 0
     while (progressOf(found.moveId) === 0 && ticks < 60 * 30) {
@@ -159,46 +161,46 @@ describe.skipIf(!found)('treino de golpe', () => {
   })
 
   it('golpe equipado sem domínio total: o treino sobe o domínio', () => {
-    const state = cloneMovesState(player.get(PartyMoves)[SLOT])
+    const state = cloneMovesState(pokemon.get(CreatureMoves))
     const equippedId = state.slots[1].id
     state.slots[1].mastery = 0.5
-    player.set(PartyMoves, { [SLOT]: state })
+    pokemon.set(CreatureMoves, state)
     const creature = spawnCreature(found.speciesId)
     spawnObject()
-    expect(iniciarTreino(world, player, SLOT, equippedId)).toBe(true)
+    expect(iniciarTreino(world, pokemon, equippedId)).toBe(true)
 
     withTimeMultiplier(1e3, () => {
       for (let i = 0; i < 60 * 20 && creature.has(Training); i++) {
         step()
-        if (player.get(PartyMoves)[SLOT].slots[1].mastery > 0.5) break
+        if (pokemon.get(CreatureMoves).slots[1].mastery > 0.5) break
       }
     })
 
-    expect(player.get(PartyMoves)[SLOT].slots[1].mastery).toBeGreaterThan(0.5)
+    expect(pokemon.get(CreatureMoves).slots[1].mastery).toBeGreaterThan(0.5)
   })
 
   it('golpe já dominado não tem o que treinar', () => {
     spawnCreature(found.speciesId)
     spawnObject()
-    const dominated = player.get(PartyMoves)[SLOT].slots[1].id
-    expect(iniciarTreino(world, player, SLOT, dominated)).toBe(false)
+    const dominated = pokemon.get(CreatureMoves).slots[1].id
+    expect(iniciarTreino(world, pokemon, dominated)).toBe(false)
   })
 
   it('sem objeto de treino perto, não começa', () => {
     spawnCreature(found.speciesId)
-    expect(resolveTrainingBlock(world, player, SLOT)).toBe('no-object')
-    expect(iniciarTreino(world, player, SLOT, found.moveId)).toBe(false)
+    expect(resolveTrainingBlock(world, pokemon)).toBe('no-object')
+    expect(iniciarTreino(world, pokemon, found.moveId)).toBe(false)
   })
 
   it('sem a criatura invocada, não começa', () => {
     spawnObject()
-    expect(resolveTrainingBlock(world, player, SLOT)).toBe('not-summoned')
+    expect(resolveTrainingBlock(world, pokemon)).toBe('not-summoned')
   })
 
   it('perto do objeto, repete o golpe e o treino progride', () => {
     const creature = spawnCreature(found.speciesId)
     spawnObject()
-    expect(iniciarTreino(world, player, SLOT, found.moveId)).toBe(true)
+    expect(iniciarTreino(world, pokemon, found.moveId)).toBe(true)
 
     for (let i = 0; i < 60 * 20 && progressOf(found.moveId) === 0; i++) step()
 
@@ -210,7 +212,7 @@ describe.skipIf(!found)('treino de golpe', () => {
   it('sem energia pra repetir, descansa em vez de repetir', () => {
     const creature = spawnCreature(found.speciesId)
     spawnObject()
-    iniciarTreino(world, player, SLOT, found.moveId)
+    iniciarTreino(world, pokemon, found.moveId)
     creature.set(Vitals, { stamina: 0 })
 
     for (let i = 0; i < 10; i++) step()
@@ -223,7 +225,7 @@ describe.skipIf(!found)('treino de golpe', () => {
   it('assumir o controle no meio de uma repetição para o treino e o golpe', () => {
     const creature = spawnCreature(found.speciesId)
     spawnObject()
-    iniciarTreino(world, player, SLOT, found.moveId)
+    iniciarTreino(world, pokemon, found.moveId)
     for (let i = 0; i < 60 * 5; i++) {
       step()
       if (creature.get(ActionState).current === 'attack') break
@@ -240,7 +242,7 @@ describe.skipIf(!found)('treino de golpe', () => {
   it('no meio de uma repetição não está esperando; depois dela, sim', () => {
     const creature = spawnCreature(found.speciesId)
     spawnObject()
-    iniciarTreino(world, player, SLOT, found.moveId)
+    iniciarTreino(world, pokemon, found.moveId)
     for (let i = 0; i < 60 * 5; i++) {
       step()
       if (creature.get(ActionState).current === 'attack') break
@@ -258,7 +260,7 @@ describe.skipIf(!found)('treino de golpe', () => {
   it('o time entrar numa luta não tira ela do treino', () => {
     const creature = spawnCreature(found.speciesId)
     spawnObject()
-    iniciarTreino(world, player, SLOT, found.moveId)
+    iniciarTreino(world, pokemon, found.moveId)
     creature.add(CombatMode({ timeLeft: 5 }))
     creature.set(PartyBehavior, { state: 'fight' })
 
@@ -270,7 +272,7 @@ describe.skipIf(!found)('treino de golpe', () => {
   it('o treinador se afastar não tira ela do treino; longe do objeto, ela volta', () => {
     const creature = spawnCreature(found.speciesId)
     const object = spawnObject()
-    iniciarTreino(world, player, SLOT, found.moveId)
+    iniciarTreino(world, pokemon, found.moveId)
     player.set(Position, { x: 500, y: 2, z: 500 })
     creature.set(Position, { x: 50, y: 1, z: 0 })
 
@@ -285,7 +287,7 @@ describe.skipIf(!found)('treino de golpe', () => {
   it('ser atacada tira do treino (mesmo um golpe que errou)', () => {
     const creature = spawnCreature(found.speciesId)
     spawnObject()
-    iniciarTreino(world, player, SLOT, found.moveId)
+    iniciarTreino(world, pokemon, found.moveId)
     const wild = world.spawn(WildCreature({ speciesId: found.speciesId }))
     const reactionEvents = createEventQueue()
     reactionEvents.emit(
@@ -308,7 +310,7 @@ describe.skipIf(!found)('treino de golpe', () => {
   it('outra criatura do time ser atacada não tira esta do treino', () => {
     const creature = spawnCreature(found.speciesId)
     spawnObject()
-    iniciarTreino(world, player, SLOT, found.moveId)
+    iniciarTreino(world, pokemon, found.moveId)
     const wild = world.spawn(
       Position({ x: 3, y: 1, z: 0 }),
       vitalsFromSpecies(getSpecies(found.speciesId)),
@@ -336,10 +338,10 @@ describe.skipIf(!found)('treino de golpe', () => {
   it('treino completo acaba o treino', () => {
     const creature = spawnCreature(found.speciesId)
     spawnObject()
-    const state = cloneMovesState(player.get(PartyMoves)[SLOT])
+    const state = cloneMovesState(pokemon.get(CreatureMoves))
     state.training[found.moveId] = 0.999
-    player.set(PartyMoves, { [SLOT]: state })
-    iniciarTreino(world, player, SLOT, found.moveId)
+    pokemon.set(CreatureMoves, state)
+    iniciarTreino(world, pokemon, found.moveId)
 
     // Relógio acelerado: uma repetição basta (o tempo de verdade é de horas).
     withTimeMultiplier(1e6, () => {
@@ -349,7 +351,7 @@ describe.skipIf(!found)('treino de golpe', () => {
     expect(creature.has(Training)).toBe(false)
     expect(
       progressOf(found.moveId) >= 1 ||
-        !!findMoveSlot(player.get(PartyMoves)[SLOT], found.moveId),
+        !!findMoveSlot(pokemon.get(CreatureMoves), found.moveId),
     ).toBe(true)
   })
 })

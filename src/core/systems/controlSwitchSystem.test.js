@@ -1,8 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import { makeWorld, ownedByPlayer } from '@/test/makeWorld'
+import { givePartyPokemon, makeWorld, ownedByPlayer } from '@/test/makeWorld'
+import { findPartyPokemon } from '@/core/actions/pokemon'
 import {
   CameraTarget,
   InputControlled,
+  PARTY_SLOT_IDS,
   Party,
   SummonedCreature,
 } from '@/core/traits'
@@ -93,19 +95,17 @@ describe('controlSwitchSystem', () => {
     expect(player.has(InputControlled)).toBe(false)
   })
 
-  it('trocar de controle não mexe em Party nem cria/destrói nenhuma entidade', () => {
-    const { world } = makeWorld()
+  it('trocar de controle não mexe no time nem cria/destrói nenhuma entidade', () => {
+    const { world, player } = makeWorld()
+    const party = givePartyPokemon(world, player, { slot1: 'charmander' })
     spawnCreature(world, 'slot1')
     const countBefore = world.query(SummonedCreature).length
 
     tick(world, { switchSlot1: true })
 
-    const trainer = world.queryFirst(Party)
-    expect(trainer.get(Party)).toEqual({
-      slot1: null,
-      slot2: null,
-      slot3: null,
-    })
+    for (const slot of PARTY_SLOT_IDS) {
+      expect(findPartyPokemon(player, slot)).toBe(party[slot] ?? null)
+    }
     expect(world.query(SummonedCreature).length).toBe(countBefore)
   })
 

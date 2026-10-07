@@ -40,7 +40,11 @@ de puxar ela pra frente.
 - [ ] **Persistência do jogador** — salvar/restaurar posição (e depois outros
       dados) via Prisma, reaproveitando o Better Auth já no projeto (redirect
       ainda comentado em `(auth)/layout.js`).
-- [ ] **Inventario** — Inventario.
+- [X] **Inventario** — entregue em
+      `docs/features/041-inventario-de-itens-e-pokemon.md` (v0.0.41): itens
+      com quantidade e os Pokémon fora do time numa grade de posição livre
+      (arrastar, trocar, organizar), detalhes ao clicar, time montado por
+      ali. Caixa/PC ficou pra depois da beta.
 
 ## Ações do jogador (mecanismo compartilhado)
 

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { makeWorld, ownedByPlayer } from '@/test/makeWorld'
+import { givePartyPokemon, makeWorld, ownedByPlayer } from '@/test/makeWorld'
 import { getSpecies } from '../data/species'
 import {
   calculateExperienceGain,
@@ -14,11 +14,10 @@ import {
   CreatureLevel,
   FoughtBy,
   IndividualValues,
-  PartyFaint,
-  PartyIndividualValues,
-  PartyProgress,
-  PartyVitals,
+  StoredFaint,
+  StoredVitals,
   SummonedCreature,
+  SummonedFrom,
   Vitals,
   WildCreature,
   resolveMaxHp,
@@ -29,7 +28,6 @@ import {
   ganharExperiencia,
   registrarParticipante,
 } from './experience'
-import { equiparCriatura } from './party'
 
 const WILD_SPECIES_ID = 'squirtle'
 const WILD_LEVEL = 5
@@ -37,6 +35,11 @@ const WILD_LEVEL = 5
 let world
 let player
 let events
+// Registro de cada slot do time (`givePartyPokemon`).
+let party
+
+/** Nível/XP do registro do Pokémon do `slot`. */
+const progressOf = (slot) => party[slot].get(CreatureLevel)
 
 function spawnWild(level = WILD_LEVEL) {
   const species = getSpecies(WILD_SPECIES_ID)
@@ -50,11 +53,12 @@ function spawnWild(level = WILD_LEVEL) {
 function spawnSummoned(slot) {
   const speciesId = getPartySpeciesId(slot)
   const species = getSpecies(speciesId)
-  const individualValues = player.get(PartyIndividualValues)[slot]
-  const progress = player.get(PartyProgress)[slot]
+  const individualValues = party[slot].get(IndividualValues)
+  const progress = progressOf(slot)
   return world.spawn(
     SummonedCreature({ slot, speciesId }),
     ...ownedByPlayer(world),
+    SummonedFrom(party[slot]),
     IndividualValues(individualValues),
     CreatureLevel(progress),
     vitalsFromSpecies(species, individualValues, progress.level),
@@ -77,34 +81,33 @@ function expectedGain(winnerLevel, participants) {
 beforeEach(() => {
   ;({ world, player } = makeWorld())
   events = createEventQueue()
-  equiparCriatura(player, 'slot1', 'bulbasaur')
-  equiparCriatura(player, 'slot2', 'charmander')
+  party = givePartyPokemon(world, player, {
+    slot1: 'bulbasaur',
+    slot2: 'charmander',
+  })
 })
 
-describe('equiparCriatura', () => {
-  it('a criatura nova começa no nível inicial da espécie', () => {
+describe('criarPokemon', () => {
+  it('o Pokémon novo começa no nível inicial da espécie', () => {
     const species = getSpecies('bulbasaur')
-    expect(player.get(PartyProgress).slot1).toEqual(
+    expect(progressOf('slot1')).toEqual(
       createLevelState(species, species.level),
     )
   })
 })
 
 describe('registrarParticipante', () => {
-  it('marca o slot da criatura do time que acertou a selvagem', () => {
+  it('marca o registro do Pokémon do time que acertou a selvagem', () => {
     const wild = spawnWild()
     registrarParticipante(world, spawnSummoned('slot2'), wild)
-    expect(wild.has(FoughtBy(player))).toBe(true)
-    expect(wild.get(FoughtBy(player))).toMatchObject({
-      slot1: false,
-      slot2: true,
-    })
+    expect(wild.has(FoughtBy(party.slot2))).toBe(true)
+    expect(wild.has(FoughtBy(party.slot1))).toBe(false)
   })
 
   it('selvagem batendo no time não conta', () => {
     const creature = spawnSummoned('slot1')
     registrarParticipante(world, spawnWild(), creature)
-    expect(creature.has(FoughtBy(player))).toBe(false)
+    expect(creature.targetsFor(FoughtBy)).toEqual([])
   })
 })
 
@@ -112,30 +115,33 @@ describe('distribuirExperiencia', () => {
   it('um participante leva o XP inteiro e a relação é limpa', () => {
     const wild = spawnWild()
     registrarParticipante(world, spawnSummoned('slot1'), wild)
-    const before = player.get(PartyProgress).slot1
+    const before = { ...progressOf('slot1') }
 
     distribuirExperiencia(world, events, wild)
 
-    expect(player.get(PartyProgress).slot1.xp).toBe(
+    expect(progressOf('slot1').xp).toBe(
       before.xp + expectedGain(before.level, 1),
     )
-    expect(player.get(PartyProgress).slot2.xp).toBe(
+    expect(progressOf('slot2').xp).toBe(
       createLevelState(getSpecies('charmander'), getSpecies('charmander').level)
         .xp,
     )
-    expect(wild.has(FoughtBy(player))).toBe(false)
+    expect(wild.targetsFor(FoughtBy)).toEqual([])
   })
 
   it('dois participantes dividem o XP', () => {
     const wild = spawnWild()
     registrarParticipante(world, spawnSummoned('slot1'), wild)
     registrarParticipante(world, spawnSummoned('slot2'), wild)
-    const before = player.get(PartyProgress)
+    const before = {
+      slot1: { ...progressOf('slot1') },
+      slot2: { ...progressOf('slot2') },
+    }
 
     distribuirExperiencia(world, events, wild)
 
     for (const slot of ['slot1', 'slot2']) {
-      expect(player.get(PartyProgress)[slot].xp).toBe(
+      expect(progressOf(slot).xp).toBe(
         before[slot].xp + expectedGain(before[slot].level, 2),
       )
     }
@@ -145,13 +151,16 @@ describe('distribuirExperiencia', () => {
     const wild = spawnWild()
     registrarParticipante(world, spawnSummoned('slot1'), wild)
     registrarParticipante(world, spawnSummoned('slot2'), wild)
-    player.set(PartyFaint, { slot2: { timeLeft: 10 } })
-    const before = player.get(PartyProgress)
+    party.slot2.add(StoredFaint({ timeLeft: 10 }))
+    const before = {
+      slot1: { ...progressOf('slot1') },
+      slot2: { ...progressOf('slot2') },
+    }
 
     distribuirExperiencia(world, events, wild)
 
-    expect(player.get(PartyProgress).slot2.xp).toBe(before.slot2.xp)
-    expect(player.get(PartyProgress).slot1.xp).toBe(
+    expect(progressOf('slot2').xp).toBe(before.slot2.xp)
+    expect(progressOf('slot1').xp).toBe(
       before.slot1.xp + expectedGain(before.slot1.level, 1),
     )
   })
@@ -160,7 +169,7 @@ describe('distribuirExperiencia', () => {
 describe('ganharExperiencia', () => {
   function xpToNextLevel(slot) {
     const species = getSpecies(getPartySpeciesId(slot))
-    const progress = player.get(PartyProgress)[slot]
+    const progress = progressOf(slot)
     return (
       experienceForLevel(resolveGrowthRate(species), progress.level + 1) -
       progress.xp
@@ -168,15 +177,9 @@ describe('ganharExperiencia', () => {
   }
 
   it('sem chegar no próximo nível, só soma o XP', () => {
-    const before = player.get(PartyProgress).slot1
-    ganharExperiencia(
-      world,
-      events,
-      player,
-      'slot1',
-      xpToNextLevel('slot1') - 1,
-    )
-    expect(player.get(PartyProgress).slot1.level).toBe(before.level)
+    const before = { ...progressOf('slot1') }
+    ganharExperiencia(world, events, party.slot1, xpToNextLevel('slot1') - 1)
+    expect(progressOf('slot1').level).toBe(before.level)
     const types = events.drain().map((event) => event.type)
     expect(types).toEqual([EVENT_TYPES.EXPERIENCE_GAINED])
   })
@@ -184,13 +187,13 @@ describe('ganharExperiencia', () => {
   it('sobe de nível: a criatura em campo acompanha e a vida sobe a diferença', () => {
     const creature = spawnSummoned('slot1')
     const species = getSpecies('bulbasaur')
-    const individualValues = player.get(PartyIndividualValues).slot1
-    const fromLevel = player.get(PartyProgress).slot1.level
+    const individualValues = party.slot1.get(IndividualValues)
+    const fromLevel = progressOf('slot1').level
     creature.set(Vitals, { hp: 1 })
 
-    ganharExperiencia(world, events, player, 'slot1', xpToNextLevel('slot1'))
+    ganharExperiencia(world, events, party.slot1, xpToNextLevel('slot1'))
 
-    const level = player.get(PartyProgress).slot1.level
+    const level = progressOf('slot1').level
     expect(level).toBe(fromLevel + 1)
     expect(creature.get(CreatureLevel).level).toBe(level)
     const growth =
@@ -204,30 +207,30 @@ describe('ganharExperiencia', () => {
     const leveled = events
       .drain()
       .find((event) => event.type === EVENT_TYPES.LEVELED_UP)
-    expect(leveled).toMatchObject({ slot: 'slot1', fromLevel, level })
+    expect(leveled).toMatchObject({ pokemon: party.slot1, fromLevel, level })
   })
 
-  it('a vida guardada na bola também sobe a diferença', () => {
+  it('a vida guardada fora de campo também sobe a diferença', () => {
     const species = getSpecies('bulbasaur')
-    const individualValues = player.get(PartyIndividualValues).slot1
-    const fromLevel = player.get(PartyProgress).slot1.level
+    const individualValues = party.slot1.get(IndividualValues)
+    const fromLevel = progressOf('slot1').level
     const stored = vitalsFromSpecies(species, individualValues, fromLevel)
-    player.set(PartyVitals, { slot1: { ...stored, hp: 1 } })
+    party.slot1.set(StoredVitals, { vitals: { ...stored, hp: 1 } })
 
-    ganharExperiencia(world, events, player, 'slot1', xpToNextLevel('slot1'))
+    ganharExperiencia(world, events, party.slot1, xpToNextLevel('slot1'))
 
-    const level = player.get(PartyProgress).slot1.level
+    const level = progressOf('slot1').level
     const growth =
       resolveMaxHp(species, individualValues, level) -
       resolveMaxHp(species, individualValues, fromLevel)
-    expect(player.get(PartyVitals).slot1.hp).toBe(1 + growth)
+    expect(party.slot1.get(StoredVitals).vitals.hp).toBe(1 + growth)
   })
 
   it('para no nível máximo', () => {
-    ganharExperiencia(world, events, player, 'slot1', Number.MAX_SAFE_INTEGER)
+    ganharExperiencia(world, events, party.slot1, Number.MAX_SAFE_INTEGER)
     const { MAX_LEVEL } = GAME_CONFIG.EXPERIENCE
     const species = getSpecies('bulbasaur')
-    expect(player.get(PartyProgress).slot1).toEqual({
+    expect(progressOf('slot1')).toEqual({
       level: MAX_LEVEL,
       xp: experienceForLevel(resolveGrowthRate(species), MAX_LEVEL),
     })

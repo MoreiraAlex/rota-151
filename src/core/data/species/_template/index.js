@@ -13,8 +13,8 @@
 export const SPECIES_TEMPLATE = {
   id: 'nome-em-minusculo',
   dexNumber: 0,
-  // Opcional — nível INICIAL de quem entra no time (`equiparCriatura`). O
-  // nível de verdade é de cada criatura (`CreatureLevel`/`PartyProgress`,
+  // Opcional — nível INICIAL de um Pokémon novo (`criarPokemon`). O
+  // nível de verdade é de cada criatura (`CreatureLevel`,
   // docs/features/037-experiencia-e-nivel.md); a selvagem sorteia o dela no
   // spawn (`levelRange` da entrada, ou `GAME_CONFIG.EXPERIENCE`). Ausente
   // (ex.: `../boy/index.js`, treinador) = sem nível na etiqueta.

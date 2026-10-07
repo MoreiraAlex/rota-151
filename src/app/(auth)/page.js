@@ -3,10 +3,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { Stats } from '@react-three/drei'
-import { useTrait } from 'koota/react'
+import { useHas, useTrait } from 'koota/react'
 import { WorldProvider } from '@/core/world/WorldProvider'
 import { playerEntity } from '@/core/world/world'
-import { ScanHistory, ScanMode } from '@/core/traits'
+import { InputControlled, ScanHistory, ScanMode } from '@/core/traits'
 import { GameLoop } from '@/view/loop/GameLoop'
 import { GameScene } from '@/view/scene/GameScene'
 import { PhysicsDebugView } from '@/tools/debug/PhysicsDebugView'
@@ -52,7 +52,7 @@ import { BattleLogHud } from '@/tools/hud/BattleLogHud'
  * clique esquerdo (fora do modo scanner, com a Pokédex equipada) abre
  * o menu principal na aba padrão.
  */
-function GameHud({ onScanned, onMenuOpenRequested }) {
+function GameHud({ onScanned, onMenuOpenRequested, onTrainerControlChange }) {
   // Modo scanner (Pokédex equipada, botão direito — `scannerModeSystem.js`,
   // docs/features/031-*.md) troca a HUD inteira pelo visor.
   const scanMode = useTrait(playerEntity, ScanMode)
@@ -68,6 +68,14 @@ function GameHud({ onScanned, onMenuOpenRequested }) {
     if (scanMode?.menuOpenRequests) onMenuOpenRequested()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scanMode?.menuOpenRequests])
+
+  // Treinador no controle? `GamePage` usa pra liberar o Inventário — lido
+  // aqui (dentro do `WorldProvider`), pelo mesmo motivo dos traits acima.
+  const trainerControlled = useHas(playerEntity, InputControlled)
+  useEffect(() => {
+    onTrainerControlChange(trainerControlled)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trainerControlled])
 
   if (scanning) return <PokedexVisorHud />
 
@@ -182,6 +190,8 @@ export default function GamePage() {
         closeMenu()
         return
       }
+      // Só com o treinador no controle (pilotando uma criatura, não abre).
+      if (!playerEntity.has(InputControlled)) return
       if (document.pointerLockElement) document.exitPointerLock()
       setMenuView('inventory')
       setMenuOpen(true)
@@ -190,6 +200,15 @@ export default function GamePage() {
     return () => window.removeEventListener('keydown', onKeyDown)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [menuOpen, menuView])
+
+  // Inventário só com o treinador no controle: se o controle sair dele
+  // (passou pra uma criatura) com o inventário aberto, fecha.
+  // (`GameHud` informa, de dentro do `WorldProvider`.)
+  const [trainerControlled, setTrainerControlled] = useState(true)
+  useEffect(() => {
+    if (!trainerControlled && menuOpen && menuView === 'inventory') closeMenu()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trainerControlled, menuOpen, menuView])
 
   // Abre o menu direto na aba Histórico da Pokédex, com o registro
   // recém-escaneado já selecionado — pedido do usuário, seção 4:
@@ -255,6 +274,7 @@ export default function GamePage() {
           <GameHud
             onScanned={openScanHistory}
             onMenuOpenRequested={openPokedexMenu}
+            onTrainerControlChange={setTrainerControlled}
           />
 
           {showDebug && <DebugPanel />}
@@ -268,6 +288,7 @@ export default function GamePage() {
               onResume={closeMenu}
               view={menuView}
               onViewChange={setMenuView}
+              canOpenInventory={trainerControlled}
               pokedexInitialTab={pokedexInitialTab}
               pokedexInitialHistoryEntryId={pokedexHistoryEntryId}
             />

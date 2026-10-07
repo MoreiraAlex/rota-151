@@ -23,5 +23,5 @@ export function fecharMenuDeAcoes(trainer) {
  */
 export function isPartyMenuOpen(trainer) {
   if (trainer?.get(PartyActionMenu)?.slot) return true
-  return !!trainer?.get(MoveLearnRequest)?.moveId
+  return !!trainer?.targetFor?.(MoveLearnRequest)
 }

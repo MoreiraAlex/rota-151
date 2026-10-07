@@ -1,5 +1,5 @@
 import { ganharDominio } from '../actions/moves'
-import { resolveOwner } from '../actions/owner'
+import { resolvePokemonOf } from '../actions/pokemon'
 import { MAX_MASTERY } from '../data/species/moves'
 import { EVENT_TYPES } from '../events'
 import { GAME_CONFIG } from '../gameConfig'
@@ -47,10 +47,9 @@ export function registrarUsoDeGolpe(world, events, context) {
   if (attack?.mastery == null || attack.mastery >= MAX_MASTERY) return
   if (!hasNearbyOpponent(world, pos)) return
 
-  const trainer = resolveOwner(entity)
-  if (!trainer) return
+  const pokemon = resolvePokemonOf(entity)
+  if (!pokemon) return
 
   const hit = attack.area === 'self' || landedThisStep(events, entity)
-  const partySlot = entity.get(SummonedCreature).slot
-  ganharDominio(world, trainer, partySlot, attack.id, hit)
+  ganharDominio(world, pokemon, attack.id, hit)
 }

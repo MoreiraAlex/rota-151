@@ -3,15 +3,13 @@ import { distribuirExperiencia } from '../actions/experience'
 import { creatureFainted } from '../events'
 import {
   Fainted,
-  PartyFaint,
-  PartyVitals,
+  StoredFaint,
+  StoredVitals,
   SummonedCreature,
   Vitals,
   WildCreature,
   resolveCreatureSpeciesId,
 } from '../traits'
-
-const PARTY_SLOTS = ['slot1', 'slot2', 'slot3']
 
 /**
  * Desmaio das criaturas (selvagens e do time em campo) — ver `Fainted`:
@@ -21,10 +19,11 @@ const PARTY_SLOTS = ['slot1', 'slot2', 'slot3']
  * 2. a contagem de quem está desmaiado em campo corre, e quem zera acorda
  *    (`acordar`) — pra selvagem, é o caminho normal; a do time costuma ser
  *    recolhida antes (`partySummonSystem.js`, `PARTY_RECALL_DELAY`);
- * 3. a contagem da do time já recolhida corre no treinador (`PartyFaint`)
- *    — zerou, reanima dentro da bola: o slot volta a `null` e a vida
- *    guardada (`PartyVitals`) vira o HP de quem acorda, sem o atraso de
- *    regeneração (dali, regenera na bola como qualquer outra).
+ * 3. a contagem de quem foi recolhido desmaiado corre no registro do Pokémon
+ *    (`StoredFaint`), esteja ele no time ou no inventário — zerou, reanima
+ *    fora de campo: o trait sai e a vida guardada (`StoredVitals`) vira o HP
+ *    de quem acorda, sem o atraso de regeneração (dali, regenera como
+ *    qualquer outro).
  *
  * O treinador não desmaia (fora do escopo por enquanto).
  *
@@ -60,40 +59,27 @@ export function faintSystem(context) {
   for (const entity of waking) acordar(entity)
 
   const revived = []
-  world.query(PartyFaint).updateEach(([partyFaint], trainer) => {
-    for (const slot of PARTY_SLOTS) {
-      const state = partyFaint[slot]
-      if (!state) continue
-      const timeLeft = state.timeLeft - delta
-      if (timeLeft > 0) {
-        partyFaint[slot] = { timeLeft }
-      } else {
-        partyFaint[slot] = null
-        revived.push({ trainer, slot })
-      }
-    }
+  world.query(StoredFaint).updateEach(([stored], pokemon) => {
+    stored.timeLeft -= delta
+    if (stored.timeLeft <= 0) revived.push(pokemon)
   })
-  for (const { trainer, slot } of revived) reviveInBall(trainer, slot)
+  for (const pokemon of revived) reviveOutOfField(pokemon)
 }
 
 /**
- * HP de quem acorda na vida guardada do slot (`PartyVitals`). Sem nada
- * guardado (não deveria acontecer — `applyRecall` sempre guarda), não faz
- * nada: sai cheia.
+ * Tira o desmaio do registro e põe o HP de quem acorda na vida guardada
+ * (`StoredVitals`). Sem nada guardado (não deveria acontecer — `applyRecall`
+ * sempre guarda), sai cheio.
  */
-function reviveInBall(trainer, slot) {
-  const stored = trainer.get(PartyVitals)?.[slot]
+function reviveOutOfField(pokemon) {
+  pokemon.remove(StoredFaint)
+  const stored = pokemon.get(StoredVitals)?.vitals
   if (!stored) return
-  trainer.set(PartyVitals, {
-    [slot]: { ...stored, hp: resolveReviveHp(stored.maxHp), hpRegenDelay: 0 },
+  pokemon.set(StoredVitals, {
+    vitals: {
+      ...stored,
+      hp: resolveReviveHp(stored.maxHp),
+      hpRegenDelay: 0,
+    },
   })
-}
-
-/**
- * Se a criatura do time daquele slot está desmaiada (recolhida, contando
- * pra reanimar) — não pode ser invocada. `trainer` sem `PartyFaint`
- * (testes antigos) conta como ninguém desmaiado.
- */
-export function isPartySlotFainted(trainer, slot) {
-  return (trainer?.get(PartyFaint)?.[slot]?.timeLeft ?? 0) > 0
 }

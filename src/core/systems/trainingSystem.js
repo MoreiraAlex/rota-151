@@ -11,7 +11,7 @@ import { resolveTrainingHours } from '../battle/actionCost'
 import { TRAINING_SLOT, resolveEntityMoveSet } from '../battle/creatureAttack'
 import { pararTreino, resolveTrainingGoal } from '../actions/training'
 import { progredirTreino, treinarDominio } from '../actions/moves'
-import { resolveOwner } from '../actions/owner'
+import { resolvePokemonOf } from '../actions/pokemon'
 import {
   ActionState,
   AttackCooldowns,
@@ -135,7 +135,6 @@ export function trainingSystem(context) {
           training.wait = REPETITION_INTERVAL
           repetitions.push({
             entity,
-            slot: creature.slot,
             moveId: training.moveId,
             seconds: training.elapsed,
             hours: resolveTrainingHours(attack),
@@ -215,11 +214,11 @@ export function trainingSystem(context) {
   // Fora do `updateEach`: tirar `Training` muda a query iterada.
   for (const entity of stopped) pararTreino(entity)
 
-  for (const { entity, slot, moveId, seconds, hours } of repetitions) {
-    // O treino conta no time do dono DELA.
-    const trainer = resolveOwner(entity)
-    if (!trainer) continue
-    if (!creditTraining(world, events, trainer, slot, moveId, seconds, hours)) {
+  for (const { entity, moveId, seconds, hours } of repetitions) {
+    // O treino conta no registro DELA (`SummonedFrom`).
+    const pokemon = resolvePokemonOf(entity)
+    if (!pokemon) continue
+    if (!creditTraining(world, events, pokemon, moveId, seconds, hours)) {
       pararTreino(entity)
     }
   }
@@ -232,14 +231,13 @@ const SECONDS_PER_HOUR = 3600
  * (`resolveTrainingGoal`): fração das horas de aprender, ou das de dominar.
  * Devolve se o treino continua (falta aprender/dominar).
  */
-function creditTraining(world, events, trainer, slot, moveId, seconds, hours) {
-  const goal = resolveTrainingGoal(trainer, slot, moveId)
+function creditTraining(world, events, pokemon, moveId, seconds, hours) {
+  const goal = resolveTrainingGoal(pokemon, moveId)
   if (goal === 'learn') {
     const progress = progredirTreino(
       world,
       events,
-      trainer,
-      slot,
+      pokemon,
       moveId,
       seconds / (hours.learn * SECONDS_PER_HOUR),
     )
@@ -248,12 +246,11 @@ function creditTraining(world, events, trainer, slot, moveId, seconds, hours) {
   if (goal === 'master') {
     treinarDominio(
       world,
-      trainer,
-      slot,
+      pokemon,
       moveId,
       seconds / (hours.mastery * SECONDS_PER_HOUR),
     )
-    return resolveTrainingGoal(trainer, slot, moveId) === 'master'
+    return resolveTrainingGoal(pokemon, moveId) === 'master'
   }
   return false
 }

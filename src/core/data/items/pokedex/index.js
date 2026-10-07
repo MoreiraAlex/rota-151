@@ -23,6 +23,10 @@
  */
 export const POKEDEX = {
   id: 'pokedex',
+  name: 'Pokédex',
+  // Texto provisório (docs/features/041-inventario-de-itens-e-pokemon.md).
+  description:
+    'Escaneia Pokémon: segure o botão direito pra mirar e solte pra registrar.',
   category: 'scanner',
   sprite: { path: '/assets/sprites/itens/pokedex.png' },
   scanner: {

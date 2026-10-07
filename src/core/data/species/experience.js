@@ -3,8 +3,8 @@ import { GAME_CONFIG } from '../../gameConfig'
 /**
  * Curvas de nível e fórmula de XP ganho — convenção clássica de Pokémon
  * (docs/features/037-experiencia-e-nivel.md). Puro: só número entra, só
- * número sai; quem guarda nível/XP de cada criatura é `CreatureLevel`/
- * `PartyProgress`, quem escreve é `core/actions/experience.js`.
+ * número sai; quem guarda nível/XP de cada criatura é `CreatureLevel`
+ * (em campo e no registro do Pokémon), quem escreve é `core/actions/experience.js`.
  */
 
 /**

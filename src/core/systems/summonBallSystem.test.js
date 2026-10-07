@@ -1,24 +1,27 @@
 import { describe, it, expect, afterEach } from 'vitest'
 import { createWorld } from 'koota'
-import { makeWorld, ownedByPlayer } from '@/test/makeWorld'
+import {
+  givePartyPokemon,
+  givePokemon,
+  makeWorld,
+  ownedByPlayer,
+} from '@/test/makeWorld'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import { getSpecies } from '@/core/data/species'
 import { createLevelState } from '@/core/data/species/experience'
-import { equiparCriatura } from '@/core/actions/party'
 import {
   ActionState,
   AttackAim,
   AttackCooldowns,
   CreatureLevel,
-  PartyIndividualValues,
-  PartyProgress,
+  IndividualValues,
+  SummonedFrom,
   Vitals,
   resolveMaxHp,
   SummonBall,
   SummonedCreature,
   SummonFlash,
   SummonPulse,
-  Party,
   Position,
   Velocity,
   PhysicsBody,
@@ -106,7 +109,9 @@ describe('summonBallSystem', () => {
   it('sem física carregada (castRay sempre null), pousa exatamente ao esgotar maxDistance (percorrido ao longo do caminho, já curvo pela gravidade) e spawna a criatura ali', () => {
     const { world, player } = makeWorld()
     spawnedWorlds.push(world)
-    player.set(Party, { slot1: 'bulbasaur' })
+    const { slot1: pokemon } = givePartyPokemon(world, player, {
+      slot1: 'bulbasaur',
+    })
 
     const start = { x: 0, y: 1, z: 0 }
     const vel = { x: 10, y: 0, z: 0 } // 10 m/s, horizontal no lançamento
@@ -122,6 +127,7 @@ describe('summonBallSystem', () => {
         traveled: 0,
       }),
       ...ownedByPlayer(world),
+      SummonedFrom(pokemon),
     )
 
     for (let i = 0; i < 60; i++) tick(world, 1 / 60)
@@ -158,7 +164,9 @@ describe('summonBallSystem', () => {
   it('criatura com actions.appeal (charmander) nasce fazendo a apresentação', () => {
     const { world, player } = makeWorld()
     spawnedWorlds.push(world)
-    player.set(Party, { slot1: 'charmander' })
+    const { slot1: pokemon } = givePartyPokemon(world, player, {
+      slot1: 'charmander',
+    })
 
     world.spawn(
       Position({ x: 0, y: 1, z: 0 }),
@@ -170,6 +178,7 @@ describe('summonBallSystem', () => {
         traveled: 0,
       }),
       ...ownedByPlayer(world),
+      SummonedFrom(pokemon),
     )
     for (let i = 0; i < 30; i++) tick(world, 1 / 60)
 
@@ -180,12 +189,14 @@ describe('summonBallSystem', () => {
   it('a criatura sai da bola com o nível/XP do slot (PartyProgress)', () => {
     const { world, player } = makeWorld()
     spawnedWorlds.push(world)
-    equiparCriatura(player, 'slot1', 'charmander')
+    const { slot1: pokemon } = givePartyPokemon(world, player, {
+      slot1: 'charmander',
+    })
     const progress = createLevelState(
       getSpecies('charmander'),
       getSpecies('charmander').level + 3,
     )
-    player.set(PartyProgress, { slot1: progress })
+    pokemon.set(CreatureLevel, progress)
 
     world.spawn(
       Position({ x: 0, y: 1, z: 0 }),
@@ -197,6 +208,7 @@ describe('summonBallSystem', () => {
         traveled: 0,
       }),
       ...ownedByPlayer(world),
+      SummonedFrom(pokemon),
     )
     for (let i = 0; i < 30; i++) tick(world, 1 / 60)
 
@@ -205,7 +217,7 @@ describe('summonBallSystem', () => {
     expect(creature.get(Vitals).maxHp).toBe(
       resolveMaxHp(
         getSpecies('charmander'),
-        player.get(PartyIndividualValues).slot1,
+        pokemon.get(IndividualValues),
         progress.level,
       ),
     )
@@ -214,7 +226,9 @@ describe('summonBallSystem', () => {
   it('sem hasSpecies válido (removido/trocado enquanto a esfera voava), pousa sem spawnar nada — some silenciosamente', () => {
     const { world, player } = makeWorld()
     spawnedWorlds.push(world)
-    player.set(Party, { slot1: 'bulbasaur' })
+    const { slot1: pokemon } = givePartyPokemon(world, player, {
+      slot1: 'bulbasaur',
+    })
 
     world.spawn(
       Position({ x: 0, y: 1, z: 0 }),
@@ -226,12 +240,13 @@ describe('summonBallSystem', () => {
         traveled: 0,
       }),
       ...ownedByPlayer(world),
+      SummonedFrom(pokemon),
     )
 
     // Time do treinador muda de espécie no slot1 ENQUANTO a esfera está
     // voando (ex.: InventoryPanel) — a esfera não deve mais spawnar a
     // espécie antiga.
-    player.set(Party, { slot1: 'charmander' })
+    givePokemon(world, player, 'charmander', 'slot1')
 
     for (let i = 0; i < 60; i++) tick(world, 1 / 60)
 
@@ -254,7 +269,9 @@ describe('summonBallSystem — colisão com o mundo', () => {
 
     const { world, player } = makeWorld()
     spawnedWorlds.push(world)
-    player.set(Party, { slot1: 'bulbasaur' })
+    const { slot1: pokemon } = givePartyPokemon(world, player, {
+      slot1: 'bulbasaur',
+    })
 
     // Velocidade já aponta pro chão (a gravidade também ajudaria a
     // descer sozinha, mas -20 garante que bate rápido, sem depender de
@@ -269,6 +286,7 @@ describe('summonBallSystem — colisão com o mundo', () => {
         traveled: 0,
       }),
       ...ownedByPlayer(world),
+      SummonedFrom(pokemon),
     )
 
     for (let i = 0; i < 30; i++) tick(world, 1 / 30)
@@ -296,7 +314,9 @@ describe('summonBallSystem — colisão com o mundo', () => {
     spawnedWorlds.push(world)
     // Squirtle: capsuleAxis 'y' (em pé) — mesmo raciocínio do teste
     // acima, com uma espécie diferente pra não depender só de 'bulbasaur'.
-    player.set(Party, { slot1: 'squirtle' })
+    const { slot1: pokemon } = givePartyPokemon(world, player, {
+      slot1: 'squirtle',
+    })
 
     world.spawn(
       Position({ x: -20, y: 3, z: -20 }), // longe de qualquer obstáculo do nível de teste
@@ -308,6 +328,7 @@ describe('summonBallSystem — colisão com o mundo', () => {
         traveled: 0,
       }),
       ...ownedByPlayer(world),
+      SummonedFrom(pokemon),
     )
 
     for (let i = 0; i < 30; i++) tick(world, 1 / 30)
@@ -331,7 +352,9 @@ describe('summonBallSystem — colisão com o mundo', () => {
       playerPosition: { x: 0, y: 2, z: 0 },
     })
     spawnedWorlds.push(world)
-    player.set(Party, { slot1: 'bulbasaur' })
+    const { slot1: pokemon } = givePartyPokemon(world, player, {
+      slot1: 'bulbasaur',
+    })
     const { bodyHandle, colliderHandle } = createCharacterBody(
       player.get(Position),
       { radius: 0.5, halfHeight: 0.5, axis: 'y' },
@@ -351,6 +374,7 @@ describe('summonBallSystem — colisão com o mundo', () => {
         traveled: 0,
       }),
       ...ownedByPlayer(world),
+      SummonedFrom(pokemon),
     )
 
     tick(world, 1 / 60)

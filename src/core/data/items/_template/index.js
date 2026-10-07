@@ -14,6 +14,10 @@
  */
 export const ITEM_TEMPLATE = {
   id: 'nome-em-minusculo',
+  // Nome e descrição pro jogador (tooltip e detalhes do Inventário). Sem
+  // `name`, a tela mostra o id formatado.
+  name: 'Nome do item',
+  description: 'O que o item faz, em uma ou duas frases.',
   // `category` é um GRUPO de funcionalidade, não só um rótulo — itens da
   // mesma categoria se comportam igual, sem precisar duplicar lógica
   // (pedido do usuário: "cada item vai ter uma funcionalidade

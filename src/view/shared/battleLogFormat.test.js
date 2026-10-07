@@ -12,7 +12,7 @@ import {
   statStageChanged,
 } from '@/core/events'
 import { listSkills } from '@/core/data/skills'
-import { Party, SummonedCreature, WildCreature } from '@/core/traits'
+import { Party, Pokemon, SummonedCreature, WildCreature } from '@/core/traits'
 import { formatSpeciesName } from './formatName'
 import {
   formatBattleLogEvent,
@@ -33,8 +33,9 @@ function setup() {
     SummonedCreature({ slot: 'slot1', speciesId: 'charmander' }),
   )
   const wild = world.spawn(WildCreature({ speciesId: 'bulbasaur' }))
-  const trainer = world.spawn(Party({ slot1: 'charmander' }))
-  return { ally, wild, trainer }
+  const trainer = world.spawn(Party)
+  const pokemon = world.spawn(Pokemon({ speciesId: 'charmander' }))
+  return { ally, wild, trainer, pokemon }
 }
 
 const SKILL = listSkills().find((skill) => skill.damage)
@@ -132,7 +133,7 @@ describe('formatBattleLogEvent', () => {
   })
 
   it('atributo, falha, desmaio, XP e golpe aprendido', () => {
-    const { ally, wild, trainer } = setup()
+    const { ally, wild, trainer, pokemon } = setup()
     expect(
       texts(
         statStageChanged({
@@ -153,14 +154,14 @@ describe('formatBattleLogEvent', () => {
     expect(texts(creatureFainted({ entity: wild }))[0]).toContain(
       formatCombatantName(wild),
     )
-    // na bola (sem `creature`): o nome vem do slot do time
+    // na bola (sem `creature`): o nome vem do registro do Pokémon
     expect(
-      texts(experienceGained({ trainer, slot: 'slot1', amount: 12.4 }))[0],
+      texts(experienceGained({ trainer, pokemon, amount: 12.4 }))[0],
     ).toContain(formatSpeciesName('charmander'))
     const [learned] = texts(
       moveLearned({
         trainer,
-        slot: 'slot1',
+        pokemon,
         creature: ally,
         moveId: SKILL.id,
         forgottenId: 'growl',

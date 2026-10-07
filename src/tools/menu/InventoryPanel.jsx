@@ -1,55 +1,61 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useTrait } from 'koota/react'
-import { playerEntity } from '@/core/world/world'
-import { getItem } from '@/core/data/items'
-import { listSpecies, resolveSpeciesKind } from '@/core/data/species'
-import { HeldItem, Inventory, Party } from '@/core/traits'
-import { equiparCriatura } from '@/core/actions'
+import { playerEntity, world } from '@/core/world/world'
+import {
+  CreatureLevel,
+  HeldItem,
+  Inventory,
+  InventoryCell,
+  Pokemon,
+} from '@/core/traits'
+import {
+  colocarNoTime,
+  countItem,
+  countVisibleItem,
+  desequiparMao,
+  equiparNaMao,
+  listOwnedPokemon,
+  moverNoInventario,
+  organizarInventario,
+  resolveInventoryCells,
+  tirarDoTime,
+} from '@/core/actions'
+import { formatSpeciesName } from '@/view/shared/formatName'
+import { useOwnedPokemon, usePartyPokemon } from '@/view/hooks/usePartyPokemon'
+import { useTraitVersion } from '@/view/hooks/useTraitVersion'
 import { SlotPreview, getSlotColor } from '../shared/SlotPreview'
-import { PlayerPreview } from './PlayerPreview'
+import { InventoryDetails, formatItemName } from './inventory/InventoryDetails'
 
-const GRID_SIZE = 25 // 5x5
+// Grade de posição livre (docs/features/041-inventario-de-itens-e-
+// pokemon.md): no mínimo `MIN_ROWS` linhas, e sempre uma célula livre
+// depois da última ocupada, pra dar onde soltar.
+const GRID_COLUMNS = 5
+const MIN_ROWS = 5
 
 const PARTY_SLOTS = ['slot1', 'slot2', 'slot3']
 
-const CREATURE_SPECIES = listSpecies().filter(
-  (species) => resolveSpeciesKind(species) === 'pokemon',
-)
-
-// Tipo MIME custom por categoria de slot — arrastar de verdade (não só ler
-// o valor) exige saber ANTES do drop se o que está sendo arrastado é
-// compatível com o slot embaixo do cursor, pra colorir o destino
-// (compatível/incompatível) durante o arraste. `dataTransfer.getData()` só
-// devolve valor no `drop`; durante `dragover` só dá pra ver quais tipos
-// existem (`dataTransfer.types`) — por isso o tipo em si já carrega a
-// categoria, o valor (id) só é lido no drop de verdade.
+// Tipo MIME por tipo de coisa arrastada — durante o `dragover` o browser só
+// mostra os TIPOS (não os valores), então o tipo já diz se é item ou
+// Pokémon, pra colorir o destino compatível/incompatível. O valor (id do
+// item, ou o registro do Pokémon como texto) só é lido no `drop`.
 const DRAG_TYPE = {
-  item: 'text/x-equip-item',
-  creature: 'text/x-equip-creature',
+  item: 'text/x-inventory-item',
+  creature: 'text/x-inventory-creature',
 }
 
-// Tipo MIME que só existe quando o arraste começou num slot de equipamento
-// já ocupado (ver `EquippedSlot`) — o valor é o id de origem (`'hand'` pra
-// mão, ou o nome do slot de time, ex. `'slot1'`). A grade do inventário
-// (`InventoryPanel`, área de fundo) escuta só esse tipo pra saber que
-// soltar ali significa "desequipar", sem precisar saber o item/criatura em
-// si (já sai do próprio trait, não precisa ir e voltar pelo dataTransfer).
-const UNEQUIP_TYPE = 'text/x-unequip-slot'
+// De onde o arraste saiu: `'grid'`, `'hand'` ou o slot do time (`'slot1'`…).
+// Decide o que soltar faz (mover na grade, desequipar, tirar do time).
+const ORIGIN_TYPE = 'text/x-inventory-origin'
 
 /**
- * Imagem de arraste custom — em vez do fantasma nativo do browser (um
- * recorte do próprio elemento HTML), desenha num canvas fora da tela o
- * mesmo desenho do `SlotPreview` (quadrado pra item, círculo pra criatura,
- * mesma cor por categoria via `getSlotColor`), pra ficar visualmente
- * coerente com o resto do HUD/inventário em vez de parecer arrastar um
- * pedaço de UI de navegador. `setDragImage` exige que o elemento esteja no
- * DOM no instante da chamada (mesmo invisível) — por isso o canvas é
- * anexado, usado, e removido logo em seguida (`setTimeout` 0: depois que o
- * browser já tirou o snapshot pro arraste).
+ * Imagem de arraste — desenho no mesmo estilo do `SlotPreview` (quadrado
+ * pra item, círculo pra Pokémon, cor por categoria/espécie) num canvas fora
+ * da tela, em vez do recorte do elemento HTML que o browser faria.
+ * `setDragImage` exige o elemento no DOM na hora; removido logo depois.
  */
-function createDragImage(kind, id) {
+function createDragImage(kind, colorId) {
   const canvas = document.createElement('canvas')
   canvas.width = 40
   canvas.height = 40
@@ -58,7 +64,7 @@ function createDragImage(kind, id) {
   canvas.style.left = '-1000px'
 
   const ctx = canvas.getContext('2d')
-  ctx.fillStyle = getSlotColor(kind, id)
+  ctx.fillStyle = getSlotColor(kind, colorId)
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)'
   ctx.lineWidth = 2
 
@@ -76,289 +82,385 @@ function createDragImage(kind, id) {
   return canvas
 }
 
-/** Uma entrada por id único de item (com a contagem da pilha, descontada a
- * unidade equipada — ver abaixo) + uma por criatura disponível e não
- * ocupando slot de time nenhum, preenchendo uma grade fixa de `GRID_SIZE`
- * — o resto fica vazio. Mesma simplificação já usada no `Party`: toda
- * espécie `kind: 'pokemon'` conta como "disponível", sem rastrear posse de
- * criatura de verdade ainda (sem sistema de captura).
- *
- * O que está equipado (mão ou time) some da grade — não fica em dois
- * lugares ao mesmo tempo. Pra item, isso é só a contagem visível caindo
- * uma unidade (o resto da pilha continua ali); pra criatura, é a entrada
- * inteira sumindo (não há pilha, é presença/ausência). `heldItemId`/
- * `equippedSpeciesIds` são lidos de `HeldItem`/`Party` no momento da
- * renderização — a grade recalcula sozinha a cada equipar/desequipar. */
-function buildSlots(inventory, heldItemId, equippedSpeciesIds) {
-  const uniqueItemIds = [...new Set(inventory.itemIds)]
-  const itemEntries = uniqueItemIds
-    .map((itemId) => {
-      const total = inventory.itemIds.filter(
-        (candidate) => candidate === itemId,
-      ).length
-      const count = itemId === heldItemId ? total - 1 : total
-      return { kind: 'item', id: itemId, count }
-    })
-    .filter((entry) => entry.count > 0)
+/** Chave de uma entrada (item ou Pokémon). */
+function entryKey(entry) {
+  if (!entry) return null
+  return entry.kind === 'item' ? `item:${entry.id}` : `pokemon:${entry.pokemon}`
+}
 
-  const creatureEntries = CREATURE_SPECIES.filter(
-    (species) => !equippedSpeciesIds.includes(species.id),
-  ).map((species) => ({
-    kind: 'creature',
-    id: species.id,
-  }))
+/** Chave do que está sendo arrastado: a origem junto, porque o item da mão
+ * pode ter outra unidade na grade ao mesmo tempo. */
+function dragKeyOf(origin, entry) {
+  return entry ? `${origin}:${entryKey(entry)}` : null
+}
 
-  const entries = [...itemEntries, ...creatureEntries]
-  return Array.from({ length: GRID_SIZE }, (_, index) => entries[index] ?? null)
+/** O registro do jogador com este id (arrastado como texto), ou `null`. */
+function resolveDraggedPokemon(value) {
+  if (!value) return null
+  const id = Number(value)
+  return listOwnedPokemon(world, playerEntity).find((p) => p === id) ?? null
+}
+
+/** A entrada arrastada, lida do `dataTransfer` no `drop`. */
+function readDraggedEntry(dataTransfer) {
+  const itemId = dataTransfer.getData(DRAG_TYPE.item)
+  if (itemId) return { kind: 'item', id: itemId }
+  const pokemon = resolveDraggedPokemon(
+    dataTransfer.getData(DRAG_TYPE.creature),
+  )
+  return pokemon ? { kind: 'creature', pokemon } : null
+}
+
+function hasDragType(event, kinds) {
+  return kinds.some((kind) =>
+    event.dataTransfer.types.includes(DRAG_TYPE[kind]),
+  )
+}
+
+/** Texto do tooltip de uma entrada. */
+function useEntryTitle(entry) {
+  const speciesId = useTrait(entry?.pokemon, Pokemon)?.speciesId
+  const level = useTrait(entry?.pokemon, CreatureLevel)?.level
+  if (!entry) return undefined
+  if (entry.kind === 'item') return formatItemName(entry.id)
+  const name = formatSpeciesName(speciesId)
+  return level != null ? `${name} · Nv. ${level}` : name
 }
 
 /**
- * Inventário — único lugar que equipa mão principal/time (ver
- * docs/features/018-preview-de-equipamento-no-inventario.md, revisado em
- * docs/features/019-drag-and-drop-no-inventario.md: equipar agora é por
- * arrastar, não clicar). Grade 5x5 à esquerda com tudo que o jogador tem:
- * itens (`Inventory`) e criaturas disponíveis (mesma lista do `Party`).
- * Sem ícone/modelo de verdade ainda: item vira um quadrado colorido por
- * categoria (com a quantidade, sempre visível); criatura vira uma esfera
- * na cor dela (`CREATURE_TINTS`, compartilhado com a renderização 3D em
- * `view/scene/CreatureView.jsx`).
+ * Inventário — único lugar que monta o time e equipa a mão. À esquerda, a
+ * grade de posição livre com os itens (com quantidade) e os Pokémon fora do
+ * time; à direita, o time (3 slots) e a mão, e embaixo os detalhes do que
+ * foi clicado (`InventoryDetails`). Nome só no tooltip.
  *
- * À direita, um preview do jogador com os slots de equipamento ao redor
- * (`EquipmentPreview`) — arrastar um item/criatura da grade até um slot
- * equipa ali, com o slot mudando de cor durante o arraste conforme é
- * compatível (item só na mão, criatura só no time) ou não. E o inverso
- * também funciona: arrastar de um slot de equipamento já ocupado de volta
- * pra grade desequipa (a grade inteira vira alvo de "soltar aqui pra
- * desequipar" nesse caso, mesmo sinal visual verde/vermelho — aqui sempre
- * verde, já que qualquer slot ocupado pode ser desequipado).
+ * Arrastar e soltar:
+ * - dentro da grade: move pra célula; se ocupada, as duas trocam;
+ * - grade → slot do time / mão: põe no time (`colocarNoTime`) / equipa
+ *   (`equiparNaMao`);
+ * - slot → outro slot: os dois trocam;
+ * - slot / mão → grade: tira do time / desequipa, na célula onde soltou
+ *   (ou na primeira livre, soltando fora das células). Soltar um Pokémon do
+ *   time sobre outro da grade troca os dois.
  *
- * O que está equipado não continua listado na grade (ver `buildSlots`) —
- * só existe em um lugar de cada vez, igual peguei/larguei de verdade.
+ * Enquanto arrasta, a origem vira uma célula vazia. O que está sendo
+ * arrastado vive AQUI (`dragKey`), não em cada célula: o fim do arraste nem
+ * sempre chega (a célula de origem pode sumir no `drop`), e todo `drop`
+ * também limpa.
+ *
+ * "Organizar" arruma a grade sem buracos (`organizarInventario`).
  */
 export function InventoryPanel() {
   const inventory = useTrait(playerEntity, Inventory)
-  const party = useTrait(playerEntity, Party)
   const heldItem = useTrait(playerEntity, HeldItem)
-  const [unequipHover, setUnequipHover] = useState(false)
+  const party = usePartyPokemon(playerEntity)
+  // Os dois só pra re-renderizar: Pokémon entrando/saindo do jogador e
+  // mudando de célula.
+  useOwnedPokemon(playerEntity)
+  useTraitVersion(InventoryCell)
 
-  if (!inventory || !party || !heldItem) return null
+  const [dragKey, setDragKey] = useState(null)
+  const [selection, setSelection] = useState(null)
+  const [gridHover, setGridHover] = useState(false)
+  const dragActive = useRef(false)
 
-  const equippedSpeciesIds = PARTY_SLOTS.map((slot) => party[slot]).filter(
-    Boolean,
-  )
-  const slots = buildSlots(inventory, heldItem.itemId, equippedSpeciesIds)
+  if (!inventory || !heldItem) return null
 
-  const handleGridDragOver = (event) => {
-    if (!event.dataTransfer.types.includes(UNEQUIP_TYPE)) return
-    event.preventDefault()
-    setUnequipHover(true)
+  const cells = resolveInventoryCells(world, playerEntity)
+  const lastIndex = Math.max(-1, ...cells.keys())
+  const rows = Math.max(MIN_ROWS, Math.ceil((lastIndex + 2) / GRID_COLUMNS))
+
+  const drag = {
+    key: dragKey,
+    start(event, entry, origin, colorId) {
+      const value = entry.kind === 'item' ? entry.id : String(entry.pokemon)
+      event.dataTransfer.setData(DRAG_TYPE[entry.kind], value)
+      event.dataTransfer.setData(ORIGIN_TYPE, origin)
+      event.dataTransfer.effectAllowed = 'move'
+      const dragImage = createDragImage(entry.kind, colorId)
+      event.dataTransfer.setDragImage(dragImage, 20, 20)
+      setTimeout(() => dragImage.remove(), 0)
+      // Esconder a origem só no próximo tick: mexer nela no próprio
+      // `dragstart` cancela o arraste. Se o arraste já acabou, não esconde.
+      dragActive.current = true
+      const key = dragKeyOf(origin, entry)
+      setTimeout(() => {
+        if (dragActive.current) setDragKey(key)
+      }, 0)
+    },
+    end() {
+      dragActive.current = false
+      setDragKey(null)
+      setGridHover(false)
+    },
   }
 
-  const handleGridDrop = (event) => {
-    if (!event.dataTransfer.types.includes(UNEQUIP_TYPE)) return
-    event.preventDefault()
-    setUnequipHover(false)
-    const originId = event.dataTransfer.getData(UNEQUIP_TYPE)
-    if (!originId) return
-    if (originId === 'hand') {
-      playerEntity.set(HeldItem, { itemId: null })
-    } else {
-      equiparCriatura(playerEntity, originId, null)
+  /** Soltar algo vindo da mão ou do time na `index` (ou na primeira livre). */
+  const dropFromEquipment = (origin, index) => {
+    if (origin === 'hand') desequiparMao(world, playerEntity, index)
+    else if (party[origin]) {
+      tirarDoTime(world, playerEntity, party[origin], index)
     }
   }
 
+  const handleCellDrop = (event, index) => {
+    event.preventDefault()
+    event.stopPropagation()
+    const origin = event.dataTransfer.getData(ORIGIN_TYPE)
+    const entry = readDraggedEntry(event.dataTransfer)
+    if (origin === 'grid' && entry) {
+      moverNoInventario(world, playerEntity, entry, index)
+    } else {
+      dropFromEquipment(origin, index)
+    }
+    drag.end()
+  }
+
+  const handleGridDragOver = (event) => {
+    if (!hasDragType(event, ['item', 'creature'])) return
+    event.preventDefault()
+    setGridHover(true)
+  }
+
+  const handleGridDrop = (event) => {
+    event.preventDefault()
+    dropFromEquipment(event.dataTransfer.getData(ORIGIN_TYPE), null)
+    drag.end()
+  }
+
+  const selectionKey = entryKey(selection)
+
   return (
     <div className="flex gap-3">
-      <div
-        onDragOver={handleGridDragOver}
-        onDragLeave={() => setUnequipHover(false)}
-        onDrop={handleGridDrop}
-        className={`grid grid-cols-5 gap-1 rounded p-1 transition-colors ${
-          unequipHover ? 'bg-emerald-900/40' : ''
-        }`}
-      >
-        {slots.map((entry, index) => (
-          <InventorySlot key={index} entry={entry} />
-        ))}
+      <div className="flex min-w-0 flex-1 flex-col gap-2">
+        <div className="flex justify-end">
+          <button
+            type="button"
+            className="rounded bg-white/10 px-2 py-1 text-[11px] hover:bg-white/20"
+            onClick={() => organizarInventario(world, playerEntity)}
+          >
+            Organizar
+          </button>
+        </div>
+        <div
+          onDragOver={handleGridDragOver}
+          onDragLeave={() => setGridHover(false)}
+          onDrop={handleGridDrop}
+          className={`grid max-h-80 grid-cols-5 content-start gap-1 overflow-y-auto rounded p-1 transition-colors ${
+            gridHover ? 'bg-emerald-900/30' : ''
+          }`}
+        >
+          {Array.from({ length: rows * GRID_COLUMNS }, (_, index) => {
+            const entry = cells.get(index) ?? null
+            return (
+              <GridCell
+                key={index}
+                entry={entry}
+                dragging={entry != null && dragKey === dragKeyOf('grid', entry)}
+                selected={
+                  selectionKey != null && entryKey(entry) === selectionKey
+                }
+                drag={drag}
+                onSelect={setSelection}
+                onDrop={(event) => handleCellDrop(event, index)}
+              />
+            )
+          })}
+        </div>
       </div>
 
-      <EquipmentPreview heldItem={heldItem} party={party} />
+      <div className="flex w-56 shrink-0 flex-col gap-2">
+        <div className="flex items-end justify-between gap-1">
+          {PARTY_SLOTS.map((slot) => (
+            <PartySlot
+              key={slot}
+              slot={slot}
+              pokemon={party[slot]}
+              drag={drag}
+              selectionKey={selectionKey}
+              onSelect={setSelection}
+            />
+          ))}
+          <HandSlot
+            itemId={heldItem.itemId}
+            drag={drag}
+            selectionKey={selectionKey}
+            onSelect={setSelection}
+          />
+        </div>
+        <InventoryDetails
+          selection={selection}
+          itemCount={
+            selection?.kind === 'item'
+              ? countItem(playerEntity, selection.id)
+              : 0
+          }
+          heldItemId={heldItem.itemId}
+        />
+      </div>
     </div>
   )
 }
 
-/** Uma célula da grade — fonte de arraste (pra equipar). Enquanto o
- * próprio arraste dela está em andamento, fica `invisible` (some do lugar
- * de origem, mas mantém o espaço reservado na grade — sem isso a grade
- * "pularia" célula durante o arraste): o único lugar em que o item
- * continua visível nesse instante é a imagem de arraste sob o cursor
- * (`createDragImage`). Some pra valer (não volta a ficar visível) se o
- * drop terminar em equipar — `buildSlots` já não vai incluir mais essa
- * entrada na próxima renderização. */
-function InventorySlot({ entry }) {
-  const [dragging, setDragging] = useState(false)
+/** Contorno da célula/slot: alvo compatível/incompatível, selecionado ou normal. */
+function frameClass({ selected, dropStatus }) {
+  if (dropStatus === 'compatible') return 'border-emerald-400 bg-emerald-900/50'
+  if (dropStatus === 'incompatible') return 'border-red-500 bg-red-900/50'
+  if (selected) return 'border-amber-300 bg-black/40'
+  return 'border-white/20 bg-black/40'
+}
 
-  if (!entry) {
-    return (
-      <div className="aspect-square rounded border border-dashed border-white/10" />
-    )
+/** Uma célula da grade: alvo de `drop` sempre; com conteúdo (e não sendo
+ * arrastada), também origem de arraste e clicável. Vazia ou com o conteúdo
+ * em arraste, aparece como célula vazia. */
+function GridCell({ entry, dragging, selected, drag, onSelect, onDrop }) {
+  const [dropStatus, setDropStatus] = useState(null)
+  const title = useEntryTitle(entry)
+  const speciesId = useTrait(entry?.pokemon, Pokemon)?.speciesId
+  const visible = entry != null && !dragging
+  const colorId = entry?.kind === 'creature' ? speciesId : entry?.id
+
+  const handleDragOver = (event) => {
+    if (!hasDragType(event, ['item', 'creature'])) return
+    event.preventDefault()
+    event.stopPropagation()
+    setDropStatus('compatible')
   }
-
-  const handleDragStart = (event) => {
-    event.dataTransfer.setData(DRAG_TYPE[entry.kind], entry.id)
-    event.dataTransfer.effectAllowed = 'copy'
-    const dragImage = createDragImage(entry.kind, entry.id)
-    event.dataTransfer.setDragImage(dragImage, 20, 20)
-    setTimeout(() => dragImage.remove(), 0)
-    // Esconder a origem só no próximo tick, não aqui dentro: o browser
-    // cancela o arraste na hora se o elemento de origem some (mesmo só
-    // `visibility: hidden`) antes do drag terminar de "pegar o instantâneo"
-    // — sumir cedo demais é o que fazia o próprio arraste nem começar.
-    setTimeout(() => setDragging(true), 0)
-  }
-
-  const handleDragEnd = () => setDragging(false)
-
-  const visibilityClass = dragging ? 'invisible' : ''
-
-  if (entry.kind === 'creature') {
-    return (
-      <div
-        draggable
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-        title={entry.id}
-        className={`flex aspect-square cursor-grab flex-col items-center justify-center gap-0.5 rounded border border-white/20 bg-black/40 p-1 hover:border-white/50 active:cursor-grabbing ${visibilityClass}`}
-      >
-        <SlotPreview kind="creature" id={entry.id} />
-        <span className="w-full truncate text-center text-[8px] text-white/70">
-          {entry.id}
-        </span>
-      </div>
-    )
-  }
-
-  const item = getItem(entry.id)
 
   return (
     <div
-      draggable
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-      title={`${entry.id} (${item?.category}) x${entry.count}`}
-      className={`flex aspect-square cursor-grab flex-col items-center justify-center gap-0.5 rounded border border-white/20 bg-black/40 p-1 hover:border-white/50 active:cursor-grabbing ${visibilityClass}`}
+      draggable={visible}
+      onDragStart={
+        visible
+          ? (event) => drag.start(event, entry, 'grid', colorId)
+          : undefined
+      }
+      onDragEnd={drag.end}
+      onDragOver={handleDragOver}
+      onDragLeave={() => setDropStatus(null)}
+      onDrop={(event) => {
+        setDropStatus(null)
+        onDrop(event)
+      }}
+      onClick={visible ? () => onSelect(entry) : undefined}
+      title={visible ? title : undefined}
+      className={`flex aspect-square items-center justify-center rounded border p-1 transition-colors ${frameClass(
+        { selected: visible && selected, dropStatus },
+      )} ${visible ? 'cursor-grab active:cursor-grabbing' : 'border-dashed'}`}
     >
-      <SlotPreview kind="item" id={entry.id} count={entry.count} />
-      <span className="w-full truncate text-center text-[8px] text-white/70">
-        {entry.id}
-      </span>
+      {visible && entry.kind === 'item' && (
+        <SlotPreview
+          kind="item"
+          id={entry.id}
+          count={countVisibleItem(playerEntity, entry.id)}
+        />
+      )}
+      {visible && entry.kind === 'creature' && (
+        <SlotPreview kind="creature" id={speciesId} />
+      )}
     </div>
   )
 }
 
-/** Preview do jogador com os slots de equipamento ao redor: time (3) em
- * cima, mão principal embaixo. Cada slot é um alvo de "soltar" — arrastar
- * um item/criatura da grade até aqui equipa ali. Atualiza ao vivo junto
- * com `HeldItem`/`Party` (mesmos traits que o drop escreve). */
-function EquipmentPreview({ heldItem, party }) {
+/** Slot do time: aceita Pokémon (da grade ou de outro slot); arrasta pra
+ * grade (tira do time) ou pra outro slot (troca). */
+function PartySlot({ slot, pokemon, drag, selectionKey, onSelect }) {
+  const entry = pokemon ? { kind: 'creature', pokemon } : null
+  const speciesId = useTrait(pokemon, Pokemon)?.speciesId
   return (
-    <div className="flex w-44 shrink-0 flex-col items-center gap-2">
-      <div className="flex gap-1">
-        {PARTY_SLOTS.map((slot) => (
-          <EquippedSlot
-            key={slot}
-            kind="creature"
-            id={party[slot]}
-            originId={slot}
-            label={slot.replace('slot', '')}
-            onEquip={(speciesId) =>
-              equiparCriatura(playerEntity, slot, speciesId)
-            }
-          />
-        ))}
-      </div>
-      <PlayerPreview />
-      <EquippedSlot
-        kind="item"
-        id={heldItem.itemId}
-        originId="hand"
-        label="mão"
-        onEquip={(itemId) => playerEntity.set(HeldItem, { itemId })}
-      />
-    </div>
+    <EquipmentSlot
+      label={slot.replace('slot', '')}
+      entry={entry}
+      colorId={speciesId}
+      origin={slot}
+      accepts="creature"
+      drag={drag}
+      selected={selectionKey != null && entryKey(entry) === selectionKey}
+      onSelect={onSelect}
+      onDropEntry={(dropped) =>
+        colocarNoTime(playerEntity, dropped.pokemon, slot)
+      }
+    />
   )
 }
 
-/** Um slot de equipamento — alvo de drop, e (quando ocupado) também fonte
- * de arraste, pra permitir desequipar (arrastar pra fora, soltar na grade
- * do inventário — ver `InventoryPanel`). `kind` decide o tipo aceito como
- * alvo (`item` só na mão, `creature` só no time); durante o arraste, o
- * slot fica verde se o que está sendo arrastado é compatível, vermelho se
- * não (`dragover` só enxerga o *tipo* MIME, não o valor — dá pra saber a
- * categoria sem saber ainda qual item/criatura é). Só aceita o drop de
- * verdade (`preventDefault`) quando compatível — senão o browser já mostra
- * o cursor de "não pode soltar aqui" sozinho.
- *
- * `originId` (`'hand'` ou o nome do slot de time) só é usado como fonte —
- * é o valor gravado em `UNEQUIP_TYPE`, pra grade saber qual slot limpar ao
- * soltar ali. Igual à célula da grade (`InventorySlot`), enquanto o
- * próprio arraste pra fora está em andamento o preview some daqui —
- * continua só na imagem de arraste sob o cursor. */
-function EquippedSlot({ kind, id, originId, label, onEquip }) {
-  const [dragStatus, setDragStatus] = useState(null)
-  const [dragging, setDragging] = useState(false)
-  const expectedType = DRAG_TYPE[kind]
+/** Mão principal: aceita item da grade; arrasta pra grade (desequipa). */
+function HandSlot({ itemId, drag, selectionKey, onSelect }) {
+  const entry = itemId ? { kind: 'item', id: itemId } : null
+  return (
+    <EquipmentSlot
+      label="mão"
+      entry={entry}
+      colorId={itemId}
+      origin="hand"
+      accepts="item"
+      drag={drag}
+      selected={selectionKey != null && entryKey(entry) === selectionKey}
+      onSelect={onSelect}
+      onDropEntry={(dropped) => equiparNaMao(world, playerEntity, dropped.id)}
+    />
+  )
+}
+
+/**
+ * Um slot de equipamento (time ou mão). Alvo de `drop` do tipo `accepts`
+ * (verde se o arrastado é compatível, vermelho se não); com conteúdo,
+ * origem de arraste e clicável. Enquanto o próprio conteúdo é arrastado,
+ * aparece vazio.
+ */
+function EquipmentSlot({
+  label,
+  entry,
+  colorId,
+  origin,
+  accepts,
+  drag,
+  selected,
+  onSelect,
+  onDropEntry,
+}) {
+  const [dropStatus, setDropStatus] = useState(null)
+  const title = useEntryTitle(entry)
+  const dragging = entry != null && drag.key === dragKeyOf(origin, entry)
+  const visible = entry != null && !dragging
 
   const handleDragOver = (event) => {
-    if (event.dataTransfer.types.includes(expectedType)) {
+    if (hasDragType(event, [accepts])) {
       event.preventDefault()
-      setDragStatus('compatible')
+      setDropStatus('compatible')
     } else {
-      setDragStatus('incompatible')
+      setDropStatus('incompatible')
     }
   }
 
   const handleDrop = (event) => {
     event.preventDefault()
-    setDragStatus(null)
-    const droppedId = event.dataTransfer.getData(expectedType)
-    if (droppedId) onEquip(droppedId)
+    setDropStatus(null)
+    const dropped = readDraggedEntry(event.dataTransfer)
+    if (dropped?.kind === accepts) onDropEntry(dropped)
+    drag.end()
   }
-
-  const handleDragStart = (event) => {
-    event.dataTransfer.setData(expectedType, id)
-    event.dataTransfer.setData(UNEQUIP_TYPE, originId)
-    event.dataTransfer.effectAllowed = 'move'
-    const dragImage = createDragImage(kind, id)
-    event.dataTransfer.setDragImage(dragImage, 20, 20)
-    setTimeout(() => dragImage.remove(), 0)
-    // Mesmo motivo do InventorySlot: esconder de imediato cancela o
-    // próprio arraste em vez de só disfarçar a origem.
-    setTimeout(() => setDragging(true), 0)
-  }
-
-  const handleDragEnd = () => setDragging(false)
-
-  const statusClass =
-    dragStatus === 'compatible'
-      ? 'border-emerald-400 bg-emerald-900/50'
-      : dragStatus === 'incompatible'
-        ? 'border-red-500 bg-red-900/50'
-        : 'border-white/20 bg-black/40'
 
   return (
     <div
-      draggable={Boolean(id)}
-      onDragStart={id ? handleDragStart : undefined}
-      onDragEnd={id ? handleDragEnd : undefined}
+      draggable={visible}
+      onDragStart={
+        visible
+          ? (event) => drag.start(event, entry, origin, colorId)
+          : undefined
+      }
+      onDragEnd={drag.end}
       onDragOver={handleDragOver}
-      onDragLeave={() => setDragStatus(null)}
+      onDragLeave={() => setDropStatus(null)}
       onDrop={handleDrop}
-      className={`flex w-14 flex-col items-center gap-0.5 rounded border p-1 transition-colors ${statusClass} ${id ? 'cursor-grab active:cursor-grabbing' : ''}`}
+      onClick={visible ? () => onSelect(entry) : undefined}
+      title={visible ? title : undefined}
+      className={`flex w-12 flex-col items-center gap-0.5 rounded border p-1 transition-colors ${frameClass(
+        { selected: visible && selected, dropStatus },
+      )} ${visible ? 'cursor-grab active:cursor-grabbing' : ''}`}
     >
       <span className="text-[9px] text-white/50">{label}</span>
-      {id && !dragging ? (
-        <SlotPreview kind={kind} id={id} />
+      {visible ? (
+        <SlotPreview kind={entry.kind} id={colorId} />
       ) : (
         <span className="h-5 w-5 rounded border border-dashed border-white/20" />
       )}

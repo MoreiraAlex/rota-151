@@ -69,9 +69,9 @@ export const Vitals = trait({
  * vivo pra ler) — duplicar esta conta em dois lugares arriscava os
  * dois discordarem entre si.
  *
- * `individualValues` (opcional, `IndividualValues`/
- * `PartyIndividualValues` — ver docstring dos traits, `core/traits/
- * components/individualValues.js`/`partyIndividualValues.js`)
+ * `individualValues` (opcional, `IndividualValues` da criatura ou do
+ * registro do Pokémon — ver docstring do trait, `core/traits/
+ * components/individualValues.js`)
  * recalcula o `hp`/`energy` de verdade DESTA criatura via
  * `resolveCreatureStats`. Desde que IV virou sempre sorteado por
  * indivíduo — inclusive pro time do jogador, não só selvagem (ver

@@ -3,7 +3,7 @@ import { getSkill } from '../skills'
 /**
  * Golpes de uma criatura (docs/features/038-aprendizado-treino-e-dominio-de-
  * golpes.md) — o lado de DADO, puro: learnset da espécie, condições pra ficar
- * apto e o formato do estado por criatura (`CreatureMoves`/`PartyMoves`,
+ * apto e o formato do estado por criatura (`CreatureMoves`,
  * `core/traits/components/creatureMoves.js`).
  *
  * - `species.skills` (`{1,2,3}`) é o KIT INICIAL: nasce aprendido e dominado.

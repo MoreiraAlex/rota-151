@@ -34,8 +34,10 @@ function forEachTargetCandidate(world, targetSide, visit) {
     targetSide === 'wild' ? [WildCreature] : [SummonedCreature, Party]
   for (const side of sides) {
     world
-      .query(side, Position, Rotation, CharacterController, Vitals)
-      .readEach(([, pos, rot, controller, vitals], entity) =>
+      // O lado por último: `Party` é tag (sem dados) e não entra no array
+      // do `readEach` — no fim, não desalinha os outros.
+      .query(Position, Rotation, CharacterController, Vitals, side)
+      .readEach(([pos, rot, controller, vitals], entity) =>
         visit(entity, pos, rot, controller, vitals),
       )
   }

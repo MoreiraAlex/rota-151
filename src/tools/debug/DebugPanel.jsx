@@ -3,13 +3,10 @@
 import { useTrait, useTag, useQuery, useQueryFirst } from 'koota/react'
 import { playerEntity, cameraEntity, world } from '@/core/world/world'
 import { getItem, listItems } from '@/core/data/items'
+import { getSpecies } from '@/core/data/species'
 import {
-  getSpecies,
-  listSpecies,
-  resolveSpeciesKind,
-} from '@/core/data/species'
-import {
-  equiparCriatura,
+  desequiparMao,
+  equiparNaMao,
   ganharExperiencia,
   progredirTreino,
   somarDominio,
@@ -33,20 +30,17 @@ import {
   PathState,
   Vitals,
   HeldItem,
-  Party,
-  PartyMoves,
-  PartyProgress,
+  CreatureLevel,
+  CreatureMoves,
+  Pokemon,
   Projectile,
   SummonBall,
   SummonedCreature,
   applyDamage,
 } from '@/core/traits'
+import { usePartyPokemon } from '@/view/hooks/usePartyPokemon'
 
 const MOOD_OPTIONS = ['awake', 'sleeping', 'angry', 'faint']
-
-const CREATURE_SPECIES = listSpecies().filter(
-  (species) => resolveSpeciesKind(species) === 'pokemon',
-)
 
 const DEBUG_DAMAGE_AMOUNT = 20
 
@@ -82,7 +76,7 @@ export function DebugPanel() {
   const mood = useTrait(controlled, Mood)
   const controlledCreature = useTrait(controlled, SummonedCreature)
   const heldItem = useTrait(playerEntity, HeldItem)
-  const party = useTrait(playerEntity, Party)
+  const party = usePartyPokemon(playerEntity)
   const playerPath = useTrait(playerEntity, PathState)
   const projectiles = useQuery(Projectile, Position)
   const summonBalls = useQuery(SummonBall, Position)
@@ -214,7 +208,12 @@ export function DebugPanel() {
         className="pointer-events-auto rounded bg-black/60 px-1 py-0.5 text-[10px] text-white"
         value={heldItem.itemId ?? ''}
         onChange={(event) => {
-          playerEntity.set(HeldItem, { itemId: event.target.value || null })
+          // Pelas actions, pra grade do Inventário acompanhar a mão. Item que
+          // o jogador não tem ainda vai pra mão direto (teste de item).
+          const itemId = event.target.value || null
+          desequiparMao(world, playerEntity)
+          if (!itemId || equiparNaMao(world, playerEntity, itemId)) return
+          playerEntity.set(HeldItem, { itemId })
         }}
       >
         <option value="">nenhum</option>
@@ -225,16 +224,12 @@ export function DebugPanel() {
         ))}
       </select>
       <hr className="border-white/20" />
-      <p>
-        time: {party.slot1 ?? '—'} · {party.slot2 ?? '—'} · {party.slot3 ?? '—'}
-      </p>
-      <PartySlotSelect slot="slot1" value={party.slot1} />
-      <PartySlotSelect slot="slot2" value={party.slot2} />
-      <PartySlotSelect slot="slot3" value={party.slot3} />
+      {/* O time se monta pelo Inventário (docs/features/041-inventario-de-
+          itens-e-pokemon.md); aqui só os botões de teste por slot. */}
       {['slot1', 'slot2', 'slot3'].map((slot) => (
         <div key={slot}>
-          <PartySlotExperience slot={slot} />
-          <PartySlotMoves slot={slot} />
+          <PartySlotExperience slot={slot} pokemon={party[slot]} />
+          <PartySlotMoves pokemon={party[slot]} />
         </div>
       ))}
       <hr className="border-white/20" />
@@ -304,43 +299,20 @@ function PathStatusRow({ label, pathState }) {
   )
 }
 
-/** Seletor de uma criatura (id de espécie `kind: 'pokemon'`) pra um slot do
- * time — via `equiparCriatura` (`core/actions/party.js`), não
- * `playerEntity.set(Party, ...)` direto: a action também sorteia/congela
- * o IV daquele slot (`PartyIndividualValues`), mesmo padrão do seletor
- * de item acima (que não precisa disso — item não tem IV). */
-function PartySlotSelect({ slot, value }) {
-  return (
-    <select
-      className="pointer-events-auto rounded bg-black/60 px-1 py-0.5 text-[10px] text-white"
-      value={value ?? ''}
-      onChange={(event) => {
-        equiparCriatura(playerEntity, slot, event.target.value || null)
-      }}
-    >
-      <option value="">{slot}: nenhuma</option>
-      {CREATURE_SPECIES.map((species) => (
-        <option key={species.id} value={species.id}>
-          {slot}: {species.id}
-        </option>
-      ))}
-    </select>
-  )
-}
-
 /**
  * Nível/XP de um slot do time + botão "+XP" (`ganharExperiencia`, mesma
  * action do desmaio de uma selvagem) — pra testar a subida de nível sem
  * caçar selvagem (docs/features/037-experiencia-e-nivel.md). Sem a fila de
  * eventos do loop aqui, então sem o texto flutuante: só o estado muda.
  */
-function PartySlotExperience({ slot }) {
-  const progress = useTrait(playerEntity, PartyProgress)?.[slot]
+function PartySlotExperience({ slot, pokemon }) {
+  const speciesId = useTrait(pokemon, Pokemon)?.speciesId
+  const progress = useTrait(pokemon, CreatureLevel)
   if (!progress) return null
   return (
     <div className="flex items-center gap-2 text-[10px] text-white/60">
       <span>
-        {slot}: nv {progress.level} · {progress.xp} xp
+        {slot} {speciesId}: nv {progress.level} · {progress.xp} xp
       </span>
       <button
         type="button"
@@ -349,8 +321,7 @@ function PartySlotExperience({ slot }) {
           ganharExperiencia(
             world,
             null,
-            playerEntity,
-            slot,
+            pokemon,
             GAME_CONFIG.EXPERIENCE.DEBUG_XP_AMOUNT,
           )
         }}
@@ -367,10 +338,10 @@ function PartySlotExperience({ slot }) {
  * APTO (ou pronto), "+domínio" soma domínio nos 3 slots — pra testar o ciclo
  * sem treinar nem lutar. Sem a fila de eventos do loop (como o "+XP").
  */
-function PartySlotMoves({ slot }) {
-  const moves = useTrait(playerEntity, PartyMoves)?.[slot]
-  const speciesId = useTrait(playerEntity, Party)?.[slot]
-  const level = useTrait(playerEntity, PartyProgress)?.[slot]?.level ?? 1
+function PartySlotMoves({ pokemon }) {
+  const moves = useTrait(pokemon, CreatureMoves)
+  const speciesId = useTrait(pokemon, Pokemon)?.speciesId
+  const level = useTrait(pokemon, CreatureLevel)?.level ?? 1
   if (!moves || !speciesId) return null
 
   const apt = listLearnset(getSpecies(speciesId)).find(
@@ -397,8 +368,7 @@ function PartySlotMoves({ slot }) {
             progredirTreino(
               world,
               null,
-              playerEntity,
-              slot,
+              pokemon,
               apt.id,
               GAME_CONFIG.MOVES.TRAINING.DEBUG_PROGRESS,
             )
@@ -413,8 +383,7 @@ function PartySlotMoves({ slot }) {
             for (const moveSlot of MOVE_SLOTS) {
               somarDominio(
                 world,
-                playerEntity,
-                slot,
+                pokemon,
                 moveSlot,
                 GAME_CONFIG.MOVES.DEBUG_MASTERY,
               )

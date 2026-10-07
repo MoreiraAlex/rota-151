@@ -221,7 +221,7 @@ export function TypeBadges({ types, compact = false, align = 'center' }) {
 /**
  * Fração de XP (0 a 1) do nível atual até o próximo — o anel ao redor do
  * retrato. `progress` é o `{ level, xp }` DESTA criatura (`CreatureLevel` em
- * campo, `PartyProgress[slot]` na bola — docs/features/037-experiencia-e-
+ * campo ou no registro do Pokémon — docs/features/037-experiencia-e-
  * nivel.md). Sem `progress` (treinador) ou sem `xp` (histórico de scan,
  * que só guarda o nível), anel vazio.
  */

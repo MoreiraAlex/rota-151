@@ -6,6 +6,9 @@
  */
 export const POTION = {
   id: 'potion',
+  name: 'Poção',
+  // Texto provisório (docs/features/041-inventario-de-itens-e-pokemon.md).
+  description: 'Restaura um pouco da vida do treinador.',
   category: 'consumable',
   consumable: {
     // HP curado ao usar (soma direto, não é %).

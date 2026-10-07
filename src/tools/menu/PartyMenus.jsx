@@ -1,12 +1,16 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useTrait } from 'koota/react'
+import { useTarget, useTrait } from 'koota/react'
 import {
   MoveLearnRequest,
   PartyActionMenu as PartyActionMenuTrait,
 } from '@/core/traits'
-import { adiarAprendizado, fecharMenuDeAcoes } from '@/core/actions'
+import {
+  adiarAprendizado,
+  fecharMenuDeAcoes,
+  resolveMoveLearnRequest,
+} from '@/core/actions'
 import { PartyActionMenu } from './PartyActionMenu'
 import { ForgetMoveDialog } from './ForgetMoveDialog'
 
@@ -26,9 +30,8 @@ import { ForgetMoveDialog } from './ForgetMoveDialog'
  */
 export function PartyMenus({ trainer, onRelock }) {
   const menu = useTrait(trainer, PartyActionMenuTrait)
-  const request = useTrait(trainer, MoveLearnRequest)
+  const forgetting = !!useTarget(trainer, MoveLearnRequest)
   const menuSlot = menu?.slot ?? null
-  const forgetting = !!request?.moveId
   const open = !!menuSlot || forgetting
 
   useEffect(() => {
@@ -37,7 +40,8 @@ export function PartyMenus({ trainer, onRelock }) {
     if (document.pointerLockElement) document.exitPointerLock()
 
     const close = () => {
-      if (trainer.get(MoveLearnRequest)?.moveId) adiarAprendizado(trainer)
+      const request = resolveMoveLearnRequest(trainer)
+      if (request) adiarAprendizado(request.pokemon)
       fecharMenuDeAcoes(trainer)
     }
     const onKeyDown = (event) => {

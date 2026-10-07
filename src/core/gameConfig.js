@@ -40,8 +40,8 @@ export const GAME_CONFIG = {
     },
     // Faixa de IV (individual value, convenção clássica de Pokémon)
     // sorteada pra QUALQUER criatura — selvagem, no spawn
-    // (`wildCreatureSpawnSystem.js`), ou do time do jogador, ao
-    // equipar (`core/actions/party.js`, `equiparCriatura`) — mesmo
+    // (`wildCreatureSpawnSystem.js`), ou do jogador, ao criar o
+    // registro (`core/actions/pokemon.js`, `criarPokemon`) — mesmo
     // range pros dois, IV é aleatório pra todo mundo (pedido do
     // usuário). Ver `rollIndividualValues`, `core/data/species/stats.js`.
     IV_MIN: 0,

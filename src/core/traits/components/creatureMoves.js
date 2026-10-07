@@ -1,4 +1,4 @@
-import { trait } from 'koota'
+import { relation, trait } from 'koota'
 import { createMovesState } from '../../data/species/moves'
 
 /**
@@ -11,8 +11,12 @@ import { createMovesState } from '../../data/species/moves'
  * Só a criatura do time tem; a selvagem usa o kit da espécie, dominado
  * (fallback de `resolveEntityMoves`).
  *
- * Donos de escrita: `summonBallSystem.js` (copia de `PartyMoves` ao invocar)
- * e as actions de `core/actions/moves.js`.
+ * Também é o trait dos golpes no registro do Pokémon (`Pokemon`), fonte de
+ * verdade de quem está fora de campo.
+ *
+ * Donos de escrita: `criarPokemon` (kit da espécie), `summonBallSystem.js`
+ * (copia do registro ao invocar) e as actions de `core/actions/moves.js`
+ * (escrevem no registro e na criatura em campo).
  */
 export const CreatureMoves = trait(() => ({
   slots: { 1: null, 2: null, 3: null },
@@ -20,30 +24,17 @@ export const CreatureMoves = trait(() => ({
 }))
 
 /**
- * Golpes de cada criatura do TIME, por slot, no treinador — fonte de verdade
- * da do time (a invocada é destruída/recriada a cada recolher/invocar). Mesmo
- * formato de `PartyProgress`: `null` (slot vazio) ou o estado de golpes.
- *
- * Donos de escrita: `equiparCriatura` (kit da espécie ao trocar a criatura do
- * slot) e as actions de `core/actions/moves.js`.
- */
-export const PartyMoves = trait({
-  slot1: null,
-  slot2: null,
-  slot3: null,
-})
-
-/**
- * Pedido pendente de "esquecer qual golpe?": o treino de `moveId` terminou na
- * criatura do `slot` do time, mas os 3 slots dela estão ocupados. `null` =
- * nada pendente. No treinador.
+ * Pedido pendente de "esquecer qual golpe?": o treino de `moveId` terminou no
+ * Pokémon alvo (o registro, `Pokemon`), mas os 3 slots dele estão ocupados.
+ * Relação exclusiva do TREINADOR pro registro — um pedido aberto por vez;
+ * sem ela, nada pendente.
  *
  * Donos de escrita: `progredirTreino`/`pedirAprendizado` (abrem),
  * `aprenderGolpe`/`adiarAprendizado` (fecham) — `core/actions/moves.js`.
  */
-export const MoveLearnRequest = trait({
-  slot: null,
-  moveId: null,
+export const MoveLearnRequest = relation({
+  exclusive: true,
+  store: { moveId: null },
 })
 
 /**

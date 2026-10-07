@@ -1,10 +1,14 @@
 'use client'
 
-import { useTrait, useWorld } from 'koota/react'
+import { useTarget, useTrait, useWorld } from 'koota/react'
 import { getSpecies } from '@/core/data/species'
 import { MOVE_SLOTS } from '@/core/data/species/moves'
-import { MoveLearnRequest, Party, PartyMoves } from '@/core/traits'
-import { adiarAprendizado, aprenderGolpe } from '@/core/actions'
+import { CreatureMoves, MoveLearnRequest, Pokemon } from '@/core/traits'
+import {
+  adiarAprendizado,
+  aprenderGolpe,
+  resolveMoveLearnRequest,
+} from '@/core/actions'
 import { formatSpeciesName } from '@/view/shared/statusDisplay'
 
 const SLOT_KEYS = { 1: 'Q', 2: 'E', 3: 'R' }
@@ -18,13 +22,14 @@ const SLOT_KEYS = { 1: 'Q', 2: 'E', 3: 'R' }
  */
 export function ForgetMoveDialog({ trainer }) {
   const world = useWorld()
-  const request = useTrait(trainer, MoveLearnRequest)
-  const party = useTrait(trainer, Party)
-  const partyMoves = useTrait(trainer, PartyMoves)
+  // `useTarget` acompanha o pedido (abrir, fechar, trocar de golpe); o
+  // `moveId` sai da relação na hora de desenhar.
+  const pokemon = useTarget(trainer, MoveLearnRequest)
+  const speciesId = useTrait(pokemon, Pokemon)?.speciesId
+  const moves = useTrait(pokemon, CreatureMoves)
 
-  const { slot, moveId } = request ?? {}
-  const species = slot ? getSpecies(party?.[slot]) : null
-  const moves = slot ? partyMoves?.[slot] : null
+  const moveId = pokemon ? resolveMoveLearnRequest(trainer)?.moveId : null
+  const species = getSpecies(speciesId)
   if (!moveId || !species || !moves) return null
 
   const speciesName = formatSpeciesName(species.id)
@@ -46,7 +51,7 @@ export function ForgetMoveDialog({ trainer }) {
                 type="button"
                 className="flex w-full items-center gap-2 rounded bg-white/10 px-3 py-2 text-left text-xs hover:bg-white/20"
                 onClick={() =>
-                  aprenderGolpe(world, null, trainer, slot, moveId, moveSlot)
+                  aprenderGolpe(world, null, pokemon, moveId, moveSlot)
                 }
               >
                 <span className="w-4 text-white/50">{SLOT_KEYS[moveSlot]}</span>
@@ -58,7 +63,7 @@ export function ForgetMoveDialog({ trainer }) {
         <button
           type="button"
           className="w-full rounded bg-white/5 px-3 py-2 text-xs text-white/70 hover:bg-white/10"
-          onClick={() => adiarAprendizado(trainer)}
+          onClick={() => adiarAprendizado(pokemon)}
         >
           Agora não
         </button>

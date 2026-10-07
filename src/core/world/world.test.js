@@ -2,10 +2,13 @@ import { describe, it, expect } from 'vitest'
 import { world, playerEntity, cameraEntity } from './world'
 import {
   getSpecies,
+  listSpecies,
   PLAYER_SPECIES_ID,
   resolveSpeciesKind,
 } from '@/core/data/species'
 import { getItem } from '@/core/data/items'
+import { countItem } from '@/core/actions/inventory'
+import { findPartyPokemon, listOwnedPokemon } from '@/core/actions/pokemon'
 import {
   Position,
   Rotation,
@@ -22,6 +25,8 @@ import {
   HeldItem,
   Inventory,
   Party,
+  PARTY_SLOT_IDS,
+  Pokemon,
   OrbitCamera,
 } from '@/core/traits'
 
@@ -96,19 +101,32 @@ describe('world (singleton)', () => {
   it('o player começa com um item do inventário equipado na mão', () => {
     const { itemId } = playerEntity.get(HeldItem)
     expect(getItem(itemId)).not.toBeNull()
-    expect(playerEntity.get(Inventory).itemIds).toContain(itemId)
+    expect(countItem(playerEntity, itemId)).toBeGreaterThan(0)
   })
 
   it('todo item do inventário inicial existe no registro', () => {
-    for (const id of playerEntity.get(Inventory).itemIds) {
+    for (const [id, amount] of Object.entries(
+      playerEntity.get(Inventory).counts,
+    )) {
       expect(getItem(id), id).not.toBeNull()
+      expect(amount, id).toBeGreaterThan(0)
     }
   })
 
-  it('o time inicial só tem criaturas (kind pokemon) do registro', () => {
-    for (const id of Object.values(playerEntity.get(Party))) {
-      if (id === null) continue
-      expect(resolveSpeciesKind(getSpecies(id)), id).toBe('pokemon')
+  it('começa com um Pokémon de cada espécie (kind pokemon), todos do player', () => {
+    const owned = listOwnedPokemon(world, playerEntity)
+    const speciesIds = owned.map((pokemon) => pokemon.get(Pokemon).speciesId)
+    const expected = listSpecies()
+      .filter((species) => resolveSpeciesKind(species) === 'pokemon')
+      .map((species) => species.id)
+    expect([...speciesIds].sort()).toEqual([...expected].sort())
+  })
+
+  it('o time inicial só tem Pokémon do próprio player', () => {
+    const owned = listOwnedPokemon(world, playerEntity)
+    for (const slot of PARTY_SLOT_IDS) {
+      const pokemon = findPartyPokemon(playerEntity, slot)
+      if (pokemon) expect(owned).toContain(pokemon)
     }
   })
 

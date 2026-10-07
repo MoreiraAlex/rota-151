@@ -5,6 +5,9 @@
  */
 export const ELIXIR = {
   id: 'elixir',
+  name: 'Elixir',
+  // Texto provisório (docs/features/041-inventario-de-itens-e-pokemon.md).
+  description: 'Restaura bastante vida do treinador.',
   category: 'consumable',
   consumable: {
     healAmount: 50,

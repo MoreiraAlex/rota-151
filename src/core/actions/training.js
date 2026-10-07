@@ -7,15 +7,15 @@ import {
   CombatMode,
   Fainted,
   InputControlled,
+  CreatureMoves,
   PartyBehavior,
-  PartyMoves,
   Position,
   Training,
   TrainingObject,
   Velocity,
 } from '../traits'
-import { findOwnedCreature } from './owner'
 import { podeTreinarGolpe } from './moves'
+import { findSummonedCreature } from './pokemon'
 
 /**
  * Treino de golpe (docs/features/038-aprendizado-treino-e-dominio-de-
@@ -49,12 +49,12 @@ export function isFighting(creature) {
 }
 
 /**
- * Por que a criatura do `slot` do `trainer` não pode treinar AGORA (independe do golpe):
+ * Por que o `pokemon` não pode treinar AGORA (independe do golpe):
  * `'not-summoned'` | `'fainted'` | `'controlled'` | `'in-combat'` |
  * `'no-object'` — ou `null`, se pode.
  */
-export function resolveTrainingBlock(world, trainer, slot) {
-  const creature = findOwnedCreature(world, trainer, slot)
+export function resolveTrainingBlock(world, pokemon) {
+  const creature = findSummonedCreature(world, pokemon)
   if (!creature) return 'not-summoned'
   if (creature.has(Fainted)) return 'fainted'
   if (creature.has(InputControlled)) return 'controlled'
@@ -66,32 +66,32 @@ export function resolveTrainingBlock(world, trainer, slot) {
 }
 
 /**
- * O que treinar `moveId` faz agora na criatura do `slot`: `'learn'` (apto, treino
+ * O que treinar `moveId` faz agora no `pokemon`: `'learn'` (apto, treino
  * ainda incompleto), `'master'` (equipado e ainda não dominado) ou `null`
  * (nada a treinar).
  */
-export function resolveTrainingGoal(trainer, slot, moveId) {
-  const state = trainer.get(PartyMoves)?.[slot]
+export function resolveTrainingGoal(pokemon, moveId) {
+  const state = pokemon?.get?.(CreatureMoves)
   if (!state) return null
   const moveSlot = findMoveSlot(state, moveId)
   if (moveSlot != null) {
     return state.slots[moveSlot].mastery < MAX_MASTERY ? 'master' : null
   }
-  if (!podeTreinarGolpe(trainer, slot, moveId)) return null
+  if (!podeTreinarGolpe(pokemon, moveId)) return null
   return (state.training?.[moveId] ?? 0) < 1 ? 'learn' : null
 }
 
 /**
- * Começa a treinar `moveId` na criatura do `slot` (troca o treino atual, se
+ * Começa a treinar `moveId` na criatura em campo do `pokemon` (troca o treino atual, se
  * houver) — pra APRENDER (golpe apto) ou pra DOMINAR (golpe equipado sem
  * domínio total), ver `resolveTrainingGoal`. Só se ela pode treinar agora
  * (`resolveTrainingBlock`). Devolve se começou.
  */
-export function iniciarTreino(world, trainer, slot, moveId) {
-  if (resolveTrainingBlock(world, trainer, slot)) return false
-  if (!resolveTrainingGoal(trainer, slot, moveId)) return false
+export function iniciarTreino(world, pokemon, moveId) {
+  if (resolveTrainingBlock(world, pokemon)) return false
+  if (!resolveTrainingGoal(pokemon, moveId)) return false
 
-  const creature = findOwnedCreature(world, trainer, slot)
+  const creature = findSummonedCreature(world, pokemon)
   const object = findNearbyTrainingObject(world, creature.get(Position))
   const training = { moveId, object, wait: 0, resting: false, elapsed: 0 }
   if (creature.has(Training)) creature.set(Training, training)
@@ -117,8 +117,8 @@ export function pararTreino(creature) {
   }
 }
 
-/** A criatura do `slot` do `trainer` está treinando? Devolve o id do golpe (ou `null`). */
-export function resolveTrainingMove(world, trainer, slot) {
-  const creature = findOwnedCreature(world, trainer, slot)
+/** A criatura em campo do `pokemon` está treinando? Devolve o id do golpe (ou `null`). */
+export function resolveTrainingMove(world, pokemon) {
+  const creature = findSummonedCreature(world, pokemon)
   return creature?.has(Training) ? creature.get(Training).moveId : null
 }

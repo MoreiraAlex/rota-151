@@ -3,6 +3,7 @@ import { ControlsPage, ItemsPage, TrainerPage } from './pages/SoonPages'
 import { StatusPage } from './pages/StatusPage'
 import { VitalsPage } from './pages/VitalsPage'
 import { TeamPage } from './pages/TeamPage'
+import { InventoryPage } from './pages/InventoryPage'
 import { ExperiencePage } from './pages/ExperiencePage'
 import { MoveTrainingPage } from './pages/MoveTrainingPage'
 import { MovesPage } from './pages/MovesPage'
@@ -33,6 +34,11 @@ const PAGES = {
   },
   controles: { title: 'Controles', Component: ControlsPage },
   treinador: { title: 'O treinador', Component: TrainerPage },
+  inventario: {
+    title: 'Inventário',
+    summary: 'Itens e criaturas fora do time, arrumação e como montar o time.',
+    Component: InventoryPage,
+  },
   'criaturas/status': {
     title: 'Status',
     summary: 'De onde vêm os números de cada criatura.',

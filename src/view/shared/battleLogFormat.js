@@ -1,7 +1,7 @@
 import { EVENT_TYPES } from '@/core/events'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import { getSkill } from '@/core/data/skills'
-import { Party, WildCreature, resolveCreatureSpeciesId } from '@/core/traits'
+import { Pokemon, WildCreature, resolveCreatureSpeciesId } from '@/core/traits'
 import { formatSpeciesName } from './formatName'
 import { resolveFeedbackColor, resolveSide } from '../vfx/feedbackColors'
 
@@ -42,7 +42,7 @@ export function formatCombatantName(entity) {
 /** Nome da criatura do time num evento de progresso (em campo ou na bola). */
 function formatPartyName(event) {
   if (event.creature?.isAlive?.()) return formatCombatantName(event.creature)
-  const speciesId = event.trainer?.get?.(Party)?.[event.slot]
+  const speciesId = event.pokemon?.get?.(Pokemon)?.speciesId
   return speciesId ? formatSpeciesName(speciesId) : 'Sua criatura'
 }
 

@@ -299,7 +299,7 @@ describe('playerActionSystem — arremesso (item throwable)', () => {
     // atualizava quando outra coisa forçava um re-render (trocar de tela).
     const { world, player } = spawnWorld()
     player.set(HeldItem, { itemId: 'pebble' })
-    player.set(Inventory, { itemIds: ['pebble', 'pebble'] })
+    player.set(Inventory, { counts: { pebble: 2 } })
 
     let changed = false
     world.onChange(Inventory, (entity) => {
@@ -311,7 +311,7 @@ describe('playerActionSystem — arremesso (item throwable)', () => {
     for (let i = 0; i < ticksUntilRelease; i++) tick(world, {})
 
     expect(changed).toBe(true)
-    expect(player.get(Inventory).itemIds).toEqual(['pebble'])
+    expect(player.get(Inventory).counts).toEqual({ pebble: 1 })
   })
 
   it('não dispara sem item em mãos', () => {
@@ -530,33 +530,33 @@ describe('playerActionSystem — arremesso (item throwable)', () => {
   it('remove uma unidade do item do inventário ao arremessar, e desequipa (estoque zerou)', () => {
     const { world, player } = spawnWorld()
     player.set(HeldItem, { itemId: 'pebble' })
-    player.set(Inventory, { itemIds: ['pebble'] })
+    player.set(Inventory, { counts: { pebble: 1 } })
 
     tick(world, { primary: true })
     const ticksUntilRelease = Math.ceil(THROW.effectAt / (1 / 60))
     for (let i = 0; i < ticksUntilRelease; i++) tick(world, {})
 
-    expect(player.get(Inventory).itemIds).toEqual([])
+    expect(player.get(Inventory).counts).toEqual({})
     expect(player.get(HeldItem).itemId).toBe(null)
   })
 
   it('tendo mais de uma unidade, arremessar consome só uma (a pilha continua) e não desequipa', () => {
     const { world, player } = spawnWorld()
     player.set(HeldItem, { itemId: 'pebble' })
-    player.set(Inventory, { itemIds: ['pebble', 'pebble'] })
+    player.set(Inventory, { counts: { pebble: 2 } })
 
     tick(world, { primary: true })
     const ticksUntilRelease = Math.ceil(THROW.effectAt / (1 / 60))
     for (let i = 0; i < ticksUntilRelease; i++) tick(world, {})
 
-    expect(player.get(Inventory).itemIds).toEqual(['pebble'])
+    expect(player.get(Inventory).counts).toEqual({ pebble: 1 })
     expect(player.get(HeldItem).itemId).toBe('pebble')
   })
 
   it('com estoque restante, dá pra arremessar de novo sem reequipar', () => {
     const { world, player } = spawnWorld()
     player.set(HeldItem, { itemId: 'pebble' })
-    player.set(Inventory, { itemIds: ['pebble', 'pebble'] })
+    player.set(Inventory, { counts: { pebble: 2 } })
 
     tick(world, { primary: true })
     const ticksUntilRelease = Math.ceil(THROW.effectAt / (1 / 60))
@@ -570,7 +570,7 @@ describe('playerActionSystem — arremesso (item throwable)', () => {
     tick(world, { primary: true })
     for (let i = 0; i < ticksUntilRelease; i++) tick(world, {})
 
-    expect(player.get(Inventory).itemIds).toEqual([])
+    expect(player.get(Inventory).counts).toEqual({})
     expect(player.get(HeldItem).itemId).toBe(null)
     expect(world.query(Projectile).length).toBe(2)
   })
@@ -630,13 +630,13 @@ describe('playerActionSystem — uso (item consumable)', () => {
   it('remove uma unidade do item do inventário ao usar, e desequipa (estoque zerou)', () => {
     const { world, player } = spawnWorld()
     player.set(HeldItem, { itemId: 'potion' })
-    player.set(Inventory, { itemIds: ['potion'] })
+    player.set(Inventory, { counts: { potion: 1 } })
 
     tick(world, { primary: true })
     const ticksUntilEffect = Math.ceil(CONSUME.effectAt / (1 / 60))
     for (let i = 0; i < ticksUntilEffect; i++) tick(world, {})
 
-    expect(player.get(Inventory).itemIds).toEqual([])
+    expect(player.get(Inventory).counts).toEqual({})
     expect(player.get(HeldItem).itemId).toBe(null)
   })
 
@@ -658,13 +658,13 @@ describe('playerActionSystem — uso (item consumable)', () => {
   it('tendo mais de uma unidade, usar consome só uma (a pilha continua) e não desequipa', () => {
     const { world, player } = spawnWorld()
     player.set(HeldItem, { itemId: 'potion' })
-    player.set(Inventory, { itemIds: ['potion', 'potion'] })
+    player.set(Inventory, { counts: { potion: 2 } })
 
     tick(world, { primary: true })
     const ticksUntilEffect = Math.ceil(CONSUME.effectAt / (1 / 60))
     for (let i = 0; i < ticksUntilEffect; i++) tick(world, {})
 
-    expect(player.get(Inventory).itemIds).toEqual(['potion'])
+    expect(player.get(Inventory).counts).toEqual({ potion: 1 })
     expect(player.get(HeldItem).itemId).toBe('potion')
   })
 })

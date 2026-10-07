@@ -26,6 +26,12 @@ export const ITEM_REGISTRY = {
   [POKEDEX.id]: POKEDEX,
 }
 
+/**
+ * Ordem das categorias quando o Inventário é organizado (botão
+ * "Organizar", `organizarInventario`). Categoria fora da lista vai pro fim.
+ */
+export const ITEM_CATEGORY_ORDER = ['scanner', 'throwable', 'consumable']
+
 export function getItem(id, registry = ITEM_REGISTRY) {
   return registry[id] ?? null
 }

@@ -3,6 +3,7 @@ import { castRay } from '../physics/raycast'
 import { getSpecies, getPlayerSpecies } from '../data/species'
 import { createLevelState } from '../data/species/experience'
 import { cloneMovesState, createMovesState } from '../data/species/moves'
+import { findPartyPokemon, resolvePokemonOf } from '../actions/pokemon'
 import { isPhysicsReady } from '../physics/physicsWorld'
 import { createCharacterBody, verticalClearance } from '../physics/colliders'
 import {
@@ -18,21 +19,18 @@ import {
   Mood,
   MovementStats,
   OwnedBy,
-  Party,
   AiMovement,
   PartyBehavior,
-  PartyIndividualValues,
-  PartyProgress,
-  PartyMoves,
   CreatureMoves,
-  PartyVitals,
   PathState,
   PhysicsBody,
   Position,
   Rotation,
   ScanMode,
+  StoredVitals,
   SummonBall,
   SummonedCreature,
+  SummonedFrom,
   SummonFlash,
   SummonPulse,
   Velocity,
@@ -59,27 +57,27 @@ import { resolveOwner } from '../actions/owner'
  * mouse também parou de disparar, só que ninguém tinha testado de novo
  * depois da mudança.
  *
- * `IndividualValues` — lê o IV já sorteado e CONGELADO pra este slot em
- * `trainer.get(PartyIndividualValues)` (`core/traits/components/
- * partyIndividualValues.js`), sorteado uma vez por `equiparCriatura`
- * (`core/actions/party.js`) quando a espécie entrou naquele slot — não
- * sorteia aqui, de novo, a cada invocação: a MESMA criatura do jogador
+ * `IndividualValues` — lê o IV já sorteado e CONGELADO no registro do
+ * Pokémon (`pokemon`, `core/traits/components/pokemon.js`), sorteado uma
+ * vez por `criarPokemon` (`core/actions/pokemon.js`) — não sorteia aqui, de
+ * novo, a cada invocação: a MESMA criatura do jogador
  * precisa ter o MESMO IV toda vez que sai da bola (pedido do usuário:
  * "congelado por criatura"), diferente da selvagem, que sorteia o
  * próprio no spawn (`wildCreatureSpawnSystem.js`). `vitalsFromSpecies`
  * recebe o mesmo `individualValues` — sem isso o HP/energy de spawn
  * ignoraria o IV de verdade desta criatura.
  *
- * Vida/energia: sai do jeito que foi recolhida (`PartyVitals[slot]`,
- * guardado por `applyRecall` e regenerado na bola pelo
+ * Vida/energia: sai do jeito que foi recolhida (`StoredVitals` do registro,
+ * guardado por `applyRecall` e regenerado fora de campo pelo
  * `vitalsRegenSystem.js` — inclusive o HP de quem acorda, se reanimou lá
- * dentro), com os máximos recalculados agora (mesma espécie/IV → mesmo
- * valor). Nada guardado (nunca saiu, ou criatura nova no slot): cheia. O
- * slot é limpo — a partir daqui vale o `Vitals` da criatura em campo.
+ * fora), com os máximos recalculados agora (mesma espécie/IV → mesmo
+ * valor). Nada guardado (nunca saiu): cheia. O registro é limpo — a partir
+ * daqui vale o `Vitals` da criatura em campo.
  */
 function spawnCreature(
   world,
   trainer,
+  pokemon,
   slot,
   speciesId,
   species,
@@ -93,16 +91,16 @@ function spawnCreature(
       })
     : { bodyHandle: -1, colliderHandle: -1 }
 
-  const individualValues = trainer?.get(PartyIndividualValues)?.[slot] ?? null
-  // Nível/XP do slot (`PartyProgress`) — a criatura sai da bola no nível em
-  // que está; sem nada (testes antigos), o nível inicial da espécie.
-  const progress =
-    trainer?.get(PartyProgress)?.[slot] ??
-    createLevelState(species, species.level ?? 1)
-  // Golpes do slot (`PartyMoves`) — CÓPIA: as actions de golpe escrevem nos
-  // dois (`core/actions/moves.js`), nunca um objeto compartilhado.
+  const individualValues = pokemon?.get(IndividualValues) ?? null
+  // Nível/XP do registro — a criatura sai da bola no nível em que está; sem
+  // nada, o nível inicial da espécie.
+  const progress = pokemon?.has(CreatureLevel)
+    ? { ...pokemon.get(CreatureLevel) }
+    : createLevelState(species, species.level ?? 1)
+  // Golpes do registro — CÓPIA: as actions de golpe escrevem nos dois
+  // (`core/actions/moves.js`), nunca um objeto compartilhado.
   const moves = cloneMovesState(
-    trainer?.get(PartyMoves)?.[slot] ?? createMovesState(species),
+    pokemon?.get(CreatureMoves) ?? createMovesState(species),
   )
 
   const creature = world.spawn(
@@ -110,6 +108,7 @@ function spawnCreature(
     Rotation,
     SummonedCreature({ slot, speciesId }),
     OwnedBy(trainer),
+    ...(pokemon ? [SummonedFrom(pokemon)] : []),
     IndividualValues(individualValues ?? {}),
     CreatureLevel(progress),
     CreatureMoves(moves),
@@ -133,7 +132,7 @@ function spawnCreature(
     AiMovement,
   )
 
-  const stored = trainer?.get(PartyVitals)?.[slot]
+  const stored = pokemon?.get(StoredVitals)?.vitals
   if (stored) {
     const { maxHp, maxStamina } = creature.get(Vitals)
     creature.set(Vitals, {
@@ -142,14 +141,14 @@ function spawnCreature(
       hpRegenDelay: stored.hpRegenDelay,
       staminaRegenDelay: stored.staminaRegenDelay,
     })
-    trainer.set(PartyVitals, { [slot]: null })
+    pokemon.set(StoredVitals, { vitals: null })
   }
 }
 
 /**
  * Resolve uma `SummonBall` que pousou (por toque OU por esgotar
- * `maxDistance`, ver docstring do trait): se o slot ainda estiver
- * equipado com a MESMA espécie que estava no disparo (o time pode ter
+ * `maxDistance`, ver docstring do trait): se o slot ainda tiver o MESMO
+ * Pokémon que estava no disparo (`SummonedFrom` da esfera — o time pode ter
  * mudado enquanto a esfera voava — `InventoryPanel`, por exemplo — nesse
  * caso a esfera só some, sem efeito, mesmo espírito gracioso do
  * recolhimento automático), spawna a criatura ali, o clarão de abertura
@@ -170,9 +169,9 @@ function spawnCreature(
  * por esgotar o orçamento de distância), não há superfície nenhuma pra
  * apoiar — nasce exatamente onde a esfera parou, sem ajuste.
  */
-function resolveBall(world, trainer, ball, pos, touchedSurface) {
-  const currentSpeciesId = trainer?.get(Party)?.[ball.slot]
-  if (currentSpeciesId !== ball.speciesId) return
+function resolveBall(world, trainer, ballEntity, ball, pos, touchedSurface) {
+  const pokemon = resolvePokemonOf(ballEntity)
+  if (!pokemon || findPartyPokemon(trainer, ball.slot) !== pokemon) return
 
   const species = getSpecies(ball.speciesId)
   if (!species) return
@@ -185,6 +184,7 @@ function resolveBall(world, trainer, ball, pos, touchedSurface) {
   spawnCreature(
     world,
     trainer,
+    pokemon,
     ball.slot,
     ball.speciesId,
     species,
@@ -247,7 +247,7 @@ export function summonBallSystem(context) {
 
       const remaining = ball.maxDistance - ball.traveled
       if (remaining <= 0) {
-        resolveBall(world, trainer, ball, pos, false)
+        resolveBall(world, trainer, entity, ball, pos, false)
         entity.destroy()
         return
       }
@@ -274,7 +274,7 @@ export function summonBallSystem(context) {
         pos.x = hit.point.x
         pos.y = hit.point.y
         pos.z = hit.point.z
-        resolveBall(world, trainer, ball, pos, true)
+        resolveBall(world, trainer, entity, ball, pos, true)
         entity.destroy()
         return
       }
@@ -285,7 +285,7 @@ export function summonBallSystem(context) {
       ball.traveled += segLength
 
       if (ball.traveled >= ball.maxDistance) {
-        resolveBall(world, trainer, ball, pos, false)
+        resolveBall(world, trainer, entity, ball, pos, false)
         entity.destroy()
       }
     })

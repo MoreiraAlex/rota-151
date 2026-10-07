@@ -11,20 +11,15 @@ import {
 import { resolveMasteryAfterUse } from '../battle/moveMastery'
 import { moveLearned, moveReadyToLearn, moveUnlocked } from '../events'
 import { GAME_CONFIG } from '../gameConfig'
-import {
-  CreatureMoves,
-  MoveLearnRequest,
-  Party,
-  PartyMoves,
-  PartyProgress,
-} from '../traits'
-import { findOwnedCreature } from './owner'
+import { CreatureLevel, CreatureMoves, MoveLearnRequest } from '../traits'
+import { resolveOwner } from './owner'
+import { findSummonedCreature, resolvePokemonSpeciesId } from './pokemon'
 
 /**
- * Golpes da criatura do time (docs/features/038-aprendizado-treino-e-dominio-
- * de-golpes.md). Toda mutação de `PartyMoves` passa por aqui, e cada action
- * escreve no slot do time E na criatura em campo (`CreatureMoves`, cópia),
- * como `ganharExperiencia`.
+ * Golpes de um Pokémon do treinador (docs/features/038-aprendizado-treino-e-
+ * dominio-de-golpes.md). Toda mutação dos golpes do registro (`Pokemon`,
+ * `CreatureMoves`) passa por aqui, e cada action escreve no registro E na
+ * criatura em campo (`CreatureMoves`, cópia), como `ganharExperiencia`.
  *
  * - `progredirTreino` — soma progresso de treino; completo, aprende (slot
  *   vazio) ou pede "esquecer qual?" (`MoveLearnRequest`).
@@ -36,65 +31,62 @@ import { findOwnedCreature } from './owner'
 
 const PROGRESS_EPSILON = 1e-9
 
-function readMoves(trainer, slot) {
-  const state = trainer.get(PartyMoves)?.[slot]
+function readMoves(pokemon) {
+  const state = pokemon?.get?.(CreatureMoves)
   return state ? cloneMovesState(state) : null
 }
 
-function writeMoves(world, trainer, slot, next) {
-  trainer.set(PartyMoves, { [slot]: next })
-  const creature = findOwnedCreature(world, trainer, slot)
+function writeMoves(world, pokemon, next) {
+  pokemon.set(CreatureMoves, cloneMovesState(next))
+  const creature = findSummonedCreature(world, pokemon)
   if (creature?.has(CreatureMoves)) {
     creature.set(CreatureMoves, cloneMovesState(next))
   }
   return creature
 }
 
-function resolveSlotLevel(trainer, slot) {
-  return trainer.get(PartyProgress)?.[slot]?.level ?? 1
-}
-
 /**
- * O golpe está no learnset da criatura do `slot` e ela cumpre as condições
- * dele (nível)? Só esses podem ser treinados.
+ * O golpe está no learnset do `pokemon` e ele cumpre as condições dele
+ * (nível)? Só esses podem ser treinados.
  */
-export function podeTreinarGolpe(trainer, slot, moveId) {
-  const species = getSpecies(trainer.get(Party)?.[slot])
+export function podeTreinarGolpe(pokemon, moveId) {
+  const species = getSpecies(resolvePokemonSpeciesId(pokemon))
   const entry = listLearnset(species).find((item) => item.id === moveId)
   if (!entry) return false
   return meetsMoveRequirements(entry, {
-    level: resolveSlotLevel(trainer, slot),
+    level: pokemon.get(CreatureLevel)?.level ?? 1,
   })
 }
 
 /**
- * Soma `amount` ao treino de `moveId` na criatura do `slot` (teto: completo).
+ * Soma `amount` ao treino de `moveId` no `pokemon` (teto: completo).
  * Ao completar, aprende direto no primeiro slot vazio; com os 3 ocupados,
  * abre o pedido "esquecer qual?" (`MoveLearnRequest`) e emite
  * `moveReadyToLearn`. Golpe que ela já sabe ou não pode treinar não muda
  * nada. Devolve o progresso (ou `null`).
  */
-export function progredirTreino(world, events, trainer, slot, moveId, amount) {
-  const state = readMoves(trainer, slot)
+export function progredirTreino(world, events, pokemon, moveId, amount) {
+  const state = readMoves(pokemon)
   if (!state || !(amount > 0)) return null
   if (findMoveSlot(state, moveId) != null) return null
-  if (!podeTreinarGolpe(trainer, slot, moveId)) return null
+  if (!podeTreinarGolpe(pokemon, moveId)) return null
 
   const previous = state.training[moveId] ?? 0
   // Folga de arredondamento: N repetições de 1/N têm que completar o treino.
   const sum = previous + amount
   const progress = sum >= 1 - PROGRESS_EPSILON ? 1 : sum
   state.training[moveId] = progress
-  const creature = writeMoves(world, trainer, slot, state)
+  const creature = writeMoves(world, pokemon, state)
 
   if (progress < 1 || previous >= 1) return progress
 
   const emptySlot = findEmptyMoveSlot(state)
   if (emptySlot != null) {
-    aprenderGolpe(world, events, trainer, slot, moveId, emptySlot)
+    aprenderGolpe(world, events, pokemon, moveId, emptySlot)
   } else {
-    pedirAprendizado(trainer, slot, moveId)
-    events?.emit(moveReadyToLearn({ trainer, slot, creature, moveId }))
+    pedirAprendizado(pokemon, moveId)
+    const trainer = resolveOwner(pokemon)
+    events?.emit(moveReadyToLearn({ trainer, pokemon, creature, moveId }))
   }
   return progress
 }
@@ -103,27 +95,49 @@ export function progredirTreino(world, events, trainer, slot, moveId, amount) {
  * Reabre o "esquecer qual?" de um golpe com o treino completo (o treinador
  * tinha adiado). Sem treino completo, não faz nada.
  */
-export function pedirAprendizado(trainer, slot, moveId) {
-  const state = trainer.get(PartyMoves)?.[slot]
+export function pedirAprendizado(pokemon, moveId) {
+  const state = pokemon?.get?.(CreatureMoves)
   if ((state?.training?.[moveId] ?? 0) < 1) return false
-  trainer.set(MoveLearnRequest, { slot, moveId })
+  const trainer = resolveOwner(pokemon)
+  if (!trainer) return false
+  if (trainer.has(MoveLearnRequest(pokemon))) {
+    trainer.set(MoveLearnRequest(pokemon), { moveId })
+  } else {
+    trainer.add(MoveLearnRequest(pokemon, { moveId }))
+  }
   return true
 }
 
-/** Fecha o "esquecer qual?" sem aprender: o golpe fica pronto pra depois. */
-export function adiarAprendizado(trainer) {
-  trainer.set(MoveLearnRequest, { slot: null, moveId: null })
+/**
+ * O pedido "esquecer qual?" aberto do `trainer`: `{ pokemon, moveId }`, ou
+ * `null` sem nenhum.
+ */
+export function resolveMoveLearnRequest(trainer) {
+  const pokemon = trainer?.targetFor?.(MoveLearnRequest)
+  if (!pokemon?.isAlive()) return null
+  return { pokemon, moveId: trainer.get(MoveLearnRequest(pokemon)).moveId }
 }
 
 /**
- * A criatura do `slot` aprende `moveId` (treino completo) no slot de golpe
+ * Fecha o "esquecer qual?" do `pokemon` sem aprender: o golpe fica pronto
+ * pra depois.
+ */
+export function adiarAprendizado(pokemon) {
+  const trainer = resolveOwner(pokemon)
+  if (trainer?.has(MoveLearnRequest(pokemon))) {
+    trainer.remove(MoveLearnRequest(pokemon))
+  }
+}
+
+/**
+ * O `pokemon` aprende `moveId` (treino completo) no slot de golpe
  * `moveSlot`. O golpe que estava lá é ESQUECIDO e volta a apto guardando
  * `FORGET_RETAINED` do treino (ou o que já tinha, se for mais). O novo entra
  * com o domínio inicial. Fecha o pedido "esquecer qual?". Devolve se
  * aprendeu.
  */
-export function aprenderGolpe(world, events, trainer, slot, moveId, moveSlot) {
-  const state = readMoves(trainer, slot)
+export function aprenderGolpe(world, events, pokemon, moveId, moveSlot) {
+  const state = readMoves(pokemon)
   if (!state || !MOVE_SLOTS.includes(Number(moveSlot))) return false
   if ((state.training[moveId] ?? 0) < 1) return false
   if (findMoveSlot(state, moveId) != null) return false
@@ -141,12 +155,12 @@ export function aprenderGolpe(world, events, trainer, slot, moveId, moveSlot) {
   }
   delete state.training[moveId]
 
-  const creature = writeMoves(world, trainer, slot, state)
-  if (trainer.has(MoveLearnRequest)) adiarAprendizado(trainer)
+  const creature = writeMoves(world, pokemon, state)
+  adiarAprendizado(pokemon)
   events?.emit(
     moveLearned({
-      trainer,
-      slot,
+      trainer: resolveOwner(pokemon),
+      pokemon,
       creature,
       moveId,
       forgottenId: forgotten?.id ?? null,
@@ -156,8 +170,8 @@ export function aprenderGolpe(world, events, trainer, slot, moveId, moveSlot) {
 }
 
 /** Troca de lugar os golpes dos slots `fromSlot` e `toSlot` (Q/E/R). */
-export function reordenarGolpes(world, trainer, slot, fromSlot, toSlot) {
-  const state = readMoves(trainer, slot)
+export function reordenarGolpes(world, pokemon, fromSlot, toSlot) {
+  const state = readMoves(pokemon)
   if (!state || fromSlot === toSlot) return false
   if (!MOVE_SLOTS.includes(fromSlot) || !MOVE_SLOTS.includes(toSlot)) {
     return false
@@ -166,24 +180,24 @@ export function reordenarGolpes(world, trainer, slot, fromSlot, toSlot) {
   const moving = state.slots[fromSlot]
   state.slots[fromSlot] = state.slots[toSlot]
   state.slots[toSlot] = moving
-  writeMoves(world, trainer, slot, state)
+  writeMoves(world, pokemon, state)
   return true
 }
 
 /**
- * Um uso em combate do golpe `moveId` (equipado) pela criatura do `slot`:
+ * Um uso em combate do golpe `moveId` (equipado) pelo `pokemon`:
  * o domínio sobe (`resolveMasteryAfterUse`; acerto rende mais). Golpe fora
  * dos slots, ou já dominado, não muda.
  */
-export function ganharDominio(world, trainer, slot, moveId, hit) {
-  const state = readMoves(trainer, slot)
+export function ganharDominio(world, pokemon, moveId, hit) {
+  const state = readMoves(pokemon)
   const moveSlot = state ? findMoveSlot(state, moveId) : null
   if (moveSlot == null) return
   const move = state.slots[moveSlot]
   if (move.mastery >= MAX_MASTERY) return
 
   move.mastery = resolveMasteryAfterUse(move.mastery, hit)
-  writeMoves(world, trainer, slot, state)
+  writeMoves(world, pokemon, state)
 }
 
 /**
@@ -191,24 +205,24 @@ export function ganharDominio(world, trainer, slot, moveId, hit) {
  * máximo) no golpe `moveId`, que precisa estar equipado. Linear — o retorno
  * decrescente é só do combate. Devolve o domínio novo (ou `null`).
  */
-export function treinarDominio(world, trainer, slot, moveId, amount) {
-  const state = readMoves(trainer, slot)
+export function treinarDominio(world, pokemon, moveId, amount) {
+  const state = readMoves(pokemon)
   const moveSlot = state ? findMoveSlot(state, moveId) : null
   if (moveSlot == null || !(amount > 0)) return null
   const move = state.slots[moveSlot]
   const sum = move.mastery + amount * MAX_MASTERY
   move.mastery = sum >= MAX_MASTERY - PROGRESS_EPSILON ? MAX_MASTERY : sum
-  writeMoves(world, trainer, slot, state)
+  writeMoves(world, pokemon, state)
   return move.mastery
 }
 
 /** Debug: soma `amount` de domínio direto no golpe do slot `moveSlot`. */
-export function somarDominio(world, trainer, slot, moveSlot, amount) {
-  const state = readMoves(trainer, slot)
+export function somarDominio(world, pokemon, moveSlot, amount) {
+  const state = readMoves(pokemon)
   const move = state?.slots?.[moveSlot]
   if (!move) return
   move.mastery = Math.min(MAX_MASTERY, Math.max(0, move.mastery + amount))
-  writeMoves(world, trainer, slot, state)
+  writeMoves(world, pokemon, state)
 }
 
 /**
@@ -217,14 +231,13 @@ export function somarDominio(world, trainer, slot, moveSlot, amount) {
  */
 export function anunciarGolpesAptos(
   events,
-  trainer,
-  slot,
+  pokemon,
   creature,
   fromLevel,
   level,
 ) {
-  const species = getSpecies(trainer.get(Party)?.[slot])
-  const state = trainer.get(PartyMoves)?.[slot]
+  const species = getSpecies(resolvePokemonSpeciesId(pokemon))
+  const state = pokemon.get(CreatureMoves)
   const moveIds = listLearnset(species)
     .filter(
       (entry) =>
@@ -234,7 +247,14 @@ export function anunciarGolpesAptos(
     )
     .map((entry) => entry.id)
   if (moveIds.length) {
-    events?.emit(moveUnlocked({ trainer, slot, creature, moveIds }))
+    events?.emit(
+      moveUnlocked({
+        trainer: resolveOwner(pokemon),
+        pokemon,
+        creature,
+        moveIds,
+      }),
+    )
   }
   return moveIds
 }

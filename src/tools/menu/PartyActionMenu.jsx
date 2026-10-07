@@ -12,13 +12,14 @@ import {
   resolveMoveStatus,
 } from '@/core/data/species/moves'
 import {
+  CreatureLevel,
+  CreatureMoves,
   OwnedBy,
-  Party,
-  PartyMoves,
-  PartyProgress,
+  Pokemon,
   SummonedCreature,
   Training,
 } from '@/core/traits'
+import { usePartyPokemon } from '@/view/hooks/usePartyPokemon'
 import {
   aprenderGolpe,
   fecharMenuDeAcoes,
@@ -67,9 +68,12 @@ export function PartyActionMenu({ trainer, slot }) {
   const [tab, setTab] = useState('training')
   const [, setRefresh] = useState(0)
 
-  const party = useTrait(trainer, Party)
-  const partyMoves = useTrait(trainer, PartyMoves)
-  const progress = useTrait(trainer, PartyProgress)
+  // O Pokémon do slot (registro, docs/features/041-inventario-de-itens-e-
+  // pokemon.md): espécie, nível e golpes.
+  const pokemon = usePartyPokemon(trainer)[slot]
+  const speciesId = useTrait(pokemon, Pokemon)?.speciesId
+  const moves = useTrait(pokemon, CreatureMoves)
+  const progress = useTrait(pokemon, CreatureLevel)
   const summoned = useQuery(SummonedCreature, OwnedBy(trainer))
   const creature =
     summoned.find((entity) => entity.get(SummonedCreature)?.slot === slot) ??
@@ -81,12 +85,11 @@ export function PartyActionMenu({ trainer, slot }) {
     return () => clearInterval(id)
   }, [])
 
-  const species = getSpecies(party?.[slot])
-  const moves = partyMoves?.[slot]
-  if (!species || !moves) return null
+  const species = getSpecies(speciesId)
+  if (!pokemon || !species || !moves) return null
 
-  const level = progress?.[slot]?.level ?? species.level ?? 1
-  const block = resolveTrainingBlock(world, trainer, slot)
+  const level = progress?.level ?? species.level ?? 1
+  const block = resolveTrainingBlock(world, pokemon)
 
   return (
     <div className="pointer-events-none absolute inset-0 flex items-start justify-center pt-24 font-mono text-white">
@@ -121,7 +124,7 @@ export function PartyActionMenu({ trainer, slot }) {
           <TrainingList
             world={world}
             trainer={trainer}
-            slot={slot}
+            pokemon={pokemon}
             species={species}
             moves={moves}
             level={level}
@@ -132,12 +135,7 @@ export function PartyActionMenu({ trainer, slot }) {
         )}
 
         {tab === 'moves' && (
-          <MoveSlots
-            world={world}
-            trainer={trainer}
-            slot={slot}
-            moves={moves}
-          />
+          <MoveSlots world={world} pokemon={pokemon} moves={moves} />
         )}
       </div>
     </div>
@@ -147,7 +145,7 @@ export function PartyActionMenu({ trainer, slot }) {
 function TrainingList({
   world,
   trainer,
-  slot,
+  pokemon,
   species,
   moves,
   level,
@@ -200,7 +198,7 @@ function TrainingList({
               {status === 'learned' && !isTraining && (
                 <ActionButton
                   disabled={!!block}
-                  onClick={() => iniciarTreino(world, trainer, slot, entry.id)}
+                  onClick={() => iniciarTreino(world, pokemon, entry.id)}
                 >
                   Treinar
                 </ActionButton>
@@ -227,7 +225,7 @@ function TrainingList({
             {status === 'ready' && (
               <ActionButton
                 onClick={() =>
-                  learnReadyMove(world, trainer, slot, moves, entry.id)
+                  learnReadyMove(world, trainer, pokemon, moves, entry.id)
                 }
               >
                 Aprender
@@ -241,7 +239,7 @@ function TrainingList({
             {status === 'apt' && !isTraining && (
               <ActionButton
                 disabled={!!block}
-                onClick={() => iniciarTreino(world, trainer, slot, entry.id)}
+                onClick={() => iniciarTreino(world, pokemon, entry.id)}
               >
                 Treinar
               </ActionButton>
@@ -254,21 +252,21 @@ function TrainingList({
 }
 
 // Com slot vazio, aprende direto; com os 3 cheios, abre o "esquecer qual?".
-function learnReadyMove(world, trainer, slot, moves, moveId) {
+function learnReadyMove(world, trainer, pokemon, moves, moveId) {
   const emptySlot = findEmptyMoveSlot(moves)
   if (emptySlot != null) {
-    aprenderGolpe(world, null, trainer, slot, moveId, emptySlot)
+    aprenderGolpe(world, null, pokemon, moveId, emptySlot)
     return
   }
   fecharMenuDeAcoes(trainer)
-  pedirAprendizado(trainer, slot, moveId)
+  pedirAprendizado(pokemon, moveId)
 }
 
 function findSlotOf(moves, moveId) {
   return MOVE_SLOTS.find((moveSlot) => moves.slots[moveSlot]?.id === moveId)
 }
 
-function MoveSlots({ world, trainer, slot, moves }) {
+function MoveSlots({ world, pokemon, moves }) {
   return (
     <div className="space-y-2">
       {MOVE_SLOTS.map((moveSlot, index) => {
@@ -296,8 +294,7 @@ function MoveSlots({ world, trainer, slot, moves }) {
                 onClick={() =>
                   reordenarGolpes(
                     world,
-                    trainer,
-                    slot,
+                    pokemon,
                     moveSlot,
                     MOVE_SLOTS[index - 1],
                   )
@@ -313,8 +310,7 @@ function MoveSlots({ world, trainer, slot, moves }) {
                 onClick={() =>
                   reordenarGolpes(
                     world,
-                    trainer,
-                    slot,
+                    pokemon,
                     moveSlot,
                     MOVE_SLOTS[index + 1],
                   )

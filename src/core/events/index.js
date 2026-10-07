@@ -204,15 +204,15 @@ export function leechSeedDrained({ target, source, damage, healed }) {
  * @typedef {object} ExperienceGainedEvent
  * @property {'experienceGained'} type
  * @property {import('koota').Entity} trainer dono do time
- * @property {'slot1' | 'slot2' | 'slot3'} slot criatura do time que ganhou
+ * @property {import('koota').Entity} pokemon registro (`Pokemon`) que ganhou
  * @property {import('koota').Entity | null} creature a criatura em campo
- *   desse slot, ou `null` se estava na bola
+ *   dele, ou `null` se estava fora de campo
  * @property {number} amount XP ganho (já dividido entre os participantes)
  */
 
 /**
- * Uma criatura do time ganhou XP (o estado — `PartyProgress`/`CreatureLevel`
- * — já foi atualizado; o evento é só o aviso).
+ * Um Pokémon do treinador ganhou XP (o estado — `CreatureLevel` do registro
+ * e da criatura em campo — já foi atualizado; o evento é só o aviso).
  *
  * - Quem emite: `ganharExperiencia` (`core/actions/experience.js`) — no
  *   desmaio de uma selvagem (`faintSystem.js`) ou pelo botão de debug.
@@ -222,11 +222,11 @@ export function leechSeedDrained({ target, source, damage, healed }) {
  *
  * @returns {ExperienceGainedEvent}
  */
-export function experienceGained({ trainer, slot, creature, amount }) {
+export function experienceGained({ trainer, pokemon, creature, amount }) {
   return {
     type: EVENT_TYPES.EXPERIENCE_GAINED,
     trainer,
-    slot,
+    pokemon,
     creature: creature ?? null,
     amount,
   }
@@ -236,9 +236,9 @@ export function experienceGained({ trainer, slot, creature, amount }) {
  * @typedef {object} LeveledUpEvent
  * @property {'leveledUp'} type
  * @property {import('koota').Entity} trainer dono do time
- * @property {'slot1' | 'slot2' | 'slot3'} slot criatura do time que subiu
+ * @property {import('koota').Entity} pokemon registro (`Pokemon`) que subiu
  * @property {import('koota').Entity | null} creature a criatura em campo
- *   desse slot, ou `null` se estava na bola
+ *   dele, ou `null` se estava fora de campo
  * @property {number} fromLevel nível antes
  * @property {number} level nível novo (pode ter pulado mais de um)
  */
@@ -256,11 +256,11 @@ export function experienceGained({ trainer, slot, creature, amount }) {
  *
  * @returns {LeveledUpEvent}
  */
-export function leveledUp({ trainer, slot, creature, fromLevel, level }) {
+export function leveledUp({ trainer, pokemon, creature, fromLevel, level }) {
   return {
     type: EVENT_TYPES.LEVELED_UP,
     trainer,
-    slot,
+    pokemon,
     creature: creature ?? null,
     fromLevel,
     level,
@@ -317,19 +317,19 @@ export function creatureFainted({ entity, speciesId }) {
 }
 
 /**
- * Uma criatura do time ficou APTA pra golpes novos (cumpriu as condições ao
+ * Um Pokémon do treinador ficou APTO pra golpes novos (cumpriu as condições ao
  * subir de nível) — ainda precisa treinar pra aprender.
  *
  * - Quem emite: `ganharExperiencia` (`core/actions/experience.js`).
  * - Quem consome: `view/systems/damageNumberSystem.js` ("Pode aprender X!").
  *
- * @returns {{ type: 'moveUnlocked', trainer: import('koota').Entity, slot: string, creature: import('koota').Entity | null, moveIds: string[] }}
+ * @returns {{ type: 'moveUnlocked', trainer: import('koota').Entity, pokemon: import('koota').Entity, creature: import('koota').Entity | null, moveIds: string[] }}
  */
-export function moveUnlocked({ trainer, slot, creature, moveIds }) {
+export function moveUnlocked({ trainer, pokemon, creature, moveIds }) {
   return {
     type: EVENT_TYPES.MOVE_UNLOCKED,
     trainer,
-    slot,
+    pokemon,
     creature: creature ?? null,
     moveIds,
   }
@@ -343,32 +343,38 @@ export function moveUnlocked({ trainer, slot, creature, moveIds }) {
  * - Quem consome: `tools/menu/ForgetMoveDialog.jsx` (via o pedido guardado
  *   em `MoveLearnRequest`), `view/systems/damageNumberSystem.js`.
  *
- * @returns {{ type: 'moveReadyToLearn', trainer: import('koota').Entity, slot: string, creature: import('koota').Entity | null, moveId: string }}
+ * @returns {{ type: 'moveReadyToLearn', trainer: import('koota').Entity, pokemon: import('koota').Entity, creature: import('koota').Entity | null, moveId: string }}
  */
-export function moveReadyToLearn({ trainer, slot, creature, moveId }) {
+export function moveReadyToLearn({ trainer, pokemon, creature, moveId }) {
   return {
     type: EVENT_TYPES.MOVE_READY_TO_LEARN,
     trainer,
-    slot,
+    pokemon,
     creature: creature ?? null,
     moveId,
   }
 }
 
 /**
- * Uma criatura do time aprendeu um golpe (e, com os slots cheios, esqueceu
+ * Um Pokémon do treinador aprendeu um golpe (e, com os slots cheios, esqueceu
  * `forgottenId`).
  *
  * - Quem emite: `aprenderGolpe` (`core/actions/moves.js`).
  * - Quem consome: `view/systems/damageNumberSystem.js` ("Aprendeu X!").
  *
- * @returns {{ type: 'moveLearned', trainer: import('koota').Entity, slot: string, creature: import('koota').Entity | null, moveId: string, forgottenId: string | null }}
+ * @returns {{ type: 'moveLearned', trainer: import('koota').Entity, pokemon: import('koota').Entity, creature: import('koota').Entity | null, moveId: string, forgottenId: string | null }}
  */
-export function moveLearned({ trainer, slot, creature, moveId, forgottenId }) {
+export function moveLearned({
+  trainer,
+  pokemon,
+  creature,
+  moveId,
+  forgottenId,
+}) {
   return {
     type: EVENT_TYPES.MOVE_LEARNED,
     trainer,
-    slot,
+    pokemon,
     creature: creature ?? null,
     moveId,
     forgottenId: forgottenId ?? null,

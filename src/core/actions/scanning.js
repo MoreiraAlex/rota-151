@@ -13,8 +13,7 @@ import {
  * scan com sucesso, registrar o pokémon no histórico" (ver
  * docs/features/033-*.md). Única mutação de `PokedexEntries`/
  * `ScanHistory` no projeto — as duas sempre juntas, nunca uma sem a
- * outra (mesmo raciocínio de `equiparCriatura`,
- * `core/actions/party.js`, com `Party`/`PartyIndividualValues`).
+ * outra.
  *
  * `trainer` é quem escaneou (sempre o treinador — só ele tem `HeldItem`
  * de verdade equipado, ver `scannerModeSystem.js`); `creature` é a
