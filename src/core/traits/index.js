@@ -63,6 +63,7 @@ export {
 } from './components/attackEffect'
 export { StatStages } from './components/statStages'
 export { SummonedCreature } from './components/summonedCreature'
+export { OwnedBy } from './components/owner'
 export { SummonBall } from './components/summonBall'
 export { SummonFlash } from './components/summonFlash'
 export { RecallBeam } from './components/recallBeam'

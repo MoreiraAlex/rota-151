@@ -10,6 +10,7 @@ import {
   listWildsFightingParty,
   resolveAttackReach,
 } from '../battle/combatTargets'
+import { resolveGroupLeader, resolveOwner } from '../actions/owner'
 import { getSpecies } from '../data/species'
 import { GAME_CONFIG } from '../gameConfig'
 import {
@@ -18,7 +19,6 @@ import {
   Fainted,
   InputControlled,
   MovementStats,
-  Party,
   PartyBehavior,
   Position,
   Rotation,
@@ -42,7 +42,8 @@ function horizontalDistance(a, b) {
  * (`listWildsFightingParty`, `findWeakest`), dentro do mesmo limite —
  * terminar a luta; nenhuma → larga.
  */
-function resolveFightTarget(behavior, pos, leader, fightingWilds) {
+function resolveFightTarget(behavior, pos, group) {
+  const { trainer, leader, fightingWilds } = group
   const { LEASH_RADIUS } = GAME_CONFIG.PARTY_BEHAVIOR
   const leaderPos = leader?.get(Position)
   if (leaderPos && horizontalDistance(pos, leaderPos) > LEASH_RADIUS) {
@@ -50,7 +51,7 @@ function resolveFightTarget(behavior, pos, leader, fightingWilds) {
   }
   // Proteger o treinador: selvagem mirando nele (no limite) vira o alvo,
   // mesmo no meio de outra luta.
-  const hunter = findTrainerHunter(pos, leaderPos, fightingWilds)
+  const hunter = findTrainerHunter(pos, leaderPos, fightingWilds, trainer)
   if (hunter) return hunter
   if (isActiveCombatant(behavior.target)) return behavior.target
 
@@ -63,15 +64,14 @@ function resolveFightTarget(behavior, pos, leader, fightingWilds) {
 }
 
 /**
- * A selvagem (mais perto) que está mirando o TREINADOR agora, entre as que
- * lutam com o grupo e dentro do limite de quem segue — ou `null`. A criatura
- * do time protege quem não luta (Parte 4).
+ * A selvagem (mais perto) que está mirando o TREINADOR dono agora, entre as
+ * que lutam com o grupo e dentro do limite de quem segue — ou `null`. A
+ * criatura do time protege quem não luta (Parte 4).
  */
-function findTrainerHunter(pos, leaderPos, fightingWilds) {
+function findTrainerHunter(pos, leaderPos, fightingWilds, trainer) {
   const { LEASH_RADIUS } = GAME_CONFIG.PARTY_BEHAVIOR
   const hunters = fightingWilds.filter((wild) => {
-    const target = wild.entity.get(WildBehavior).target
-    if (!target?.has(Party)) return false
+    if (wild.entity.get(WildBehavior).target !== trainer) return false
     return !leaderPos || horizontalDistance(leaderPos, wild.pos) <= LEASH_RADIUS
   })
   return findNearest(pos, hunters)?.entity ?? null
@@ -108,8 +108,21 @@ export function partyBehaviorSystem(context) {
   const { world, delta } = context
   const { ATTACK_INTERVAL, ATTACK_REACH_FRACTION } = GAME_CONFIG.PARTY_BEHAVIOR
 
-  const leader = world.queryFirst(InputControlled, Position)
-  const fightingWilds = listWildsFightingParty(world)
+  // Cada criatura luta pelo grupo do PRÓPRIO dono (`OwnedBy`): o líder que
+  // ela segue e as selvagens brigando com aquele time. Montado uma vez por
+  // treinador por tick.
+  const groups = new Map()
+  const groupOf = (entity) => {
+    const trainer = resolveOwner(entity)
+    if (!groups.has(trainer)) {
+      groups.set(trainer, {
+        trainer,
+        leader: resolveGroupLeader(world, trainer),
+        fightingWilds: listWildsFightingParty(world, trainer),
+      })
+    }
+    return groups.get(trainer)
+  }
 
   const changes = []
   world
@@ -120,7 +133,7 @@ export function partyBehaviorSystem(context) {
         changes.push({ entity, target: null })
         return
       }
-      const target = resolveFightTarget(behavior, pos, leader, fightingWilds)
+      const target = resolveFightTarget(behavior, pos, groupOf(entity))
       if (target !== behavior.target) changes.push({ entity, target })
     })
 
@@ -144,6 +157,7 @@ export function partyBehaviorSystem(context) {
         if (behavior.state !== 'fight' || !behavior.target) return
 
         const target = behavior.target
+        const { fightingWilds } = groupOf(entity)
         const targetPos = target.get(Position)
         const toTarget = { x: targetPos.x - pos.x, z: targetPos.z - pos.z }
         const distance = Math.hypot(toTarget.x, toTarget.z)

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { createWorld } from 'koota'
-import { makeWorld } from '@/test/makeWorld'
+import { makeWorld, ownedByPlayer } from '@/test/makeWorld'
 import { getSpecies } from '@/core/data/species'
 import { steerTowards } from '@/core/steering'
 import { voltarAVagar } from '@/core/actions/wildBehavior'
@@ -123,7 +123,10 @@ describe('PathState.target', () => {
     worlds.push(world)
     expect(player.has(InputControlled)).toBe(true)
     const creature = spawnNavigator(world, { x: 20, y: 0.5, z: 0 })
-    creature.add(SummonedCreature({ slot: 'slot1', speciesId: 'charmander' }))
+    creature.add(
+      SummonedCreature({ slot: 'slot1', speciesId: 'charmander' }),
+      ...ownedByPlayer(world),
+    )
 
     creatureFollowSystem({ world, delta: 1 / 60 })
 

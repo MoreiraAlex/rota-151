@@ -11,6 +11,7 @@ import { resolveTrainingHours } from '../battle/actionCost'
 import { TRAINING_SLOT, resolveEntityMoveSet } from '../battle/creatureAttack'
 import { pararTreino, resolveTrainingGoal } from '../actions/training'
 import { progredirTreino, treinarDominio } from '../actions/moves'
+import { resolveOwner } from '../actions/owner'
 import {
   ActionState,
   AttackCooldowns,
@@ -18,7 +19,6 @@ import {
   IndividualValues,
   InputControlled,
   MovementStats,
-  Party,
   PhysicsBody,
   Position,
   Rotation,
@@ -215,9 +215,10 @@ export function trainingSystem(context) {
   // Fora do `updateEach`: tirar `Training` muda a query iterada.
   for (const entity of stopped) pararTreino(entity)
 
-  const trainer = world.queryFirst(Party)
-  if (!trainer) return
   for (const { entity, slot, moveId, seconds, hours } of repetitions) {
+    // O treino conta no time do dono DELA.
+    const trainer = resolveOwner(entity)
+    if (!trainer) continue
     if (!creditTraining(world, events, trainer, slot, moveId, seconds, hours)) {
       pararTreino(entity)
     }

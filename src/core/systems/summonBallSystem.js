@@ -17,6 +17,7 @@ import {
   InputState,
   Mood,
   MovementStats,
+  OwnedBy,
   Party,
   AiMovement,
   PartyBehavior,
@@ -39,6 +40,7 @@ import {
   vitalsFromSpecies,
 } from '../traits'
 import { resolveAppealActionState } from './creatureAppealSystem'
+import { resolveOwner } from '../actions/owner'
 
 /**
  * Spawna a `SummonedCreature` de verdade (mesma composição de traits que
@@ -107,6 +109,7 @@ function spawnCreature(
     Position(spawnPosition),
     Rotation,
     SummonedCreature({ slot, speciesId }),
+    OwnedBy(trainer),
     IndividualValues(individualValues ?? {}),
     CreatureLevel(progress),
     CreatureMoves(moves),
@@ -234,12 +237,14 @@ function resolveBall(world, trainer, ball, pos, touchedSurface) {
 export function summonBallSystem(context) {
   const { world, delta } = context
 
-  const trainer = world.queryFirst(Party, PhysicsBody)
-  const excludeColliderHandle = trainer?.get(PhysicsBody).colliderHandle
-
   world
     .query(SummonBall, Position, Velocity)
     .updateEach(([ball, pos, vel], entity) => {
+      // Quem lançou (`OwnedBy`): o slot é do time dele, e o corpo dele fica
+      // fora do raycast.
+      const trainer = resolveOwner(entity)
+      const excludeColliderHandle = trainer?.get(PhysicsBody)?.colliderHandle
+
       const remaining = ball.maxDistance - ball.traveled
       if (remaining <= 0) {
         resolveBall(world, trainer, ball, pos, false)

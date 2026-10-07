@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { makeWorld } from '@/test/makeWorld'
+import { makeWorld, ownedByPlayer } from '@/test/makeWorld'
 import { getSpecies } from '../data/species'
 import { createLevelState } from '../data/species/experience'
 import {
@@ -55,6 +55,7 @@ const found = findSpeciesWithNewMove()
 function spawnSummoned() {
   return world.spawn(
     SummonedCreature({ slot: SLOT, speciesId }),
+    ...ownedByPlayer(world),
     CreatureMoves(player.get(PartyMoves)[SLOT]),
   )
 }

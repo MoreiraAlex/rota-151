@@ -1,6 +1,6 @@
 import { afterEach, describe, it, expect } from 'vitest'
 import { createWorld } from 'koota'
-import { makeWorld } from '@/test/makeWorld'
+import { makeWorld, ownedByPlayer } from '@/test/makeWorld'
 import { getSpecies, getPlayerSpecies } from '@/core/data/species'
 import {
   CharacterController,
@@ -38,6 +38,7 @@ function spawnCreature(world, position) {
     Rotation,
     Velocity,
     SummonedCreature({ slot: 'slot1' }),
+    ...ownedByPlayer(world),
     MovementStats(getSpecies('charmander').movement),
     PathState,
     PhysicsBody, // toda SummonedCreature real também tem (ver partySummonSystem.js)

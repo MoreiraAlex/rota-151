@@ -1,14 +1,9 @@
 import { ganharDominio } from '../actions/moves'
+import { resolveOwner } from '../actions/owner'
 import { MAX_MASTERY } from '../data/species/moves'
 import { EVENT_TYPES } from '../events'
 import { GAME_CONFIG } from '../gameConfig'
-import {
-  CombatMode,
-  Party,
-  Position,
-  SummonedCreature,
-  WildCreature,
-} from '../traits'
+import { CombatMode, Position, SummonedCreature, WildCreature } from '../traits'
 import { TRAINING_SLOT } from './creatureAttack'
 
 /**
@@ -52,7 +47,7 @@ export function registrarUsoDeGolpe(world, events, context) {
   if (attack?.mastery == null || attack.mastery >= MAX_MASTERY) return
   if (!hasNearbyOpponent(world, pos)) return
 
-  const trainer = world.queryFirst(Party)
+  const trainer = resolveOwner(entity)
   if (!trainer) return
 
   const hit = attack.area === 'self' || landedThisStep(events, entity)

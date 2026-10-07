@@ -1,10 +1,12 @@
 import { defenderGrupo } from '../actions/partyBehavior'
 import { pararTreino } from '../actions/training'
+import { resolveOwner } from '../actions/owner'
 import { isActiveCombatant, isPlayerSide } from '../battle/combatTargets'
 import { EVENT_TYPES } from '../events'
 import {
   Fainted,
   InputControlled,
+  OwnedBy,
   PartyBehavior,
   SummonedCreature,
   Training,
@@ -37,14 +39,19 @@ export function partyReactionSystem(context) {
     const { attacker, target } = event
     if (!attacker?.has?.(WildCreature) || !isActiveCombatant(attacker)) continue
     if (!isPlayerSide(target)) continue
+    // Só o time de quem apanhou defende (outro treinador é neutro).
+    const owner = resolveOwner(target)
+    if (!owner) continue
 
-    world.query(SummonedCreature, PartyBehavior).forEach((creature) => {
-      if (creature.has(InputControlled) || creature.has(Fainted)) return
-      // Treinando: só sai do treino se ELA for atacada (acima).
-      if (creature.has(Training)) return
-      if (creature.get(PartyBehavior).state !== 'follow') return
-      defenderGrupo(creature, attacker)
-    })
+    world
+      .query(SummonedCreature, PartyBehavior, OwnedBy(owner))
+      .forEach((creature) => {
+        if (creature.has(InputControlled) || creature.has(Fainted)) return
+        // Treinando: só sai do treino se ELA for atacada (acima).
+        if (creature.has(Training)) return
+        if (creature.get(PartyBehavior).state !== 'follow') return
+        defenderGrupo(creature, attacker)
+      })
   }
 }
 

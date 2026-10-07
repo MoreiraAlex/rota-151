@@ -9,6 +9,7 @@ import {
 import { experienceGained, leveledUp } from '../events'
 import { GAME_CONFIG } from '../gameConfig'
 import { anunciarGolpesAptos } from './moves'
+import { findOwnedCreature, resolveOwner } from './owner'
 import {
   CreatureLevel,
   Fainted,
@@ -41,13 +42,13 @@ const PARTY_SLOTS = ['slot1', 'slot2', 'slot3']
 
 /**
  * A criatura do time `attacker` causou dano na selvagem `target` — guarda o
- * slot dela em `FoughtBy` (relação pro treinador). Qualquer outra dupla
+ * slot dela em `FoughtBy` (relação pro treinador DONO dela, `OwnedBy`). Qualquer outra dupla
  * (selvagem batendo no time, treinador) não faz nada.
  */
 export function registrarParticipante(world, attacker, target) {
   if (!target?.isAlive?.() || !target.has(WildCreature)) return
   if (!attacker?.isAlive?.() || !attacker.has(SummonedCreature)) return
-  const trainer = world.queryFirst(Party)
+  const trainer = resolveOwner(attacker)
   if (!trainer) return
 
   const { slot } = attacker.get(SummonedCreature)
@@ -93,18 +94,8 @@ function canReceiveExperience(world, trainer, slot) {
   if (!trainer.get(Party)?.[slot]) return false
   if (!trainer.get(PartyProgress)?.[slot]) return false
   if ((trainer.get(PartyFaint)?.[slot]?.timeLeft ?? 0) > 0) return false
-  const creature = findSummonedCreature(world, slot)
+  const creature = findOwnedCreature(world, trainer, slot)
   return !creature?.has(Fainted)
-}
-
-/** A criatura em campo do `slot`, ou `null` se está na bola. */
-/** A criatura em campo do slot do time (ou `null`, se está na bola). */
-export function findSummonedCreature(world, slot) {
-  let found = null
-  world.query(SummonedCreature).readEach(([summoned], entity) => {
-    if (summoned.slot === slot) found = entity
-  })
-  return found
 }
 
 /**
@@ -124,7 +115,7 @@ export function ganharExperiencia(world, events, trainer, slot, amount) {
   const fromLevel = progress.level
 
   trainer.set(PartyProgress, { [slot]: { level, xp } })
-  const creature = findSummonedCreature(world, slot)
+  const creature = findOwnedCreature(world, trainer, slot)
   if (creature) creature.set(CreatureLevel, { level, xp })
 
   events?.emit(experienceGained({ trainer, slot, creature, amount }))

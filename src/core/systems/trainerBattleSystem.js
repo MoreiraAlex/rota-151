@@ -1,5 +1,6 @@
 import { resolveMoveSpeed } from '../actions/movementSpeed'
 import { tentarCorrer } from '../actions/stamina'
+import { resolveGroupLeader } from '../actions/owner'
 import { faceMovement, resolveIncomingAttack } from '../battle/aiMovement'
 import {
   findNearest,
@@ -11,8 +12,8 @@ import { lerpAngle } from '../math'
 import { steerTowards } from '../steering'
 import {
   CharacterController,
-  InputControlled,
   MovementStats,
+  OwnedBy,
   Party,
   Position,
   Rotation,
@@ -72,14 +73,16 @@ function resolveSafePoint(leaderPos, wilds) {
   }
 }
 
-/** Criaturas do time em campo, ativas, fora o próprio treinador. */
-function listTeam(world) {
+/** Criaturas do `trainer` em campo, ativas, fora o próprio treinador. */
+function listTeam(world, trainer) {
   const team = []
-  world.query(SummonedCreature, Position).forEach((entity) => {
-    if (isActiveCombatant(entity)) {
-      team.push({ entity, pos: entity.get(Position) })
-    }
-  })
+  world
+    .query(SummonedCreature, Position, OwnedBy(trainer))
+    .forEach((entity) => {
+      if (isActiveCombatant(entity)) {
+        team.push({ entity, pos: entity.get(Position) })
+      }
+    })
   return team
 }
 
@@ -117,10 +120,6 @@ export function trainerBattleSystem(context) {
   const { ARRIVE_DISTANCE, DANGER_DISTANCE, TEAM_STOP_DISTANCE } =
     GAME_CONFIG.TRAINER_BATTLE
 
-  const leader = world.queryFirst(InputControlled, Position)
-  const wilds = listWildsFightingParty(world)
-  const team = listTeam(world)
-
   // `PathState` de propósito FORA da query: o `steerTowards` grava com
   // `entity.set`, e trait listada na query ativa não persiste a escrita (o
   // caminho do treinador ficava congelado no debug e o `findPath` rodava
@@ -136,7 +135,11 @@ export function trainerBattleSystem(context) {
       Vitals,
     )
     .updateEach(([, trainer, pos, rot, vel, stats, vitals], entity) => {
-      if (entity.has(InputControlled) || !leader || wilds.length === 0) {
+      // Tudo do grupo DESTE treinador: quem ele segue, as selvagens brigando
+      // com o time dele e as criaturas dele.
+      const leader = resolveGroupLeader(world, entity)
+      const wilds = listWildsFightingParty(world, entity)
+      if (leader === entity || wilds.length === 0) {
         trainer.state = 'follow'
         // Ponto de uma luta que acabou não vale pra próxima.
         trainer.hasSafePoint = false
@@ -171,7 +174,7 @@ export function trainerBattleSystem(context) {
       const hunted = wilds.some(
         (wild) => wild.entity.get(WildBehavior).target === entity,
       )
-      const ally = findNearest(pos, team)
+      const ally = findNearest(pos, listTeam(world, entity))
       if (hunted && ally) {
         if (ally.distance > TEAM_STOP_DISTANCE) {
           steerTowards(entity, moving, ally.pos, run(), delta)

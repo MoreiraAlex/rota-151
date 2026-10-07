@@ -12,6 +12,7 @@ import {
   resolveMoveStatus,
 } from '@/core/data/species/moves'
 import {
+  OwnedBy,
   Party,
   PartyMoves,
   PartyProgress,
@@ -69,7 +70,7 @@ export function PartyActionMenu({ trainer, slot }) {
   const party = useTrait(trainer, Party)
   const partyMoves = useTrait(trainer, PartyMoves)
   const progress = useTrait(trainer, PartyProgress)
-  const summoned = useQuery(SummonedCreature)
+  const summoned = useQuery(SummonedCreature, OwnedBy(trainer))
   const creature =
     summoned.find((entity) => entity.get(SummonedCreature)?.slot === slot) ??
     null
@@ -85,7 +86,7 @@ export function PartyActionMenu({ trainer, slot }) {
   if (!species || !moves) return null
 
   const level = progress?.[slot]?.level ?? species.level ?? 1
-  const block = resolveTrainingBlock(world, slot)
+  const block = resolveTrainingBlock(world, trainer, slot)
 
   return (
     <div className="pointer-events-none absolute inset-0 flex items-start justify-center pt-24 font-mono text-white">

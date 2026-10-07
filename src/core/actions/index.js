@@ -48,3 +48,11 @@ export {
   fecharMenuDeAcoes,
   isPartyMenuOpen,
 } from './partyActionMenu'
+export {
+  resolveOwner,
+  isSameTeam,
+  findOwnedCreature,
+  hasOwnedBallInFlight,
+  resolveGroupLeader,
+  resolveLocalTrainer,
+} from './owner'

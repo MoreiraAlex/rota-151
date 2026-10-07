@@ -1,6 +1,7 @@
 import { GAME_CONFIG } from '../gameConfig'
 import { abrirMenuDeAcoes, isPartyMenuOpen } from '../actions/partyActionMenu'
-import { InputControlled, Party, SlotHold } from '../traits'
+import { resolveLocalTrainer } from '../actions/owner'
+import { InputControlled, SlotHold } from '../traits'
 
 // Tecla de slot (Q/E/R) → slot do time — mesma correspondência do
 // `partySummonSystem.js`.
@@ -48,8 +49,9 @@ export function partyActionMenuInputSystem(context) {
   const input = context.input
   if (!input) return
 
-  const trainer = world.queryFirst(Party, SlotHold)
-  if (!trainer) return
+  // O input é do jogador desta máquina: o treinador dele.
+  const trainer = resolveLocalTrainer(world)
+  if (!trainer?.has(SlotHold)) return
 
   if (isPartyMenuOpen(trainer)) {
     for (const flag of MENU_BLOCKED_FLAGS) input[flag] = false

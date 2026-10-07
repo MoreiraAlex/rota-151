@@ -2,6 +2,7 @@ import { GAME_CONFIG } from '../gameConfig'
 import { resolveCreatureAttack, resolveEntityMoveSet } from './creatureAttack'
 import { ATTACK_SLOTS } from './attackCasting'
 import { isSelfAttack } from './channelAttack'
+import { resolveOwner } from '../actions/owner'
 import {
   CharacterController,
   Fainted,
@@ -53,21 +54,25 @@ export function listPlayerSide(world) {
 }
 
 /**
- * O treinador só é alvo se for o ÚNICO do lado do jogador ao alcance da
- * selvagem (docs/features/034-ia-de-batalha.md, Parte 4): com alguma criatura
- * do time ativa a até `radius` de `pos` (o raio de perseguição/aggro da
- * selvagem agora), ele sai dos `candidates`. Sem raio, a lista volta igual.
+ * O treinador só é alvo se for o ÚNICO do time dele ao alcance da selvagem
+ * (docs/features/034-ia-de-batalha.md, Parte 4): com alguma criatura DELE
+ * (`OwnedBy`) ativa a até `radius` de `pos` (o raio de perseguição/aggro da
+ * selvagem agora), ele sai dos `candidates` — criatura de outro treinador
+ * não o cobre. Sem raio, a lista volta igual.
  */
 export function excludeCoveredTrainer(candidates, pos, radius) {
   if (radius == null) return candidates
-  const covered = candidates.some(
-    (candidate) =>
-      !candidate.entity.has(Party) &&
-      horizontalDistance(pos, candidate.pos) <= radius,
+  const coveredTrainers = new Set()
+  for (const candidate of candidates) {
+    if (candidate.entity.has(Party)) continue
+    if (horizontalDistance(pos, candidate.pos) > radius) continue
+    const owner = resolveOwner(candidate.entity)
+    if (owner) coveredTrainers.add(owner)
+  }
+  if (coveredTrainers.size === 0) return candidates
+  return candidates.filter(
+    (candidate) => !coveredTrainers.has(candidate.entity),
   )
-  return covered
-    ? candidates.filter((candidate) => !candidate.entity.has(Party))
-    : candidates
 }
 
 /** O mais perto de `pos` (no plano) numa lista `{ entity, pos }`, ou `null`. */
@@ -167,17 +172,21 @@ export function findWeakest(pos, candidates) {
 }
 
 /**
- * Selvagens lutando com o grupo agora: perseguindo alguém do lado do
- * jogador (`WildBehavior.state === 'chase'`). A IA do time escolhe entre
- * elas quando o alvo dela sai da luta.
+ * Selvagens lutando com o grupo do `trainer` agora: perseguindo
+ * (`WildBehavior.state === 'chase'`) ele ou uma criatura DELE. A IA do time
+ * escolhe entre elas quando o alvo dela sai da luta; selvagem brigando com
+ * outro treinador não entra (times de treinadores diferentes são neutros,
+ * docs/features/040-dono-da-criatura.md).
  */
-export function listWildsFightingParty(world) {
+export function listWildsFightingParty(world, trainer) {
   const list = []
+  if (!trainer) return list
   world.query(WildCreature, WildBehavior, Position).forEach((entity) => {
     const behavior = entity.get(WildBehavior)
     if (behavior.state !== 'chase') return
     if (!isActiveCombatant(entity)) return
     if (!behavior.target || !isActiveCombatant(behavior.target)) return
+    if (resolveOwner(behavior.target) !== trainer) return
     list.push({ entity, pos: entity.get(Position) })
   })
   return list

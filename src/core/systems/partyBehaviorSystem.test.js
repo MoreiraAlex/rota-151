@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { makeWorld } from '@/test/makeWorld'
+import { makeWorld, ownedByPlayer } from '@/test/makeWorld'
 import { desmaiar } from '../actions/faint'
 import { defenderGrupo } from '../actions/partyBehavior'
 import { perseguirJogador } from '../actions/wildBehavior'
@@ -73,6 +73,7 @@ function spawnPartyCreature(
 ) {
   return world.spawn(
     SummonedCreature({ slot, speciesId: 'charmander' }),
+    ...ownedByPlayer(world),
     PartyBehavior,
     AiMovement,
     Position(position),

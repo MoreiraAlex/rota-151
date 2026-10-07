@@ -8,6 +8,7 @@ import { getSpecies } from '@/core/data/species'
 import {
   Fainted,
   InputControlled,
+  OwnedBy,
   Party,
   PartyFaint,
   PartyIndividualValues,
@@ -174,7 +175,7 @@ export function PartyHud() {
   const partyFaint = useTrait(playerEntity, PartyFaint)
   const partyVitals = useTrait(playerEntity, PartyVitals)
   const partyProgress = useTrait(playerEntity, PartyProgress)
-  const summoned = useQuery(SummonedCreature)
+  const summoned = useQuery(SummonedCreature, OwnedBy(playerEntity))
   const controlled = useQueryFirst(InputControlled)
   const controllingCreature = !!controlled && controlled !== playerEntity
 

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { makeWorld } from '@/test/makeWorld'
+import { makeWorld, ownedByPlayer } from '@/test/makeWorld'
 import { disposePhysics, initPhysics } from '@/core/physics/physicsWorld'
 import { resolveMoveSpeed } from '../actions/movementSpeed'
 import { perseguirJogador } from '../actions/wildBehavior'
@@ -67,6 +67,7 @@ function setup({ wildAt = at(0, 6), wildTarget = 'creature' } = {}) {
   trainer.remove(InputControlled)
   const creature = world.spawn(
     SummonedCreature({ slot: 'slot1', speciesId: 'charmander' }),
+    ...ownedByPlayer(world),
     InputControlled,
     Position(at(0, 2)),
     CharacterController(CHARMANDER.body),
@@ -278,6 +279,7 @@ describe('trainerBattleSystem — regressão: andando em círculos', () => {
     trainer.remove(InputControlled)
     world.spawn(
       SummonedCreature({ slot: 'slot1', speciesId: 'charmander' }),
+      ...ownedByPlayer(world),
       InputControlled,
       PartyBehavior,
       AiMovement,
@@ -353,6 +355,7 @@ describe('trainerBattleSystem — regressão: meia-volta na borda da zona (com f
     trainer.remove(InputControlled)
     const creature = world.spawn(
       SummonedCreature({ slot: 'slot1', speciesId: 'charmander' }),
+      ...ownedByPlayer(world),
       InputControlled,
       PartyBehavior,
       AiMovement,

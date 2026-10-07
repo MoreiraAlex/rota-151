@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach } from 'vitest'
 import { createWorld } from 'koota'
-import { makeWorld } from '@/test/makeWorld'
+import { makeWorld, ownedByPlayer } from '@/test/makeWorld'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import { getSpecies } from '@/core/data/species'
 import { createLevelState } from '@/core/data/species/experience'
@@ -121,6 +121,7 @@ describe('summonBallSystem', () => {
         maxDistance,
         traveled: 0,
       }),
+      ...ownedByPlayer(world),
     )
 
     for (let i = 0; i < 60; i++) tick(world, 1 / 60)
@@ -168,6 +169,7 @@ describe('summonBallSystem', () => {
         maxDistance: 1,
         traveled: 0,
       }),
+      ...ownedByPlayer(world),
     )
     for (let i = 0; i < 30; i++) tick(world, 1 / 60)
 
@@ -194,6 +196,7 @@ describe('summonBallSystem', () => {
         maxDistance: 1,
         traveled: 0,
       }),
+      ...ownedByPlayer(world),
     )
     for (let i = 0; i < 30; i++) tick(world, 1 / 60)
 
@@ -222,6 +225,7 @@ describe('summonBallSystem', () => {
         maxDistance: 5,
         traveled: 0,
       }),
+      ...ownedByPlayer(world),
     )
 
     // Time do treinador muda de espécie no slot1 ENQUANTO a esfera está
@@ -264,6 +268,7 @@ describe('summonBallSystem — colisão com o mundo', () => {
         maxDistance: 100, // bem maior que a distância real até o chão
         traveled: 0,
       }),
+      ...ownedByPlayer(world),
     )
 
     for (let i = 0; i < 30; i++) tick(world, 1 / 30)
@@ -302,6 +307,7 @@ describe('summonBallSystem — colisão com o mundo', () => {
         maxDistance: 100,
         traveled: 0,
       }),
+      ...ownedByPlayer(world),
     )
 
     for (let i = 0; i < 30; i++) tick(world, 1 / 30)
@@ -344,6 +350,7 @@ describe('summonBallSystem — colisão com o mundo', () => {
         maxDistance: 100,
         traveled: 0,
       }),
+      ...ownedByPlayer(world),
     )
 
     tick(world, 1 / 60)

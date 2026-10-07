@@ -31,6 +31,7 @@ import {
   ScanMode,
   PokedexEntries,
   ScanHistory,
+  OwnedBy,
 } from '@/core/traits'
 
 // Fixado em 'boy' de propósito, não em PLAYER_SPECIES_ID — os testes usam
@@ -47,23 +48,22 @@ const PLAYER_SPECIES = getSpecies('boy')
 const vitals = vitalsFromSpecies(PLAYER_SPECIES)
 
 /**
- * Cria um world koota isolado para testes, com um player e uma câmera compostos
- * como em `core/world/world.js` — mas sem o singleton, para os testes não
- * vazarem estado entre si.
- *
- * Retorna `{ world, player, camera }`.
+ * Um treinador de teste com a mesma composição do player — `controlled`
+ * põe `InputControlled`/`CameraTarget` (o jogador desta máquina). Sem ele, é
+ * um SEGUNDO treinador no mesmo world (docs/features/040-dono-da-
+ * criatura.md), sem input nenhum.
  */
-export function makeWorld({ playerPosition = { x: 0, y: 2, z: 0 } } = {}) {
-  const world = createWorld()
-
-  const player = world.spawn(
-    Position(playerPosition),
+export function spawnTrainer(
+  world,
+  { position = { x: 0, y: 2, z: 0 }, controlled = false } = {},
+) {
+  return world.spawn(
+    Position(position),
     Rotation,
     Velocity,
     InputState,
-    InputControlled,
+    ...(controlled ? [InputControlled, CameraTarget] : []),
     MovementStats(PLAYER_SPECIES.movement),
-    CameraTarget,
     PhysicsBody,
     CharacterController(PLAYER_SPECIES.body),
     AnimationState,
@@ -90,6 +90,22 @@ export function makeWorld({ playerPosition = { x: 0, y: 2, z: 0 } } = {}) {
     PokedexEntries,
     ScanHistory,
   )
+}
+
+/**
+ * Cria um world koota isolado para testes, com um player e uma câmera compostos
+ * como em `core/world/world.js` — mas sem o singleton, para os testes não
+ * vazarem estado entre si.
+ *
+ * Retorna `{ world, player, camera }`.
+ */
+export function makeWorld({ playerPosition = { x: 0, y: 2, z: 0 } } = {}) {
+  const world = createWorld()
+
+  const player = spawnTrainer(world, {
+    position: playerPosition,
+    controlled: true,
+  })
 
   const camera = world.spawn(
     OrbitCamera({
@@ -100,4 +116,14 @@ export function makeWorld({ playerPosition = { x: 0, y: 2, z: 0 } } = {}) {
   )
 
   return { world, player, camera }
+}
+
+/**
+ * `OwnedBy` pro treinador do world de teste, pra espalhar no `spawn` — a
+ * criatura (ou esfera) montada à mão num teste entra no time dele
+ * (docs/features/040-dono-da-criatura.md). World sem treinador: nada.
+ */
+export function ownedByPlayer(world) {
+  const trainer = world.queryFirst(Party)
+  return trainer ? [OwnedBy(trainer)] : []
 }

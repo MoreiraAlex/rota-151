@@ -3,10 +3,12 @@ import { resolveAimPoint, resolveHandOrigin } from '../aim'
 import { GAME_CONFIG } from '../gameConfig'
 import { destroyCharacterBody } from '../physics/colliders'
 import { isPartySlotFainted } from './faintSystem'
+import { findOwnedCreature, hasOwnedBallInFlight } from '../actions/owner'
 import {
   ActionState,
   Fainted,
   InputControlled,
+  OwnedBy,
   Party,
   PartyFaint,
   PartyVitals,
@@ -28,33 +30,6 @@ const SLOTS = [
   { input: 'secondary2', slot: 'slot2' },
   { input: 'secondary3', slot: 'slot3' },
 ]
-
-/**
- * Acha a `SummonedCreature` de um slot, se houver. Exportado — também usado
- * por `controlSwitchSystem.js` (docs/features/018-troca-de-controle-
- * treinador-criatura.md) pra achar o alvo de uma troca de controle.
- */
-export function findSummoned(world, slot) {
-  return world
-    .query(SummonedCreature)
-    .find((entity) => entity.get(SummonedCreature).slot === slot)
-}
-
-/**
- * Se já existe uma `SummonBall` em voo pra este slot (ver
- * docs/features/024-esfera-de-invocar.md) — a criatura ainda não nasceu
- * (`findSummoned` não a acharia ainda), mas já tem uma esfera resolvendo
- * esse slot. Sem esta checagem, apertar `secondaryN` de novo assim que a
- * ação `summon` destrava (`duration`, que termina bem antes da esfera
- * pousar — a esfera pode levar bem mais tempo que o gesto) disparava uma
- * SEGUNDA esfera pro mesmo slot, resultando em duas criaturas nascendo da
- * mesma espécie/slot quando as duas pousassem.
- */
-function hasPendingBall(world, slot) {
-  return world
-    .query(SummonBall)
-    .some((entity) => entity.get(SummonBall).slot === slot)
-}
 
 /**
  * Se a criatura deste slot tem que ser recolhida sozinha: o slot foi
@@ -80,7 +55,7 @@ function needsAutoRecall(party, slot, creature) {
  * existe, num lugar concreto, então faz sentido virar pra ELA, não pra
  * onde o mouse estava apontando.
  */
-function beginRecall(world, action, pos, rot, slot, duration) {
+function beginRecall(world, trainer, action, pos, rot, slot, duration) {
   action.current = 'recall'
   action.elapsed = 0
   action.pendingSlot = slot
@@ -88,7 +63,7 @@ function beginRecall(world, action, pos, rot, slot, duration) {
   // toca nesta velocidade em vez de um `speed` fixo no JSON do clipe.
   action.animationSpeed = duration > 0 ? 1 / duration : 1
 
-  const creature = findSummoned(world, slot)
+  const creature = findOwnedCreature(world, trainer, slot)
   if (creature) {
     const creaturePos = creature.get(Position)
     rot.y = Math.atan2(creaturePos.x - pos.x, creaturePos.z - pos.z)
@@ -182,7 +157,7 @@ function setTrainerSlot(trainer, slotTrait, slot, value) {
  * (`faintSystem.js`), e o slot fica bloqueado pra invocar até lá.
  */
 function applyRecall(world, trainer, pos, rot, slot) {
-  const creature = findSummoned(world, slot)
+  const creature = findOwnedCreature(world, trainer, slot)
   if (!creature) return
 
   const creaturePos = creature.get(Position)
@@ -230,7 +205,17 @@ function applyRecall(world, trainer, pos, rot, slot) {
  * vitals — a mesma composição de traits que existia aqui antes da
  * esfera).
  */
-function spawnSummonBall(world, pos, rot, dirX, dirY, dirZ, slot, speciesId) {
+function spawnSummonBall(
+  world,
+  trainer,
+  pos,
+  rot,
+  dirX,
+  dirY,
+  dirZ,
+  slot,
+  speciesId,
+) {
   const SUMMON = getPlayerSpecies().actions.summon
   const { summonOffset, summonBallSpeed } = getPlayerSpecies().party
   const spawnPosition = resolveHandOrigin(pos, rot.y, SUMMON)
@@ -244,6 +229,8 @@ function spawnSummonBall(world, pos, rot, dirX, dirY, dirZ, slot, speciesId) {
       z: dirZ * summonBallSpeed,
     }),
     SummonBall({ slot, speciesId, maxDistance: summonOffset, traveled: 0 }),
+    // A criatura que nascer dela herda o dono (`summonBallSystem.js`).
+    OwnedBy(trainer),
   )
 }
 
@@ -330,9 +317,9 @@ export function partySummonSystem(context) {
       // um de cada vez (mesma trava de "uma ação por vez" do resto).
       if (action.current === null) {
         for (const slot of ['slot1', 'slot2', 'slot3']) {
-          const creature = findSummoned(world, slot)
+          const creature = findOwnedCreature(world, entity, slot)
           if (creature && needsAutoRecall(party, slot, creature)) {
-            beginRecall(world, action, pos, rot, slot, RECALL.duration)
+            beginRecall(world, entity, action, pos, rot, slot, RECALL.duration)
             break
           }
         }
@@ -351,6 +338,7 @@ export function partySummonSystem(context) {
           if (action.current === 'summon') {
             spawnSummonBall(
               world,
+              entity,
               pos,
               rot,
               action.dirX,
@@ -390,20 +378,22 @@ export function partySummonSystem(context) {
       for (const { input: inputKey, slot } of SLOTS) {
         if (!input[inputKey]) continue
 
-        if (findSummoned(world, slot)) {
-          beginRecall(world, action, pos, rot, slot, RECALL.duration)
+        if (findOwnedCreature(world, entity, slot)) {
+          beginRecall(world, entity, action, pos, rot, slot, RECALL.duration)
         } else if (
           party[slot] &&
           getSpecies(party[slot]) &&
-          !hasPendingBall(world, slot) &&
+          !hasOwnedBallInFlight(world, entity, slot) &&
           !isPartySlotFainted(entity, slot)
         ) {
           // Confere a espécie ANTES de travar a ação — espécie inválida
           // não deve nem começar a ocupar o treinador (mesmo padrão de
           // `playerActionSystem.js`: precondições checadas antes de
           // escrever `action.current`, não só no instante de efeito).
-          // `hasPendingBall` evita uma SEGUNDA esfera pro mesmo slot
-          // enquanto a primeira ainda está em voo (ver docstring dela).
+          // `hasOwnedBallInFlight` evita uma SEGUNDA esfera pro mesmo slot
+          // enquanto a primeira ainda está em voo — a esfera vive bem mais
+          // que o gesto (`duration`), e duas pousando nasceriam duas
+          // criaturas do mesmo slot.
           // Desmaiada (`PartyFaint`) não sai da bola até reanimar.
           beginSummon(world, action, pos, rot, body, slot)
         }

@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
+import { ownedByPlayer } from '@/test/makeWorld'
 import { createWorld } from 'koota'
 import {
   fugirDoJogador,
@@ -433,6 +434,7 @@ describe('wildBehaviorSystem — alvo por ameaça ou proximidade', () => {
   function spawnPartyCreature(world, distance) {
     return world.spawn(
       SummonedCreature({ slot: 'slot1', speciesId: 'charmander' }),
+      ...ownedByPlayer(world),
       Position({ x: 30, y: 0.45, z: 30 - distance }),
       CharacterController(SPECIES.body),
       vitalsFromSpecies(SPECIES),
@@ -567,6 +569,7 @@ describe('wildBehaviorSystem — habilidades (escolha do golpe)', () => {
     // (o único pronto continua sendo o Tackle).
     world.spawn(
       SummonedCreature({ slot: 'slot1', speciesId: 'charmander' }),
+      ...ownedByPlayer(world),
       Position({ x: 30, y: 0.45, z: 27 }),
       CharacterController(SPECIES.body),
       vitalsFromSpecies(SPECIES),
@@ -622,6 +625,7 @@ describe('wildBehaviorSystem — movimento na luta', () => {
     // Uma criatura do time colada nela, carregando um golpe em cima dela.
     const mine = world.spawn(
       SummonedCreature({ slot: 'slot1', speciesId: 'charmander' }),
+      ...ownedByPlayer(world),
       Position({ x: 30, y: 0.45, z: 31.2 }),
       CharacterController(SPECIES.body),
       ActionState({

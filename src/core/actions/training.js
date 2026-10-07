@@ -14,7 +14,7 @@ import {
   TrainingObject,
   Velocity,
 } from '../traits'
-import { findSummonedCreature } from './experience'
+import { findOwnedCreature } from './owner'
 import { podeTreinarGolpe } from './moves'
 
 /**
@@ -49,12 +49,12 @@ export function isFighting(creature) {
 }
 
 /**
- * Por que a criatura do `slot` não pode treinar AGORA (independe do golpe):
+ * Por que a criatura do `slot` do `trainer` não pode treinar AGORA (independe do golpe):
  * `'not-summoned'` | `'fainted'` | `'controlled'` | `'in-combat'` |
  * `'no-object'` — ou `null`, se pode.
  */
-export function resolveTrainingBlock(world, slot) {
-  const creature = findSummonedCreature(world, slot)
+export function resolveTrainingBlock(world, trainer, slot) {
+  const creature = findOwnedCreature(world, trainer, slot)
   if (!creature) return 'not-summoned'
   if (creature.has(Fainted)) return 'fainted'
   if (creature.has(InputControlled)) return 'controlled'
@@ -88,10 +88,10 @@ export function resolveTrainingGoal(trainer, slot, moveId) {
  * (`resolveTrainingBlock`). Devolve se começou.
  */
 export function iniciarTreino(world, trainer, slot, moveId) {
-  if (resolveTrainingBlock(world, slot)) return false
+  if (resolveTrainingBlock(world, trainer, slot)) return false
   if (!resolveTrainingGoal(trainer, slot, moveId)) return false
 
-  const creature = findSummonedCreature(world, slot)
+  const creature = findOwnedCreature(world, trainer, slot)
   const object = findNearbyTrainingObject(world, creature.get(Position))
   const training = { moveId, object, wait: 0, resting: false, elapsed: 0 }
   if (creature.has(Training)) creature.set(Training, training)
@@ -117,8 +117,8 @@ export function pararTreino(creature) {
   }
 }
 
-/** A criatura do `slot` está treinando? Devolve o id do golpe (ou `null`). */
-export function resolveTrainingMove(world, slot) {
-  const creature = findSummonedCreature(world, slot)
+/** A criatura do `slot` do `trainer` está treinando? Devolve o id do golpe (ou `null`). */
+export function resolveTrainingMove(world, trainer, slot) {
+  const creature = findOwnedCreature(world, trainer, slot)
   return creature?.has(Training) ? creature.get(Training).moveId : null
 }

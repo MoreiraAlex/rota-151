@@ -8,7 +8,6 @@ import {
   Fainted,
   InputControlled,
   Mood,
-  Party,
   PartyBehavior,
   PhysicsBody,
   Position,
@@ -18,6 +17,7 @@ import {
   WildCreature,
 } from '../traits'
 import { voltarAVagar } from './wildBehavior'
+import { resolveOwner } from './owner'
 
 /**
  * A criatura desmaia (chegou a 0 de HP): começa a contagem pra acordar
@@ -57,7 +57,8 @@ export function desmaiar(world, entity) {
   }
 
   if (entity.has(InputControlled)) {
-    const trainer = world.queryFirst(Party)
+    // O controle volta pro dono DELA, não pra um treinador qualquer.
+    const trainer = resolveOwner(entity)
     if (trainer) {
       entity.remove(InputControlled, CameraTarget)
       trainer.add(InputControlled, CameraTarget)

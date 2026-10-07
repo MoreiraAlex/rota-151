@@ -1,6 +1,7 @@
 import { GAME_CONFIG } from '../gameConfig'
 import { resolveMoveSpeed } from '../actions/movementSpeed'
 import { tentarCorrer } from '../actions/stamina'
+import { resolveGroupLeader, resolveOwner } from '../actions/owner'
 import { resolveResting } from '../battle/aiEnergy'
 import { lerpAngle } from '../math'
 import { findPath } from '../pathfinding'
@@ -32,13 +33,10 @@ import {
  * treinador-criatura.md pra suportar trocar de controle: normalmente é
  * "toda criatura segue o treinador", mas com o controle numa criatura, é o
  * TREINADOR (virou "o bot") quem passa a seguir, e a criatura controlada
- * some da lista de seguidores. Acha quem está sendo pilotado via
- * `InputControlled` (não um singleton importado), mesma técnica que
- * qualquer system headless já usa pra achar "o jogador" — funciona igual
- * em teste (`makeWorld`) e no jogo real; como só uma entidade por vez tem
- * essa tag (é ela quem `controlSwitchSystem.js` move), isso já resolve
- * pra quem quer que seja o alvo no momento, sem esta função precisar saber
- * se é o treinador ou uma criatura.
+ * some da lista de seguidores. Cada um segue o líder do PRÓPRIO grupo
+ * (`resolveGroupLeader`, docs/features/040-dono-da-criatura.md): o
+ * treinador dono (`OwnedBy`), ou a criatura dele que tem `InputControlled`
+ * agora — nunca o líder de outro treinador. Sem dono, não segue ninguém.
  *
  * Quem segue é generalizado por `CharacterController` (trait física que
  * treinador e toda criatura têm os dois) menos quem tem `InputControlled`
@@ -201,9 +199,17 @@ export function creatureFollowSystem(context) {
     AVOIDANCE_PROBE_DISTANCE,
   } = GAME_CONFIG.PATHFINDING
 
-  const controlled = world.queryFirst(InputControlled, Position)
-  if (!controlled) return
-  const targetPos = controlled.get(Position)
+  // Cada um segue o líder do PRÓPRIO grupo (`resolveGroupLeader`): o
+  // treinador dono, ou a criatura dele que está sendo pilotada. Montado uma
+  // vez por treinador por tick.
+  const leaders = new Map()
+  const leaderOf = (entity) => {
+    const trainer = resolveOwner(entity)
+    if (!leaders.has(trainer)) {
+      leaders.set(trainer, resolveGroupLeader(world, trainer))
+    }
+    return leaders.get(trainer)
+  }
 
   // Todo personagem físico (treinador + toda SummonedCreature, controlado
   // ou não), lido uma vez por tick — usado pela evasão entre personagens
@@ -258,6 +264,11 @@ export function creatureFollowSystem(context) {
         vel.z = 0
         return
       }
+
+      // Sem grupo (sem dono) ou é o próprio líder: não segue ninguém.
+      const leader = leaderOf(entity)
+      if (!leader || leader === entity) return
+      const targetPos = leader.get(Position)
 
       const dx = targetPos.x - pos.x
       const dz = targetPos.z - pos.z

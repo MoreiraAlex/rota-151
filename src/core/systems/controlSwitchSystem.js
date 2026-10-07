@@ -1,5 +1,5 @@
-import { InputControlled, CameraTarget, Fainted, Party } from '../traits'
-import { findSummoned } from './partySummonSystem'
+import { InputControlled, CameraTarget, Fainted } from '../traits'
+import { findOwnedCreature, resolveLocalTrainer } from '../actions/owner'
 
 // Correspondência de slot pro pulso de input de troca (ver
 // docs/features/018-troca-de-controle-treinador-criatura.md — 1/2/3, não
@@ -34,10 +34,12 @@ function switchControlTo(world, target) {
  * agora, seja quem for), então este system só precisa decidir QUANDO
  * mover a tag.
  *
- * Acha "o treinador" por `Party` (trait exclusivo dele, nenhuma criatura
- * tem) — não importa `playerEntity` de `core/world/world.js` de propósito,
- * isso quebraria os testes headless (`makeWorld()` cria sua própria
- * entidade, sem relação com o singleton do jogo real).
+ * O treinador é o do jogador desta máquina (`resolveLocalTrainer`: quem
+ * está no controle, ou o dono da criatura pilotada), e só as criaturas DELE
+ * (`OwnedBy`) podem ser pilotadas — ver docs/features/040-dono-da-
+ * criatura.md. Não importa `playerEntity` de `core/world/world.js` de
+ * propósito, isso quebraria os testes headless (`makeWorld()` cria sua
+ * própria entidade, sem relação com o singleton do jogo real).
  *
  * `1/2/3` (`switchSlot1-3`) trocam pro slot correspondente SE já houver
  * uma criatura invocada nele (slot vazio ou sem criatura fora: no-op) —
@@ -54,7 +56,7 @@ function switchControlTo(world, target) {
 export function controlSwitchSystem(context) {
   const { world } = context
   const input = context.input ?? {}
-  const trainer = world.queryFirst(Party)
+  const trainer = resolveLocalTrainer(world)
   if (!trainer) return
 
   if (input.returnToBot) {
@@ -64,7 +66,7 @@ export function controlSwitchSystem(context) {
 
   for (const { input: key, slot } of SLOT_SWITCH) {
     if (!input[key]) continue
-    const creature = findSummoned(world, slot)
+    const creature = findOwnedCreature(world, trainer, slot)
     // Desmaiada não pode ser pilotada (`Fainted`).
     if (creature && !creature.has(Fainted)) switchControlTo(world, creature)
     break // só um switchSlotN processado por tick

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { makeWorld } from '@/test/makeWorld'
+import { makeWorld, ownedByPlayer } from '@/test/makeWorld'
 import { getSpecies } from '../data/species'
 import { createLevelState } from '../data/species/experience'
 import {
@@ -79,6 +79,7 @@ function spawnCreature(speciesId, position = { x: 0, y: 1, z: 0 }) {
     PhysicsBody,
     vitalsFromSpecies(species, null, progress.level),
     SummonedCreature({ slot: SLOT, speciesId }),
+    ...ownedByPlayer(world),
     IndividualValues({}),
     CreatureLevel(progress),
     CreatureMoves(cloneMovesState(player.get(PartyMoves)[SLOT])),
@@ -185,13 +186,13 @@ describe.skipIf(!found)('treino de golpe', () => {
 
   it('sem objeto de treino perto, não começa', () => {
     spawnCreature(found.speciesId)
-    expect(resolveTrainingBlock(world, SLOT)).toBe('no-object')
+    expect(resolveTrainingBlock(world, player, SLOT)).toBe('no-object')
     expect(iniciarTreino(world, player, SLOT, found.moveId)).toBe(false)
   })
 
   it('sem a criatura invocada, não começa', () => {
     spawnObject()
-    expect(resolveTrainingBlock(world, SLOT)).toBe('not-summoned')
+    expect(resolveTrainingBlock(world, player, SLOT)).toBe('not-summoned')
   })
 
   it('perto do objeto, repete o golpe e o treino progride', () => {

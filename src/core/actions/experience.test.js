@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { makeWorld } from '@/test/makeWorld'
+import { makeWorld, ownedByPlayer } from '@/test/makeWorld'
 import { getSpecies } from '../data/species'
 import {
   calculateExperienceGain,
@@ -54,6 +54,7 @@ function spawnSummoned(slot) {
   const progress = player.get(PartyProgress)[slot]
   return world.spawn(
     SummonedCreature({ slot, speciesId }),
+    ...ownedByPlayer(world),
     IndividualValues(individualValues),
     CreatureLevel(progress),
     vitalsFromSpecies(species, individualValues, progress.level),

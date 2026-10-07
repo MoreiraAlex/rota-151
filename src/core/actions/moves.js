@@ -18,7 +18,7 @@ import {
   PartyMoves,
   PartyProgress,
 } from '../traits'
-import { findSummonedCreature } from './experience'
+import { findOwnedCreature } from './owner'
 
 /**
  * Golpes da criatura do time (docs/features/038-aprendizado-treino-e-dominio-
@@ -43,7 +43,7 @@ function readMoves(trainer, slot) {
 
 function writeMoves(world, trainer, slot, next) {
   trainer.set(PartyMoves, { [slot]: next })
-  const creature = findSummonedCreature(world, slot)
+  const creature = findOwnedCreature(world, trainer, slot)
   if (creature?.has(CreatureMoves)) {
     creature.set(CreatureMoves, cloneMovesState(next))
   }

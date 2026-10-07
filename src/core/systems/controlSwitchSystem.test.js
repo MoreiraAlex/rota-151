@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { makeWorld } from '@/test/makeWorld'
+import { makeWorld, ownedByPlayer } from '@/test/makeWorld'
 import {
   CameraTarget,
   InputControlled,
@@ -13,7 +13,10 @@ function tick(world, input = {}) {
 }
 
 function spawnCreature(world, slot) {
-  return world.spawn(SummonedCreature({ slot, speciesId: 'bulbasaur' }))
+  return world.spawn(
+    SummonedCreature({ slot, speciesId: 'bulbasaur' }),
+    ...ownedByPlayer(world),
+  )
 }
 
 describe('controlSwitchSystem', () => {
