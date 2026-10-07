@@ -206,16 +206,12 @@ export const SPECIES_TEMPLATE = {
   // `../boy/index.js` se algum dia existir uma segunda espécie `kind:
   // 'trainer'`.
   //
-  // `basicAttack` + `skills` (opcionais — ver `../004-charmander/`,
-  // docs/features/033-skills-de-combate-e-vfx.md) são o INVERSO: exclusivos de criatura, o
-  // treinador não tem (sem arma direta no design, ver docs/backlog.md).
-  // Cada criatura tem 4 ataques, um por botão:
-  // - `basicAttack` (mouse, slot `primary`) — ÚNICO da espécie: definição
-  //   completa em `./basicAttack.js` (copie o de uma espécie existente;
-  //   formato em `core/data/skills/_template/index.js`). Não aponta pra
-  //   habilidade nenhuma. `duration`/`effectAt` dele são a base que o
-  //   status `speed` escala.
-  // - `skills` (Q/E/R) — chave = número da habilidade (1 = Q, 2 = E,
+  // `skills` (opcional — ver `../004-charmander/`,
+  // docs/features/033-skills-de-combate-e-vfx.md) é o INVERSO: exclusivo de
+  // criatura, o treinador não tem (sem arma direta no design, ver
+  // docs/backlog.md). Os golpes são os ÚNICOS ataques da criatura — não
+  // existe ataque básico (docs/features/039-tipos-e-combate-classico.md, Parte 5):
+  // - `skills` (Q/E/R) — o kit inicial: chave = número do slot (1 = Q, 2 = E,
   //   3 = R; slots `secondary1-3`), valor = REFERÊNCIA ao registro
   //   compartilhado (`core/data/skills/<id>/`), reaproveitada entre
   //   espécies; override por espécie sem duplicar a definição:
@@ -223,8 +219,8 @@ export const SPECIES_TEMPLATE = {
   //        1: 'ember',                                   // Q, como está
   //        2: { id: 'tackle', overrides: { range: 1 } }, // E, ajustada
   //      },
-  // Sem `basicAttack`, a criatura não ataca com o mouse (e a IA não luta);
-  // slot de skill vazio simplesmente não dispara — nada quebra.
+  // Slot vazio simplesmente não dispara — nada quebra (sem golpe nenhum, a
+  // criatura não luta).
   // Animação de cada ataque: `animation.clipKey` da definição escolhe a
   // chave de `nativeAnimations`/`clips` que toca (padrão `'attack'`; ex.:
   // `'attackRanged'` pra uma skill à distância) — espécie sem essa chave
@@ -358,15 +354,10 @@ export const SPECIES_TEMPLATE = {
   //        { id: 'flamethrower', requires: { level: 19 }, overrides: { range: 2 } },
   //      ],
   moves: [],
-  // Opcional — tipo(s) elemental(is) da espécie (1 ou 2, ex.:
-  // `['grass', 'poison']`), usado hoje só pro STAB (`resolveStab`,
-  // `core/battle/calculateDamage.js`) — bônus de dano quando o
-  // `damage.type` do ataque (`core/data/skills/<id>/index.js`) bate com
-  // um destes. Ausente = sem STAB pra esta espécie (cai em `1`, mesmo
-  // fallback gracioso de sempre) — NENHUMA espécie declara isto ainda,
-  // já que nenhum ataque tem `damage.type` definido de verdade. Também
-  // fica pronto pra alimentar `resolveTypeEffectivenessMultiplier`
-  // (fraqueza/resistência/imunidade) quando essa tabela existir.
+  // Opcional — tipo(s) elemental(is) da espécie (1 ou 2, ids de
+  // `core/data/types/index.js`). Dá STAB aos golpes do mesmo tipo
+  // (`resolveStab`) e decide fraquezas/resistências/imunidades na tabela de
+  // efetividade. Ausente = neutra (sem STAB, sem fraqueza — ex.: treinador).
   // types: ['grass', 'poison'],
   // Opcional — comportamento desta espécie quando nasce SELVAGEM
   // (`WildBehavior`, `wildBehaviorSystem.js`). `hostileChance` (0-1) é a

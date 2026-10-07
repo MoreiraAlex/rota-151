@@ -18,11 +18,10 @@ export function MoveTrainingPage({ data, version }) {
     <>
       <Section id="tres-golpes" title="Três golpes por criatura">
         <p>
-          Além do ataque básico (que é sempre o mesmo da espécie), cada criatura
-          do time tem <strong>{moves.slots} golpes</strong>. Eles são{' '}
-          <strong>dela</strong>: duas criaturas da mesma espécie podem ter
-          golpes diferentes. Toda criatura começa com os golpes iniciais da
-          espécie (no{' '}
+          Cada criatura do time tem <strong>{moves.slots} golpes</strong> — são
+          os únicos ataques dela. Eles são <strong>dela</strong>: duas criaturas
+          da mesma espécie podem ter golpes diferentes. Toda criatura começa com
+          os golpes iniciais da espécie (no{' '}
           <WikiLink version={version} to="catalogo/criaturas">
             catálogo
           </WikiLink>

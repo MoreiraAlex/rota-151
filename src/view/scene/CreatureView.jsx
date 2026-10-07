@@ -9,6 +9,7 @@ import {
 } from '@/core/traits'
 import { useAnimatedModel } from '../hooks/useAnimatedModel'
 import { CREATURE_TINTS } from '../creatureTints'
+import { isOutline } from '@/view/materials/toonMaterial'
 
 /**
  * Visual de uma criatura não-jogador (`SummonedCreature` OU `WildCreature`,
@@ -30,7 +31,7 @@ export function CreatureView({ entity, speciesId }) {
     if (!tint) return
 
     cloned.traverse((child) => {
-      if (child.isMesh) {
+      if (child.isMesh && !isOutline(child)) {
         child.material = child.material.clone()
         child.material.color.set(tint)
       }

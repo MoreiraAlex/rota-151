@@ -17,19 +17,15 @@ describe('resolveImpactType', () => {
 })
 
 describe('resolveAttackImpactType', () => {
-  it('visual.impactType vence; senão damage.type; senão normal', () => {
+  it('visual.impactType vence; senão o tipo do golpe; senão normal', () => {
     expect(
       resolveAttackImpactType({
         visual: { impactType: 'fire' },
-        damage: { type: 'water' },
+        type: 'water',
       }),
     ).toBe('fire')
-    expect(
-      resolveAttackImpactType({ visual: {}, damage: { type: 'water' } }),
-    ).toBe('water')
-    expect(
-      resolveAttackImpactType({ visual: {}, damage: { type: null } }),
-    ).toBe('normal')
+    expect(resolveAttackImpactType({ visual: {}, type: 'water' })).toBe('water')
+    expect(resolveAttackImpactType({ visual: {} })).toBe('normal')
     expect(resolveAttackImpactType(null)).toBe('normal')
   })
 })

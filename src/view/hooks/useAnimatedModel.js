@@ -81,6 +81,9 @@ import {
   unregisterAttackAudio,
 } from '../registry/attackAudioRegistry'
 
+import { GAME_CONFIG } from '@/core/gameConfig'
+import { applyToonLook, isOutline } from '../materials/toonMaterial'
+
 const DEFAULT_FOOTSTEP_VOLUME = 0.6
 const DEFAULT_FOOTSTEP_REF_DISTANCE = 5
 const DEFAULT_VOICE_VOLUME = 0.8
@@ -288,12 +291,23 @@ export function useAnimatedModel(entity, species) {
   const cloned = useMemo(() => cloneSkeleton(scene), [scene])
 
   useEffect(() => {
+    const meshes = []
     cloned.traverse((child) => {
-      if (child.isMesh) {
-        child.castShadow = true
-        child.receiveShadow = true
-      }
+      if (child.isMesh) meshes.push(child)
     })
+
+    const { TOON } = GAME_CONFIG.RENDER
+    for (const mesh of meshes) {
+      mesh.castShadow = true
+      // toon: a luz já vem em tons chapados, sombra projetada por cima suja
+      mesh.receiveShadow = !TOON
+    }
+    if (!TOON) return
+
+    // Material toon + contornos (`view/materials/toonMaterial.js`), criados
+    // DEPOIS do traverse (adicionar filhos durante a iteração quebraria o
+    // traverse); o cleanup tira os contornos e devolve o material original.
+    return applyToonLook(meshes)
   }, [cloned])
 
   useEffect(() => {
@@ -325,7 +339,8 @@ export function useAnimatedModel(entity, species) {
     const materialIndexByMesh = new Map()
     let nextMaterialIndex = 0
     cloned.traverse((child) => {
-      if (child.isMesh) materialIndexByMesh.set(child, nextMaterialIndex++)
+      if (child.isMesh && !isOutline(child))
+        materialIndexByMesh.set(child, nextMaterialIndex++)
     })
 
     Promise.all(

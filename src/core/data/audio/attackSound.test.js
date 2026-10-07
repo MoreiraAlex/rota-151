@@ -9,16 +9,14 @@ import {
   resolveAttackSound,
   resolveAttackLoopSounds,
   resolveAttackSoundKey,
+  resolveAttackSoundParts,
   resolveAttackSounds,
 } from './attackSound'
 import { resolveCreatureAttack } from '../../battle/creatureAttack'
 import { getSpecies } from '../species'
+import { listSkills } from '../skills'
 
 const PUBLIC = join(process.cwd(), 'public')
-
-function speciesWithBasic(attack) {
-  return { basicAttack: attack }
-}
 
 describe('grupos de som de impacto por tipo', () => {
   it('existe um grupo impact-<tipo> pra cada um dos 18 tipos, com 8 variações .ogg', () => {
@@ -47,43 +45,35 @@ describe('grupos de som de impacto por tipo', () => {
 
 describe('resolveAttackSound — grupo "impact"', () => {
   it('resolve o grupo do TIPO do golpe (visual.impactType)', () => {
-    const parts = resolveAttackSound(
-      speciesWithBasic({
-        audio: { group: 'impact' },
-        visual: { impactType: 'fire' },
-        damage: null,
-      }),
-    )
+    const parts = resolveAttackSoundParts({
+      audio: { group: 'impact' },
+      visual: { impactType: 'fire' },
+      damage: null,
+    })
     expect(parts).toEqual([{ ...ATTACK_SOUND_GROUPS['impact-fire'], delay: 0 }])
   })
 
-  it('sem visual.impactType usa damage.type; sem nenhum, normal', () => {
-    const soundFor = (damage) =>
-      resolveAttackSound(
-        speciesWithBasic({ audio: { group: 'impact' }, visual: {}, damage }),
-      )
-    expect(soundFor({ type: 'water' })).toEqual([
+  it('sem visual.impactType usa o tipo do golpe; sem nenhum, normal', () => {
+    const soundFor = (type) =>
+      resolveAttackSoundParts({ audio: { group: 'impact' }, visual: {}, type })
+    expect(soundFor('water')).toEqual([
       { ...ATTACK_SOUND_GROUPS['impact-water'], delay: 0 },
     ])
-    expect(soundFor({ type: null })).toEqual([
+    expect(soundFor(undefined)).toEqual([
       { ...ATTACK_SOUND_GROUPS['impact-normal'], delay: 0 },
     ])
   })
 
   it('os grupos antigos e o clips próprio continuam funcionando', () => {
     expect(
-      resolveAttackSound(
-        speciesWithBasic({ audio: { group: 'tackle' }, visual: {} }),
-      ),
+      resolveAttackSoundParts({ audio: { group: 'tackle' }, visual: {} }),
     ).toEqual([{ ...ATTACK_SOUND_GROUPS.tackle, delay: 0 }])
     const own = { clips: ['/x.ogg'], volume: 1 }
+    expect(resolveAttackSoundParts({ audio: own, visual: {} })).toEqual([
+      { ...own, delay: 0 },
+    ])
     expect(
-      resolveAttackSound(speciesWithBasic({ audio: own, visual: {} })),
-    ).toEqual([{ ...own, delay: 0 }])
-    expect(
-      resolveAttackSound(
-        speciesWithBasic({ audio: { group: null }, visual: {} }),
-      ),
+      resolveAttackSoundParts({ audio: { group: null }, visual: {} }),
     ).toBeNull()
   })
 })
@@ -102,7 +92,7 @@ describe('sons dos golpes de fogo (atacante + alvo)', () => {
 
   it('o grupo composto vira duas partes (atacante e alvo), as duas no instante do golpe', () => {
     const resolve = (group) =>
-      resolveAttackSound(speciesWithBasic({ audio: { group }, visual: {} }))
+      resolveAttackSoundParts({ audio: { group }, visual: {} })
 
     const ember = resolve('ember')
     expect(ember.map((p) => p.delay)).toEqual([0, 0])
@@ -124,7 +114,6 @@ describe('sons dos golpes de fogo (atacante + alvo)', () => {
 
 describe('resolveAttackSound por slot / resolveAttackSounds', () => {
   const species = {
-    basicAttack: { audio: { group: 'tackle' }, visual: {} },
     skills: {
       2: { id: 'ember' },
       3: { id: 'flamethrower' },
@@ -142,10 +131,9 @@ describe('resolveAttackSound por slot / resolveAttackSounds', () => {
     expect(resolveAttackSound(species, 'secondary1')).toBeNull()
   })
 
-  it('resolveAttackSounds junta, por chave (básico ou id do golpe), só os que têm som', () => {
+  it('resolveAttackSounds junta, por id do golpe, só os que têm som', () => {
     const sounds = resolveAttackSounds(species)
-    expect(Object.keys(sounds)).toEqual(['primary', 'ember', 'flamethrower'])
-    expect(sounds.primary).toHaveLength(1)
+    expect(Object.keys(sounds)).toEqual(['ember', 'flamethrower'])
     expect(sounds.ember).toHaveLength(2)
   })
 
@@ -154,18 +142,18 @@ describe('resolveAttackSound por slot / resolveAttackSounds', () => {
     expect(Object.keys(sounds)).toContain('punch')
   })
 
-  it('a chave do som é "primary" pro básico e o id do golpe pros outros', () => {
-    expect(resolveAttackSoundKey('primary', { id: 'x-basic' })).toBe('primary')
-    expect(resolveAttackSoundKey('secondary2', { id: 'ember' })).toBe('ember')
+  it('a chave do som é o id do golpe', () => {
+    expect(resolveAttackSoundKey({ id: 'ember' })).toBe('ember')
+    expect(resolveAttackSoundKey(null)).toBeNull()
   })
 
   it('o Charmander real: cada golpe do kit resolve o som que a sua skill declara (qualquer que seja o conjunto de skills)', () => {
     const species = getSpecies('charmander')
     const sounds = resolveAttackSounds(species)
 
-    for (const slot of ['primary', 'secondary1', 'secondary2', 'secondary3']) {
+    for (const slot of ['secondary1', 'secondary2', 'secondary3']) {
       const attack = resolveCreatureAttack(species, slot)
-      const key = resolveAttackSoundKey(slot, attack)
+      const key = resolveAttackSoundKey(attack)
       const audio = attack?.audio
       const composite = ATTACK_SOUND_COMPOSITES[audio?.group]
       if (composite) {
@@ -187,7 +175,7 @@ describe('Growl — o som é o grito da criatura, não um som de ataque', () => 
       damage: null,
     }
 
-    expect(resolveAttackSound({ basicAttack: growl })).toBeNull()
+    expect(resolveAttackSoundParts(growl)).toBeNull()
   })
 })
 
@@ -208,37 +196,38 @@ describe('som do Tail Whip', () => {
 })
 
 describe('som de carga (audio.chargeGroup)', () => {
-  it('o slot com chargeGroup ganha o som de carga; os outros não', () => {
-    const species = {
-      basicAttack: { audio: { group: 'tackle' }, visual: {} },
-      skills: {},
-    }
-    expect(resolveAttackLoopSounds(species)).toEqual({})
+  // Golpes de verdade com som em loop (sem fixar qual): um de carga e um da
+  // ação inteira.
+  const chargeSkill = listSkills().find((skill) => skill.audio?.chargeGroup)
+  const actionSkill = listSkills().find((skill) => skill.audio?.actionGroup)
+  const plainSkill = listSkills().find(
+    (skill) => !skill.audio?.chargeGroup && !skill.audio?.actionGroup,
+  )
 
-    species.basicAttack.audio.chargeGroup = 'absorb-charge'
-    const sounds = resolveAttackLoopSounds(species)
-    expect(Object.keys(sounds)).toEqual(['primary'])
-    expect(sounds.primary.clips).toEqual(
-      ATTACK_SOUND_GROUPS['absorb-charge'].clips,
+  it('o golpe com chargeGroup ganha o som de carga; os outros não', () => {
+    expect(resolveAttackLoopSounds({ skills: { 1: plainSkill.id } })).toEqual(
+      {},
+    )
+    const sounds = resolveAttackLoopSounds({
+      skills: { 1: plainSkill.id, 2: chargeSkill.id },
+    })
+    expect(Object.keys(sounds)).toEqual([chargeSkill.id])
+    expect(sounds[chargeSkill.id].clips).toEqual(
+      ATTACK_SOUND_GROUPS[chargeSkill.audio.chargeGroup].clips,
     )
   })
 
   it('o som de carga vem marcado com a fase "charge"', () => {
-    const species = {
-      basicAttack: { audio: { chargeGroup: 'absorb-charge' }, visual: {} },
-      skills: {},
-    }
-    expect(resolveAttackLoopSounds(species).primary.phase).toBe('charge')
+    const sounds = resolveAttackLoopSounds({ skills: { 1: chargeSkill.id } })
+    expect(sounds[chargeSkill.id].phase).toBe('charge')
   })
 
   it('o som da AÇÃO inteira (audio.actionGroup) vem marcado com a fase "action"', () => {
-    const species = {
-      basicAttack: { audio: { actionGroup: 'tail-whip' }, visual: {} },
-      skills: {},
-    }
-    const { primary } = resolveAttackLoopSounds(species)
-    expect(primary.phase).toBe('action')
-    expect(primary.clips).toEqual(ATTACK_SOUND_GROUPS['tail-whip'].clips)
+    const sounds = resolveAttackLoopSounds({ skills: { 1: actionSkill.id } })
+    expect(sounds[actionSkill.id].phase).toBe('action')
+    expect(sounds[actionSkill.id].clips).toEqual(
+      ATTACK_SOUND_GROUPS[actionSkill.audio.actionGroup].clips,
+    )
   })
 
   it('o arquivo do som de carga existe em public/', () => {
@@ -250,8 +239,9 @@ describe('som de carga (audio.chargeGroup)', () => {
 
 describe('sons do Leech Seed', () => {
   it('grupo composto: o de quem lança na hora, o do alvo quando a semente pousa', () => {
-    const parts = resolveAttackSound({
-      basicAttack: { audio: { group: 'leech-seed' }, visual: {} },
+    const parts = resolveAttackSoundParts({
+      audio: { group: 'leech-seed' },
+      visual: {},
     })
     expect(parts.map((p) => p.delay)).toEqual([0, 0.35])
   })
@@ -267,8 +257,9 @@ describe('sons do Leech Seed', () => {
 
 describe('sons do Water Gun', () => {
   it('o de quem atira e o do alvo juntos (golpe instantâneo); os arquivos existem', () => {
-    const parts = resolveAttackSound({
-      basicAttack: { audio: { group: 'water-gun' }, visual: {} },
+    const parts = resolveAttackSoundParts({
+      audio: { group: 'water-gun' },
+      visual: {},
     })
     expect(parts.map((p) => p.delay)).toEqual([0, 0])
     for (const group of ['water-gun-actor', 'water-gun-target']) {

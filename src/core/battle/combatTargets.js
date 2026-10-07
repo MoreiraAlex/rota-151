@@ -1,5 +1,7 @@
 import { GAME_CONFIG } from '../gameConfig'
-import { resolveCreatureAttack } from './creatureAttack'
+import { resolveCreatureAttack, resolveEntityMoveSet } from './creatureAttack'
+import { ATTACK_SLOTS } from './attackCasting'
+import { isSelfAttack } from './channelAttack'
 import {
   CharacterController,
   Fainted,
@@ -182,14 +184,21 @@ export function listWildsFightingParty(world) {
 }
 
 /**
- * Até onde (m, centro a centro, no plano) o ataque básico da espécie
- * alcança um alvo com este corpo: a trajetória (`range`) + a grossura dela
- * (`radius`) + o raio do corpo do alvo — a mesma conta que a detecção de
- * acerto faz (`resolveAttackTarget`, `creatureAttackSystem.js`). `null`
- * se a espécie não tem ataque básico.
+ * Até onde (m, centro a centro, no plano) a criatura precisa chegar pra
+ * alcançar um alvo com este corpo quando NENHUM golpe está pronto (recarga,
+ * energia) — o MENOR alcance entre os golpes dela, prontos ou não: a
+ * trajetória (`range`) + a grossura dela (`radius`) + o raio do corpo do
+ * alvo, a mesma conta da detecção de acerto (`resolveAttackTarget`). Golpe em
+ * si mesmo não conta (não precisa chegar perto). `null` sem golpe nenhum.
  */
-export function resolveAttackReach(species, targetBody) {
-  const attack = resolveCreatureAttack(species, 'primary')
-  if (!attack) return null
-  return attack.range + attack.radius + targetBody.capsuleRadius
+export function resolveAttackReach(entity, species, targetBody) {
+  const moveSet = resolveEntityMoveSet(entity, species)
+  let reach = null
+  for (const { slot } of ATTACK_SLOTS) {
+    const attack = resolveCreatureAttack(species, slot, moveSet)
+    if (!attack || isSelfAttack(attack)) continue
+    const slotReach = attack.range + attack.radius + targetBody.capsuleRadius
+    if (reach === null || slotReach < reach) reach = slotReach
+  }
+  return reach
 }

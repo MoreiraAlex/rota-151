@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { resolveFormulaLevel } from '../data/species/formulaLevel'
 import { createRng } from '../rng'
 import { getSpecies } from '../data/species'
+import { GAME_CONFIG } from '../gameConfig'
+import { TYPE_CHART } from '../data/types'
 import {
   calculateDamage,
   resolveChannelTickDamage,
@@ -90,8 +92,10 @@ describe('resolveStab', () => {
     expect(resolveStab('fire', null)).toBe(1)
   })
 
-  it('devolve 1.5 quando o tipo do ataque é um dos tipos do atacante', () => {
-    expect(resolveStab('fire', ['fire', 'flying'])).toBe(1.5)
+  it('devolve o STAB da config quando o tipo do ataque é um dos tipos do atacante', () => {
+    expect(resolveStab('fire', ['fire', 'flying'])).toBe(
+      GAME_CONFIG.TYPES.STAB_MULTIPLIER,
+    )
   })
 
   it('devolve 1 quando o tipo do ataque não é do atacante', () => {
@@ -100,9 +104,15 @@ describe('resolveStab', () => {
 })
 
 describe('resolveTypeEffectivenessMultiplier', () => {
-  it('é sempre neutro (1) — tabela de tipos ainda não existe', () => {
-    expect(resolveTypeEffectivenessMultiplier('fire', 'grass')).toBe(1)
-    expect(resolveTypeEffectivenessMultiplier(null, null)).toBe(1)
+  it('lê a tabela de tipos', () => {
+    expect(resolveTypeEffectivenessMultiplier('fire', 'grass')).toBe(
+      TYPE_CHART.fire.grass,
+    )
+  })
+
+  it('é neutro sem tipo de um dos lados', () => {
+    expect(resolveTypeEffectivenessMultiplier(null, 'grass')).toBe(1)
+    expect(resolveTypeEffectivenessMultiplier('fire', null)).toBe(1)
   })
 })
 
@@ -185,7 +195,8 @@ describe('resolveDamageAmount', () => {
       attackerIndividualValues: zeroIv,
       defenderSpecies,
       defenderIndividualValues: zeroIv,
-      damage: { power: 45, category: 'physical', type: 'grass' },
+      damage: { power: 45, category: 'physical' },
+      attackType: 'grass',
       rng,
     })
     const special = resolveDamageAmount({
@@ -193,7 +204,8 @@ describe('resolveDamageAmount', () => {
       attackerIndividualValues: zeroIv,
       defenderSpecies,
       defenderIndividualValues: zeroIv,
-      damage: { power: 45, category: 'special', type: 'grass' },
+      damage: { power: 45, category: 'special' },
+      attackType: 'grass',
       rng,
     })
     // sp_atk (65) do atacante é maior que attack (49), e sp_def (50) do
@@ -209,7 +221,8 @@ describe('resolveDamageAmount', () => {
       attackerIndividualValues: zeroIv,
       defenderSpecies,
       defenderIndividualValues: zeroIv,
-      damage: { power: 45, category: 'physical', type: 'grass' },
+      damage: { power: 45, category: 'physical' },
+      attackType: 'grass',
       rng,
     })
     const withoutStab = resolveDamageAmount({
@@ -217,10 +230,57 @@ describe('resolveDamageAmount', () => {
       attackerIndividualValues: zeroIv,
       defenderSpecies,
       defenderIndividualValues: zeroIv,
-      damage: { power: 45, category: 'physical', type: 'water' },
+      damage: { power: 45, category: 'physical' },
+      attackType: 'water',
       rng,
     })
-    expect(withStab.amount).toBeCloseTo(withoutStab.amount * 1.5, 5)
+    expect(withStab.amount).toBeCloseTo(
+      withoutStab.amount * GAME_CONFIG.TYPES.STAB_MULTIPLIER,
+      5,
+    )
+  })
+
+  it('multiplica pela efetividade de cada tipo do defensor e informa a categoria', () => {
+    const args = {
+      attackerSpecies: { ...attackerSpecies, types: [] },
+      attackerIndividualValues: zeroIv,
+      defenderIndividualValues: zeroIv,
+      damage: { power: 45, category: 'physical' },
+      attackType: 'fire',
+      rng: () => 1,
+    }
+    const neutral = resolveDamageAmount({ ...args, defenderSpecies })
+    const dual = resolveDamageAmount({
+      ...args,
+      defenderSpecies: { ...defenderSpecies, types: ['grass', 'bug'] },
+    })
+    const expected = TYPE_CHART.fire.grass * TYPE_CHART.fire.bug
+    expect(neutral.effectiveness).toBe('neutral')
+    expect(dual.amount).toBeCloseTo(neutral.amount * expected, 5)
+    expect(dual.effectiveness).toBe('super')
+  })
+
+  it('imune: dano zero e efetividade immune', () => {
+    const [attackType, defenderType] = Object.entries(TYPE_CHART)
+      .flatMap(([attack, row]) =>
+        Object.entries(row).map(([defender, value]) => [
+          attack,
+          defender,
+          value,
+        ]),
+      )
+      .find(([, , value]) => value === 0)
+    const result = resolveDamageAmount({
+      attackerSpecies: { ...attackerSpecies, types: [] },
+      attackerIndividualValues: zeroIv,
+      defenderSpecies: { ...defenderSpecies, types: [defenderType] },
+      defenderIndividualValues: zeroIv,
+      damage: { power: 45, category: 'physical' },
+      attackType,
+      rng: () => 1,
+    })
+    expect(result.amount).toBe(0)
+    expect(result.effectiveness).toBe('immune')
   })
 
   it('informa se o crítico saiu, e o crítico aumenta o dano', () => {
@@ -229,7 +289,7 @@ describe('resolveDamageAmount', () => {
       attackerIndividualValues: zeroIv,
       defenderSpecies,
       defenderIndividualValues: zeroIv,
-      damage: { power: 45, category: 'physical', type: null },
+      damage: { power: 45, category: 'physical' },
     }
     // rng 0 → abaixo da chance de crítico; random no piso (0.85).
     const crit = resolveDamageAmount({ ...args, rng: () => 0 })
@@ -302,6 +362,33 @@ describe('resolveDamageAmount — estágios de atributo (golpes de status)', () 
       }).amount
     expect(special({ attackerStages: { attack: -6 } })).toBe(special())
     expect(special({ attackerStages: { sp_atk: -1 } })).toBeLessThan(special())
+  })
+
+  it('queimadura corta o ataque FÍSICO de quem ataca, não o especial', () => {
+    const multiplier = 0.5
+    const physical = (burn) =>
+      resolveDamageAmount({
+        attackerSpecies: species,
+        attackerIndividualValues: null,
+        defenderSpecies: species,
+        defenderIndividualValues: null,
+        damage: { power: 40, category: 'physical' },
+        attackerBurnMultiplier: burn,
+        rng,
+      }).amount
+    expect(physical(multiplier)).toBeLessThan(physical(undefined))
+
+    const special = (burn) =>
+      resolveDamageAmount({
+        attackerSpecies: species,
+        attackerIndividualValues: null,
+        defenderSpecies: species,
+        defenderIndividualValues: null,
+        damage: { power: 40, category: 'special' },
+        attackerBurnMultiplier: burn,
+        rng,
+      }).amount
+    expect(special(multiplier)).toBe(special(undefined))
   })
 
   it('o dano de um tick de canal também lê os estágios', () => {

@@ -99,7 +99,7 @@ function resolveDecision(entity, behavior, pos, allCandidates) {
  * fora do limite; perseguindo, mira quem mais causou dano nela (`Threat`,
  * somado pelo `wildReactionSystem.js`) ou, sem ameaça, o mais perto
  * (`resolveWildTarget`) — lutar em grupo custa: as criaturas do time
- * também apanham. Escolhe o golpe (básico ou habilidade da espécie,
+ * também apanham. Escolhe o golpe (um dos dela,
  * `planAiAttack` — `core/battle/aiAttackChoice.js`), chega até uma fração
  * do alcance DELE (`ATTACK_REACH_FRACTION`), para virada pro alvo e pede o
  * golpe (`WantsToAttack`, a cada `ATTACK_INTERVAL`, lançados pelo
@@ -276,8 +276,8 @@ export function wildBehaviorSystem(context) {
 
         // Energia baixa: descansa (sem golpe, sem correr) até recuperar.
         behavior.resting = resolveResting(behavior.resting, vitals)
-        // Escolhe o golpe (básico ou habilidade) e corre até o alcance DELE —
-        // sem nada pronto, até o alcance do básico.
+        // Escolhe o golpe e corre até o alcance DELE —
+        // sem nada pronto, até o menor alcance entre os golpes dela.
         const species = getSpecies(creature.speciesId)
         const plan = behavior.resting
           ? null
@@ -289,7 +289,8 @@ export function wildBehaviorSystem(context) {
               behavior.attackSlot,
             )
         behavior.attackSlot = plan?.slot ?? null
-        const reach = plan?.reach ?? resolveAttackReach(species, targetBody)
+        const reach =
+          plan?.reach ?? resolveAttackReach(entity, species, targetBody)
         const stopDistance =
           reach !== null
             ? reach * ATTACK_REACH_FRACTION

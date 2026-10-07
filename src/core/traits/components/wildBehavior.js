@@ -20,8 +20,8 @@ import { trait } from 'koota'
  * - `attackTimer` (s): quanto falta pra poder pedir o próximo golpe
  *   perseguindo (`WILD_BEHAVIOR.ATTACK_INTERVAL` entre pedidos) — sem
  *   isso, com ataque de cooldown 0 ela emendaria golpe atrás de golpe.
- * - `attackSlot`: o golpe que ela PLANEJA lançar no alvo (`'primary'`,
- *   `'secondary1-3'`), escolhido por `planAiAttack`
+ * - `attackSlot`: o golpe que ela PLANEJA lançar no alvo
+ *   (`'secondary1-3'`), escolhido por `planAiAttack`
  *   (`core/battle/aiAttackChoice.js`) e mantido enquanto continuar pronto;
  *   `null` = escolher de novo (depois de cada pedido, ou ao trocar de alvo).
  * - `lastAttackSlot`: o último golpe pedido — só pro debug (F2).
@@ -71,12 +71,11 @@ export const Threat = trait(() => ({ entries: [] }))
 
 /**
  * Pedido de um tick: a criatura (selvagem OU do time, pela IA) quer lançar
- * o golpe do `slot` (básico `'primary'` ou habilidade `'secondary1-3'`,
- * escolhido por `planAiAttack`) agora em `target` (alvo ao alcance,
+ * o golpe do `slot` (`'secondary1-3'`, escolhido por `planAiAttack`) agora em `target` (alvo ao alcance,
  * intervalo entre golpes vencido). Posto pelo `wildBehaviorSystem.js`/
  * `partyBehaviorSystem.js`; consumido (e removido) pelo
  * `creatureAttackSystem.js`, que lança pelo mesmo caminho do golpe do
  * jogador — só que mirando no alvo, não pela câmera. Mesmo padrão de
  * `AttackPulse`/`Jumped`.
  */
-export const WantsToAttack = trait({ target: null, slot: 'primary' })
+export const WantsToAttack = trait({ target: null, slot: null })

@@ -48,6 +48,20 @@ export function formatMoveLearned(moveId) {
   return `Aprendeu ${formatSpeciesName(moveId)}!`
 }
 
+const EFFECTIVENESS_TEXTS = {
+  super: 'Super efetivo!',
+  weak: 'Pouco efetivo…',
+  immune: 'Não afeta…',
+}
+
+/**
+ * Texto da efetividade de tipo (docs/features/039-tipos-e-combate-classico.md),
+ * ou `null` quando não tem o que dizer (neutro).
+ */
+export function formatEffectiveness(effectiveness) {
+  return EFFECTIVENESS_TEXTS[effectiveness] ?? null
+}
+
 /** Texto do número: inteiro, nunca menos que 1 num acerto. */
 export function formatDamage(amount) {
   return String(Math.max(1, Math.round(amount)))
@@ -67,7 +81,9 @@ export function formatDamage(amount) {
  * é arredondado (`formatDamage`).
  *
  * Também os avisos em texto: "Errou!", "Interrompido!", "+N XP" e "Nível N!"
- * (só da criatura em campo — a que está na bola não mostra nada).
+ * (só da criatura em campo — a que está na bola não mostra nada), e a
+ * efetividade de tipo ("Super efetivo!", "Pouco efetivo…", "Não afeta…" — no
+ * canalizado, só no primeiro tick em cada alvo).
  *
  * Fase: presentation.
  */
@@ -88,6 +104,16 @@ export function damageNumberSystem(context) {
     }
     if (event.type === EVENT_TYPES.LEECH_SEED_DRAINED) {
       spawnLeechNumbers(event, cameraRight)
+      continue
+    }
+    // tick da queimadura: só o número do dano no alvo
+    if (event.type === EVENT_TYPES.BURN_DAMAGED) {
+      spawnHeadNumber(event.target, {
+        text: formatDamage(event.damage),
+        kind: 'damage',
+        color: resolveFeedbackColor('damage', resolveSide(event.target)),
+        right: cameraRight,
+      })
       continue
     }
     if (event.type === EVENT_TYPES.EXPERIENCE_GAINED) {
@@ -141,6 +167,9 @@ export function damageNumberSystem(context) {
       continue
     }
     if (event.result !== 'hit') continue
+    spawnEffectivenessText(event, cameraRight)
+    // imune: sem número de dano
+    if (event.effectiveness === 'immune') continue
     // golpe de status (sem dano): quem mostra é o texto do atributo
     if (event.status) continue
     if (!event.target.has(Position)) continue
@@ -234,6 +263,19 @@ function spawnStatText(event, right) {
   const side = SPREAD_PATTERN[slot.serial % SPREAD_PATTERN.length] * SPREAD
   slot.x += right.x * side
   slot.z += right.z * side
+}
+
+/** "Super efetivo!"... acima do alvo (no canalizado, só no primeiro tick). */
+function spawnEffectivenessText(event, right) {
+  if (event.channel && event.channelTick > 0) return
+  const text = formatEffectiveness(event.effectiveness)
+  if (!text) return
+  spawnNotice(
+    event.target,
+    text,
+    GAME_CONFIG.FEEDBACK.EFFECTIVENESS_COLORS[event.effectiveness],
+    right,
+  )
 }
 
 /** "Errou!" acima de quem o golpe errou no sorteio de precisão. */

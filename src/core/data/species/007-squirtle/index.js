@@ -1,5 +1,4 @@
 import CRY_CLIP from './clips/cry.json'
-import { BASIC_ATTACK } from './basicAttack'
 
 const LEVEL = 5
 
@@ -24,6 +23,7 @@ export const SQUIRTLE = {
   baseXp: 63,
   growthRate: 'medium-slow',
   kind: 'pokemon',
+  types: ['water'],
   sprite: { path: 'https://play.pokemonshowdown.com/sprites/ani/squirtle.gif' },
   model: {
     path: '/assets/models/007-squirtle.glb',
@@ -124,7 +124,6 @@ export const SQUIRTLE = {
     dashGroup: 'default',
     jumpGroup: 'default',
   },
-  basicAttack: BASIC_ATTACK,
   skills: {
     1: {
       id: 'tackle',

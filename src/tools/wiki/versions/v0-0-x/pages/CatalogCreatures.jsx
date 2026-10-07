@@ -2,9 +2,9 @@ import Link from 'next/link'
 import { Section } from '@/tools/wiki/components/Article'
 import { DataTable } from '@/tools/wiki/components/DataTable'
 import { Infobox } from '@/tools/wiki/components/Infobox'
-import { Notice } from '@/tools/wiki/components/Notice'
 import { SpeciesSprite } from '@/tools/wiki/components/SpeciesSprite'
 import { StatBars } from '@/tools/wiki/components/StatBars'
+import { TypeTag, TypeTags } from '@/tools/wiki/components/TypeTag'
 import { WikiLink, wikiHref } from '@/tools/wiki/components/WikiLink'
 import { COMBAT_STAT_KEYS } from '@/tools/wiki/speciesEntry'
 import {
@@ -35,11 +35,13 @@ export function CreatureListPage({ data, version }) {
           'Nº',
           '',
           'Criatura',
+          'Tipo',
           ...COMBAT_STAT_KEYS.map((key) => STAT_LABELS[key]),
           'Total',
         ]}
         align={[
           'right',
+          null,
           null,
           null,
           ...COMBAT_STAT_KEYS.map(() => 'right'),
@@ -64,6 +66,7 @@ export function CreatureListPage({ data, version }) {
             >
               {entry.name}
             </Link>,
+            <TypeTags key="types" data={data} types={entry.types} />,
             ...bases,
             <strong key="total">
               {bases.reduce((sum, value) => sum + value, 0)}
@@ -95,6 +98,7 @@ export function CreatureDetailPage({ data, version, id }) {
             <SpeciesSprite src={entry.sprite} alt={entry.name} size={96} />
           }
           rows={[
+            ['Tipo', <TypeTags key="types" data={data} types={entry.types} />],
             ['Nível inicial (no time)', entry.level],
             ['XP base', entry.baseXp],
             [
@@ -124,11 +128,6 @@ export function CreatureDetailPage({ data, version, id }) {
               ).
             </p>
           </Section>
-          {!entry.hasTypes ? (
-            <Notice tone="missing">
-              <p>As criaturas ainda não têm tipo.</p>
-            </Notice>
-          ) : null}
         </div>
       </div>
 
@@ -137,6 +136,7 @@ export function CreatureDetailPage({ data, version, id }) {
           head={[
             '',
             'Golpe',
+            'Tipo',
             'Categoria',
             'Poder',
             'Energia',
@@ -144,26 +144,31 @@ export function CreatureDetailPage({ data, version, id }) {
             'Duração',
             'Detalhes',
           ]}
-          align={[null, null, null, 'right', 'right', 'right', 'right', null]}
+          align={[
+            null,
+            null,
+            null,
+            null,
+            'right',
+            'right',
+            'right',
+            'right',
+            null,
+          ]}
           rows={entry.attacks.map((attack) => [
             SLOT_LABELS[attack.slot],
-            attack.skillId ? (
-              <WikiLink
-                key="name"
-                version={version}
-                to={`catalogo/golpes/${attack.skillId}`}
-              >
-                {attack.name}
-              </WikiLink>
-            ) : (
-              'Próprio da espécie'
-            ),
+            <WikiLink
+              key="name"
+              version={version}
+              to={`catalogo/golpes/${attack.skillId}`}
+            >
+              {attack.name}
+            </WikiLink>,
+            <TypeTag key="type" data={data} type={attack.type} />,
             CATEGORY_LABELS[attack.category],
             attack.power ?? '—',
             formatNumber(attack.cost),
-            attack.slot === 'primary'
-              ? 'sem recarga'
-              : formatRange(attack.cooldown.min, attack.cooldown.max, seconds),
+            formatRange(attack.cooldown.min, attack.cooldown.max, seconds),
             formatRange(attack.duration.min, attack.duration.max, seconds),
             attackDetails(attack),
           ])}

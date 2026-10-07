@@ -27,10 +27,10 @@ export const GAME_CONFIG = {
   // jogo, PRNG seedado e nomeado. `core/rng.js` (`gameplayRng`) usa
   // `WORLD.SEED` acima como seed.
   BATTLE: {
-    // Velocidade do ataque básico pelo status `speed` (ver
+    // Velocidade dos golpes pelo status `speed` (ver
     // `calculateAttackDurationFactor`, core/data/species/stats.js): a
-    // duração autorada (`basicAttack.duration`, ou a do
-    // próprio ataque) é multiplicada por √(REFERENCE / speed), limitado a
+    // duração autorada da skill (`duration`/`effectAt`) e a recarga são
+    // multiplicadas por √(REFERENCE / speed), limitado a
     // [MIN_FACTOR, MAX_FACTOR]. REFERENCE é o `speed` CALCULADO (base + IV
     // + nível) que toca a duração autorada exata.
     ATTACK_SPEED: {
@@ -63,12 +63,6 @@ export const GAME_CONFIG = {
     // gracioso" que `resolveMaxHp`/`resolveMaxStamina` já usam pra essas
     // mesmas espécies.
     FALLBACK_COMBAT_STAT: 50,
-    // Assistência de mira dos golpes corpo a corpo (`attack.aim:
-    // 'melee'`, ver `core/battle/attackAim.js`): meio-ângulo (radianos)
-    // do cone horizontal, em volta de pra onde a câmera aponta, onde um
-    // alvo ao alcance e no mesmo plano de combate "puxa" o giro do golpe
-    // (o cone inteiro tem o dobro disto).
-    MELEE_AIM_HALF_ANGLE: Math.PI / 4,
     // Direcionar o golpe ENQUANTO O AVISO CARREGA: do disparo até o `effectAt`,
     // a criatura controlada acompanha a câmera (a direção só trava no instante
     // do golpe). `false` = trava no disparo, como antes. Só vale pra criatura
@@ -97,6 +91,13 @@ export const GAME_CONFIG = {
     // golpe (`resolveAttackImpactPoint`, creatureAttackSystem.js) — o
     // golpe acompanha rampas e para em desnível/parede entre amostras.
     ATTACK_PATH_SAMPLE_STEP: 0.25,
+  },
+  // Tipos elementais (docs/features/039-tipos-e-combate-classico.md). A tabela de
+  // efetividade, com os próprios multiplicadores, fica em
+  // `core/data/types/index.js`; aqui só o bônus do golpe do mesmo tipo de
+  // quem ataca (STAB, `resolveStab`).
+  TYPES: {
+    STAB_MULTIPLIER: 1.5,
   },
   // Retorno visual de combate (view — consome eventos de `core/events/`).
   FEEDBACK: {
@@ -132,6 +133,18 @@ export const GAME_CONFIG = {
     FAIL_COLOR: '#c9b8a6',
     // Cor dos avisos de golpe: "Pode aprender X!", "Aprendeu X!".
     MOVE_NOTICE_COLOR: '#b9f6ca',
+    // Cores dos textos de efetividade de tipo (docs/features/039-tipos-e-combate-classico.md), iguais pros dois lados: "Super efetivo!", "Pouco
+    // efetivo…" e "Não afeta…".
+    // Cor do selo de cada condição de status (HUD/etiqueta) e do texto dela
+    // no log.
+    CONDITION_COLORS: {
+      burn: '#e8590c',
+    },
+    EFFECTIVENESS_COLORS: {
+      super: '#ff8a3d',
+      weak: '#9fb3c8',
+      immune: '#8c8c8c',
+    },
     FEEDBACK_COLORS: {
       OPPONENT: {
         DAMAGE: '#ff3b30',
@@ -145,6 +158,16 @@ export const GAME_CONFIG = {
         DEBUFF: '#b57bff',
         BUFF: '#4dd0e1',
       },
+    },
+    // Log de batalha em texto, estilo jogo de turno (`battleLogSystem.js` +
+    // `tools/hud/BattleLogHud.jsx`, docs/features/039-tipos-e-combate-classico.md).
+    BATTLE_LOG: {
+      // Quantas linhas ficam guardadas/visíveis (as mais antigas saem).
+      MAX_LINES: 7,
+      // Segundos sem mensagem nova até o log apagar (volta na próxima).
+      IDLE_FADE_TIME: 8,
+      // Cor do "X usou Y!".
+      USED_COLOR: '#ffffff',
     },
     // Número de dano subindo acima de quem apanhou (`damageNumberSystem.js`
     // + `DamageNumbersView.jsx`). Crítico fica mais tempo, maior e com
@@ -376,12 +399,12 @@ export const GAME_CONFIG = {
     // ...e só desiste passando dela + esta folga — sem a folga, parado bem
     // na borda ela ficaria alternando entre perseguir e desistir.
     AGGRO_EXIT_MARGIN: 1,
-    // Perseguindo, uma selvagem COM ataque básico para quando o alvo
-    // estiver a esta fração do alcance do golpe (range + radius + raio do
-    // corpo do alvo) — perto o bastante pra acertar com folga.
+    // Perseguindo, a selvagem para quando o alvo estiver a esta fração do
+    // alcance do golpe (range + radius + raio do corpo do alvo) — perto o
+    // bastante pra acertar com folga.
     ATTACK_REACH_FRACTION: 0.8,
-    // Sem ataque básico configurado, para quando sobrar este vão (m) entre
-    // os corpos (bordas das cápsulas).
+    // Sem golpe nenhum, para quando sobrar este vão (m) entre os corpos
+    // (bordas das cápsulas).
     CHASE_STOP_GAP: 0.8,
     // Segundos entre um pedido de golpe e o próximo, perseguindo.
     ATTACK_INTERVAL: 1.2,
@@ -427,13 +450,13 @@ export const GAME_CONFIG = {
   },
   // IA das criaturas do time fora do controle do jogador — sempre
   // defensiva (`partyBehaviorSystem.js`, `PartyBehavior`): entra na luta
-  // contra a selvagem que acertou alguém do grupo, só com o ataque básico.
+  // contra a selvagem que acertou alguém do grupo.
   PARTY_BEHAVIOR: {
     // Segundos entre um pedido de golpe e o próximo. Mais lento que o
     // jogador de propósito: a IA ajuda, quem decide a luta é quem joga.
     ATTACK_INTERVAL: 1.5,
-    // Para quando o alvo estiver a esta fração do alcance do próprio
-    // ataque básico (mesma regra das selvagens, `WILD_BEHAVIOR`).
+    // Para quando o alvo estiver a esta fração do alcance do golpe (mesma
+    // regra das selvagens, `WILD_BEHAVIOR`).
     ATTACK_REACH_FRACTION: 0.8,
     // Se afastou mais que isto (m, no plano) de quem segue (quem está no
     // controle), larga a luta e volta a seguir.
@@ -511,6 +534,9 @@ export const GAME_CONFIG = {
     STAT_STAGE_DECAY: 2 / 3,
     // Valor de plantar uma semente (efeito `leechSeed`).
     LEECH_SEED_VALUE: 35,
+    // Valor de queimar o alvo (efeito `burn`), já com a certeza — o golpe
+    // multiplica pela `chance` do efeito.
+    BURN_VALUE: 40,
     // Efeito ativo com até estes segundos sobrando volta a valer cheio
     // (renovar antes de acabar).
     EFFECT_REFRESH_TIME: 3,
@@ -789,4 +815,18 @@ export const GAME_CONFIG = {
   // voiceSound.js, nível em core/data/testLevel.js/ambientSound.js) —
   // nenhum é um número genérico igual pra tudo, então nenhum fica aqui.
   // Ver docs/features/019-som-ambiente-e-passos.md.
+  RENDER: {
+    // Visual toon (estilo Zelda) — ver src/view/materials/toonMaterial.js
+    TOON: true, // false = visual antigo (MeshStandardMaterial do .glb)
+    TOON_RAMP: [120, 200, 255], // tons chapados da luz: sombra, meio-tom, luz (0–255)
+    OUTLINE_WIDTH: 0.0045, // espessura do contorno, em unidades do modelo (antes do scale)
+    OUTLINE_COLOR: '#3a1410',
+    OUTLINE_SKIP: ['fire'], // materiais (por nome) que não ganham contorno
+    RIM_STRENGTH: 0.22, // brilho de borda; 0 desliga
+    // faixa do rim (0 = de frente pra câmera, 1 = de lado): começa a acender
+    // no primeiro valor e chega no máximo no segundo — perto um do outro =
+    // corte seco, estilo toon
+    RIM_EDGE: [0.62, 0.68],
+    RIM_COLOR: '#ffe6b3',
+  },
 }

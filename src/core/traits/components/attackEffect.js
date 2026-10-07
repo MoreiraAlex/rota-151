@@ -65,7 +65,7 @@ export const DEFAULT_ATTACK_EFFECT_GROUP = 'punch'
  * - `impactType` — tipo do golpe (`'fire'`, `'water'`...) pro grupo
  *   `'impact'` escolher as partículas (cada tipo tem as suas); `''` = não
  *   informado (cai em `'normal'`). Vem de `attack.visual.impactType` ou,
- *   na falta, de `attack.damage.type`. Os outros grupos ignoram.
+ *   na falta, do tipo do golpe (`attack.type`). Os outros grupos ignoram.
  *
  * Dono de escrita: `creatureAttackSystem` (spawna, no instante `effectAt`
  * da ação `'attack'`); `attackEffectSystem` (conta `lifetime` pra baixo,
@@ -98,12 +98,12 @@ export const AttackEffect = trait({
  * `presentation`, então quem limpa cedo demais arrisca apagar o pulso
  * antes da `presentation` chegar a vê-lo).
  *
- * Carrega `slot` (`primary`/`secondary1-3`/`training`) e `key` (chave do som,
- * `resolveAttackSoundKey`: `'primary'` ou o id do golpe): QUAL ataque
- * disparou, pra o som tocar o do ataque certo (ver `core/data/audio/
- * attackSound.js`). Sem `key`, vale o `slot`.
+ * Carrega `slot` (`secondary1-3`/`training`) e `key` (chave do som,
+ * `resolveAttackSoundKey`: o id do golpe): QUAL ataque disparou, pra o som
+ * tocar o do ataque certo (ver `core/data/audio/attackSound.js`). Sem `key`,
+ * vale o `slot`.
  */
-export const AttackPulse = trait({ slot: 'primary', key: '' })
+export const AttackPulse = trait({ slot: null, key: '' })
 
 /**
  * Pulso de UM tick pedindo que a criatura VOCALIZE agora (o grito dela, com a
@@ -115,30 +115,18 @@ export const AttackPulse = trait({ slot: 'primary', key: '' })
 export const CryPulse = trait()
 
 /**
- * Cooldown restante (segundos) de CADA slot de ataque/skill
- * (`primary`/`secondary1-3`, mesmos rótulos de `resolveActionSlots`/
- * `species.basicAttack`/`species.skills[N]`) — um campo por slot, não um único
- * `cooldownRemaining` compartilhado (era assim até a 9ª rodada, quando só
- * existia o ataque comum em `primary`). Motivo do split (pedido do
- * usuário: "pode fazer as habilidades agora?", ver docs/features/025-
- * ataque-comum-de-criatura.md): skills de verdade (`vine-whip`/`ember`/
- * `whirlpool`) configuram `cooldown` MAIOR que zero, ao contrário do
- * ataque comum (sempre `0` até aqui) — com um campo só compartilhado,
- * usar uma skill travaria o ataque básico do mouse pelo mesmo tempo
- * (e vice-versa), o que não faz sentido nenhum (são recursos
- * independentes, cada um com seu próprio "orçamento").
+ * Cooldown restante (segundos) de CADA slot de golpe (`secondary1-3`,
+ * mesmos rótulos de `resolveActionSlots`) — um campo por slot: cada golpe tem
+ * a própria recarga.
  *
  * Cada campo decrementa TODO tick, independente de qual ação está em
- * andamento (mesmo comportamento que `ActionState.cooldownRemaining`
- * tinha antes de virar este trait) — travado em
- * `cooldown` do ataque do slot (`basicAttack`/`skills[N]`) quando a AÇÃO
- * daquele slot termina (não no disparo — a contagem só começa depois da
- * `duration`), nunca dos outros três.
+ * andamento — travado no `cooldown` do golpe do slot quando a AÇÃO daquele
+ * slot termina (não no disparo — a contagem só começa depois da
+ * `duration`), nunca dos outros.
  *
  * Dono de escrita/leitura: `creatureAttackSystem.js`.
  */
 export const AttackCooldowns = trait({
-  primary: 0,
   secondary1: 0,
   secondary2: 0,
   secondary3: 0,
@@ -148,7 +136,7 @@ export const AttackCooldowns = trait({
 
 /**
  * Slot cujo ataque está com o INDICADOR aberto, esperando confirmação
- * (`'primary' | 'secondary1-3'`, ou `null` sem indicador). Só existe pra
+ * (`'secondary1-3'`, ou `null` sem indicador). Só existe pra
  * ataque com `castMode: 'confirm'` (`core/data/skills/<id>/index.js`):
  * apertar o botão abre o indicador; apertar de novo (ou clicar) lança.
  *

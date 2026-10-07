@@ -1,7 +1,7 @@
 import { Section } from '@/tools/wiki/components/Article'
 import { Notice } from '@/tools/wiki/components/Notice'
 import { WikiLink } from '@/tools/wiki/components/WikiLink'
-import { formatNumber, formatSeconds } from '@/tools/wiki/wikiFormat'
+import { formatSeconds } from '@/tools/wiki/wikiFormat'
 
 export function MovesPage({ data, version }) {
   const { battle } = data
@@ -10,10 +10,9 @@ export function MovesPage({ data, version }) {
     <>
       <Section id="golpes" title="Os golpes de uma criatura">
         <p>
-          Controlando uma criatura, você tem o <strong>ataque básico</strong> e
-          até <strong>três habilidades</strong>. Cada espécie tem o próprio
-          ataque básico; as habilidades podem ser compartilhadas entre espécies
-          (veja o{' '}
+          Controlando uma criatura, você luta com os <strong>golpes</strong>{' '}
+          dela — até três, como nos jogos clássicos não existe um ataque comum.
+          Os golpes podem ser compartilhados entre espécies (veja o{' '}
           <WikiLink version={version} to="catalogo/golpes">
             catálogo de golpes
           </WikiLink>
@@ -21,14 +20,18 @@ export function MovesPage({ data, version }) {
         </p>
         <ul>
           <li>
-            O <strong>ataque básico</strong> gasta pouca energia e não tem
-            recarga: dá pra usar em sequência, no ritmo da criatura.
-          </li>
-          <li>
-            As <strong>habilidades</strong> são mais fortes, gastam mais energia
-            e precisam de um tempo pra poder ser usadas de novo (
+            Todo golpe gasta energia e precisa de um tempo pra poder ser usado
+            de novo (
             <WikiLink version={version} to="batalha/energia-e-recarga">
               Energia e recarga
+            </WikiLink>
+            ).
+          </li>
+          <li>
+            Todo golpe tem um <strong>tipo</strong> (Fogo, Água, Planta…), que
+            muda o dano conforme os tipos do alvo (
+            <WikiLink version={version} to="batalha/tipos">
+              Tipos
             </WikiLink>
             ).
           </li>
@@ -65,12 +68,16 @@ export function MovesPage({ data, version }) {
 
       <Section id="lancando" title="Lançando um golpe">
         <ul>
-          <li>O golpe sai pra onde você está olhando, sempre na horizontal.</li>
           <li>
-            O <strong>ataque básico corpo a corpo</strong> ajuda na mira: se
-            houver um alvo ao alcance a até{' '}
-            {formatNumber(battle.meleeAssistAngle, 0)}° pra cada lado, o golpe
-            vai nele. As habilidades não têm essa ajuda.
+            O golpe sai pra onde você está olhando, sempre na horizontal — não
+            existe mira automática: quem acerta é você.
+          </li>
+          <li>
+            Criaturas mais rápidas fazem o golpe mais depressa (
+            <WikiLink version={version} to="criaturas/status#velocidade">
+              Velocidade
+            </WikiLink>
+            ).
           </li>
           <li>
             Alguns golpes mostram a área antes de sair, pra você conferir onde
@@ -131,7 +138,9 @@ export function MovesPage({ data, version }) {
           pelo olhar bravo dela. Ela sai do modo combate depois de{' '}
           {formatSeconds(battle.combatModeTimeout, 0)} sem atacar. O dano
           causado aparece em números sobre quem apanhou, e golpes que erram
-          mostram <strong>“Errou!”</strong>.
+          mostram <strong>“Errou!”</strong>. Golpes fortes ou fracos contra o
+          tipo do alvo avisam <strong>“Super efetivo!”</strong>,{' '}
+          <strong>“Pouco efetivo…”</strong> ou <strong>“Não afeta…”</strong>.
         </p>
         <Notice tone="tip">
           <p>
@@ -139,6 +148,17 @@ export function MovesPage({ data, version }) {
             acontecer é a melhor defesa.
           </p>
         </Notice>
+      </Section>
+
+      <Section id="registro" title="Registro da batalha">
+        <p>
+          Durante a luta, um quadro no canto da tela conta o que aconteceu, como
+          nos jogos de turno: quem usou qual golpe, quanto de vida cada um
+          perdeu, golpes críticos, a efetividade do tipo, atributos que subiram
+          ou caíram, queimaduras, desmaios e a experiência ganha. As mensagens
+          mais antigas saem conforme chegam novas, e o quadro some depois de um
+          tempo sem novidade.
+        </p>
       </Section>
     </>
   )

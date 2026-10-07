@@ -21,6 +21,7 @@ import { damageNumberPool } from '../vfx/damageNumberPool'
 import {
   damageNumberSystem,
   formatDamage,
+  formatEffectiveness,
   formatMoveLearned,
   formatMoveUnlocked,
   formatStatChange,
@@ -324,6 +325,58 @@ describe('damageNumberSystem — golpes de status (Growl)', () => {
       'debuff',
       'debuff',
     ])
+  })
+
+  it('efetividade: super/pouco mostram o texto junto do número; neutro não', () => {
+    const target = spawnTarget({ x: 0, y: 0.45, z: 0 })
+    const { EFFECTIVENESS_COLORS } = GAME_CONFIG.FEEDBACK
+
+    run([{ ...hit(target, 5), effectiveness: 'super' }])
+    let texts = activeSlots().map((slot) => slot.text)
+    expect(texts).toContain(formatEffectiveness('super'))
+    expect(texts).toContain('5')
+    expect(
+      activeSlots().find((slot) => slot.text === formatEffectiveness('super'))
+        .color,
+    ).toBe(EFFECTIVENESS_COLORS.super)
+
+    run([], 1000)
+    run([{ ...hit(target, 5), effectiveness: 'neutral' }])
+    texts = activeSlots().map((slot) => slot.text)
+    expect(texts).toEqual(['5'])
+    expect(formatEffectiveness('neutral')).toBeNull()
+  })
+
+  it('imune: só "Não afeta…", sem número de dano (também no golpe de status)', () => {
+    const target = spawnTarget({ x: 0, y: 0.45, z: 0 })
+
+    run([{ ...hit(target, 0), effectiveness: 'immune' }])
+    expect(activeSlots().map((slot) => slot.text)).toEqual([
+      formatEffectiveness('immune'),
+    ])
+
+    run([], 1000)
+    run([{ ...hit(target, 0), status: true, effectiveness: 'immune' }])
+    expect(activeSlots().map((slot) => slot.text)).toEqual([
+      formatEffectiveness('immune'),
+    ])
+  })
+
+  it('canalizado: o texto de efetividade só sai no primeiro tick', () => {
+    const target = spawnTarget({ x: 0, y: 0.45, z: 0 })
+    const tick = (channelTick) => ({
+      ...hit(target, 2),
+      channel: true,
+      channelTick,
+      effectiveness: 'weak',
+    })
+
+    run([tick(0), tick(1), tick(2)])
+
+    const notices = activeSlots().filter(
+      (slot) => slot.text === formatEffectiveness('weak'),
+    )
+    expect(notices).toHaveLength(1)
   })
 
   it('alvo já destruído não quebra o system', () => {

@@ -42,7 +42,7 @@ function forEachTargetCandidate(world, targetSide, visit) {
 }
 
 /** Espécie de quem luta: a da criatura, ou a do treinador. */
-function resolveCombatantSpecies(entity) {
+export function resolveCombatantSpecies(entity) {
   const speciesId = resolveCreatureSpeciesId(entity)
   return speciesId ? getSpecies(speciesId) : getPlayerSpecies()
 }

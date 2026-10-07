@@ -1,5 +1,12 @@
 import { GAME_CONFIG } from '../gameConfig'
-import { LeechSeed, StatStages } from '../traits'
+import {
+  Burn,
+  LeechSeed,
+  StatStages,
+  resolveCreatureSpeciesId,
+} from '../traits'
+import { getSpecies } from '../data/species'
+import { resolveSpeciesTypes } from '../data/types'
 import { STAT_STAGE_LIMIT, readStatStages } from './statStages'
 
 /**
@@ -50,6 +57,23 @@ export function evaluateLeechSeedEffect(effect, recipient, { ally }) {
 }
 
 /**
+ * Queimadura (`{ type: 'burn', chance, ... }`): `BURN_VALUE × chance` num
+ * inimigo sem queimadura (ou perto de apagar, `EFFECT_REFRESH_TIME`); 0 em
+ * quem é de um tipo imune (`immuneTypes`) e em quem usou.
+ */
+export function evaluateBurnEffect(effect, recipient, { ally }) {
+  const { BURN_VALUE, EFFECT_REFRESH_TIME } = GAME_CONFIG.AI_ATTACK
+  if (ally) return 0
+  const types = resolveSpeciesTypes(
+    getSpecies(resolveCreatureSpeciesId(recipient)),
+  )
+  if (types.some((type) => effect.immuneTypes?.includes(type))) return 0
+  const burn = recipient.get(Burn)
+  if (burn && burn.timeLeft > EFFECT_REFRESH_TIME) return 0
+  return BURN_VALUE * (effect.chance ?? 1)
+}
+
+/**
  * Um avaliador por TIPO de efeito (`effect.type`, ver `effects` em
  * `core/data/skills/_template`) — nunca por skill: toda habilidade feita de
  * efeitos que já existem é avaliada sem código novo. Tipo de efeito novo no
@@ -59,6 +83,7 @@ export function evaluateLeechSeedEffect(effect, recipient, { ally }) {
 export const AI_EFFECT_EVALUATORS = {
   statStage: evaluateStatStageEffect,
   leechSeed: evaluateLeechSeedEffect,
+  burn: evaluateBurnEffect,
 }
 
 /** Valor de um efeito pra IA; tipo sem avaliador vale 0. */

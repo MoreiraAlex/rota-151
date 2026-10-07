@@ -7,6 +7,7 @@
  */
 export const TACKLE_SKILL = {
   id: 'tackle',
+  type: 'normal',
   duration: 0.5,
   effectAt: 0.25,
   range: 1.4,
@@ -27,5 +28,5 @@ export const TACKLE_SKILL = {
   },
   audio: { group: 'impact' },
   animation: { clipKey: 'attackAlt' },
-  damage: { power: 40, category: 'physical', type: null },
+  damage: { power: 40, category: 'physical' },
 }

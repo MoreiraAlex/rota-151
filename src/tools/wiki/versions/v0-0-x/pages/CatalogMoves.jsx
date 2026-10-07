@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { Section } from '@/tools/wiki/components/Article'
 import { DataTable } from '@/tools/wiki/components/DataTable'
 import { Infobox } from '@/tools/wiki/components/Infobox'
+import { TypeTag, TypeTags } from '@/tools/wiki/components/TypeTag'
 import { WikiLink, wikiHref } from '@/tools/wiki/components/WikiLink'
 import {
   AREA_LABELS,
@@ -25,13 +26,11 @@ function formatArea(skill) {
 export function MoveListPage({ data, version }) {
   return (
     <Section>
-      <p>
-        As habilidades que as criaturas podem usar nesta versão. O ataque básico
-        de cada espécie está na página da criatura.
-      </p>
+      <p>Os golpes que as criaturas podem usar nesta versão.</p>
       <DataTable
         head={[
           'Golpe',
+          'Tipo',
           'Categoria',
           'Poder',
           'Precisão',
@@ -39,7 +38,7 @@ export function MoveListPage({ data, version }) {
           'Alcance',
           'Efeitos',
         ]}
-        align={[null, null, 'right', 'right', null, 'right', null]}
+        align={[null, null, null, 'right', 'right', null, 'right', null]}
         rows={data.skills.map((skill) => [
           <Link
             key="name"
@@ -48,6 +47,7 @@ export function MoveListPage({ data, version }) {
           >
             {skill.name}
           </Link>,
+          <TypeTag key="type" data={data} type={skill.type} />,
           CATEGORY_LABELS[skill.category],
           skill.power ?? '—',
           formatAccuracy(skill),
@@ -71,6 +71,7 @@ export function MoveDetailPage({ data, version, id }) {
           title={skill.name}
           subtitle={CATEGORY_LABELS[skill.category]}
           rows={[
+            ['Tipo', <TypeTag key="type" data={data} type={skill.type} />],
             ['Poder', skill.power ?? '—'],
             ['Precisão', formatAccuracy(skill)],
             ['Área', formatArea(skill)],
@@ -108,6 +109,23 @@ export function MoveDetailPage({ data, version, id }) {
               {skill.effects.map((effect) => (
                 <li key={effect}>{effect}</li>
               ))}
+              {skill.category !== 'status' ? (
+                <li>
+                  Golpe do tipo <TypeTag data={data} type={skill.type} />: vale
+                  mais usado por uma criatura do mesmo tipo, e o dano muda
+                  conforme os tipos do alvo (
+                  <WikiLink version={version} to="batalha/tipos">
+                    Tipos
+                  </WikiLink>
+                  ).
+                </li>
+              ) : null}
+              {skill.immuneTypes.length ? (
+                <li>
+                  Não pega em:{' '}
+                  <TypeTags data={data} types={skill.immuneTypes} />.
+                </li>
+              ) : null}
               <li>
                 Acontece {formatSeconds(skill.effectAt, 2)} depois de lançado
                 {skill.category === 'status'

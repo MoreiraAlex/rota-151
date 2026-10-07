@@ -1,7 +1,6 @@
 /**
- * Molde de uma HABILIDADE (skill) de criatura — e o formato de definição
- * que o ataque BÁSICO de cada espécie também segue
- * (`core/data/species/<id>/basicAttack.js`, ver docs/features/033-skills-de-combate-e-vfx.md).
+ * Molde de um GOLPE (skill) de criatura — o único tipo de ataque delas (não
+ * existe ataque básico, docs/features/039-tipos-e-combate-classico.md, Parte 5).
  * Copia esta pasta pra `<id>/`
  * (ex.: `../tackle/`) — um `index.js` só, sem sub-recursos próprios (o
  * visual/áudio de verdade vivem na VIEW, referenciados por id — ver
@@ -30,9 +29,17 @@
  */
 export const SKILL_TEMPLATE = {
   // Minúsculo, kebab-case — é o que `species.skills[N]` referencia
-  // (ver core/data/species/*/index.js) e a chave em SKILL_REGISTRY. No
-  // básico de uma espécie, `<espécie>-basic` (não entra no registro).
+  // (ver core/data/species/*/index.js) e a chave em SKILL_REGISTRY.
   id: 'nome-do-ataque',
+  // Tipo elemental do golpe — um id de `core/data/types/index.js` ('fire',
+  // 'water'...). Todo golpe tem, inclusive os de status. Golpe de dano: STAB
+  // (`resolveStab`) e efetividade contra os tipos do alvo (tabela da Gen 1);
+  // golpe de status ignora a tabela. Também escolhe o impacto genérico
+  // (`visual.impactType` vence). Ausente = 'normal'.
+  type: 'normal',
+  // Opcional — tipos do ALVO em que este golpe de STATUS não pega (regra
+  // pontual, ex.: Leech Seed não pega em Planta). Golpe de dano usa a tabela.
+  // immuneTypes: ['grass'],
 
   // === Mecanismo (creatureAttackSystem.js) ===
   // Duração total do gesto (segundos) — trava a criatura (ActionState)
@@ -41,8 +48,7 @@ export const SKILL_TEMPLATE = {
   // AÇÃO usam `speed` como `1/duração`, mesma convenção de
   // `actions.throw`/`.summon` do treinador (core/data/species/boy/index.js).
   duration: 0.5,
-  // Opcional (no básico da espécie, ou numa skill via
-  // `skills[N].overrides`):
+  // Opcional (na skill, ou por espécie via `skills[N].overrides`):
   // quantos frames da animação EMBUTIDA (`.glb`) tocar, a partir do
   // início — corta um final indesejado; o trecho que sobra é esticado pra
   // caber em `duration`. Ausente/`null` = todos. Contagem de frames de
@@ -57,13 +63,12 @@ export const SKILL_TEMPLATE = {
   // se encontrar parede ou desnível (`resolveAttackImpactPoint`,
   // creatureAttackSystem.js) — não "teleporta" através de nada.
   range: 1.4,
-  // Como o golpe mira (`resolveAttackDirection`, core/battle/attackAim.js)
-  // — sempre na horizontal, sem mira vertical:
-  // - 'melee': giro horizontal da câmera, puxado pro alvo dentro do cone
-  //   de `GAME_CONFIG.BATTLE.MELEE_AIM_HALF_ANGLE` quando houver — SÓ no
-  //   ataque BÁSICO. Habilidades (Q/E/R) saem sempre pra onde a câmera olha.
-  // - 'ranged' (ou ausente): giro horizontal da câmera, sem assistência.
-  // Em qualquer ataque da criatura controlada, a direção acompanha a câmera
+  // Corpo a corpo ou à distância — o golpe sai sempre na horizontal, pra
+  // onde a câmera olha (`resolveAttackDirection`, core/battle/attackAim.js),
+  // sem assistência de mira. Quem lê é a IA (`aiMovement.js`): com golpe
+  // 'ranged' ela mantém distância em vez de encostar.
+  // - 'melee' / 'ranged' (ou ausente = 'ranged').
+  // Na criatura controlada, a direção acompanha a câmera
   // enquanto o aviso carrega (do disparo até o `effectAt`) e trava no golpe
   // (`GAME_CONFIG.BATTLE.ATTACK_WINDUP_STEERING`).
   aim: 'melee',
@@ -91,7 +96,7 @@ export const SKILL_TEMPLATE = {
   // × bônus de cone e de alcance):
   //   custo   = (2·nível/5 + 2) × peso / ACTION_COST.COST_DIVISOR
   //   recarga = peso × ACTION_COST.COOLDOWN_PER_WEIGHT × fator de speed
-  // O básico (`primary`) não tem recarga (o ritmo vem da `duration`). Pra
+  // `duration`/`effectAt` também escalam pelo `speed` da criatura. Pra
   // fugir da fórmula numa skill, escreva o valor aqui (ou no override da
   // espécie, `skills[N].overrides`) — escrito sempre ganha:
   // staminaCost: 2,
@@ -132,7 +137,7 @@ export const SKILL_TEMPLATE = {
     // criatura grande deve ter o efeito maior que uma pequena, mesmo as
     // duas usando o MESMO ataque/visual. `1` = tamanho de referência
     // desta definição; uma criatura fora do padrão sobrescreve só isto
-    // (`basicAttack.visual.scale` / `skills[N].overrides.visual.scale`), sem duplicar o resto.
+    // (`skills[N].overrides.visual.scale`), sem duplicar o resto.
     // Multiplica por cima da constante de normalização do rip que cada
     // componente de view já tem (`*_BASE_SCALE`, unidade arbitrária do
     // `.obj` de origem) — não a substitui.
@@ -159,7 +164,7 @@ export const SKILL_TEMPLATE = {
     // do golpe, que escolhe as partículas ('normal', 'fire', 'water',
     // 'grass', 'electric', 'ice', 'fighting', 'poison', 'ground', 'flying',
     // 'psychic', 'bug', 'rock', 'ghost', 'dragon', 'dark', 'fairy',
-    // 'steel'). Sem ele cai em `damage.type`; sem os dois, 'normal'.
+    // 'steel'). Sem ele cai no `type` do golpe; sem os dois, 'normal'.
     // impactType: 'fire',
     // Opcional — grupo de VFX que nasce em CADA alvo atingido por um golpe de
     // efeito (ex.: a fumaça no corpo de quem levou o Smokescreen), além do
@@ -200,10 +205,10 @@ export const SKILL_TEMPLATE = {
     group: 'punch',
     // `group: 'impact'` — o som de impacto do TIPO do golpe (8 variações por
     // tipo, o mesmo tipo do visual `effectGroup: 'impact'`: `visual.impactType`,
-    // senão `damage.type`, senão 'normal').
+    // senão o `type` do golpe, senão 'normal').
     // Grupos COMPOSTOS (`ATTACK_SOUND_COMPOSITES`, ex.: 'ember', 'flamethrower')
     // tocam VÁRIOS sons por golpe, cada um com o seu atraso (atacante na hora,
-    // alvo no impacto). Habilidades (Q/E/R) tocam som como o básico.
+    // alvo no impacto).
     // `cry: true` — a criatura VOCALIZA no `effectAt` (o grito da espécie, com a
     // boca sincronizada), em vez de tocar um som de ataque. Combina com
     // `group: null` (ex.: Growl).
@@ -244,13 +249,6 @@ export const SKILL_TEMPLATE = {
     // `sp_atk`/`sp_def`) — decide qual par de status a fórmula usa. Sem
     // este campo, `resolveDamageAmount` assume 'physical'.
     category: 'physical',
-    // Tipo elemental do golpe (string livre, ex.: 'fire') — usado pro
-    // STAB (`resolveStab`) e, quando existir, efetividade de tipo
-    // (`resolveTypeEffectivenessMultiplier`). `null` = sem tipo definido
-    // ainda; como NENHUMA espécie declara `types` ainda (ver
-    // `core/data/species/_template/index.js`), isso hoje não muda nada
-    // na prática — estrutura pronta, sem inventar dado agora.
-    type: null,
   },
 
   // === Precisão (core/battle/accuracy.js) ===
@@ -277,6 +275,16 @@ export const SKILL_TEMPLATE = {
   //   // drena `fraction` do HP máximo dele e cura quem plantou o mesmo valor,
   //   // por `duration` segundos (renovável). Ex.: o Leech Seed.
   //   { type: 'leechSeed', fraction: 1 / 8, interval: 2, duration: 10 },
+  //   // `burn` — QUEIMA o alvo com `chance` (0-1): a cada `interval` segundos
+  //   // tira `fraction` do HP máximo, por `duration` segundos (renovável), e o
+  //   // Ataque de quem está queimado é multiplicado por `attackMultiplier`
+  //   // (só golpe físico). `immuneTypes`: tipos que não queimam. Num golpe de
+  //   // DANO é efeito secundário: só no alvo que levou o dano, sem sortear a
+  //   // precisão de novo (no canalizado, uma vez por alvo por lançamento).
+  //   // Ex.: o Ember. Uma espécie muda os valores pelos `overrides` da skill
+  //   // (`effects` inteiro).
+  //   { type: 'burn', chance: 0.1, fraction: 1 / 16, interval: 2, duration: 8,
+  //     attackMultiplier: 0.5, immuneTypes: ['fire'] },
   // ],
   // Quem é atingido por um golpe SÓ de efeito: `area: 'cone'` (abaixo) = todos
   // os inimigos no cone à frente; sem ele, o primeiro corpo no caminho.
@@ -311,7 +319,7 @@ export const SKILL_TEMPLATE = {
 
 // === Override por criatura ===
 // `species.skills[N]` (core/data/species/*/index.js) aceita DUAS
-// formas (o `basicAttack` não — é uma definição completa, da espécie):
+// formas:
 //   skills: { 1: 'tackle' },                    // sem override
 //   skills: { 1: { id: 'tackle', overrides: {   // com override
 //     staminaCost: 10,                      // foge da fórmula de custo

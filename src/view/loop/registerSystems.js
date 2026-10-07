@@ -18,6 +18,7 @@ import { summonBallSystem } from '@/core/systems/summonBallSystem'
 import { creatureAppealSystem } from '@/core/systems/creatureAppealSystem'
 import { creatureHitStunSystem } from '@/core/systems/creatureHitStunSystem'
 import { leechSeedSystem } from '@/core/systems/leechSeedSystem'
+import { burnSystem } from '@/core/systems/burnSystem'
 import { creatureFollowSystem } from '@/core/systems/creatureFollowSystem'
 import { wildCreatureSpawnSystem } from '@/core/systems/wildCreatureSpawnSystem'
 import { trainingObjectSpawnSystem } from '@/core/systems/trainingObjectSpawnSystem'
@@ -55,6 +56,7 @@ import { recallAudioSystem } from '@/view/systems/recallAudioSystem'
 import { attackAudioSystem } from '@/view/systems/attackAudioSystem'
 import { hitFlashSystem } from '@/view/systems/hitFlashSystem'
 import { damageNumberSystem } from '@/view/systems/damageNumberSystem'
+import { battleLogSystem } from '@/view/systems/battleLogSystem'
 
 let registered = false
 
@@ -180,6 +182,8 @@ export function registerGameSystems() {
   registerSystem(GAME_PHASES.SIMULATION, creatureHitStunSystem)
   // Antes do desmaio: quem a drenagem do Leech Seed zerar desmaia no mesmo tick.
   registerSystem(GAME_PHASES.SIMULATION, leechSeedSystem)
+  // Idem pra queimadura.
+  registerSystem(GAME_PHASES.SIMULATION, burnSystem)
   // Logo depois do ataque: quem zerou o HP desmaia no mesmo tick do golpe
   // (e antes do partySummonSystem, que recolhe a do time desmaiada).
   registerSystem(GAME_PHASES.SIMULATION, faintSystem)
@@ -238,6 +242,8 @@ export function registerGameSystems() {
   registerSystem(GAME_PHASES.PRESENTATION, hitFlashSystem)
   // Número de dano acima de quem apanhou — mesmo evento.
   registerSystem(GAME_PHASES.PRESENTATION, damageNumberSystem)
+  // Log de batalha em texto ("Charmander usou Ember!") — mesmos eventos.
+  registerSystem(GAME_PHASES.PRESENTATION, battleLogSystem)
   registerSystem(GAME_PHASES.PRESENTATION, eyeBlinkSystem)
   registerSystem(GAME_PHASES.PRESENTATION, mouthSyncSystem)
 }

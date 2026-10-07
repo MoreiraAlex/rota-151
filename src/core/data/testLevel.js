@@ -28,7 +28,7 @@
  *   mesh, com a cor do `kind`) — ver `TRAINING_OBJECTS` abaixo.
  */
 
-const WILD_CREATURE_COUNT = 5
+const WILD_CREATURE_COUNT = 10
 
 const WILD_CREATURE_SPECIES = ['bulbasaur', 'charmander', 'squirtle']
 

@@ -1,16 +1,14 @@
 /**
- * Registro de HABILIDADES (skills) de criatura — os ataques compartilhados
- * entre espécies, nos slots `secondary1-3` (Q/E/R). O ataque BÁSICO
- * (`primary`, mouse) não mora aqui: é único de cada espécie, definido em
- * `core/data/species/<id>/basicAttack.js` (mesmo formato de definição —
- * ver `_template/`). Quem resolve "qual ataque este slot dispara" é
+ * Registro de GOLPES (skills) de criatura — os ataques compartilhados entre
+ * espécies, nos slots `secondary1-3` (Q/E/R). São os ÚNICOS ataques da
+ * criatura: não existe ataque básico (docs/features/039-tipos-e-combate-classico.md, Parte 5). Quem resolve "qual golpe este slot dispara" é
  * `resolveCreatureAttack(species, slot)`, `core/battle/creatureAttack.js`.
  *
  * Mesma forma de `core/data/species/index.js`/`core/data/items/index.js`:
  * este arquivo é o mecanismo (`getSkill`/`listSkills`/`resolveSkill`,
  * `_template/`). Histórico da camada: docs/features/025-ataque-comum-de-
- * criatura.md ("reorganização da config"); separação básico × skills:
- * docs/features/033-skills-de-combate-e-vfx.md.
+ * criatura.md ("reorganização da config") e docs/features/033-skills-de-
+ * combate-e-vfx.md.
  *
  * Pra adicionar uma habilidade:
  * 1) copia `_template/` pra `<id>/`

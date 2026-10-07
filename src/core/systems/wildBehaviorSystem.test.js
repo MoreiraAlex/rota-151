@@ -59,9 +59,17 @@ afterEach(() => {
   while (worlds.length) worlds.pop().destroy()
 })
 
-// Habilidades travadas em cooldown: a selvagem só tem o básico — os testes
+const SLOTS = ['secondary1', 'secondary2', 'secondary3']
+// Um golpe corpo a corpo de dano do kit (sem fixar qual).
+const MELEE_SLOT = SLOTS.find((slot) => {
+  const attack = resolveCreatureAttack(SPECIES, slot)
+  return attack?.damage && attack.aim === 'melee' && !attack.damageMode
+})
+// Só o golpe corpo a corpo pronto (os outros travados em cooldown) — os testes
 // de distância/intervalo não dependem do sorteio do golpe.
-const SKILLS_LOCKED = { secondary1: 999, secondary2: 999, secondary3: 999 }
+const SKILLS_LOCKED = Object.fromEntries(
+  SLOTS.filter((slot) => slot !== MELEE_SLOT).map((slot) => [slot, 999]),
+)
 
 function setup({ temperament = 'hostile', playerAt, skills = false } = {}) {
   const world = createWorld()
@@ -277,8 +285,8 @@ describe('wildBehaviorSystem — pacífica', () => {
 describe('wildBehaviorSystem — atacando e gastando fôlego', () => {
   // Alcance centro a centro: range + radius do golpe + raio do corpo do
   // alvo (o mesmo charmander).
-  const tackle = resolveCreatureAttack(SPECIES, 'primary')
-  const REACH = tackle.range + tackle.radius + SPECIES.body.capsuleRadius
+  const melee = resolveCreatureAttack(SPECIES, MELEE_SLOT)
+  const REACH = melee.range + melee.radius + SPECIES.body.capsuleRadius
 
   it('perseguindo com o alvo ao alcance: pede golpe e respeita o intervalo', () => {
     const { wild, player, tick, movePlayer } = setup()
@@ -537,7 +545,7 @@ describe('wildBehaviorSystem — habilidades (escolha do golpe)', () => {
     tick()
     tick()
 
-    // O Tackle (E) ganha do básico (40 × 5): corre até ele, sem pedir ainda.
+    // Só o Tackle (E) está pronto: corre até o alcance dele, sem pedir ainda.
     expect(wild.get(WildBehavior).attackSlot).toBe('secondary2')
     expect(wild.has(WantsToAttack)).toBe(false)
     expect(
@@ -550,13 +558,13 @@ describe('wildBehaviorSystem — habilidades (escolha do golpe)', () => {
     wild.set(AttackCooldowns, { secondary1: 999, secondary3: 999 })
     movePlayer(6)
     tick() // decide perseguir
-    // Plano no básico (sempre pronto): mantido enquanto o alvo não muda.
-    wild.set(WildBehavior, { attackSlot: 'primary' })
+    // Plano no único golpe pronto: mantido enquanto o alvo não muda.
+    wild.set(WildBehavior, { attackSlot: 'secondary2' })
     tick()
-    expect(wild.get(WildBehavior).attackSlot).toBe('primary')
+    expect(wild.get(WildBehavior).attackSlot).toBe('secondary2')
 
     // Alguém do lado do jogador bem mais perto vira o alvo: o plano é refeito
-    // (e o Tackle ganha do básico).
+    // (o único pronto continua sendo o Tackle).
     world.spawn(
       SummonedCreature({ slot: 'slot1', speciesId: 'charmander' }),
       Position({ x: 30, y: 0.45, z: 27 }),
@@ -572,7 +580,7 @@ describe('wildBehaviorSystem — habilidades (escolha do golpe)', () => {
     const { maxStamina } = wild.get(Vitals)
     const { REST_ENTER_FRACTION, REST_EXIT_FRACTION } = GAME_CONFIG.AI_ENERGY
     wild.set(Vitals, { stamina: REST_ENTER_FRACTION * maxStamina })
-    movePlayer(1.4) // ao alcance do básico (1.6m)
+    movePlayer(1.4) // ao alcance do golpe corpo a corpo
 
     tick()
 
@@ -611,16 +619,16 @@ describe('wildBehaviorSystem — movimento na luta', () => {
   it('desviando de um golpe, não pede o seu (mesmo ao alcance)', () => {
     const { world, wild, tick, movePlayer } = setup()
     movePlayer(20) // o treinador longe
-    // Uma criatura do time colada nela, carregando o básico em cima dela.
+    // Uma criatura do time colada nela, carregando um golpe em cima dela.
     const mine = world.spawn(
       SummonedCreature({ slot: 'slot1', speciesId: 'charmander' }),
       Position({ x: 30, y: 0.45, z: 31.2 }),
       CharacterController(SPECIES.body),
       ActionState({
         current: 'attack',
-        pendingSlot: 'primary',
+        pendingSlot: MELEE_SLOT,
         elapsed: 0.25,
-        animationSpeed: 1 / resolveCreatureAttack(SPECIES, 'primary').duration,
+        animationSpeed: 1 / resolveCreatureAttack(SPECIES, MELEE_SLOT).duration,
         dirX: 0,
         dirZ: -1,
       }),

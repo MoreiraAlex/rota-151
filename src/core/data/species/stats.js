@@ -58,7 +58,7 @@ export function calculateCP({ SomaStatus, SomaIV, SomaEV, level }) {
 }
 
 /**
- * Fator (multiplica a duração do ataque básico) a partir do status `speed`
+ * Fator (multiplica a duração e a recarga dos golpes) a partir do status `speed`
  * JÁ calculado (base + IV + nível, `calculateStat`): `√(reference /
  * speed)`, limitado a `[minFactor, maxFactor]`. `speed == reference` → 1
  * (duração autorada, sem mudança); mais rápido → menor que 1 (golpe mais

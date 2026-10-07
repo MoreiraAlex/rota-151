@@ -78,8 +78,6 @@ export function AttackIndicatorView() {
         pos,
         physicsBody.colliderHandle,
         species,
-        attack,
-        slot,
       ),
     })
   })

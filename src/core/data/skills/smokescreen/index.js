@@ -16,6 +16,7 @@
  */
 export const SMOKESCREEN_SKILL = {
   id: 'smokescreen',
+  type: 'normal',
   duration: 1.2,
   effectAt: 0.5,
   range: 3,
@@ -39,6 +40,10 @@ export const SMOKESCREEN_SKILL = {
     revealDuration: 0,
     rotationOffset: { x: 0, y: 0, z: 0 },
     positionOffset: { x: 0, y: 0, z: 0 },
+  },
+  sprite: {
+    path: '/assets/sprites/abilities/smokescreen.png',
+    scale: 1,
   },
   audio: { group: 'smokescreen' },
   // o rugido (a espécie precisa da chave `roar`); o Cobblemon usa a animação

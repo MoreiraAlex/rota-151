@@ -1,5 +1,8 @@
 import { registrarParticipante } from '../actions/experience'
+import { readBurnAttackMultiplier } from '../actions/burn'
+import { applySecondaryEffects } from './attackStatusEffects'
 import { resolveChannelTickDamage } from './calculateDamage'
+import { resolveSkillType } from '../data/types'
 import { isBeamAttack } from './channelAttack'
 import { resolveAttackOrigin, resolveFootElevation } from './attackGeometry'
 import { readStatStages } from './statStages'
@@ -22,7 +25,9 @@ import {
  * FRAÇÃO deste tick do dano de um golpe (`resolveChannelTickDamage` —
  * segurando até o fim, o total é o dano de um golpe; crítico por tick), e
  * cada acerto emite `attackResolved`. Sem alvo, não
- * emite nada (um "errou" por tick seria ruído).
+ * emite nada (um "errou" por tick seria ruído). Alvo imune ao tipo do golpe
+ * não leva nada (nem conta como participante do XP), mas o tick é emitido
+ * com `effectiveness: 'immune'` pro "Não afeta…".
  */
 export function applyChannelTick(world, events, context) {
   const { entity, action, species, individualValues, attack } = context
@@ -81,10 +86,11 @@ export function applyChannelTick(world, events, context) {
   // Fração deste tick do dano total (sorteada no disparo); o índice avança
   // uma vez por tick, não por alvo — todos os alvos do mesmo instante levam
   // a mesma fração (cada um sobre o PRÓPRIO orçamento, com a própria defesa).
-  const weight = action.channelWeights?.[action.channelTick] ?? 0
+  const channelTick = action.channelTick
+  const weight = action.channelWeights?.[channelTick] ?? 0
   action.channelTick += 1
   for (const target of targets) {
-    const { amount, critical } = resolveChannelTickDamage({
+    const { amount, critical, effectiveness } = resolveChannelTickDamage({
       attackerSpecies: species,
       attackerIndividualValues: individualValues,
       attackerLevel: context.level,
@@ -92,17 +98,33 @@ export function applyChannelTick(world, events, context) {
       defenderIndividualValues: target.individualValues,
       defenderLevel: target.level,
       damage: attack.damage,
+      attackType: resolveSkillType(attack),
       attackerStages: readStatStages(entity),
       defenderStages: readStatStages(target.entity),
+      attackerBurnMultiplier: readBurnAttackMultiplier(entity),
       weight,
       rng: gameplayRng,
     })
-    target.entity.set(
-      Vitals,
-      applyDamage(target.vitals, amount, target.vitals.hpRegenDelayAfterDamage),
-    )
-    context.damaged?.add(target.entity)
-    registrarParticipante(world, entity, target.entity)
+    const immune = effectiveness === 'immune'
+    if (!immune) {
+      target.entity.set(
+        Vitals,
+        applyDamage(
+          target.vitals,
+          amount,
+          target.vitals.hpRegenDelayAfterDamage,
+        ),
+      )
+      context.damaged?.add(target.entity)
+      registrarParticipante(world, entity, target.entity)
+      // efeito secundário (ex.: a chance de queimar): o canal inteiro vale UM
+      // golpe, então cada alvo sorteia uma vez só por lançamento — no
+      // primeiro tick que acerta ele (`ActionState.channelEffectTargets`)
+      if (!action.channelEffectTargets?.includes(target.entity)) {
+        action.channelEffectTargets?.push(target.entity)
+        applySecondaryEffects(events, { entity, attack, target })
+      }
+    }
     events.emit(
       attackResolved({
         attacker: entity,
@@ -112,9 +134,11 @@ export function applyChannelTick(world, events, context) {
         origin,
         impactPoint,
         contactPoint: target.contactPoint,
-        damage: amount,
+        damage: immune ? 0 : amount,
         critical,
         channel: true,
+        channelTick,
+        effectiveness,
       }),
     )
   }

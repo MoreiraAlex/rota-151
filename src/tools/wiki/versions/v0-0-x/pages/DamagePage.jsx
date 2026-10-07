@@ -1,13 +1,13 @@
 import { Section } from '@/tools/wiki/components/Article'
 import { DataTable } from '@/tools/wiki/components/DataTable'
 import { Formula } from '@/tools/wiki/components/Formula'
-import { Notice } from '@/tools/wiki/components/Notice'
 import { WikiLink } from '@/tools/wiki/components/WikiLink'
 import {
   CATEGORY_LABELS,
   formatMultiplier,
   formatNumber,
   formatPercent,
+  formatEffectiveness,
   formatRange,
 } from '@/tools/wiki/wikiFormat'
 
@@ -26,7 +26,7 @@ export function DamagePage({ data, version }) {
         <Formula>
           <p>
             <strong>Dano</strong> = ((nível × 2 ÷ 5 + 2) × poder × ataque ÷
-            defesa ÷ 50 + 2) × variação
+            defesa ÷ 50 + 2) × mesmo tipo × efetividade × variação
           </p>
         </Formula>
         <ul>
@@ -53,7 +53,20 @@ export function DamagePage({ data, version }) {
             <WikiLink version={version} to="batalha/efeitos">
               Efeitos em batalha
             </WikiLink>
-            ).
+            ). Quem está queimado tem o Ataque cortado nos golpes físicos.
+          </li>
+          <li>
+            <strong>mesmo tipo</strong> —{' '}
+            {formatMultiplier(battle.stabMultiplier)} quando o golpe é do tipo
+            de quem ataca; senão, ×1.
+          </li>
+          <li>
+            <strong>efetividade</strong> — o quanto o tipo do golpe é forte ou
+            fraco contra os tipos do alvo (
+            <WikiLink version={version} to="batalha/tipos">
+              Tipos
+            </WikiLink>
+            ). Zero quando o golpe não afeta o alvo.
           </li>
           <li>
             <strong>variação</strong> — um sorteio entre{' '}
@@ -73,17 +86,6 @@ export function DamagePage({ data, version }) {
         </p>
       </Section>
 
-      <Section id="tipos" title="Tipos">
-        <Notice tone="missing">
-          <p>
-            As criaturas e os golpes ainda não têm tipo (fogo, água, planta…).
-            Quando tiverem, golpe do mesmo tipo de quem ataca vai valer{' '}
-            {formatMultiplier(battle.stabMultiplier)}, e fraquezas e
-            resistências vão multiplicar o dano.
-          </p>
-        </Notice>
-      </Section>
-
       {damageExamples ? (
         <Section id="exemplos" title="Exemplos">
           <p>
@@ -100,15 +102,19 @@ export function DamagePage({ data, version }) {
               'Golpe',
               'Categoria',
               'Poder',
+              'Mesmo tipo',
+              'Efetividade',
               'Dano',
               '% da vida',
             ]}
-            align={[null, null, null, 'right', 'right', 'right']}
+            align={[null, null, null, 'right', 'right', null, 'right', 'right']}
             rows={damageExamples.rows.map((row) => [
               row.attackerName,
               row.attackName,
               CATEGORY_LABELS[row.category],
               row.power ?? '—',
+              row.stab > 1 ? formatMultiplier(row.stab) : '—',
+              `${formatMultiplier(row.typeMultiplier)} (${formatEffectiveness(row.typeMultiplier)})`,
               row.channel
                 ? `${oneDecimal(row.max)} (canal inteiro)`
                 : formatRange(row.min, row.max, oneDecimal),

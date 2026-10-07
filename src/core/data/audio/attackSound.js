@@ -149,25 +149,21 @@ export function getAttackSoundGroup(id, groups = ATTACK_SOUND_GROUPS) {
 }
 
 /**
- * Chave do som de um ataque: `'primary'` pro básico; o id do golpe pros
- * outros (docs/features/038-aprendizado-treino-e-dominio-de-golpes.md) — o
- * golpe de cada slot muda por criatura (aprender, reordenar, treinar), então o
- * som é registrado por golpe, não por slot.
+ * Chave do som de um ataque: o id do golpe
+ * (docs/features/038-aprendizado-treino-e-dominio-de-golpes.md) — o golpe de
+ * cada slot muda por criatura (aprender, reordenar, treinar), então o som é
+ * registrado por golpe, não por slot.
  */
-export function resolveAttackSoundKey(slot, attack) {
-  if (slot === 'primary') return 'primary'
+export function resolveAttackSoundKey(attack) {
   return attack?.id ?? null
 }
 
 /**
  * Todos os ataques que uma criatura da espécie pode usar, por chave de som:
- * o básico e cada golpe do learnset (kit + `moves`), com os overrides da
- * espécie.
+ * cada golpe do learnset (kit + `moves`), com os overrides da espécie.
  */
 function listSpeciesAttacks(species) {
   const attacks = []
-  const basic = resolveCreatureAttack(species, 'primary')
-  if (basic) attacks.push(['primary', basic])
   for (const { id } of listLearnset(species)) {
     const attack = resolveSkill(resolveSpeciesMoveReference(species, id))
     if (attack) attacks.push([id, attack])
@@ -195,7 +191,7 @@ function toPart(spec, delay) {
  * - sem nenhum dos dois, ou slot sem ataque configurado, `null` — mesmo
  *   fallback gracioso de sempre.
  */
-export function resolveAttackSound(species, slot = 'primary') {
+export function resolveAttackSound(species, slot) {
   return resolveAttackSoundParts(resolveCreatureAttack(species, slot))
 }
 

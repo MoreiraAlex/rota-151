@@ -29,6 +29,7 @@
  */
 export const VINE_WHIP_SKILL = {
   id: 'vine-whip',
+  type: 'grass',
   duration: 0.2,
   effectAt: 0.1,
   range: 2.5,
@@ -50,5 +51,5 @@ export const VINE_WHIP_SKILL = {
   },
   audio: { group: 'impact' },
   animation: { clipKey: 'attackAlt' },
-  damage: { power: 45, category: 'physical', type: null },
+  damage: { power: 45, category: 'physical' },
 }

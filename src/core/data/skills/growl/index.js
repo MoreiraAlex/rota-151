@@ -21,6 +21,7 @@
  */
 export const GROWL_SKILL = {
   id: 'growl',
+  type: 'normal',
   duration: 1.2,
   effectAt: 0.5,
   range: 3,

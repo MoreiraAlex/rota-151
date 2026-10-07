@@ -15,6 +15,14 @@ import { isInsideAttackCone } from './attackGeometry'
 import { evaluateEffect } from './aiEffectEvaluators'
 import { fitsEnergyReserve } from './aiEnergy'
 import { isConeAttack, isSelfAttack } from './channelAttack'
+import { resolveStab } from './calculateDamage'
+import { resolveCombatantSpecies } from './attackTargets'
+import {
+  isImmuneToStatusSkill,
+  resolveSkillType,
+  resolveSpeciesTypes,
+  resolveTypeEffectiveness,
+} from '../data/types'
 
 function horizontalDistance(a, b) {
   return Math.hypot(b.x - a.x, b.z - a.z)
@@ -70,11 +78,29 @@ function resolveRecipients(attack, situation) {
 }
 
 /**
+ * Quanto o TIPO pesa no golpe contra `recipient` (docs/features/039-tipos-e-combate-classico.md): golpe de dano → STAB × efetividade contra os tipos dele
+ * (imune = 0); golpe de status → 0 se ele for de um tipo em `immuneTypes`,
+ * senão 1.
+ */
+function resolveTypeFactor(attack, attackerTypes, recipient) {
+  const recipientTypes = resolveSpeciesTypes(resolveCombatantSpecies(recipient))
+  if (!attack.damage) {
+    return isImmuneToStatusSkill(attack, recipientTypes) ? 0 : 1
+  }
+  const type = resolveSkillType(attack)
+  return (
+    resolveStab(type, attackerTypes) *
+    resolveTypeEffectiveness(type, recipientTypes).multiplier
+  )
+}
+
+/**
  * Nota de um golpe pra IA, só pelos CAMPOS da definição (nunca pelo id):
  * `damage.power` por inimigo atingido + o valor de cada `effects[]` em cada
  * atingido (`evaluateEffect`, um avaliador por tipo de efeito), × bônus se já
  * alcança o alvo (`IN_REACH_BONUS`), × `ai.weight` (ajuste fino opcional da
- * skill). Golpe em si mesmo com inimigo perto (`SELF_CAST_SAFE_DISTANCE`) vale
+ * skill). O tipo multiplica o valor em cada atingido (`resolveTypeFactor`:
+ * STAB × efetividade; golpe que não pega vale 0 nele). Golpe em si mesmo com inimigo perto (`SELF_CAST_SAFE_DISTANCE`) vale
  * 0 — a carga seria interrompida por dano. Golpe com domínio baixo
  * (docs/features/038-*) vale menos, na proporção da chance de sair
  * (`resolveMasteryAccuracyFactor`).
@@ -99,11 +125,19 @@ export function scoreAiAttack(attack, situation) {
 
   const recipients = resolveRecipients(attack, situation)
   const power = attack.damage?.power ?? 0
-  let score = self ? 0 : power * recipients.length
-  for (const effect of attack.effects ?? []) {
-    for (const recipient of recipients) {
-      score += evaluateEffect(effect, recipient, { ally: self })
+  const attackerTypes = resolveSpeciesTypes(
+    resolveCombatantSpecies(situation.attacker),
+  )
+  let score = 0
+  for (const recipient of recipients) {
+    const typeFactor = self
+      ? 1
+      : resolveTypeFactor(attack, attackerTypes, recipient)
+    let value = self ? 0 : power
+    for (const effect of attack.effects ?? []) {
+      value += evaluateEffect(effect, recipient, { ally: self })
     }
+    score += value * typeFactor
   }
   if (score <= 0) return 0
 

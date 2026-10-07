@@ -42,6 +42,11 @@ import { trainerBattleSystem } from './trainerBattleSystem'
 
 const DELTA = 1 / 60
 const CHARMANDER = getSpecies('charmander')
+// Um golpe corpo a corpo de dano do kit (sem fixar qual).
+const MELEE_SLOT = ['secondary1', 'secondary2', 'secondary3'].find((slot) => {
+  const attack = resolveCreatureAttack(CHARMANDER, slot)
+  return attack?.damage && attack.aim === 'melee' && !attack.damageMode
+})
 const { SAFE_DISTANCE, ARRIVE_DISTANCE } = GAME_CONFIG.TRAINER_BATTLE
 // Longe dos obstáculos do nível de teste.
 const BASE = { x: 30, y: 0.45, z: 30 }
@@ -189,12 +194,12 @@ describe('trainerBattleSystem — treinador fora do controle numa luta', () => {
   it('dentro do aviso de um golpe: desvia pro lado (sem sorteio)', () => {
     const { trainer, wild, tick } = setup({ wildAt: at(0.1, -1) })
     // Selvagem 1m atrás dele golpeando pra +Z, ele 0.1m pro lado.
-    const basic = resolveCreatureAttack(CHARMANDER, 'primary')
+    const melee = resolveCreatureAttack(CHARMANDER, MELEE_SLOT)
     wild.set(ActionState, {
       current: 'attack',
-      pendingSlot: 'primary',
+      pendingSlot: MELEE_SLOT,
       elapsed: 0.05,
-      animationSpeed: 1 / basic.duration,
+      animationSpeed: 1 / melee.duration,
       dirX: 0,
       dirZ: 1,
     })
@@ -207,12 +212,12 @@ describe('trainerBattleSystem — treinador fora do controle numa luta', () => {
 
   it('desviando: o corpo gira pro lado do desvio', () => {
     const { trainer, wild, tick } = setup({ wildAt: at(0.1, -1) })
-    const basic = resolveCreatureAttack(CHARMANDER, 'primary')
+    const melee = resolveCreatureAttack(CHARMANDER, MELEE_SLOT)
     wild.set(ActionState, {
       current: 'attack',
-      pendingSlot: 'primary',
+      pendingSlot: MELEE_SLOT,
       elapsed: 0,
-      animationSpeed: 1 / basic.duration,
+      animationSpeed: 1 / melee.duration,
       dirX: 0,
       dirZ: 1,
     })

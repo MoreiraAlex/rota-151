@@ -26,12 +26,14 @@ export function PokedexPage({ data }) {
         <ul>
           <li>
             <strong>Pokémons</strong> — a lista completa, com uma vaga por
-            número. Só as espécies já escaneadas podem ser abertas, mostrando os
-            status base delas.
+            número. Só as espécies já escaneadas podem ser abertas, mostrando o
+            tipo e os status base delas — é assim que se descobre o tipo de uma
+            criatura selvagem.
           </li>
           <li>
             <strong>Time</strong> — as criaturas do seu time, com os status
-            reais de cada uma (incluindo IV, energia e CP).
+            reais de cada uma (incluindo IV, energia e CP) e o tipo de cada
+            golpe.
           </li>
           <li>
             <strong>Histórico</strong> — as últimas {pokedex.historyLimit}{' '}

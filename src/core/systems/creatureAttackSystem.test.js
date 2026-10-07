@@ -12,6 +12,7 @@ import {
 import { computeAimRay } from '@/core/camera/orbitCamera'
 import { disposePhysics } from '@/core/physics/physicsWorld'
 import { createEventQueue, EVENT_TYPES } from '@/core/events'
+import { TYPE_CHART, resolveSkillType } from '@/core/data/types'
 import { castRay } from '@/core/physics/raycast'
 import {
   createCharacterBody,
@@ -77,23 +78,74 @@ const EMBER_SLOT = ['secondary1', 'secondary2', 'secondary3'].find(
 )
 
 const DELTA = 1 / 60
-// Espécie estável de teste (o Bulbasaur) — o
-// ataque é exclusivo de `kind: 'pokemon'` (o treinador não ataca direto,
-// ver docs/backlog.md), então lido daqui, não de `getPlayerSpecies()`.
-// `ATTACK` é o ataque básico próprio do `bulbasaur` (`basicAttack`, ver
-// core/data/species/001-bulbasaur/basicAttack.js), resolvido pelo mesmo caminho do
-// system (`resolveCreatureAttack(species, 'primary')`).
-// Custo/recarga resolvidos pela fórmula (`withActionCost`) — a definição não
-// escreve os seus (docs/features/035-balanceamento-de-acoes-e-correcoes.md).
-const ATTACK = resolveAttackForEntity(getSpecies('bulbasaur'), 'primary', null)
+const SLOTS = ['secondary1', 'secondary2', 'secondary3']
 
-// Ticks de um canalizado no básico do bulbasaur: a duração dele escala pelo
-// `speed` (IV/nível), então a contagem sai do golpe resolvido, não da config.
+/**
+ * O golpe de REFERÊNCIA dos testes de mecânica (no lugar do antigo ataque
+ * básico — não existe mais, docs/features/039-tipos-e-combate-classico.md, Parte
+ * 5): o slot de um golpe de DANO, corpo a corpo, instantâneo (sem canal nem
+ * área) do kit da espécie — sem fixar qual.
+ */
+function meleeSlotOf(speciesId) {
+  return SLOTS.find((slot) => {
+    const attack = resolveCreatureAttack(getSpecies(speciesId), slot)
+    return (
+      attack?.damage &&
+      attack.aim === 'melee' &&
+      !attack.damageMode &&
+      !attack.area
+    )
+  })
+}
+
+/**
+ * Troca o golpe do `slot` da espécie por uma versão com `overrides` por cima
+ * (o mesmo caminho do jogo: `skills[N].overrides`) e devolve quem desfaz.
+ */
+function overrideSkill(species, slot, overrides) {
+  const number = Number(slot.slice(-1))
+  const original = species.skills[number]
+  const reference = typeof original === 'string' ? { id: original } : original
+  const merged = { ...reference.overrides, ...overrides }
+  // seções mescladas campo a campo, como o `resolveSkill` faz
+  for (const section of ['visual', 'audio', 'animation']) {
+    if (overrides[section]) {
+      merged[section] = {
+        ...reference.overrides?.[section],
+        ...overrides[section],
+      }
+    }
+  }
+  species.skills[number] = { id: reference.id, overrides: merged }
+  return () => {
+    species.skills[number] = original
+  }
+}
+
+// Espécie estável de teste (o Bulbasaur) — o ataque é exclusivo de
+// `kind: 'pokemon'` (o treinador não ataca direto, ver docs/backlog.md).
+// `ATTACK` é o golpe de referência dele (`SLOT`), resolvido pelo mesmo caminho
+// do system; custo/recarga pela fórmula (`withActionCost`).
+const SLOT = meleeSlotOf('bulbasaur')
+const PRESS = { [SLOT]: true }
+// Clique esquerdo: só confirma o golpe aberto no indicador.
+const CLICK = { primary: true }
+// Outro golpe do kit, diferente do de referência.
+const OTHER_SLOT = SLOTS.find(
+  (slot) =>
+    slot !== SLOT && resolveCreatureAttack(getSpecies('bulbasaur'), slot),
+)
+// O golpe corpo a corpo do charmander — o da selvagem nos testes de IA.
+const WILD_SLOT = meleeSlotOf('charmander')
+const ATTACK = resolveAttackForEntity(getSpecies('bulbasaur'), SLOT, null)
+
+// Ticks de um canalizado no golpe de referência do bulbasaur: a duração dele
+// escala pelo `speed` (IV/nível), então a contagem sai do golpe resolvido.
 function expectedBasicChannelTicks(creature) {
   return resolveChannelTickCount(
     resolveAttackForEntity(
       getSpecies('bulbasaur'),
-      'primary',
+      SLOT,
       creature.get(IndividualValues),
     ),
   )
@@ -206,7 +258,7 @@ describe('creatureAttackSystem', () => {
     const creature = spawnControlledCreature(world)
     const staminaBefore = creature.get(Vitals).stamina
 
-    tick(world, { primary: true })
+    tick(world, PRESS)
 
     expect(creature.get(ActionState).current).toBe('attack')
     expect(creature.get(ActionState).elapsed).toBeCloseTo(DELTA)
@@ -223,7 +275,7 @@ describe('creatureAttackSystem', () => {
     const creature = spawnControlledCreature(world)
     creature.set(Vitals, { stamina: ATTACK.staminaCost / 2 })
 
-    tick(world, { primary: true })
+    tick(world, PRESS)
 
     expect(creature.get(ActionState).current).toBe(null)
     expect(creature.get(Vitals).stamina).toBeCloseTo(ATTACK.staminaCost / 2)
@@ -251,12 +303,12 @@ describe('creatureAttackSystem', () => {
       SummonedCreature({ slot: 'slot1', speciesId: 'bulbasaur' }),
     )
 
-    tick(world, { primary: true })
+    tick(world, PRESS)
 
     expect(creature.get(ActionState).current).toBe(null)
   })
 
-  it('espécie desconhecida (sem basicAttack pra resolver) não ataca, sem quebrar', () => {
+  it('espécie desconhecida (sem golpe pra resolver) não ataca, sem quebrar', () => {
     const world = spawnWorld()
     const creature = world.spawn(
       Position({ x: 0, y: 1, z: 0 }),
@@ -271,7 +323,7 @@ describe('creatureAttackSystem', () => {
       IndividualValues,
     )
 
-    tick(world, { primary: true })
+    tick(world, PRESS)
 
     expect(creature.get(ActionState).current).toBe(null)
   })
@@ -280,7 +332,7 @@ describe('creatureAttackSystem', () => {
     const world = spawnWorld()
     spawnControlledCreature(world, { position: { x: 2, y: 1, z: 3 } })
 
-    tick(world, { primary: true })
+    tick(world, PRESS)
     const effect = advanceUntilEffectSpawns(world)
 
     // O golpe sai do centro do corpo (`Position`, centro da cápsula) —
@@ -305,15 +357,15 @@ describe('creatureAttackSystem', () => {
   })
 
   it('visual.positionOffset do ataque só desloca a PARTIDA: o efeito continua nascendo no impacto do range, reorientado e com o length medido da nova partida', () => {
-    const { visual } = getSpecies('bulbasaur').basicAttack
-    const original = visual.positionOffset
     // yaw 0 (sem câmera: +Z), nível: x → +X, y → +Y, z → +Z (golpe adentro)
-    visual.positionOffset = { x: 0.5, y: 0.25, z: 0.2 }
+    const restore = overrideSkill(getSpecies('bulbasaur'), SLOT, {
+      visual: { positionOffset: { x: 0.5, y: 0.25, z: 0.2 } },
+    })
     try {
       const world = spawnWorld()
       spawnControlledCreature(world, { position: { x: 2, y: 1, z: 3 } })
 
-      tick(world, { primary: true })
+      tick(world, PRESS)
       const effect = advanceUntilEffectSpawns(world)
 
       // o impacto NÃO se mexe: continua em origem + range
@@ -335,32 +387,32 @@ describe('creatureAttackSystem', () => {
       expect(effect.get(Rotation).x).toBeCloseTo(esperada.x)
       expect(effect.get(Rotation).y).toBeCloseTo(esperada.y)
     } finally {
-      visual.positionOffset = original
+      restore()
     }
   })
 
-  it('impactType do AttackEffect: visual.impactType, senão damage.type, senão vazio', () => {
-    const { visual, damage } = getSpecies('bulbasaur').basicAttack
-    const originalVisual = visual.impactType
-    const originalType = damage.type
-    const spawnType = () => {
-      const world = spawnWorld()
-      spawnControlledCreature(world, { position: { x: 2, y: 1, z: 3 } })
-      tick(world, { primary: true })
-      return advanceUntilEffectSpawns(world).get(AttackEffect).impactType
+  it('impactType do AttackEffect: visual.impactType, senão o tipo do golpe, senão vazio', () => {
+    const species = getSpecies('bulbasaur')
+    const spawnType = (overrides) => {
+      const restore = overrideSkill(species, SLOT, overrides)
+      try {
+        const world = spawnWorld()
+        spawnControlledCreature(world, { position: { x: 2, y: 1, z: 3 } })
+        tick(world, PRESS)
+        return advanceUntilEffectSpawns(world).get(AttackEffect).impactType
+      } finally {
+        restore()
+      }
     }
-    try {
-      expect(spawnType()).toBe('')
-
-      damage.type = 'water'
-      expect(spawnType()).toBe('water')
-
-      visual.impactType = 'fire'
-      expect(spawnType()).toBe('fire')
-    } finally {
-      visual.impactType = originalVisual
-      damage.type = originalType
-    }
+    expect(
+      spawnType({ type: undefined, visual: { impactType: undefined } }),
+    ).toBe('')
+    expect(
+      spawnType({ type: 'water', visual: { impactType: undefined } }),
+    ).toBe('water')
+    expect(spawnType({ type: 'water', visual: { impactType: 'fire' } })).toBe(
+      'fire',
+    )
   })
 
   describe('direcionar durante o aviso (antes do effectAt)', () => {
@@ -479,46 +531,27 @@ describe('creatureAttackSystem', () => {
       expect(creature.get(ActionState).dirX).toBeCloseTo(launch.x)
       expect(creature.get(ActionState).dirZ).toBeCloseTo(launch.z)
     })
-
-    it('o ataque BÁSICO continua com a assistência enquanto carrega (puxa pro alvo, não só segue a câmera)', () => {
-      const world = spawnWorld()
-      const creature = spawnControlledCreature(world, {
-        speciesId: 'bulbasaur',
-      })
-      // alvo 40° pro lado, ao alcance: sem câmera a base é +Z
-      const side = (40 * Math.PI) / 180
-      spawnWildCreature(world, {
-        speciesId: 'charmander',
-        position: { x: Math.sin(side) * 1.2, y: 1, z: Math.cos(side) * 1.2 },
-      })
-
-      tick(world, { primary: true })
-      tick(world, {})
-
-      expect(creature.get(ActionState).dirX).toBeGreaterThan(0.3)
-    })
   })
 
-  it('básico próprio de cada espécie (range do charmander ≠ do básico padrão) é respeitado de ponta a ponta', () => {
+  it('o override da espécie no golpe (ex.: range) é respeitado de ponta a ponta', () => {
     const charmander = getSpecies('charmander')
-    const original = charmander.basicAttack
-    charmander.basicAttack = { ...original, range: 1.6 }
+    const slot = meleeSlotOf('charmander')
+    const range = resolveCreatureAttack(charmander, slot).range + 0.2
+    const restore = overrideSkill(charmander, slot, { range })
     try {
       const world = spawnWorld()
-      expect(ATTACK.range).not.toBe(1.6) // diferente do básico padrão do teste
-
       spawnControlledCreature(world, {
         speciesId: 'charmander',
         position: { x: 0, y: 1, z: 0 },
       })
-      tick(world, { primary: true })
+      tick(world, { [slot]: true })
       const effect = advanceUntilEffectSpawns(world)
 
-      // Sem câmera, direção cai no fallback (0,0,1) — z reflete o range do
-      // básico do charmander, não o do básico padrão.
-      expect(effect.get(Position).z).toBeCloseTo(1.6)
+      // Sem câmera, direção cai no fallback (0,0,1) — z reflete o range
+      // sobrescrito.
+      expect(effect.get(Position).z).toBeCloseTo(range)
     } finally {
-      charmander.basicAttack = original
+      restore()
     }
   })
 
@@ -526,15 +559,15 @@ describe('creatureAttackSystem', () => {
     const world = spawnWorld()
     const creature = spawnControlledCreature(world)
 
-    tick(world, { primary: true })
+    tick(world, PRESS)
     expect(creature.has(AttackPulse)).toBe(false) // ainda antes de EFFECT_AT
 
     advanceUntilEffectSpawns(world)
     expect(creature.has(AttackPulse)).toBe(true)
-    expect(creature.get(AttackPulse).slot).toBe('primary')
+    expect(creature.get(AttackPulse).slot).toBe(SLOT)
   })
 
-  it('o AttackPulse carrega o SLOT do ataque que disparou (habilidade, não só o básico) — cada slot tem o seu som', () => {
+  it('o AttackPulse carrega o SLOT do ataque que disparou — cada golpe tem o seu som', () => {
     const world = spawnWorld()
     const creature = spawnControlledCreature(world, { speciesId: 'charmander' })
     // premissa: o charmander tem uma habilidade de fogo no slot 2 (Brasa)
@@ -543,8 +576,7 @@ describe('creatureAttackSystem', () => {
     ).toBe('ember')
 
     tick(world, { [EMBER_SLOT]: true })
-    // `advanceUntilEffectSpawns` mede o tempo pelo básico padrão; o
-    // `effectAt` do Brasa do charmander é maior, então espera até 2 s.
+    // espera o `effectAt` do Brasa (até 2 s)
     for (let i = 0; i < 120 && !creature.has(AttackPulse); i++) tick(world, {})
 
     expect(creature.has(AttackPulse)).toBe(true)
@@ -555,7 +587,8 @@ describe('creatureAttackSystem', () => {
     const world = spawnWorld()
     const startPos = { x: 0, y: 1, z: 0 }
     const species = getSpecies('charmander')
-    const tackle = resolveCreatureAttack(species, 'primary')
+    const slot = meleeSlotOf('charmander')
+    const tackle = resolveCreatureAttack(species, slot)
     const creature = spawnControlledCreature(world, {
       speciesId: 'charmander',
       position: startPos,
@@ -565,7 +598,7 @@ describe('creatureAttackSystem', () => {
     world.spawn(OrbitCamera(orbit))
     expect(tackle.aim).toBe('melee') // premissa do teste
 
-    tick(world, { primary: true })
+    tick(world, { [slot]: true })
 
     // Reproduz `computeAimRay` de forma independente, com o enquadramento
     // da espécie — sem física carregada, a colisão da câmera não corrige
@@ -622,45 +655,6 @@ describe('creatureAttackSystem', () => {
     expect(pos.z).toBeCloseTo((direction.z / horizontalLength) * ember.range)
     expect(effect.get(Rotation).y).toBeCloseTo(creature.get(Rotation).y)
     expect(effect.get(Rotation).x).toBeCloseTo(0)
-  })
-
-  it('corpo a corpo com a câmera olhando de cima: acerta um alvo pequeno de lado e mais baixo (assistência puxa o giro; altura não importa no plano)', () => {
-    const world = spawnWorld()
-    spawnControlledCreature(world, {
-      speciesId: 'bulbasaur',
-      position: { x: 0, y: 1, z: 0 },
-    })
-    const orbit = { yaw: 0, pitch: 0.35, distance: 10 }
-    world.spawn(OrbitCamera(orbit))
-    // Alvo a 1.2m, 40° de lado de pra onde a câmera aponta (dentro do
-    // cone de 45°) e bem mais baixo que a origem do golpe (y=1). Um golpe
-    // reto pra frente passaria longe (lateral ~0.77m + altura ~0.55m >
-    // alcance 0.35 + 0.3) — só acerta se a assistência puxar a direção.
-    const { direction } = computeAimRay(
-      { x: 0, y: 1, z: 0 },
-      orbit,
-      -1,
-      getSpecies('bulbasaur').camera.targetHeight,
-      getSpecies('bulbasaur').camera.shoulderOffset,
-    )
-    const horizontalLength = Math.hypot(direction.x, direction.z)
-    const fx = direction.x / horizontalLength
-    const fz = direction.z / horizontalLength
-    const side = (40 * Math.PI) / 180
-    const target = spawnWildCreature(world, {
-      speciesId: 'charmander',
-      position: {
-        x: (fx * Math.cos(side) + fz * Math.sin(side)) * 1.2,
-        y: 0.3,
-        z: (-fx * Math.sin(side) + fz * Math.cos(side)) * 1.2,
-      },
-    })
-    const hpBefore = target.get(Vitals).hp
-
-    tick(world, { primary: true })
-    advanceUntilEffectSpawns(world)
-
-    expect(target.get(Vitals).hp).toBeLessThan(hpBefore)
   })
 
   it('rotationOffset (visual.rotationOffset, graus) é somado por cima do yaw/pitch calculados (resolveEffectRotation)', () => {
@@ -745,12 +739,13 @@ describe('creatureAttackSystem', () => {
     )
   })
 
-  it('duration do básico da espécie é a BASE — o speed só escala em volta dela (e a animação acompanha)', () => {
+  it('duration do golpe é a BASE — o speed só escala em volta dela (e a animação acompanha)', () => {
     // Regressão: antes o `speed` gerava a duração inteira (0.05–0.5s) e
     // sobrescrevia a duração autorada em silêncio — o clipe de ataque
     // continuava rápido mesmo com `duration` maior.
     const squirtle = getSpecies('squirtle')
-    const { duration } = squirtle.basicAttack
+    const slot = meleeSlotOf('squirtle')
+    const { duration } = resolveCreatureAttack(squirtle, slot)
     const { REFERENCE, MIN_FACTOR, MAX_FACTOR } =
       GAME_CONFIG.BATTLE.ATTACK_SPEED
     const speed = calculateStat({
@@ -767,7 +762,7 @@ describe('creatureAttackSystem', () => {
 
     const world = spawnWorld()
     const creature = spawnControlledCreature(world, { speciesId: 'squirtle' })
-    tick(world, { primary: true })
+    tick(world, { [meleeSlotOf('squirtle')]: true })
 
     expect(creature.get(ActionState).animationSpeed).toBeCloseTo(
       1 / (duration * factor),
@@ -781,7 +776,7 @@ describe('creatureAttackSystem', () => {
         speciesId: 'squirtle',
         individualValues: { speed: iv },
       })
-      tick(world, { primary: true })
+      tick(world, { [meleeSlotOf('squirtle')]: true })
       return creature.get(ActionState).animationSpeed
     }
 
@@ -792,14 +787,12 @@ describe('creatureAttackSystem', () => {
     const world = spawnWorld()
     const creature = spawnControlledCreature(world, { speciesId: 'squirtle' })
     const species = getSpecies('squirtle')
-    const original = species.basicAttack
-    species.basicAttack = {
-      ...original,
+    const restore = overrideSkill(species, meleeSlotOf('squirtle'), {
       animationFrames: 40,
       animation: { clipKey: 'attackRanged' },
-    }
+    })
     try {
-      tick(world, { primary: true })
+      tick(world, { [meleeSlotOf('squirtle')]: true })
       expect(creature.get(ActionState).animationFrames).toBe(40)
       expect(creature.get(ActionState).animationKey).toBe('attackRanged')
 
@@ -807,7 +800,7 @@ describe('creatureAttackSystem', () => {
       expect(creature.get(ActionState).animationFrames).toBeNull()
       expect(creature.get(ActionState).animationKey).toBeNull()
     } finally {
-      species.basicAttack = original
+      restore()
     }
   })
 
@@ -815,19 +808,19 @@ describe('creatureAttackSystem', () => {
     const world = spawnWorld()
     const creature = spawnControlledCreature(world)
 
-    tick(world, { primary: true })
+    tick(world, PRESS)
     advanceUntilFree(world, creature)
 
     expect(creature.get(ActionState).current).toBe(null)
   })
 
-  it('não inicia um segundo ataque enquanto o primeiro está em andamento (segura primary)', () => {
+  it('não inicia um segundo ataque enquanto o primeiro está em andamento (segurando a tecla)', () => {
     const world = spawnWorld()
     const creature = spawnControlledCreature(world)
 
-    tick(world, { primary: true })
+    tick(world, PRESS)
     const elapsedAfterFirst = creature.get(ActionState).elapsed
-    tick(world, { primary: true })
+    tick(world, PRESS)
 
     expect(creature.get(ActionState).current).toBe('attack')
     expect(creature.get(ActionState).elapsed).toBeCloseTo(
@@ -840,7 +833,7 @@ describe('creatureAttackSystem', () => {
     const creature = spawnControlledCreature(world)
     creature.set(ActionState, { current: 'dash', elapsed: 0.1 })
 
-    tick(world, { primary: true })
+    tick(world, PRESS)
 
     expect(creature.get(ActionState).current).toBe('dash')
     expect(creature.get(ActionState).elapsed).toBeCloseTo(0.1)
@@ -849,59 +842,57 @@ describe('creatureAttackSystem', () => {
   it('cooldown só começa a contar no FIM da ação, não no disparo', () => {
     // Regressão: a contagem começava no disparo — uma skill com `duration`
     // >= `cooldown` (ember do charmander) saía da ação já pronta de novo.
-    const bulbasaur = getSpecies('bulbasaur')
-    const original = bulbasaur.basicAttack
-    bulbasaur.basicAttack = { ...original, cooldown: 1 }
+    const restore = overrideSkill(getSpecies('bulbasaur'), SLOT, {
+      cooldown: 1,
+    })
     try {
       const world = spawnWorld()
       const creature = spawnControlledCreature(world)
 
-      tick(world, { primary: true })
+      tick(world, PRESS)
       expect(creature.get(ActionState).current).toBe('attack')
-      expect(creature.get(AttackCooldowns).primary).toBe(0) // ainda não
+      expect(creature.get(AttackCooldowns)[SLOT]).toBe(0) // ainda não
 
       advanceUntilFree(world, creature)
       // Fim da ação: cooldown inteiro (menos, no máximo, o tick de agora).
-      expect(creature.get(AttackCooldowns).primary).toBeGreaterThan(
-        1 - 2 * DELTA,
-      )
+      expect(creature.get(AttackCooldowns)[SLOT]).toBeGreaterThan(1 - 2 * DELTA)
 
       // Travado até zerar...
-      tick(world, { primary: true })
+      tick(world, PRESS)
       expect(creature.get(ActionState).current).toBe(null)
 
       // ...e liberado depois.
       for (let t = 0; t < 1 + DELTA; t += DELTA) tick(world, {})
-      tick(world, { primary: true })
+      tick(world, PRESS)
       expect(creature.get(ActionState).current).toBe('attack')
     } finally {
-      bulbasaur.basicAttack = original
+      restore()
     }
   })
 
-  it('AttackCooldowns.primary > 0 impede o disparo do mouse mesmo com stamina cheia', () => {
+  it('AttackCooldowns do slot > 0 impede o disparo mesmo com stamina cheia', () => {
     const world = spawnWorld()
     const creature = spawnControlledCreature(world)
-    creature.set(AttackCooldowns, { primary: 1 })
+    creature.set(AttackCooldowns, { [SLOT]: 1 })
 
-    tick(world, { primary: true })
+    tick(world, PRESS)
 
     expect(creature.get(ActionState).current).toBe(null)
   })
 
-  it('AttackCooldowns.primary decrementa todo tick, mesmo sem nenhuma ação em andamento — e nunca fica negativo', () => {
+  it('AttackCooldowns decrementa todo tick, mesmo sem nenhuma ação em andamento — e nunca fica negativo', () => {
     const world = spawnWorld()
     const creature = spawnControlledCreature(world)
-    creature.set(AttackCooldowns, { primary: DELTA * 1.5 })
+    creature.set(AttackCooldowns, { [SLOT]: DELTA * 1.5 })
 
     tick(world, {})
-    expect(creature.get(AttackCooldowns).primary).toBeCloseTo(DELTA * 0.5)
+    expect(creature.get(AttackCooldowns)[SLOT]).toBeCloseTo(DELTA * 0.5)
 
     tick(world, {})
-    expect(creature.get(AttackCooldowns).primary).toBe(0)
+    expect(creature.get(AttackCooldowns)[SLOT]).toBe(0)
   })
 
-  it('secondary1 (tecla Q) dispara a skill própria da espécie (ex.: bulbasaur → vine-whip), independente do mouse', () => {
+  it('secondary1 (tecla Q) dispara o golpe daquele slot da espécie', () => {
     const world = spawnWorld()
     // IV explícito (não `null`) — bulbasaur tem `stats` migrado (base/ev,
     // sem `iv`/`stat` fixo na espécie, ver docs/features/029-*.md), então
@@ -938,31 +929,33 @@ describe('creatureAttackSystem', () => {
     )
   })
 
-  it('cooldown de secondary1 (skill) não trava o ataque comum do mouse (primary), e vice-versa — cada slot tem o PRÓPRIO cooldown', () => {
+  it('o cooldown de um slot não trava outro — cada slot tem o PRÓPRIO cooldown', () => {
     const world = spawnWorld()
     const creature = spawnControlledCreature(world, { speciesId: 'bulbasaur' })
-    // Simula "secondary1 acabou de ser usado e está em cooldown" direto
-    // no trait — não depende do valor de `VINE_WHIP_ATTACK.cooldown`
-    // configurado agora (dado de balanceamento, pode mudar; o que este
-    // teste garante é o MECANISMO de isolamento entre slots, não um
-    // número específico).
-    creature.set(AttackCooldowns, { secondary1: 1 })
+    // Outro golpe do kit "acabou de ser usado e está em cooldown" — direto
+    // no trait, sem depender do valor de cooldown configurado.
+    const other = SLOTS.find(
+      (slot) =>
+        slot !== SLOT && resolveCreatureAttack(getSpecies('bulbasaur'), slot),
+    )
+    creature.set(AttackCooldowns, { [other]: 1 })
 
-    tick(world, { primary: true })
+    tick(world, PRESS)
 
-    // O ataque comum (cooldown próprio, `primary`) dispara normalmente,
-    // sem ser bloqueado pelo cooldown da SKILL (`secondary1`).
     expect(creature.get(ActionState).current).toBe('attack')
-    expect(creature.get(ActionState).pendingSlot).toBe('primary')
+    expect(creature.get(ActionState).pendingSlot).toBe(SLOT)
   })
 
-  it('segurando mouse E Q ao mesmo tempo, só o mouse (primary) dispara — prioridade da lista, um slot por tick', () => {
+  it('duas teclas ao mesmo tempo: só a primeira da lista (Q→E→R) dispara — um slot por tick', () => {
     const world = spawnWorld()
     const creature = spawnControlledCreature(world, { speciesId: 'bulbasaur' })
+    const pressed = SLOTS.filter((slot) =>
+      resolveCreatureAttack(getSpecies('bulbasaur'), slot),
+    ).slice(0, 2)
 
-    tick(world, { primary: true, secondary1: true })
+    tick(world, Object.fromEntries(pressed.map((slot) => [slot, true])))
 
-    expect(creature.get(ActionState).pendingSlot).toBe('primary')
+    expect(creature.get(ActionState).pendingSlot).toBe(pressed[0])
   })
 
   it('espécie sem secondary1 configurado — tecla Q não dispara nada, sem quebrar', () => {
@@ -1298,7 +1291,7 @@ describe('creatureAttackSystem — dano de verdade', () => {
     })
     const hpBefore = target.get(Vitals).hp
 
-    tick(world, { primary: true })
+    tick(world, PRESS)
     advanceUntilEffectSpawns(world)
 
     expect(target.get(Vitals).hp).toBeLessThan(hpBefore)
@@ -1307,17 +1300,62 @@ describe('creatureAttackSystem — dano de verdade', () => {
     )
   })
 
+  it('alvo imune ao tipo do golpe: sem dano, evento com effectiveness "immune"', () => {
+    const defender = getSpecies('charmander')
+    const [attackType, defenderType] = Object.entries(TYPE_CHART)
+      .flatMap(([type, row]) =>
+        Object.entries(row).map(([other, value]) => [type, other, value]),
+      )
+      .find(([, , value]) => value === 0)
+    const originalTypes = defender.types
+    const restore = overrideSkill(getSpecies('bulbasaur'), SLOT, {
+      type: attackType,
+    })
+    try {
+      defender.types = [defenderType]
+      const world = spawnWorld()
+      spawnBulbasaurAttacker(world)
+      const target = spawnWildCreature(world, {
+        speciesId: 'charmander',
+        position: { x: 0, y: 1, z: 0.9 },
+      })
+      const hpBefore = target.get(Vitals).hp
+
+      events.drain()
+      tick(world, PRESS)
+      advanceUntilEffectSpawns(world)
+
+      const drained = events.drain()
+      const [hit] = drained.filter(
+        (event) => event.type === EVENT_TYPES.ATTACK_RESOLVED,
+      )
+      // o "usou" sai antes do resultado
+      const usedIndex = drained.findIndex(
+        (event) => event.type === EVENT_TYPES.ATTACK_USED,
+      )
+      expect(usedIndex).toBeGreaterThanOrEqual(0)
+      expect(usedIndex).toBeLessThan(drained.indexOf(hit))
+      expect(target.get(Vitals).hp).toBe(hpBefore)
+      expect(hit.result).toBe('hit')
+      expect(hit.effectiveness).toBe('immune')
+      expect(hit.damage).toBe(0)
+    } finally {
+      restore()
+      defender.types = originalTypes
+    }
+  })
+
   it('VFX nasce no ponto de CONTATO quando acerta, e no fim da trajetória quando erra', () => {
     const world = spawnWorld()
     spawnBulbasaurAttacker(world)
-    const range = getSpecies('bulbasaur').basicAttack.range
+    const { range } = ATTACK
     spawnWildCreature(world, {
       speciesId: 'charmander',
       position: { x: 0, y: 1, z: range / 2 },
     })
 
     events.drain()
-    tick(world, { primary: true })
+    tick(world, PRESS)
     const hitEffect = advanceUntilEffectSpawns(world)
     const [hit] = events
       .drain()
@@ -1330,7 +1368,7 @@ describe('creatureAttackSystem — dano de verdade', () => {
 
     const empty = spawnWorld()
     spawnBulbasaurAttacker(empty)
-    tick(empty, { primary: true })
+    tick(empty, PRESS)
     const missEffect = advanceUntilEffectSpawns(empty)
     expect(missEffect.get(Position).z).toBeCloseTo(range)
   })
@@ -1344,7 +1382,7 @@ describe('creatureAttackSystem — dano de verdade', () => {
     })
     const hpBefore = target.get(Vitals).hp
 
-    tick(world, { primary: true })
+    tick(world, PRESS)
     advanceUntilEffectSpawns(world)
 
     expect(target.get(Vitals).hp).toBe(hpBefore)
@@ -1359,7 +1397,7 @@ describe('creatureAttackSystem — dano de verdade', () => {
     })
     const hpBefore = bystander.get(Vitals).hp
 
-    tick(world, { primary: true })
+    tick(world, PRESS)
     advanceUntilEffectSpawns(world)
 
     expect(bystander.get(Vitals).hp).toBe(hpBefore)
@@ -1374,7 +1412,7 @@ describe('creatureAttackSystem — dano de verdade', () => {
     })
     const hpBefore = target.get(Vitals).hp
 
-    tick(world, { primary: true })
+    tick(world, PRESS)
     advanceUntilEffectSpawns(world)
     const resolved = events
       .drain()
@@ -1385,8 +1423,8 @@ describe('creatureAttackSystem — dano de verdade', () => {
     expect(event.result).toBe('hit')
     expect(event.attacker).toBe(attacker)
     expect(event.target).toBe(target)
-    expect(event.attackId).toBe('bulbasaur-basic') // básico próprio da espécie
-    expect(event.slot).toBe('primary')
+    expect(event.attackId).toBe(ATTACK.id)
+    expect(event.slot).toBe(SLOT)
     expect(event.contactPoint).not.toBeNull()
     expect(event.damage).toBeCloseTo(hpBefore - target.get(Vitals).hp)
     expect(event.damage).toBeGreaterThan(0)
@@ -1397,11 +1435,12 @@ describe('creatureAttackSystem — dano de verdade', () => {
     const world = spawnWorld()
     spawnBulbasaurAttacker(world)
 
-    tick(world, { primary: true })
+    tick(world, PRESS)
     advanceUntilEffectSpawns(world)
-    const [event] = events.drain()
+    const [event] = events
+      .drain()
+      .filter((item) => item.type === EVENT_TYPES.ATTACK_RESOLVED)
 
-    expect(event.type).toBe(EVENT_TYPES.ATTACK_RESOLVED)
     expect(event.result).toBe('miss')
     expect(event.target).toBeNull()
     expect(event.contactPoint).toBeNull()
@@ -1426,40 +1465,37 @@ describe('creatureAttackSystem — dano de verdade', () => {
 })
 
 describe('creatureAttackSystem — indicador antes de lançar (castMode)', () => {
-  // Todo golpe em `castMode: 'confirm'` (`CONFIRM_CAST`) — bulbasaur só
-  // pelo básico e pelo secondary1.
+  // Todo golpe em `castMode: 'confirm'` (`CONFIRM_CAST`).
   function real(world, input) {
     tick(world, input, CONFIRM_CAST)
   }
 
-  it('1º clique só abre o indicador (sem golpe, sem gastar stamina); 2º clique lança', () => {
+  it('1º aperto só abre o indicador (sem golpe, sem gastar stamina); o clique lança', () => {
     const world = spawnWorld()
     const creature = spawnControlledCreature(world, { speciesId: 'bulbasaur' })
     const staminaBefore = creature.get(Vitals).stamina
 
-    real(world, { primary: true })
-    expect(creature.get(AttackAim).slot).toBe('primary')
+    real(world, PRESS)
+    expect(creature.get(AttackAim).slot).toBe(SLOT)
     expect(creature.get(ActionState).current).toBe(null)
     expect(creature.get(Vitals).stamina).toBe(staminaBefore)
 
     real(world, {}) // sem apertar nada: indicador continua aberto
-    expect(creature.get(AttackAim).slot).toBe('primary')
+    expect(creature.get(AttackAim).slot).toBe(SLOT)
 
-    real(world, { primary: true })
+    real(world, CLICK)
     expect(creature.get(ActionState).current).toBe('attack')
-    expect(creature.get(ActionState).pendingSlot).toBe('primary')
+    expect(creature.get(ActionState).pendingSlot).toBe(SLOT)
     expect(creature.get(AttackAim).slot).toBe(null)
   })
 
-  it('Q abre o indicador da skill; clique esquerdo confirma a SKILL (não o ataque básico)', () => {
+  it('o clique sem indicador aberto não lança nada (não há ataque básico)', () => {
     const world = spawnWorld()
     const creature = spawnControlledCreature(world, { speciesId: 'bulbasaur' })
 
-    real(world, { secondary1: true })
-    expect(creature.get(AttackAim).slot).toBe('secondary1')
+    real(world, CLICK)
 
-    real(world, { primary: true })
-    expect(creature.get(ActionState).pendingSlot).toBe('secondary1')
+    expect(creature.get(ActionState).current).toBe(null)
     expect(creature.get(AttackAim).slot).toBe(null)
   })
 
@@ -1479,10 +1515,10 @@ describe('creatureAttackSystem — indicador antes de lançar (castMode)', () =>
     const world = spawnWorld()
     const creature = spawnControlledCreature(world, { speciesId: 'bulbasaur' })
 
-    real(world, { primary: true })
-    real(world, { secondary1: true })
+    real(world, PRESS)
+    real(world, { [OTHER_SLOT]: true })
 
-    expect(creature.get(AttackAim).slot).toBe('secondary1')
+    expect(creature.get(AttackAim).slot).toBe(OTHER_SLOT)
     expect(creature.get(ActionState).current).toBe(null)
   })
 
@@ -1490,7 +1526,7 @@ describe('creatureAttackSystem — indicador antes de lançar (castMode)', () =>
     const world = spawnWorld()
     const creature = spawnControlledCreature(world, { speciesId: 'bulbasaur' })
 
-    real(world, { primary: true })
+    real(world, PRESS)
     real(world, { secondaryHeld: true })
 
     expect(creature.get(AttackAim).slot).toBe(null)
@@ -1511,12 +1547,12 @@ describe('creatureAttackSystem — indicador antes de lançar (castMode)', () =>
     const world = spawnWorld()
     const creature = spawnControlledCreature(world, { speciesId: 'bulbasaur' })
 
-    real(world, { primary: true })
+    real(world, PRESS)
     creature.set(ActionState, { current: 'dash', elapsed: 0.1 })
-    real(world, { primary: true })
+    real(world, CLICK)
 
     expect(creature.get(ActionState).current).toBe('dash')
-    expect(creature.get(AttackAim).slot).toBe('primary')
+    expect(creature.get(AttackAim).slot).toBe(SLOT)
   })
 })
 
@@ -1525,7 +1561,7 @@ describe('creatureAttackSystem — modo combate', () => {
     const world = spawnWorld()
     const creature = spawnControlledCreature(world)
 
-    tick(world, { primary: true })
+    tick(world, PRESS)
 
     expect(creature.has(CombatMode)).toBe(true)
     expect(creature.get(Mood).state).toBe('angry')
@@ -1535,9 +1571,9 @@ describe('creatureAttackSystem — modo combate', () => {
     const world = spawnWorld()
     const creature = spawnControlledCreature(world, { speciesId: 'bulbasaur' })
 
-    tick(world, { primary: true }, CONFIRM_CAST)
+    tick(world, PRESS, CONFIRM_CAST)
 
-    expect(creature.get(AttackAim).slot).toBe('primary') // premissa
+    expect(creature.get(AttackAim).slot).toBe(SLOT) // premissa
     expect(creature.has(CombatMode)).toBe(false)
     expect(creature.get(Mood).state).toBe('awake')
   })
@@ -1573,7 +1609,7 @@ describe('creatureAttackSystem — selvagem atacando (IA)', () => {
     )
   }
 
-  it('pedido de golpe (WantsToAttack) lança o ataque básico mirando no alvo do pedido', () => {
+  it('pedido de golpe (WantsToAttack) lança o golpe do slot pedido mirando no alvo', () => {
     const world = spawnWorld()
     const mine = spawnControlledCreature(world, {
       speciesId: 'bulbasaur',
@@ -1581,13 +1617,13 @@ describe('creatureAttackSystem — selvagem atacando (IA)', () => {
     })
     const wild = spawnWildAttacker(world, { x: 0, y: 1, z: 0 })
     const staminaBefore = wild.get(Vitals).stamina
-    wild.add(WantsToAttack({ target: mine }))
+    wild.add(WantsToAttack({ target: mine, slot: WILD_SLOT }))
 
     tick(world)
 
     expect(wild.get(ActionState)).toMatchObject({
       current: 'attack',
-      pendingSlot: 'primary',
+      pendingSlot: WILD_SLOT,
     })
     expect(wild.get(Vitals).stamina).toBeLessThan(staminaBefore)
     // Virada pro alvo (+X): yaw = atan2(1, 0) = 90°.
@@ -1658,7 +1694,7 @@ describe('creatureAttackSystem — selvagem atacando (IA)', () => {
     })
     const wild = spawnWildAttacker(world, { x: 0, y: 1, z: 0 })
     const hpBefore = mine.get(Vitals).hp
-    wild.add(WantsToAttack({ target: mine }))
+    wild.add(WantsToAttack({ target: mine, slot: WILD_SLOT }))
 
     for (let i = 0; i < 60; i++) tick(world)
 
@@ -1677,7 +1713,7 @@ describe('creatureAttackSystem — selvagem atacando (IA)', () => {
     })
     const wild = spawnWildAttacker(world, { x: 0, y: 1, z: 0 })
     wild.set(Vitals, { stamina: 0 })
-    wild.add(WantsToAttack({ target: mine }))
+    wild.add(WantsToAttack({ target: mine, slot: WILD_SLOT }))
 
     tick(world)
 
@@ -1692,7 +1728,7 @@ describe('creatureAttackSystem — selvagem atacando (IA)', () => {
     })
     const wild = spawnWildAttacker(world, { x: 0, y: 1, z: 0 })
     mine.add(Fainted)
-    wild.add(WantsToAttack({ target: mine }))
+    wild.add(WantsToAttack({ target: mine, slot: WILD_SLOT }))
 
     tick(world)
 
@@ -1708,13 +1744,13 @@ describe('creatureAttackSystem — selvagem atacando (IA)', () => {
       position: { x: 0, y: 1, z: 0 },
     })
     mine.remove(InputControlled)
-    mine.add(WantsToAttack({ target: wild }))
+    mine.add(WantsToAttack({ target: wild, slot: SLOT }))
 
     tick(world)
 
     expect(mine.get(ActionState)).toMatchObject({
       current: 'attack',
-      pendingSlot: 'primary',
+      pendingSlot: SLOT,
     })
     expect(mine.get(Rotation).y).toBeCloseTo(Math.PI / 2)
   })
@@ -1722,11 +1758,11 @@ describe('creatureAttackSystem — selvagem atacando (IA)', () => {
   it('cooldown também corre pra selvagem', () => {
     const world = spawnWorld()
     const wild = spawnWildAttacker(world, { x: 0, y: 1, z: 0 })
-    wild.set(AttackCooldowns, { primary: 1 })
+    wild.set(AttackCooldowns, { [WILD_SLOT]: 1 })
 
     tick(world)
 
-    expect(wild.get(AttackCooldowns).primary).toBeCloseTo(1 - DELTA)
+    expect(wild.get(AttackCooldowns)[WILD_SLOT]).toBeCloseTo(1 - DELTA)
   })
 })
 
@@ -1768,7 +1804,7 @@ describe('resolveAttackTarget — lado do jogador (golpe de selvagem)', () => {
 })
 
 describe('creatureAttackSystem — ataque canalizado (damageMode channel)', () => {
-  // Básico do bulbasaur trocado por um canalizado só dentro do teste: dano a cada
+  // Golpe de referência do bulbasaur trocado por um canalizado só dentro do teste: dano a cada
   // 0.25s de 0.25 até 1s (4 ticks), cone de 3m com meia-largura 1.5 na
   // ponta, cooldown 1s. Sem câmera, a direção é +Z a partir de (0,1,0).
   const CHANNEL = {
@@ -1782,13 +1818,11 @@ describe('creatureAttackSystem — ataque canalizado (damageMode channel)', () =
   }
 
   function withChannelBasic(run) {
-    const bulbasaur = getSpecies('bulbasaur')
-    const original = bulbasaur.basicAttack
-    bulbasaur.basicAttack = { ...original, ...CHANNEL }
+    const restore = overrideSkill(getSpecies('bulbasaur'), SLOT, CHANNEL)
     try {
       run()
     } finally {
-      bulbasaur.basicAttack = original
+      restore()
     }
   }
 
@@ -1826,7 +1860,7 @@ describe('creatureAttackSystem — ataque canalizado (damageMode channel)', () =
         outside: outside.get(Vitals).hp,
       }
 
-      tick(world, { primary: true, primaryHeld: true })
+      tick(world, { [SLOT]: true, primaryHeld: true })
       const hits = { near: 0, wide: 0, outside: 0 }
       for (let t = 0; t < 1.1; t += DELTA) {
         tick(world, { primaryHeld: true })
@@ -1853,7 +1887,7 @@ describe('creatureAttackSystem — ataque canalizado (damageMode channel)', () =
 
   function damageEventsOn(world, target) {
     const collected = []
-    tick(world, { primary: true, primaryHeld: true })
+    tick(world, { [SLOT]: true, primaryHeld: true })
     for (let t = 0; t < 1.1; t += DELTA) {
       tick(world, { primaryHeld: true })
       collected.push(
@@ -1877,7 +1911,10 @@ describe('creatureAttackSystem — ataque canalizado (damageMode channel)', () =
       attackerIndividualValues: {},
       defenderSpecies: getSpecies('charmander'),
       defenderIndividualValues: target.get(IndividualValues),
-      damage: getSpecies('bulbasaur').basicAttack.damage,
+      damage: resolveCreatureAttack(getSpecies('bulbasaur'), SLOT).damage,
+      attackType: resolveSkillType(
+        resolveCreatureAttack(getSpecies('bulbasaur'), SLOT),
+      ),
       weight: 1,
       rng: () => 0.99,
     }).amount
@@ -1947,14 +1984,14 @@ describe('creatureAttackSystem — ataque canalizado (damageMode channel)', () =
         position: { x: 0, y: 1, z: 1 },
       })
 
-      tick(world, { primary: true, primaryHeld: true })
+      tick(world, { [SLOT]: true, primaryHeld: true })
       // Segura até o 1º tick de dano (0.25s) e um pouco mais.
       for (let t = 0; t < 0.3; t += DELTA) tick(world, { primaryHeld: true })
       expect(hitsOn(target)).toBe(1)
 
       tick(world, {}) // soltou
       expect(creature.get(ActionState).current).toBe(null)
-      expect(creature.get(AttackCooldowns).primary).toBeGreaterThan(
+      expect(creature.get(AttackCooldowns)[SLOT]).toBeGreaterThan(
         CHANNEL.cooldown - 2 * DELTA,
       )
 
@@ -1967,7 +2004,7 @@ describe('creatureAttackSystem — ataque canalizado (damageMode channel)', () =
     const world = spawnWorld()
     const creature = spawnControlledCreature(world)
 
-    tick(world, { primary: true })
+    tick(world, PRESS)
     tick(world, {}) // sem segurar nada
 
     expect(creature.get(ActionState).current).toBe('attack')
@@ -2210,7 +2247,7 @@ describe('Growl — a primeira skill de STATUS (sem dano, baixa o ataque dos ini
     spawnControlledCreature(world)
     spawnWildCreature(world, { position: { x: 0, y: 1, z: 1 } })
 
-    tick(world, { primary: true })
+    tick(world, PRESS)
     advanceUntilEffectSpawns(world)
 
     const [event] = events
@@ -2305,12 +2342,13 @@ describe('Growl — a primeira skill de STATUS (sem dano, baixa o ataque dos ini
   })
 
   it('pelo CAMINHO COMPLETO do sistema: quem está com o ataque em -6 causa bem menos dano (golpe de poder alto, pro efeito passar do sorteio)', () => {
-    // Poder 5 (o dos básicos hoje) esconde o efeito na fórmula (o `+2` fixo
-    // domina) — aqui um golpe forte deixa o estágio aparecer. Média de várias
+    // Um golpe fraco esconde o efeito na fórmula (o `+2` fixo domina) — aqui
+    // um golpe forte deixa o estágio aparecer. Média de várias
     // tentativas pra absorver o fator aleatório e o crítico.
     const bulbasaur = getSpecies('bulbasaur')
-    const original = bulbasaur.basicAttack.damage
-    bulbasaur.basicAttack.damage = { ...original, power: 100 }
+    const restore = overrideSkill(bulbasaur, SLOT, {
+      damage: { ...resolveCreatureAttack(bulbasaur, SLOT).damage, power: 100 },
+    })
     try {
       const averageLoss = (attackStage) => {
         let total = 0
@@ -2327,7 +2365,7 @@ describe('Growl — a primeira skill de STATUS (sem dano, baixa o ataque dos ini
           })
           const before = target.get(Vitals).hp
 
-          tick(world, { primary: true })
+          tick(world, PRESS)
           advanceUntilEffectSpawns(world)
 
           total += before - target.get(Vitals).hp
@@ -2342,7 +2380,7 @@ describe('Growl — a primeira skill de STATUS (sem dano, baixa o ataque dos ini
       expect(normal).toBeGreaterThan(0)
       expect(lowered).toBeLessThan(normal * 0.6)
     } finally {
-      bulbasaur.basicAttack.damage = original
+      restore()
     }
   })
 })
@@ -2640,7 +2678,7 @@ describe('interrupção de golpe de STATUS por dano (só na carga)', () => {
       const staminaBefore = mine.get(Vitals).stamina
 
       tick(world, { secondary1: true })
-      wild.add(WantsToAttack({ target: mine }))
+      wild.add(WantsToAttack({ target: mine, slot: WILD_SLOT }))
       const emitted = runUntilHit(world, mine)
 
       // premissa: o golpe da selvagem chega antes do effectAt do Growth.
@@ -2682,7 +2720,7 @@ describe('interrupção de golpe de STATUS por dano (só na carga)', () => {
       }
       expect(mine.get(StatStages).attackStage).toBe(1)
 
-      wild.add(WantsToAttack({ target: mine }))
+      wild.add(WantsToAttack({ target: mine, slot: WILD_SLOT }))
       const emitted = runUntilHit(world, mine)
 
       expect(
@@ -2764,19 +2802,18 @@ describe('creatureAttackSystem — canalizado em FEIXE (area line)', () => {
 
   // `speciesId`: o bulbasaur não tem `camera` (a mira pela câmera precisa) — o teste
   // de mirar usa o charmander
+  let beamSlot = SLOT
   function withBeamBasic(overrides, run, speciesId = 'bulbasaur') {
-    const species = getSpecies(speciesId)
-    const original = species.basicAttack
-    species.basicAttack = {
-      ...original,
+    beamSlot = meleeSlotOf(speciesId)
+    const restore = overrideSkill(getSpecies(speciesId), beamSlot, {
       ...BEAM,
       ...overrides,
-      visual: { ...original.visual, ...overrides.visual },
-    }
+    })
     try {
       run()
     } finally {
-      species.basicAttack = original
+      restore()
+      beamSlot = SLOT
     }
   }
 
@@ -2802,7 +2839,7 @@ describe('creatureAttackSystem — canalizado em FEIXE (area line)', () => {
         position: { x: 0, y: 1, z: 2.2 },
       })
 
-      tick(world, { primary: true, primaryHeld: true })
+      tick(world, { [beamSlot]: true, primaryHeld: true })
       const resolved = []
       for (let t = 0; t < 1.1; t += DELTA) {
         tick(world, { primaryHeld: true })
@@ -2835,7 +2872,7 @@ describe('creatureAttackSystem — canalizado em FEIXE (area line)', () => {
           const camera = world.spawn(
             OrbitCamera({ yaw: 0, pitch: 0.3, distance: 10 }),
           )
-          tick(world, { primary: true, primaryHeld: true })
+          tick(world, { [beamSlot]: true, primaryHeld: true })
           for (let i = 0; i < 30; i++) tick(world, { primaryHeld: true }) // passou do effectAt
           const before = creature.get(ActionState).dirX
 
@@ -2860,7 +2897,7 @@ describe('creatureAttackSystem — canalizado em FEIXE (area line)', () => {
         spawnControlledCreature(world, { position: { x: 0, y: 1, z: 0 } })
         spawnWildCreature(world, { position: { x: 0, y: 1, z: 1 } })
 
-        tick(world, { primary: true, primaryHeld: true })
+        tick(world, { [beamSlot]: true, primaryHeld: true })
         for (let t = 0; t < 1.1; t += DELTA) tick(world, { primaryHeld: true })
 
         const hits = world

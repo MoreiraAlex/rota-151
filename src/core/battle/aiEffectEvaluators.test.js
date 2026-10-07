@@ -1,8 +1,11 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { createWorld } from 'koota'
 import { GAME_CONFIG } from '../gameConfig'
-import { LeechSeed, StatStages } from '../traits'
+import { Burn, LeechSeed, StatStages, WildCreature } from '../traits'
+import { listSpecies } from '../data/species'
+import { resolveSpeciesTypes } from '../data/types'
 import {
+  evaluateBurnEffect,
   evaluateEffect,
   evaluateLeechSeedEffect,
   evaluateStatStageEffect,
@@ -12,6 +15,7 @@ const {
   STAT_STAGE_VALUE,
   STAT_STAGE_DECAY,
   LEECH_SEED_VALUE,
+  BURN_VALUE,
   EFFECT_REFRESH_TIME,
 } = GAME_CONFIG.AI_ATTACK
 
@@ -92,6 +96,41 @@ describe('evaluateLeechSeedEffect', () => {
 
   it('nunca em quem usou', () => {
     expect(evaluateLeechSeedEffect(SEED, spawn(), self)).toBe(0)
+  })
+})
+
+describe('evaluateBurnEffect', () => {
+  const BURN = { type: 'burn', chance: 0.25, immuneTypes: ['fire'] }
+
+  it('sem queimadura: o valor × a chance; queimado: 0, até perto de apagar', () => {
+    expect(evaluateBurnEffect(BURN, spawn(), enemy)).toBe(
+      BURN_VALUE * BURN.chance,
+    )
+    expect(evaluateBurnEffect(BURN, spawn(Burn({ timeLeft: 99 })), enemy)).toBe(
+      0,
+    )
+    expect(
+      evaluateBurnEffect(
+        BURN,
+        spawn(Burn({ timeLeft: EFFECT_REFRESH_TIME - 0.5 })),
+        enemy,
+      ),
+    ).toBe(BURN_VALUE * BURN.chance)
+  })
+
+  it('0 em quem usou e em tipo imune', () => {
+    expect(evaluateBurnEffect(BURN, spawn(), self)).toBe(0)
+    const immune = listSpecies().find((species) =>
+      resolveSpeciesTypes(species).includes(BURN.immuneTypes[0]),
+    )
+    if (!immune) return
+    expect(
+      evaluateBurnEffect(
+        BURN,
+        spawn(WildCreature({ speciesId: immune.id })),
+        enemy,
+      ),
+    ).toBe(0)
   })
 })
 

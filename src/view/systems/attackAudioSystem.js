@@ -98,7 +98,7 @@ function resolveLoopingKeys(entity) {
     getSpecies(resolveCreatureSpeciesId(entity)),
     action.pendingSlot,
   )
-  const key = resolveAttackSoundKey(action.pendingSlot, attack)
+  const key = resolveAttackSoundKey(attack)
   return {
     action: isAttackPastEffect(action, attack) ? key : null,
     charge: isAttackCharging(action, attack) ? key : null,

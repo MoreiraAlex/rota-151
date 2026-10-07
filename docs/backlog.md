@@ -151,11 +151,18 @@ de puxar ela pra frente.
 
 ## Combate
 
-- [ ] **Consertar os 60 testes que já falham** — falhas antigas (espécies
-      removidas/trocadas, câmera, itens, dados ajustados — lista nos Gates de
-      `docs/features/033-skills-de-combate-e-vfx.md`). Além do ruído, são a
-      maior parte da saída do `npm test` (~47 KB por execução, contra ~2 KB
-      com a suíte verde).
+- [ ] **Efeitos secundários dos outros golpes** — só o Ember e o Flamethrower
+      têm efeito secundário (queimar). Ficaram de fora, até o usuário definir
+      os golpes: crítico alto do Razor Leaf, prisão do Whirlpool (prende e tira
+      vida por um tempo) e outras condições (paralisia, veneno, sono...). O
+      mecanismo de efeito secundário de golpe de dano já existe
+      (`applySecondaryEffects`, docs/features/039-tipos-e-combate-classico.md,
+      Parte 4).
+- [X] **Consertar os 60 testes que já falham** — resolvido: a suíte inteira
+      passa sem falha nenhuma no fechamento da
+      `docs/features/039-tipos-e-combate-classico.md`. (Eram falhas antigas
+      de espécies trocadas, câmera, itens e dados ajustados — lista nos
+      Gates de `docs/features/033-skills-de-combate-e-vfx.md`.)
 - [ ] **Círculo do corpo dos alvos** (em espera) — o acerto soma o raio do
       ataque ao raio da CÁPSULA do alvo, mas nada mostra esse tamanho; o LoL
       desenha o círculo de seleção de cada unidade no chão, e é por ele que

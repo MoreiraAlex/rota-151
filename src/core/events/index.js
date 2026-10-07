@@ -8,6 +8,10 @@ export const EVENT_TYPES = {
   EXPERIENCE_GAINED: 'experienceGained',
   LEVELED_UP: 'leveledUp',
   ATTACK_FAILED: 'attackFailed',
+  ATTACK_USED: 'attackUsed',
+  CREATURE_FAINTED: 'creatureFainted',
+  BURN_APPLIED: 'burnApplied',
+  BURN_DAMAGED: 'burnDamaged',
   MOVE_UNLOCKED: 'moveUnlocked',
   MOVE_READY_TO_LEARN: 'moveReadyToLearn',
   MOVE_LEARNED: 'moveLearned',
@@ -23,7 +27,7 @@ export const EVENT_TYPES = {
  *   por PRECISÃO é o alvo que foi errado
  * @property {boolean} missed o golpe tinha alvo mas o sorteio de precisão errou
  * @property {string} attackId id do ataque (`core/data/skills/<id>`)
- * @property {string} slot `'primary' | 'secondary1-3'`
+ * @property {string} slot `'secondary1-3'` (ou `'training'`)
  * @property {{x:number,y:number,z:number}} origin onde o golpe começou
  * @property {{x:number,y:number,z:number}} impactPoint onde a trajetória terminou
  * @property {{x:number,y:number,z:number} | null} contactPoint onde tocou o alvo (`null` num miss)
@@ -34,6 +38,13 @@ export const EVENT_TYPES = {
  *   brilho, congelar de animação e número de dano ignoram
  * @property {boolean} channel tick de um ataque canalizado (`damageMode:
  *   'channel'`) — efeitos de impacto "pesados" (hit stop) ignoram
+ * @property {number} channelTick índice do tick no canalizado (`0` = o
+ *   primeiro; `0` fora do canal) — o texto de efetividade só sai no primeiro
+ * @property {'super' | 'neutral' | 'weak' | 'immune'} effectiveness
+ *   efetividade de tipo do golpe de dano no alvo (`core/data/types/`);
+ *   `'neutral'` num miss e em golpe de status. `'immune'`: acertou mas não
+ *   pegou (sem dano nem efeito) — brilho e hit stop ignoram, o texto é
+ *   "Não afeta…"; golpe de status com `immuneTypes` também
  */
 
 /**
@@ -61,8 +72,10 @@ export function attackResolved({
   damage,
   critical,
   channel = false,
+  channelTick = 0,
   status = false,
   missed = false,
+  effectiveness = 'neutral',
 }) {
   return {
     type: EVENT_TYPES.ATTACK_RESOLVED,
@@ -78,7 +91,9 @@ export function attackResolved({
     damage: damage ?? 0,
     critical: critical ?? false,
     channel,
+    channelTick,
     status,
+    effectiveness,
   }
 }
 
@@ -131,7 +146,7 @@ export function statStageChanged({
  * @property {'attackInterrupted'} type
  * @property {import('koota').Entity} entity quem teve o golpe interrompido
  * @property {string} attackId id do golpe interrompido (`core/data/skills/<id>`)
- * @property {string} slot `'primary' | 'secondary1-3'`
+ * @property {string} slot `'secondary1-3'` (ou `'training'`)
  */
 
 /**
@@ -268,6 +283,40 @@ export function attackFailed({ entity, attackId, slot }) {
 }
 
 /**
+ * Uma criatura USOU um golpe — o instante `effectAt`, antes de qualquer
+ * resultado (falha, acerto, erro): um por lançamento, inclusive no
+ * canalizado e no golpe em si mesmo.
+ *
+ * - Quem emite: `core/battle/attackImpact.js` (`resolveAttackImpact`).
+ * - Quem consome: `view/systems/battleLogSystem.js` ("Charmander usou
+ *   Ember!"). Drenado uma vez por frame; sem consumidor, some.
+ *
+ * @returns {{ type: 'attackUsed', entity: import('koota').Entity, attackId: string, slot: string }}
+ */
+export function attackUsed({ entity, attackId, slot }) {
+  return { type: EVENT_TYPES.ATTACK_USED, entity, attackId, slot }
+}
+
+/**
+ * Uma criatura (selvagem ou do time) chegou a 0 de HP e desmaiou (o estado —
+ * `Fainted` — já foi aplicado; o evento é só o aviso).
+ *
+ * - Quem emite: `core/systems/faintSystem.js`, antes da divisão de XP (o
+ *   "desmaiou" vem antes do "ganhou XP").
+ * - Quem consome: `view/systems/battleLogSystem.js`. Drenado uma vez por
+ *   frame; sem consumidor, some.
+ *
+ * @returns {{ type: 'creatureFainted', entity: import('koota').Entity, speciesId: string | null }}
+ */
+export function creatureFainted({ entity, speciesId }) {
+  return {
+    type: EVENT_TYPES.CREATURE_FAINTED,
+    entity,
+    speciesId: speciesId ?? null,
+  }
+}
+
+/**
  * Uma criatura do time ficou APTA pra golpes novos (cumpriu as condições ao
  * subir de nível) — ainda precisa treinar pra aprender.
  *
@@ -323,5 +372,44 @@ export function moveLearned({ trainer, slot, creature, moveId, forgottenId }) {
     creature: creature ?? null,
     moveId,
     forgottenId: forgottenId ?? null,
+  }
+}
+
+/**
+ * Uma criatura foi queimada por um golpe (o `Burn` já foi aplicado — o
+ * evento é só o aviso). Renovar uma queimadura também emite.
+ *
+ * - Quem emite: `applyEffectToTarget` (`core/battle/attackStatusEffects.js`).
+ * - Quem consome: `view/systems/battleLogSystem.js` ("X foi queimado!").
+ *   Drenado uma vez por frame; sem consumidor, some.
+ *
+ * @returns {{ type: 'burnApplied', target: import('koota').Entity, source: import('koota').Entity | null, attackId: string }}
+ */
+export function burnApplied({ target, source, attackId }) {
+  return {
+    type: EVENT_TYPES.BURN_APPLIED,
+    target,
+    source: source ?? null,
+    attackId,
+  }
+}
+
+/**
+ * A queimadura tirou HP (um tick). Como a drenagem da semente, é dano
+ * passivo: não provoca reação nem interrompe golpe.
+ *
+ * - Quem emite: `core/systems/burnSystem.js`.
+ * - Quem consome: `view/systems/damageNumberSystem.js` (número no alvo) e
+ *   `view/systems/battleLogSystem.js`. Drenado uma vez por frame; sem
+ *   consumidor, some.
+ *
+ * @returns {{ type: 'burnDamaged', target: import('koota').Entity, source: import('koota').Entity | null, damage: number }}
+ */
+export function burnDamaged({ target, source, damage }) {
+  return {
+    type: EVENT_TYPES.BURN_DAMAGED,
+    target,
+    source: source ?? null,
+    damage,
   }
 }

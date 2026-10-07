@@ -1,5 +1,6 @@
 export const RAZOR_LEAF_SKILL = {
   id: 'razor-leaf',
+  type: 'grass',
   duration: 1,
   effectAt: 0.25,
   range: 3,
@@ -32,7 +33,6 @@ export const RAZOR_LEAF_SKILL = {
     clipKey: 'attackRanged',
   },
   // Físico, poder de referência: o de "Razor Leaf" nos jogos originais
-  // (golpe físico apesar do tipo Grass). Ver comentário sobre `type:
-  // null` em `../tackle/index.js`.
-  damage: { power: 55, category: 'physical', type: null },
+  // (golpe físico apesar do tipo Grass).
+  damage: { power: 55, category: 'physical' },
 }

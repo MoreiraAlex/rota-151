@@ -7,6 +7,7 @@
  */
 export const PUNCH_SKILL = {
   id: 'punch',
+  type: 'normal',
   duration: 0.5,
   effectAt: 0.25,
   range: 1.4,
@@ -38,7 +39,6 @@ export const PUNCH_SKILL = {
   animation: {
     clipKey: 'attack',
   },
-  // Físico, na faixa de um soco básico dos jogos originais. Ver comentário sobre
-  // `type: null` em `../tackle/index.js`.
-  damage: { power: 5, category: 'physical', type: null },
+  // Físico, na faixa de um soco básico dos jogos originais.
+  damage: { power: 5, category: 'physical' },
 }

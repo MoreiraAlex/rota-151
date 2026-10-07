@@ -23,6 +23,8 @@ export function hitStopSystem(context) {
   for (const event of frameEvents) {
     if (event.type !== EVENT_TYPES.ATTACK_RESOLVED) continue
     if (event.result !== 'hit' || event.channel || event.status) continue
+    // imune ao tipo: não pegou, não congela
+    if (event.effectiveness === 'immune') continue
     const duration = event.critical ? CRIT_DURATION : DURATION
     startHitStop(event.attacker, duration)
     startHitStop(event.target, duration)

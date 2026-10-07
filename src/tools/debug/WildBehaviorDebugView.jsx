@@ -59,7 +59,7 @@ export function attackPlanLabel(entity, behavior) {
   const attack = speciesId
     ? resolveCreatureAttack(getSpecies(speciesId), slot)
     : null
-  const name = slot === 'primary' ? 'básico' : (attack?.id ?? slot)
+  const name = attack?.id ?? slot
   return ` · ${behavior.attackSlot ? 'próximo' : 'último'}: ${name}`
 }
 

@@ -7,6 +7,7 @@ import { ExperiencePage } from './pages/ExperiencePage'
 import { MoveTrainingPage } from './pages/MoveTrainingPage'
 import { MovesPage } from './pages/MovesPage'
 import { DamagePage } from './pages/DamagePage'
+import { TypesPage } from './pages/TypesPage'
 import { AccuracyPage } from './pages/AccuracyPage'
 import { EffectsPage } from './pages/EffectsPage'
 import { EnergyPage } from './pages/EnergyPage'
@@ -60,13 +61,19 @@ const PAGES = {
   },
   'batalha/golpes': {
     title: 'Golpes',
-    summary: 'Tipos de golpe, como lançar, aviso no chão e golpes canalizados.',
+    summary:
+      'Categorias de golpe, como lançar, aviso no chão, canalizados e o registro da batalha.',
     Component: MovesPage,
   },
   'batalha/dano': {
     title: 'Dano',
     summary: 'A conta do dano, golpe crítico e exemplos.',
     Component: DamagePage,
+  },
+  'batalha/tipos': {
+    title: 'Tipos',
+    summary: 'Golpe do mesmo tipo, forte, fraco e imune — a tabela de tipos.',
+    Component: TypesPage,
   },
   'batalha/acerto-e-erro': {
     title: 'Acerto e erro',
@@ -75,7 +82,7 @@ const PAGES = {
   },
   'batalha/efeitos': {
     title: 'Efeitos em batalha',
-    summary: 'Subir e baixar atributos, e roubo de vida.',
+    summary: 'Subir e baixar atributos, roubo de vida e queimadura.',
     Component: EffectsPage,
   },
   'batalha/energia-e-recarga': {

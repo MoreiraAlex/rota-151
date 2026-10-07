@@ -48,72 +48,49 @@ import {
  * input da criatura controlada; (3) disparo da IA — selvagem ou criatura
  * do time fora do controle com `WantsToAttack` (posto pelo
  * `wildBehaviorSystem.js`/`partyBehaviorSystem.js`) lança o golpe do slot
- * pedido (básico ou habilidade, `planAiAttack`) mirando no alvo do pedido (`tryStartAttack` com direção pronta — mesmo
+ * pedido (`planAiAttack`) mirando no alvo do pedido (`tryStartAttack` com direção pronta — mesmo
  * caminho, stamina/cooldown/modo combate iguais); (4)
  * avanço do golpe de todo atacante; (5) interrupção do golpe de status em
  * carga de quem levou dano no tick. O golpe de criatura do time acerta
  * selvagens; o de selvagem acerta o lado do jogador (criaturas do time e
  * treinador) — `resolveAttackTarget`, `targetSide`.
  *
- * Disparo pelo input: dispara e avança o ataque/skill de uma criatura controlada — botão
- * ESQUERDO do mouse (`primary`, ataque comum) OU Q/E/R (`secondary1-3`,
- * skills — a partir da 9ª rodada de docs/features/025-ataque-comum-de-
- * criatura.md: "pode fazer as habilidades agora?"), sem precisar de
- * nenhum gatilho extra. A direção do golpe vem de
- * `resolveAttackDirection` (`core/battle/attackAim.js`): sempre horizontal, a
- * partir do giro horizontal da câmera; a assistência de mira (puxar pro alvo
- * à frente) só entra no ataque BÁSICO. Trava o corpo (`rot.y`, só o
- * componente horizontal — o corpo não inclina) e a trajetória do golpe
- * (`action.dirX/dirY/dirZ`). A direção é resolvida no disparo e, na criatura
- * CONTROLADA, de novo a cada tick até o `effectAt` ("direcionar durante o
- * aviso", `GAME_CONFIG.BATTLE.ATTACK_WINDUP_STEERING`): o jogador pode
- * redirecionar o golpe enquanto o aviso vermelho carrega, e a direção trava
- * no instante do golpe, que é quando o efeito/dano de fato acontecem — depois
- * disso a câmera é livre pra girar (mesmo motivo de sempre,
- * `beginSummon`/`resolveThrowLaunch`, docs/features/024-esfera-de-
- * invocar.md).
+ * Disparo pelo input: dispara e avança o golpe de uma criatura controlada —
+ * Q/E/R (`secondary1-3`). Não existe ataque básico (docs/features/039-tipos-e-combate-classico.md, Parte 5): o clique esquerdo só CONFIRMA o golpe aberto no
+ * indicador (`castMode: 'confirm'`, abaixo). A direção do golpe vem de
+ * `resolveAttackDirection` (`core/battle/attackAim.js`): sempre horizontal,
+ * o giro horizontal da câmera, sem assistência de mira. Trava o corpo
+ * (`rot.y`, só o componente horizontal — o corpo não inclina) e a trajetória
+ * do golpe (`action.dirX/dirY/dirZ`). A direção é resolvida no disparo e, na
+ * criatura CONTROLADA, de novo a cada tick até o `effectAt` ("direcionar
+ * durante o aviso", `GAME_CONFIG.BATTLE.ATTACK_WINDUP_STEERING`): o jogador
+ * pode redirecionar o golpe enquanto o aviso vermelho carrega, e a direção
+ * trava no instante do golpe, que é quando o efeito/dano de fato acontecem.
  *
  * **Um único slot dispara por vez** (`ATTACK_SLOTS`, `core/battle/attackCasting.js`): a cada tick
- * livre (`action.current === null`), percorre mouse→Q→E→R na ordem, e o
- * PRIMEIRO com tecla pressionada + `species.basicAttack`/`species.skills[N]` resolvido +
- * stamina/cooldown livres ganha — os outros três nem são considerados
- * naquele tick (mesmo padrão de "só um por tick" de `partySummonSystem.js`).
- * `action.pendingSlot` (reaproveitado do mesmo campo que invocar/recolher
- * já usa, com outro significado — ver docstring de `ActionState`) grava
- * QUAL slot ganhou, porque `action.current` vira só `'attack'` pras
- * quatro fontes (mouse e as três teclas) — sem o slot, o `effectAt`/
- * `duration` no meio do gesto não saberia se deve reler
- * `basicAttack` ou `skills[1]`, por exemplo.
+ * livre (`action.current === null`), percorre Q→E→R na ordem, e o PRIMEIRO
+ * com tecla pressionada + golpe resolvido + stamina/cooldown livres ganha.
+ * `action.pendingSlot` grava QUAL slot ganhou, porque `action.current` vira
+ * só `'attack'` pras três teclas — sem o slot, o `effectAt`/`duration` no
+ * meio do gesto não saberia qual golpe reler.
  *
  * **Respeita o trajeto, não só o destino** (`resolveAttackImpactPoint`,
  * `core/battle/attackTrajectory.js`): com um `range` grande (simulando o alcance de um golpe tipo
  * chicote), o ponto de impacto não "teleporta" através de parede/
  * obstáculo nem desnível — a trajetória acompanha o terreno e para no
  * primeiro bloqueio (ver docstring de `resolveAttackImpactPoint`). Vale pra QUALQUER
- * slot (mouse ou skill) — mecanismo genérico, sem branch nenhum por id/
+ * golpe — mecanismo genérico, sem branch nenhum por id/
  * grupo de efeito.
  *
- * **Config vem de `core/data/skills/`, não mais inline na espécie**
- * (reorganização pedida pelo usuário — ver docs/features/025-ataque-
- * comum-de-criatura.md, seção "reorganização da config"):
- * `resolveCreatureAttack(getSpecies(id), slot)` é só uma REFERÊNCIA (string id, ou
- * `{ id, overrides }`); `resolveCreatureAttack` (`core/data/skills/
- * index.js`) resolve a definição de verdade, mesclando overrides da
- * criatura por cima da base do ataque quando houver. Sem
- * `species.basicAttack`/`species.skills[N]` configurado, ou id desconhecido, aquele slot
- * simplesmente não é candidato a disparar — mesmo fallback gracioso de
- * sempre (hoje só `primary` é universal; `secondary1` só as 3 espécies
- * iniciais configuram, `secondary2`/`secondary3` nenhuma ainda).
+ * **O golpe vem da criatura**: `resolveEntityAttack` (`core/battle/
+ * creatureAttack.js`) resolve o golpe do slot no `moveSet` dela (com os
+ * `overrides` da espécie). Slot vazio ou id desconhecido simplesmente não é
+ * candidato a disparar.
  *
- * **`duration`/`effectAt` do `primary` são dinâmicos, por ENTIDADE**
- * (`resolveAttackForEntity`, `core/battle/attackCasting.js` — ver docs/features/029-*.md):
- * antes, cada espécie calculava isso uma vez, no module load, com um
- * `iv` de `speed` fixo; agora que IV é sorteado por indivíduo
- * (`IndividualValues`, nunca mais um literal na espécie), esse cálculo
- * só pode acontecer aqui — duas criaturas da MESMA espécie, com
- * `speed` diferente, atacam em ritmos diferentes. Só pra `primary`;
- * skills (`secondary1-3`) mantêm `duration`/`effectAt` PRÓPRIOS da
- * definição do ataque.
+ * **`duration`/`effectAt` são dinâmicos, por ENTIDADE**
+ * (`resolveAttackForEntity`, `core/battle/attackCasting.js`): a base é a da
+ * skill, escalada pelo `speed` DESTA criatura (IV sorteado por indivíduo) —
+ * duas criaturas da mesma espécie atacam em ritmos diferentes.
  *
  * Mesmo mecanismo genérico de `ActionState` que dash/arremesso/uso/summon/
  * recall já usam: trava `current` no disparo, o efeito de verdade só
@@ -121,18 +98,17 @@ import {
  * `duration`. Não é dono de `'dash'`/`'throw'`/`'consume'`/`'summon'`/
  * `'recall'` — outros systems progridem essas; este só entende `'attack'`,
  * mesmo padrão de exclusão mútua já usado por `playerActionSystem.js`/
- * `partySummonSystem.js`. Isso também significa que os QUATRO slots
- * (mouse + Q/E/R) compartilham a MESMA `ActionState` — usar uma skill
- * (Q) trava o ataque do mouse até `duration` acabar, e vice-versa, mesma
- * exclusão mútua que dash/ataque já tinham entre si.
+ * `partySummonSystem.js`. Isso também significa que os três slots
+ * compartilham a MESMA `ActionState` — usar um golpe trava os outros até
+ * `duration` acabar, mesma exclusão mútua que dash/ataque já tinham.
  *
  * `SummonedCreature` na query (não `resolveSpeciesKind`) — mesmo critério
  * já usado alhures pra "isto é uma criatura, não o treinador": só uma
  * `SummonedCreature` de verdade chega a ter
  * `InputControlled`+`ActionState`+`Position`+`Rotation` juntos por essa
- * via (o treinador nunca tem `SummonedCreature`). `basicAttack`/`skills[N]` é
- * exclusivo de espécie `kind: 'pokemon'` (o treinador não tem — sem arma
- * direta no design, ver docs/backlog.md).
+ * via (o treinador nunca tem `SummonedCreature`). Golpe é exclusivo de
+ * espécie `kind: 'pokemon'` (o treinador não tem — sem arma direta no
+ * design, ver docs/backlog.md).
  *
  * **Indicador antes de lançar** (`attack.castMode`, por ataque): com
  * `'confirm'`, apertar o botão só abre o indicador (`AttackAim.slot`,
@@ -172,11 +148,7 @@ import {
  * esteja fazendo. Travado em `attack.cooldown` no FIM da ação daquele
  * slot (não no disparo — a contagem só começa depois da `duration`);
  * enquanto `> 0`, só aquele slot específico não dispara, mesmo com
- * stamina de sobra — os outros três continuam livres (pedido implícito
- * da 9ª rodada: skills de verdade configuram cooldown > 0, então um
- * campo único e compartilhado travaria o ataque do mouse pelo mesmo
- * tempo de usar uma skill, o que não faz sentido). `0` (padrão do ataque
- * comum) é um no-op — só stamina trava de verdade nesse caso.
+ * stamina de sobra — os outros continuam livres.
  *
  * **Som do impacto**: `entity.add(AttackPulse)` no mesmo instante
  * `effectAt` em que o VFX nasce — pulso de um tick (`core/traits/
@@ -184,13 +156,6 @@ import {
  * (view, fase presentation), mesmo mecanismo de `Jumped`/`SummonPulse`/
  * `RecallPulse`. Toca `attack.audio` (`core/data/audio/attackSound.js`)
  * — este system não sabe nada de áudio de verdade, só marca O INSTANTE.
- * **Limitação conhecida (9ª rodada)**: o pulso não carrega QUAL slot
- * disparou, e `attackAudioSystem.js`/`resolveAttackSound` ainda só
- * resolvem `basicAttack` — uma skill nova (`vine-whip`/`ember`/
- * `whirlpool`, todas com `audio.group: null` de propósito) não tem som
- * PRÓPRIO ainda; até a rodada de áudio generalizar isso (quando o usuário
- * trouxer os arquivos), o pulso de uma skill só reaproveita o som que já
- * estiver registrado pro ataque comum da criatura, se houver.
  *
  * Headless. Fase: simulation, junto de `playerActionSystem`/
  * `partySummonSystem` (mesma família de "ações disparadas por input").
@@ -297,8 +262,8 @@ export function creatureAttackSystem(context) {
 
   // 3. Disparo da IA: criatura (selvagem, ou do time fora do controle)
   // que pediu golpe (`WantsToAttack`, posto pelo `wildBehaviorSystem.js`/
-  // `partyBehaviorSystem.js`) lança o golpe do slot pedido (básico ou
-  // habilidade) mirando no alvo do pedido. Pedido que não dá pra atender agora (ocupada/stamina/
+  // `partyBehaviorSystem.js`) lança o golpe do slot pedido mirando no alvo
+  // do pedido. Pedido que não dá pra atender agora (ocupada/stamina/
   // cooldown, alvo fora da luta) é descartado — o comportamento pede de
   // novo depois.
   const requested = []
@@ -329,7 +294,7 @@ export function creatureAttackSystem(context) {
       ) => {
         requested.push(entity)
         const target = request.target
-        if (!isActiveCombatant(target)) return
+        if (!request.slot || !isActiveCombatant(target)) return
         const speciesId = resolveCreatureSpeciesId(entity)
         if (!speciesId) return
 
@@ -351,7 +316,7 @@ export function creatureAttackSystem(context) {
         }
         tryStartAttack(
           castContext,
-          request.slot ?? 'primary',
+          request.slot,
           resolveDirectionTo(pos, target.get(Position), rot),
         )
       },
@@ -422,8 +387,6 @@ export function creatureAttackSystem(context) {
             pos,
             physicsBody.colliderHandle,
             species,
-            ATTACK,
-            action.pendingSlot,
           )
           action.dirX = aim.x
           action.dirY = aim.y

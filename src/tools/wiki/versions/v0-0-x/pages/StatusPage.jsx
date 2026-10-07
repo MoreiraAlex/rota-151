@@ -121,8 +121,8 @@ export function StatusPage({ data, version }) {
       <Section id="velocidade" title="Velocidade">
         <p>
           A Velocidade não muda o dano. Ela muda o <strong>tempo</strong>:
-          criaturas rápidas fazem o ataque básico mais depressa e esperam menos
-          pra usar as habilidades de novo. Criaturas lentas, o contrário.
+          criaturas rápidas fazem os golpes mais depressa e esperam menos pra
+          usar de novo. Criaturas lentas, o contrário.
         </p>
         <p>
           O efeito é suave e tem limite: o tempo fica entre{' '}

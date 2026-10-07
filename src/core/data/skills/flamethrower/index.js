@@ -22,6 +22,7 @@
  */
 export const FLAMETHROWER_SKILL = {
   id: 'flamethrower',
+  type: 'fire',
   duration: 0.5,
   effectAt: 0.25,
   range: 3,
@@ -42,7 +43,7 @@ export const FLAMETHROWER_SKILL = {
     positionOffset: { x: 0, y: 0, z: 0 },
   },
   sprite: {
-    path: '/assets/sprites/abilities/ember.png',
+    path: '/assets/sprites/abilities/flamethrower.png',
     scale: 1,
   },
   // Som do atacante + som do alvo (grupo composto, ver `core/data/audio/
@@ -54,6 +55,18 @@ export const FLAMETHROWER_SKILL = {
     clipKey: 'attackRangedAlt',
   },
   // Especial, poder de referência: o de "Ember" nos jogos originais.
-  // Ver comentário sobre `type: null` em `../tackle/index.js`.
-  damage: { power: 90, category: 'special', type: null },
+  damage: { power: 90, category: 'special' },
+  // Chance de queimar (regra clássica do golpe) — ver `burn` no
+  // `../_template/index.js`.
+  effects: [
+    {
+      type: 'burn',
+      chance: 0.1,
+      fraction: 1 / 16,
+      interval: 2,
+      duration: 8,
+      attackMultiplier: 0.5,
+      immuneTypes: ['fire'],
+    },
+  ],
 }

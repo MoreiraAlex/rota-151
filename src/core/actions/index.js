@@ -16,6 +16,7 @@ export {
   resolveHitStunDuration,
 } from './hitStun'
 export { plantarSemente, resolveLeechDrain } from './leechSeed'
+export { queimar, readBurnAttackMultiplier, resolveBurnDamage } from './burn'
 export {
   registrarParticipante,
   distribuirExperiencia,

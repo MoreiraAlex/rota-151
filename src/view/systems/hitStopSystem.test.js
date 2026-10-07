@@ -63,4 +63,14 @@ describe('hitStopSystem', () => {
     expect(resolveHitStopScale(ATTACKER)).toBe(1)
     expect(resolveHitStopScale(TARGET)).toBe(1)
   })
+
+  it('golpe que não afeta o tipo do alvo não congela', () => {
+    hitStopSystem({
+      delta: 0,
+      frameEvents: [resolved({ effectiveness: 'immune' })],
+    })
+
+    expect(resolveHitStopScale(ATTACKER)).toBe(1)
+    expect(resolveHitStopScale(TARGET)).toBe(1)
+  })
 })

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import { computeDamage } from '@/core/battle/calculateDamage'
+import { resolveSkillType } from '@/core/data/types'
 import {
   ATTACK_SLOTS,
   resolveAttackForEntity,
@@ -40,6 +41,7 @@ describe('resolveDamagePreview', () => {
         defenderSpecies: defender,
         defenderIndividualValues: IVS,
         damage: attack.damage,
+        attackType: resolveSkillType(attack),
       }
       expect(preview.damage.min).toBeCloseTo(
         computeDamage(context, { critical: 1, random: DAMAGE_RANDOM_MIN }),
@@ -71,6 +73,7 @@ describe('resolveDamagePreview', () => {
           defenderSpecies: defender,
           defenderIndividualValues: IVS,
           damage: attack.damage,
+          attackType: resolveSkillType(attack),
         },
         { critical: 1, random: (DAMAGE_RANDOM_MIN + DAMAGE_RANDOM_MAX) / 2 },
       )

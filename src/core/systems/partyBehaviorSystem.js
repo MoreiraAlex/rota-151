@@ -81,7 +81,7 @@ function findTrainerHunter(pos, leaderPos, fightingWilds) {
  * IA de combate das criaturas do time FORA do controle do jogador — sempre
  * defensiva (`PartyBehavior`; quem as põe na luta é o
  * `partyReactionSystem.js`, quando uma selvagem acerta alguém do grupo).
- * Lutando: escolhe o golpe (básico ou habilidade da espécie,
+ * Lutando: escolhe o golpe (um dos dela,
  * `planAiAttack` — `core/battle/aiAttackChoice.js`), corre até uma fração
  * do alcance DELE (`PARTY_BEHAVIOR.ATTACK_REACH_FRACTION`), para virada pro
  * alvo e pede o golpe (`WantsToAttack`, a cada
@@ -166,8 +166,8 @@ export function partyBehaviorSystem(context) {
 
         // Energia baixa: descansa (sem golpe, sem correr) até recuperar.
         behavior.resting = resolveResting(behavior.resting, vitals)
-        // Escolhe o golpe (básico ou habilidade) e corre até o alcance DELE —
-        // sem nada pronto, até o alcance do básico.
+        // Escolhe o golpe e corre até o alcance DELE —
+        // sem nada pronto, até o menor alcance entre os golpes dela.
         const species = getSpecies(creature.speciesId)
         const plan = behavior.resting
           ? null
@@ -181,7 +181,7 @@ export function partyBehaviorSystem(context) {
         behavior.attackSlot = plan?.slot ?? null
         const reach =
           plan?.reach ??
-          resolveAttackReach(species, target.get(CharacterController))
+          resolveAttackReach(entity, species, target.get(CharacterController))
         // Sem golpe nenhum na espécie: só acompanha o alvo de perto.
         const stopDistance = (reach ?? 1) * ATTACK_REACH_FRACTION
 

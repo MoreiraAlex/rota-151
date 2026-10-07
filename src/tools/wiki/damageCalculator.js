@@ -1,6 +1,7 @@
 import { GAME_CONFIG } from '@/core/gameConfig'
 import {
   computeDamage,
+  resolveStab,
   rollCriticalMultiplier,
 } from '@/core/battle/calculateDamage'
 import { resolveAttackForEntity } from '@/core/battle/attackCasting'
@@ -13,6 +14,11 @@ import {
   resolveMaxHp,
   resolveMaxStamina,
 } from '@/core/traits/components/vitals'
+import {
+  resolveSkillType,
+  resolveSpeciesTypes,
+  resolveTypeEffectiveness,
+} from '@/core/data/types'
 
 // Multiplicador do crítico tirado da própria regra do jogo: um sorteio que
 // sempre cai dentro da chance devolve o multiplicador de crítico.
@@ -41,6 +47,10 @@ function hitsToFaint(maxHp, damage) {
  *
  * `attacker`/`defender`: `{ species, individualValues, stages }` (`stages`:
  * `{ attack, defense, sp_atk, sp_def, accuracy }`, ausente = 0).
+ *
+ * Também o tipo do golpe, o bônus de mesmo tipo (`stab`) e a efetividade
+ * contra os tipos do alvo (`typeMultiplier`: `{ multiplier, effectiveness }`)
+ * — já dentro dos números de dano.
  */
 export function resolveDamagePreview({ attacker, defender, slot }) {
   const attack = resolveAttackForEntity(
@@ -65,6 +75,15 @@ export function resolveDamagePreview({ attacker, defender, slot }) {
     ),
     defenderMaxHp,
     criticalChance: GAME_CONFIG.BATTLE.CRITICAL_HIT_CHANCE,
+    type: resolveSkillType(attack),
+    stab: resolveStab(
+      resolveSkillType(attack),
+      resolveSpeciesTypes(attacker.species),
+    ),
+    typeMultiplier: resolveTypeEffectiveness(
+      resolveSkillType(attack),
+      resolveSpeciesTypes(defender.species),
+    ),
   }
   if (!attack.damage) return { ...summary, damage: null }
 
@@ -74,6 +93,7 @@ export function resolveDamagePreview({ attacker, defender, slot }) {
     defenderSpecies: defender.species,
     defenderIndividualValues: defender.individualValues,
     damage: attack.damage,
+    attackType: resolveSkillType(attack),
     attackerStages: attacker.stages,
     defenderStages: defender.stages,
   }

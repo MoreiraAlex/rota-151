@@ -27,7 +27,9 @@ import {
   reordenarGolpes,
   resolveTrainingBlock,
 } from '@/core/actions'
-import { formatSpeciesName } from '@/view/shared/statusDisplay'
+import { formatSpeciesName, TypeBadge } from '@/view/shared/statusDisplay'
+import { getSkill } from '@/core/data/skills'
+import { resolveSkillType } from '@/core/data/types'
 import { formatProgressPercent } from '@/view/shared/formatProgress'
 
 const SLOT_KEYS = { 1: 'Q', 2: 'E', 3: 'R' }
@@ -176,7 +178,7 @@ function TrainingList({
           const mastery = moves.slots[findSlotOf(moves, entry.id)].mastery
           const isTraining = trainingMoveId === entry.id
           return (
-            <MoveRow key={entry.id} name={name}>
+            <MoveRow key={entry.id} name={name} moveId={entry.id}>
               <Bar
                 value={mastery / MAX_MASTERY}
                 colorClass="bg-sky-400"
@@ -209,7 +211,7 @@ function TrainingList({
         const trainingProgress = Math.min(1, moves.training?.[entry.id] ?? 0)
         const isTraining = trainingMoveId === entry.id
         return (
-          <MoveRow key={entry.id} name={name}>
+          <MoveRow key={entry.id} name={name} moveId={entry.id}>
             <Bar
               value={trainingProgress}
               colorClass="bg-amber-400"
@@ -278,8 +280,9 @@ function MoveSlots({ world, trainer, slot, moves }) {
             <span className="w-4 text-center text-white/50">
               {SLOT_KEYS[moveSlot]}
             </span>
-            <span className="flex-1">
+            <span className="flex flex-1 items-center gap-1.5">
               {move ? formatSpeciesName(move.id) : '—'}
+              {move && <MoveTypeBadge moveId={move.id} />}
             </span>
             {move && (
               <Bar value={move.mastery / MAX_MASTERY} colorClass="bg-sky-400" />
@@ -327,14 +330,24 @@ function MoveSlots({ world, trainer, slot, moves }) {
   )
 }
 
-function MoveRow({ name, dim = false, children }) {
+// Tipo do golpe pelo id (selo ao lado do nome); golpe desconhecido, nada.
+function MoveTypeBadge({ moveId }) {
+  const skill = getSkill(moveId)
+  if (!skill) return null
+  return <TypeBadge type={resolveSkillType(skill)} />
+}
+
+function MoveRow({ name, moveId, dim = false, children }) {
   return (
     <div
       className={`flex items-center gap-2 rounded bg-white/5 px-2 py-1.5 text-xs ${
         dim ? 'text-white/40' : ''
       }`}
     >
-      <span className="flex-1 truncate">{name}</span>
+      <span className="flex flex-1 items-center gap-1.5 truncate">
+        {name}
+        {moveId && <MoveTypeBadge moveId={moveId} />}
+      </span>
       {children}
     </div>
   )

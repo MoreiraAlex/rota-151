@@ -12,7 +12,9 @@ import {
   resolveDisplayLevel,
   resolveXpPercent,
   SpritePortrait,
+  ConditionBadges,
   StatStageBadges,
+  TypeBadges,
   VitalBar,
 } from '@/view/shared/statusDisplay'
 import {
@@ -201,6 +203,7 @@ function StatusCard({
             <KeyHint keyLabel="4" icon={ArrowLeftRight} variant="accent" />
           )}
         </div>
+        <TypeBadges types={species.types} compact={compact} align="start" />
         <VitalBar
           height={compact ? 2 : 5}
           value={vitals.hp}
@@ -214,6 +217,7 @@ function StatusCard({
           max={vitals.maxStamina}
           colorClass="bg-sky-400"
         />
+        <ConditionBadges entity={entity} compact={compact} align="start" />
         <StatStageBadges entity={entity} compact={compact} align="start" />
       </div>
     </motion.div>

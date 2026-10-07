@@ -2,6 +2,11 @@ import { GAME_CONFIG } from '../gameConfig'
 import { resolveCreatureStats } from '../data/species/stats'
 import { resolveFormulaLevel } from '../data/species/formulaLevel'
 import { stageMultiplier } from './statStages'
+import {
+  resolveSpeciesTypes,
+  resolveTypeEffectiveness,
+  resolveTypeMultiplier,
+} from '../data/types'
 
 /**
  * Fórmula de dano de ataque — convenção clássica de Pokémon, pedido
@@ -57,32 +62,37 @@ export function rollDamageRandomFactor(rng) {
 }
 
 /**
- * STAB (same-type attack bonus) — bônus quando `attackType` é um dos
- * tipos do próprio atacante, senão `1`. `attackerTypes` viria de
- * `species.types` — campo ainda não declarado em NENHUMA espécie (ver
- * `core/data/species/_template/index.js`), então hoje isto sempre cai
- * em `1`. Estrutura pronta, sem inventar dado de tipo agora (pedido
- * explícito do usuário).
+ * STAB (same-type attack bonus) — `GAME_CONFIG.TYPES.STAB_MULTIPLIER` quando
+ * `attackType` é um dos tipos do próprio atacante (`species.types`), senão
+ * `1`. Atacante sem tipo (treinador) nunca tem STAB.
  */
 export function resolveStab(attackType, attackerTypes) {
   if (!attackType || !attackerTypes) return 1
-  return attackerTypes.includes(attackType) ? 1.5 : 1
+  return attackerTypes.includes(attackType)
+    ? GAME_CONFIG.TYPES.STAB_MULTIPLIER
+    : 1
 }
 
 /**
- * Multiplicador de efetividade de tipo entre o tipo do ataque e UM tipo
- * do defensor — chamada até duas vezes (`type1`/`type2` da fórmula, um
- * por tipo do defensor, já que uma criatura pode ter dois). Pedido do
- * usuário: "por enquanto podem permanecer como 1... quero deixar a
- * estrutura preparada" — sem tabela de fraqueza/resistência/imunidade
- * ainda, sempre neutro. Aceita `(attackType, defenderType)` na prática
- * (ver chamadores em `resolveDamageAmount`), sem declarar os parâmetros
- * aqui pra não disparar "unused vars" enquanto não há tabela nenhuma pra
- * consultar — assinatura de chamada pronta pra receber essa tabela
- * depois, sem precisar mexer em quem chama.
+ * Multiplicador de efetividade entre o tipo do golpe e UM tipo do defensor —
+ * chamada até duas vezes (`type1`/`type2` da fórmula, um por tipo do
+ * defensor). A tabela é a da Gen 1 (`core/data/types/index.js`); defensor sem
+ * tipo é neutro.
  */
-export function resolveTypeEffectivenessMultiplier() {
-  return 1
+export function resolveTypeEffectivenessMultiplier(attackType, defenderType) {
+  return resolveTypeMultiplier(attackType, defenderType)
+}
+
+/**
+ * Efetividade do golpe (`context.attackType`) contra os tipos do defensor —
+ * `{ multiplier, effectiveness }` (`'super'`/`'neutral'`/`'weak'`/
+ * `'immune'`), pro feedback e pra quem precisa saber se o golpe pega.
+ */
+export function resolveDamageEffectiveness(context) {
+  return resolveTypeEffectiveness(
+    context.attackType,
+    resolveSpeciesTypes(context.defenderSpecies),
+  )
 }
 
 /**
@@ -115,8 +125,9 @@ export function resolveCombatStats(
 /**
  * Monta os parâmetros de `calculateDamage` a partir de atacante, alvo e
  * `attack.damage` (definição do golpe — `core/data/skills/<id>/
- * index.js`) e devolve `{ amount, critical }` — o dano final e se o
- * crítico saiu (pro retorno visual diferenciar). Ponto único que
+ * index.js`) e devolve `{ amount, critical, effectiveness }` — o dano final,
+ * se o crítico saiu (pro retorno visual diferenciar) e a efetividade de tipo.
+ * `attackType` é o tipo do golpe (`resolveSkillType`). Ponto único que
  * decide `attack`/`sp_atk` vs `defense`/`sp_def` pela `category` do
  * ataque (`'physical'` usa `attack`/`defense`, `'special'` usa
  * `sp_atk`/`sp_def` — categoria ausente cai em `'physical'`, mesmo
@@ -130,8 +141,10 @@ export function resolveDamageAmount({
   defenderIndividualValues,
   defenderLevel,
   damage,
+  attackType,
   attackerStages,
   defenderStages,
+  attackerBurnMultiplier,
   rng,
 }) {
   const context = {
@@ -142,8 +155,10 @@ export function resolveDamageAmount({
     defenderIndividualValues,
     defenderLevel,
     damage,
+    attackType,
     attackerStages,
     defenderStages,
+    attackerBurnMultiplier,
   }
   // Sorteado antes do `random` — mesma ordem de consumo do `rng` de antes.
   const critical = rollCriticalMultiplier(rng)
@@ -151,7 +166,11 @@ export function resolveDamageAmount({
     critical,
     random: rollDamageRandomFactor(rng),
   })
-  return { amount, critical: critical > 1 }
+  return {
+    amount,
+    critical: critical > 1,
+    effectiveness: resolveDamageEffectiveness(context).effectiveness,
+  }
 }
 
 /**
@@ -177,30 +196,36 @@ export function resolveChannelTickDamage({
   defenderIndividualValues,
   defenderLevel,
   damage,
+  attackType,
   attackerStages,
   defenderStages,
+  attackerBurnMultiplier,
   weight,
   rng,
 }) {
   const { DAMAGE_RANDOM_MIN, DAMAGE_RANDOM_MAX } = GAME_CONFIG.BATTLE
-  const budget = computeDamage(
-    {
-      attackerSpecies,
-      attackerIndividualValues,
-      attackerLevel,
-      defenderSpecies,
-      defenderIndividualValues,
-      defenderLevel,
-      damage,
-      attackerStages,
-      defenderStages,
-    },
-    { critical: 1, random: (DAMAGE_RANDOM_MIN + DAMAGE_RANDOM_MAX) / 2 },
-  )
+  const context = {
+    attackerSpecies,
+    attackerIndividualValues,
+    attackerLevel,
+    defenderSpecies,
+    defenderIndividualValues,
+    defenderLevel,
+    damage,
+    attackType,
+    attackerStages,
+    defenderStages,
+    attackerBurnMultiplier,
+  }
+  const budget = computeDamage(context, {
+    critical: 1,
+    random: (DAMAGE_RANDOM_MIN + DAMAGE_RANDOM_MAX) / 2,
+  })
   const critical = rollCriticalMultiplier(rng) > 1
   return {
     amount: budget * weight * (critical ? 2 : 1),
     critical,
+    effectiveness: resolveDamageEffectiveness(context).effectiveness,
   }
 }
 
@@ -227,14 +252,17 @@ export function computeDamage(context, { critical, random }) {
   // multiplicam o atributo do ataque do atacante e o de defesa do alvo.
   const attackKey = isSpecial ? 'sp_atk' : 'attack'
   const defenseKey = isSpecial ? 'sp_def' : 'defense'
-  const attackMultiplier = stageMultiplier(
-    context.attackerStages?.[attackKey] ?? 0,
-  )
+  // Queimadura (`Burn.attackMultiplier`, do efeito da skill que queimou):
+  // corta o Ataque de quem está queimado — só no golpe físico.
+  const burnMultiplier = isSpecial ? 1 : (context.attackerBurnMultiplier ?? 1)
+  const attackMultiplier =
+    stageMultiplier(context.attackerStages?.[attackKey] ?? 0) * burnMultiplier
   const defenseMultiplier = stageMultiplier(
     context.defenderStages?.[defenseKey] ?? 0,
   )
-  const attackerTypes = context.attackerSpecies?.types ?? null
-  const defenderTypes = context.defenderSpecies?.types ?? []
+  const { attackType } = context
+  const attackerTypes = resolveSpeciesTypes(context.attackerSpecies)
+  const defenderTypes = resolveSpeciesTypes(context.defenderSpecies)
 
   return calculateDamage({
     level: attacker.level,
@@ -242,13 +270,13 @@ export function computeDamage(context, { critical, random }) {
     defense: defender[defenseKey] * defenseMultiplier,
     power: damage?.power ?? 1,
     critical,
-    stab: resolveStab(damage?.type, attackerTypes),
+    stab: resolveStab(attackType, attackerTypes),
     type1: resolveTypeEffectivenessMultiplier(
-      damage?.type,
+      attackType,
       defenderTypes[0] ?? null,
     ),
     type2: resolveTypeEffectivenessMultiplier(
-      damage?.type,
+      attackType,
       defenderTypes[1] ?? null,
     ),
     random,

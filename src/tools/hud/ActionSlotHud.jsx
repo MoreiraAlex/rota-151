@@ -2,78 +2,37 @@
 
 import { useQueryFirst, useTrait } from 'koota/react'
 import { playerEntity } from '@/core/world/world'
-import { getSpecies } from '@/core/data/species'
-import { resolveCreatureAttack } from '@/core/battle/creatureAttack'
 import {
-  AttackCooldowns,
   HeldItem,
   InputControlled,
   Inventory,
   SummonedCreature,
 } from '@/core/traits'
 import { SlotPreview } from '../shared/SlotPreview'
-import { SkillSlot } from './SkillsHud'
 import { MouseLeft } from 'lucide-react'
 
 /**
  * HUD real (não-debug) do botão de CLIQUE (esquerdo) — canto inferior
- * direito. Extraído de `PartyHud.jsx` nesta rodada (5ª, docs/features/
- * 027-hud-de-status-e-habilidades.md) — pedido do usuário: "preciso que o
- * slot de clique saia do slotParty, quero ele no canto inferior direito".
+ * direito (docs/features/027-hud-de-status-e-habilidades.md, 5ª rodada).
  *
- * Dinâmico por QUEM está no controle (`useQueryFirst(InputControlled,
- * SummonedCreature)`, mesma técnica reativa de `SkillsHud.jsx`/
- * `NameplateView.jsx` — comparar por entidade resolvida pelo PRÓPRIO
- * hook, nunca `entity.has(...)` solto):
- * - Treinador no controle (`SummonedCreature` não resolve): clique
- *   continua sendo o ITEM NA MÃO (`HeldItem`/`Inventory`, mesmo conteúdo
- *   que `PartyHud.jsx` mostrava antes desta rodada).
- * - Criatura no controle: clique vira o ATAQUE BÁSICO dela
- *   (`species.basicAttack`, ver docs/features/025-ataque-comum-de-
- *   criatura.md) — pedido explícito: "quando o controle for de criatura,
- *   o clique para de ser o item na mao e passar ser o ataque basico da
- *   criatura, que vai ter seu proprio sprite tb". Reaproveita
- *   `SkillSlot` (exportado de `SkillsHud.jsx` nesta mesma rodada) — MESMO
- *   visual/lógica de cooldown que Q/E/R, incluindo o ícone com sprite
- *   (`AttackIcon`, `view/shared/statusDisplay.jsx`), só outro slot/tecla
- *   (`primary`, `AttackCooldowns.primary`) — em vez de duplicar o
- *   componente.
+ * Só com o TREINADOR no controle: o clique é o ITEM NA MÃO (`HeldItem`/
+ * `Inventory`). Com uma criatura no controle não aparece nada — ela não tem
+ * ataque básico (docs/features/039-tipos-e-combate-classico.md, Parte 5), e o
+ * clique só confirma o golpe aberto no indicador. Quem está no controle vem
+ * de `useQueryFirst(InputControlled, SummonedCreature)` (mesma técnica
+ * reativa de `SkillsHud.jsx`): resolve só quando é uma criatura.
  */
 export function ActionSlotHud() {
   const controlled = useQueryFirst(InputControlled, SummonedCreature)
-  const creature = useTrait(controlled, SummonedCreature)
-  const cooldowns = useTrait(controlled, AttackCooldowns)
   const heldItem = useTrait(playerEntity, HeldItem)
   const inventory = useTrait(playerEntity, Inventory)
 
-  return (
-    <>
-      {creature && cooldowns ? (
-        <div className="pointer-events-none absolute bottom-4 left-[40%] font-mono text-xs text-white">
-          <ActionSlotAttack
-            speciesId={creature.speciesId}
-            remaining={cooldowns.primary}
-          />
-        </div>
-      ) : (
-        <div className="pointer-events-none absolute bottom-4 right-4 font-mono text-xs text-white">
-          <ActionSlotItem heldItem={heldItem} inventory={inventory} />
-        </div>
-      )}
-    </>
-  )
-}
-
-function ActionSlotAttack({ speciesId, remaining }) {
-  const species = getSpecies(speciesId)
-  const attack = resolveCreatureAttack(species, 'primary')
+  if (controlled) return null
 
   return (
-    <SkillSlot
-      label={<MouseLeft size={16} />}
-      attack={attack}
-      remaining={remaining}
-    />
+    <div className="pointer-events-none absolute bottom-4 right-4 font-mono text-xs text-white">
+      <ActionSlotItem heldItem={heldItem} inventory={inventory} />
+    </div>
   )
 }
 

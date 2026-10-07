@@ -23,6 +23,7 @@ import { PartyHud } from '@/tools/hud/PartyHud'
 import { SkillsHud } from '@/tools/hud/SkillsHud'
 import { StatusHud } from '@/tools/hud/StatusHud'
 import { PokedexVisorHud } from '@/tools/hud/PokedexVisorHud'
+import { BattleLogHud } from '@/tools/hud/BattleLogHud'
 
 /**
  * HUD de jogo (normal ou visor da Pokédex) — extraído do corpo de
@@ -76,6 +77,7 @@ function GameHud({ onScanned, onMenuOpenRequested }) {
       <SkillsHud />
       <StatusHud />
       <ActionSlotHud />
+      <BattleLogHud />
     </>
   )
 }

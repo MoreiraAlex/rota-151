@@ -22,6 +22,7 @@
  */
 export const GROWTH_SKILL = {
   id: 'growth',
+  type: 'normal',
   // o atributo sobe no `effectAt`, durante a `charge` do Bulbasaur
   duration: 3,
   effectAt: 3,

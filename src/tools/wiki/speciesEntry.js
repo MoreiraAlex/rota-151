@@ -102,9 +102,9 @@ function rangeOf(a, b) {
 }
 
 /**
- * Ataques nos slots da espécie (básico + Q/E/R), resolvidos como o jogo
- * resolve (`resolveAttackForEntity`: override da espécie, custo e recarga pela
- * fórmula, duração do básico pela velocidade). Recarga e duração dependem do
+ * Golpes nos slots da espécie (Q/E/R), resolvidos como o jogo resolve
+ * (`resolveAttackForEntity`: override da espécie, custo e recarga pela
+ * fórmula, duração e recarga pela velocidade). Recarga e duração dependem do
  * IV de velocidade, então saem como faixa.
  */
 export function resolveSpeciesAttacks(species) {

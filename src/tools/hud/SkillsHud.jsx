@@ -12,6 +12,7 @@ import {
   SummonedCreature,
 } from '@/core/traits'
 import { AttackIcon } from '@/view/shared/statusDisplay'
+import { getType, resolveSkillType } from '@/core/data/types'
 
 const SKILL_SLOTS = [
   { key: 'secondary1', label: 'Q' },
@@ -153,11 +154,15 @@ export function SkillSlot({ label, attack, remaining }) {
       ? Math.min(1 - remaining / attack.cooldown, 1) * 100
       : 0
 
+  // borda na cor do tipo do golpe (docs/features/039-tipos-e-combate-classico.md)
+  const typeColor = attack ? getType(resolveSkillType(attack))?.color : null
+
   return (
     <div
-      className={`relative h-16 w-16 overflow-hidden rounded border border-white/20 ${
+      className={`relative h-16 w-16 overflow-hidden rounded border-2 border-white/20 ${
         attack && !onCooldown ? 'bg-black/20' : 'bg-black/70'
       }`}
+      style={typeColor ? { borderColor: typeColor } : undefined}
     >
       <div className="absolute inset-0 z-0">
         <AttackIcon attack={attack} size={64} />

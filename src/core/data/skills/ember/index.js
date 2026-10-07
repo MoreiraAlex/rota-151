@@ -22,6 +22,7 @@
  */
 export const EMBER_SKILL = {
   id: 'ember',
+  type: 'fire',
   duration: 0.5,
   effectAt: 0.25,
   range: 8,
@@ -50,6 +51,18 @@ export const EMBER_SKILL = {
     clipKey: 'attackRangedAlt',
   },
   // Especial, poder de referência: o de "Ember" nos jogos originais.
-  // Ver comentário sobre `type: null` em `../tackle/index.js`.
-  damage: { power: 40, category: 'special', type: null },
+  damage: { power: 40, category: 'special' },
+  // Chance de queimar (regra clássica do golpe) — ver `burn` no
+  // `../_template/index.js`.
+  effects: [
+    {
+      type: 'burn',
+      chance: 0.1,
+      fraction: 1 / 16,
+      interval: 2,
+      duration: 8,
+      attackMultiplier: 0.5,
+      immuneTypes: ['fire'],
+    },
+  ],
 }

@@ -34,8 +34,8 @@ export function AccuracyPage({ data, version }) {
           errar.
         </p>
         <p>
-          O <strong>fator de domínio</strong> é 1 nos golpes dominados (e no
-          ataque básico); num golpe recém-aprendido ele é menor (ver{' '}
+          O <strong>fator de domínio</strong> é 1 nos golpes dominados; num
+          golpe recém-aprendido ele é menor (ver{' '}
           <WikiLink version={version} to="criaturas/golpes-e-treino#dominio">
             Golpes e treino
           </WikiLink>

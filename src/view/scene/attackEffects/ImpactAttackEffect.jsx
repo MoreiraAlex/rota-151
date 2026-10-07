@@ -15,7 +15,7 @@ import { useParticleAttackEffect } from './useParticleAttackEffect'
  * 'impact'`.
  *
  * O tipo vem de `attack.visual.impactType` ou, na falta, de
- * `attack.damage.type` (ver `AttackEffect.impactType`); vazio/desconhecido
+ * `attack.type` (ver `AttackEffect.impactType`); vazio/desconhecido
  * cai em `'normal'`. O `AttackEffect` nasce no ponto de impacto, então o
  * efeito aparece ali no `effectAt` do ataque. `radius`/`length`/
  * `revealDuration` não se aplicam; `scale` (`attack.visual.scale`) cresce

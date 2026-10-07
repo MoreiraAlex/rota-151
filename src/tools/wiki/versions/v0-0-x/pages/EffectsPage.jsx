@@ -1,10 +1,15 @@
 import { Section } from '@/tools/wiki/components/Article'
 import { DataTable } from '@/tools/wiki/components/DataTable'
 import { WikiLink } from '@/tools/wiki/components/WikiLink'
-import { formatMultiplier } from '@/tools/wiki/wikiFormat'
+import { TypeTags } from '@/tools/wiki/components/TypeTag'
+import {
+  formatMultiplier,
+  formatPercent,
+  formatSeconds,
+} from '@/tools/wiki/wikiFormat'
 
 export function EffectsPage({ data, version }) {
-  const { stages } = data
+  const { stages, burn } = data
 
   return (
     <>
@@ -56,6 +61,42 @@ export function EffectsPage({ data, version }) {
           novo renova a duração.
         </p>
       </Section>
+
+      {burn ? (
+        <Section id="queimadura" title="Queimadura">
+          <p>
+            Alguns golpes de fogo têm{' '}
+            <strong>{formatPercent(burn.chance, 0)} de chance</strong> de deixar
+            o alvo <strong>queimado</strong> — a chance é sorteada uma vez por
+            golpe que acerta (num golpe canalizado, uma vez por alvo).
+          </p>
+          <ul>
+            <li>
+              A cada {formatSeconds(burn.interval, 0)}, a queimadura tira{' '}
+              {formatPercent(burn.fraction, 2)} da vida máxima, por{' '}
+              {formatSeconds(burn.duration, 0)}. Queimar de novo renova o tempo.
+            </li>
+            <li>
+              Enquanto queima, o Ataque da criatura nos golpes{' '}
+              <strong>físicos</strong> cai pra{' '}
+              {formatPercent(burn.attackMultiplier, 0)} (
+              <WikiLink version={version} to="batalha/dano">
+                Dano
+              </WikiLink>
+              ). Golpes especiais não mudam.
+            </li>
+            {burn.immuneTypes.length ? (
+              <li>
+                Não queima: <TypeTags data={data} types={burn.immuneTypes} />.
+              </li>
+            ) : null}
+            <li>
+              A criatura queimada solta fogo e ganha o selo{' '}
+              <strong>Queimado</strong>; a queimadura acaba se ela desmaiar.
+            </li>
+          </ul>
+        </Section>
+      ) : null}
     </>
   )
 }

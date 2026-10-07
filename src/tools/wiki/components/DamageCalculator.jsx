@@ -5,11 +5,14 @@ import { GAME_CONFIG } from '@/core/gameConfig'
 import { STAT_STAGE_LIMIT } from '@/core/battle/statStages'
 import { ATTACK_SLOTS } from '@/core/battle/attackCasting'
 import { resolveCreatureAttack } from '@/core/battle/creatureAttack'
+import { getType } from '@/core/data/types'
 import { resolveDamagePreview, withLevel } from '../damageCalculator'
 import { listWikiSpecies, uniformIndividualValues } from '../speciesEntry'
 import {
   SLOT_LABELS,
   STAT_LABELS,
+  formatEffectiveness,
+  formatMultiplier,
   formatName,
   formatNumber,
   formatPercent,
@@ -135,6 +138,30 @@ function Result({ preview }) {
 
   return (
     <div className="space-y-4">
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Stat
+          label="Tipo do golpe"
+          value={getType(preview.type)?.name ?? preview.type}
+        />
+        {damage !== null ? (
+          <>
+            <Stat
+              label="Mesmo tipo"
+              value={preview.stab > 1 ? formatMultiplier(preview.stab) : '—'}
+              hint={
+                preview.stab > 1
+                  ? 'golpe do tipo de quem ataca'
+                  : 'tipo diferente do de quem ataca'
+              }
+            />
+            <Stat
+              label="Efetividade"
+              value={formatMultiplier(preview.typeMultiplier.multiplier)}
+              hint={formatEffectiveness(preview.typeMultiplier.multiplier)}
+            />
+          </>
+        ) : null}
+      </div>
       {damage === null ? (
         <p className="text-sm">Golpe de status: não causa dano.</p>
       ) : damage.channel ? (
@@ -210,11 +237,7 @@ function Result({ preview }) {
         <Stat
           label="Recarga"
           value={preview.cooldown > 0 ? formatSeconds(preview.cooldown) : '—'}
-          hint={
-            preview.cooldown > 0
-              ? 'depois do fim do golpe'
-              : 'básico: sem recarga'
-          }
+          hint={preview.cooldown > 0 ? 'depois do fim do golpe' : 'sem recarga'}
         />
       </div>
     </div>
@@ -230,7 +253,7 @@ export function DamageCalculator() {
   const { IV_MIN, IV_MAX } = GAME_CONFIG.BATTLE
   const [attackerId, setAttackerId] = useState(SPECIES[0]?.id)
   const [defenderId, setDefenderId] = useState(SPECIES[1]?.id ?? SPECIES[0]?.id)
-  const [slot, setSlot] = useState('primary')
+  const [slot, setSlot] = useState('secondary1')
   const [attackerLevel, setAttackerLevel] = useState(SPECIES[0]?.level ?? 1)
   const [defenderLevel, setDefenderLevel] = useState(
     (SPECIES[1] ?? SPECIES[0])?.level ?? 1,
@@ -314,9 +337,7 @@ export function DamageCalculator() {
             >
               {slots.map(({ key, attack }) => (
                 <option key={key} value={key}>
-                  {key === 'primary'
-                    ? SLOT_LABELS[key]
-                    : `${SLOT_LABELS[key]} — ${formatName(attack.id)}`}
+                  {`${SLOT_LABELS[key]} — ${formatName(attack.id)}`}
                 </option>
               ))}
             </select>

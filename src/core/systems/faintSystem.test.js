@@ -4,7 +4,7 @@ import { makeWorld } from '@/test/makeWorld'
 import { initTestTerrain, settleTerrain } from '@/test/physicsTerrain'
 import { getSpecies } from '../data/species'
 import { resolveAnimationState } from '../data/animationStates'
-import { createEventQueue, attackResolved } from '../events'
+import { createEventQueue, attackResolved, EVENT_TYPES } from '../events'
 import { GAME_CONFIG } from '../gameConfig'
 import { createCharacterBody } from '../physics/colliders'
 import { stepPhysics } from '../physics/physicsWorld'
@@ -218,6 +218,22 @@ describe('faintSystem — selvagem', () => {
     expect(wild.get(WildBehavior).state).toBe('wander')
     wildBehaviorSystem({ world, delta: DELTA })
     expect(wild.get(WildBehavior).state).toBe('chase')
+  })
+
+  it('quem desmaia emite creatureFainted (com a espécie), uma vez só', () => {
+    const { world, wild } = setupWild()
+    const events = createEventQueue()
+    events.beginStep()
+    wild.set(Vitals, { hp: 0 })
+    faintSystem({ world, delta: DELTA, events })
+    faintSystem({ world, delta: DELTA, events })
+
+    const fainted = events
+      .drain()
+      .filter((event) => event.type === EVENT_TYPES.CREATURE_FAINTED)
+    expect(fainted).toHaveLength(1)
+    expect(fainted[0].entity).toBe(wild)
+    expect(fainted[0].speciesId).toBe(wild.get(WildCreature).speciesId)
   })
 
   it('o golpe que derrubou não provoca reação (desmaiada não revida)', () => {

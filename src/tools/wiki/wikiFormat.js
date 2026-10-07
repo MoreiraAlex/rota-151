@@ -39,6 +39,19 @@ export function formatMultiplier(value, digits = 2) {
   return `×${formatNumber(value, digits)}`
 }
 
+/** Nome do tipo pelo retrato da versão (`data.types.list`). */
+export function formatTypeName(data, type) {
+  return data.types?.list.find((item) => item.id === type)?.name ?? type
+}
+
+/** "super efetivo", "pouco efetivo", "não afeta" ou "normal". */
+export function formatEffectiveness(multiplier) {
+  if (multiplier === 0) return 'não afeta'
+  if (multiplier > 1) return 'super efetivo'
+  if (multiplier < 1) return 'pouco efetivo'
+  return 'normal'
+}
+
 /** `min`–`max`, ou um valor só quando os dois coincidem. */
 export function formatRange(min, max, format = formatNumber) {
   if (min === max || format(min) === format(max)) return format(min)
@@ -75,10 +88,9 @@ export const STAT_LABELS = {
 
 /** Nome do slot sem citar tecla — o controle ainda vai mudar (mobile, gamepad). */
 export const SLOT_LABELS = {
-  primary: 'Ataque básico',
-  secondary1: 'Habilidade 1',
-  secondary2: 'Habilidade 2',
-  secondary3: 'Habilidade 3',
+  secondary1: 'Golpe 1',
+  secondary2: 'Golpe 2',
+  secondary3: 'Golpe 3',
 }
 
 export const CATEGORY_LABELS = {
@@ -106,6 +118,9 @@ export function describeEffect(effect) {
   }
   if (effect?.type === 'leechSeed') {
     return `Rouba ${formatPercent(effect.fraction ?? 0, 2)} da vida máxima do alvo a cada ${formatSeconds(effect.interval ?? 0, 1)}, por ${formatSeconds(effect.duration ?? 0, 1)}`
+  }
+  if (effect?.type === 'burn') {
+    return `${formatPercent(effect.chance ?? 1, 0)} de chance de queimar: tira ${formatPercent(effect.fraction ?? 0, 2)} da vida máxima a cada ${formatSeconds(effect.interval ?? 0, 1)}, por ${formatSeconds(effect.duration ?? 0, 1)}, e o ataque físico de quem queima cai pra ${formatPercent(effect.attackMultiplier ?? 1, 0)}`
   }
   return 'Efeito especial'
 }

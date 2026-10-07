@@ -52,22 +52,18 @@ export function resolveSpeedFactor(
 }
 
 /**
- * `duration`/`effectAt` do ataque BÁSICO (`primary`) escalados pelo
- * status `speed` da PRÓPRIA entidade — pedido original do usuário:
- * "preciso que o status speed influencie na velocidade de ataque básico
- * da criatura".
+ * `duration`/`effectAt` do golpe escalados pelo status `speed` da PRÓPRIA
+ * entidade — a criatura mais rápida ataca mais rápido (decisão do usuário na
+ * docs/features/039-tipos-e-combate-classico.md, Parte 5: antes só o ataque
+ * básico escalava).
  *
- * A BASE é a autorada no ataque básico da própria espécie
- * (`species.basicAttack`, `core/data/species/<id>/basicAttack.js` —
- * `duration` e `effectAt`). O `speed` só multiplica por um fator em volta de 1
- * (`resolveSpeedFactor`) — assim a duração escolhida pra casar com a animação
- * continua valendo, e uma criatura mais rápida só encurta o golpe. (Antes, o
- * `speed` gerava a duração inteira, 0.05–0.5s — curto demais pros clipes
- * embutidos, e por isso o override da espécie passou a ignorá-lo; ver
- * docs/features/032-*.) `effectAt` escala junto. O corte de frames e as fases
- * da animação acompanham sozinhos (são proporcionais à duração).
+ * A BASE é a autorada na skill (`duration` e `effectAt`). O `speed` só
+ * multiplica por um fator em volta de 1 (`resolveSpeedFactor`) — assim a
+ * duração escolhida pra casar com a animação continua valendo, e uma criatura
+ * mais rápida só encurta o golpe. `effectAt` escala junto. O corte de frames e
+ * as fases da animação acompanham sozinhos (são proporcionais à duração).
  */
-function resolvePrimaryDuration(attack, speedFactor) {
+function resolveScaledDuration(attack, speedFactor) {
   return {
     duration: attack.duration * speedFactor,
     effectAt: attack.effectAt * speedFactor,
@@ -76,8 +72,8 @@ function resolvePrimaryDuration(attack, speedFactor) {
 
 /**
  * Resolve a definição de ataque de verdade pro `slot` desta entidade —
- * `resolveCreatureAttack` (básico da espécie ou skill do registro) +:
- * - só pra `primary`, o `duration`/`effectAt` pelo `speed` (acima);
+ * `resolveCreatureAttack` (o golpe do slot) +:
+ * - o `duration`/`effectAt` pelo `speed` (acima);
  * - `staminaCost`/`cooldown` pela fórmula (`withActionCost`,
  *   `core/battle/actionCost.js`) quando a definição não escreve os seus.
  * Chamada várias vezes por ataque (disparo, cada tick de progresso, IA, HUD)
@@ -106,18 +102,17 @@ export function resolveAttackForEntity(
 
   const speedFactor = resolveSpeedFactor(species, individualValues, level)
   const timed =
-    slot === 'primary' && speedFactor !== null
-      ? { ...attack, ...resolvePrimaryDuration(attack, speedFactor) }
+    speedFactor !== null
+      ? { ...attack, ...resolveScaledDuration(attack, speedFactor) }
       : attack
   const costed = withActionCost(timed, {
-    slot,
     level,
     speedFactor: speedFactor ?? 1,
   })
   return withMastery(costed, resolveSlotMove(species, slot, moveSet)?.mastery)
 }
 
-// Domínio baixo: mais energia e mais recarga. Sem domínio (básico), igual.
+// Domínio baixo: mais energia e mais recarga. Sem domínio, igual.
 function withMastery(attack, mastery) {
   if (mastery == null) return attack
   return {
@@ -128,15 +123,14 @@ function withMastery(attack, mastery) {
   }
 }
 
-// Ordem de prioridade de disparo por tick — botão esquerdo do mouse
-// primeiro, depois Q/E/R na ordem de sempre (mesmos rótulos de
-// `resolveActionSlots`/`species.basicAttack`/`species.skills[N]`, ver `core/data/
-// actionSlots.js`). Reaproveita o padrão de `SLOTS` em
+// Ordem de prioridade de disparo por tick — Q/E/R na ordem de sempre (mesmos
+// rótulos de `resolveActionSlots`/`species.skills[N]`, ver `core/data/
+// actionSlots.js`). O clique esquerdo não dispara golpe nenhum (não há ataque
+// básico) — só confirma a mira no `castMode: 'confirm'`. Reaproveita o padrão de `SLOTS` em
 // `partySummonSystem.js` (array de `{ input, slot }`, só um processado
 // por tick — segurar duas teclas juntas não empilha, só a primeira da
 // lista com input+config válidos ganha).
 export const ATTACK_SLOTS = [
-  { input: 'primary', slot: 'primary' },
   { input: 'secondary1', slot: 'secondary1' },
   { input: 'secondary2', slot: 'secondary2' },
   { input: 'secondary3', slot: 'secondary3' },
@@ -223,25 +217,19 @@ export function tryStartAttack(
     ? rollChannelWeights(resolveChannelTickCount(attack), gameplayRng)
     : null
   action.channelTick = 0
+  action.channelEffectTargets = isChannelAttack(attack) ? [] : null
   vitals.stamina -= attack.staminaCost
   vitals.staminaRegenDelay = vitals.staminaRegenDelayAfterUse
   // Cooldown NÃO começa aqui — só quando a ação terminar (passo 4).
 
-  // Horizontal, com assistência no corpo a corpo — ver
-  // `resolveAttackDirection` (`core/battle/attackAim.js`). Golpe em SI
+  // Horizontal, pelo giro da câmera — ver `resolveAttackDirection`
+  // (`core/battle/attackAim.js`). Golpe em SI
   // MESMO (Growth) não mira: fica a direção pra onde o corpo já está virado.
   const self = isSelfAttack(attack)
   const aim = self
     ? resolveFacingDirection(rot)
     : (direction ??
-      resolveAttackDirection(
-        world,
-        pos,
-        physicsBody.colliderHandle,
-        species,
-        attack,
-        slot,
-      ))
+      resolveAttackDirection(world, pos, physicsBody.colliderHandle, species))
   action.dirX = aim.x
   action.dirY = aim.y
   action.dirZ = aim.z
@@ -321,6 +309,7 @@ export function finishAttack(entity, action, attack, cooldowns = null) {
   action.animationKey = null
   action.channelWeights = null
   action.channelTick = 0
+  action.channelEffectTargets = null
 }
 
 /**
@@ -342,5 +331,5 @@ export function requiresHold(action, attack) {
  */
 export function isSlotHeld(input, slot) {
   if (input.primaryHeld) return true
-  return slot !== 'primary' && !!input[`${slot}Held`]
+  return !!input[`${slot}Held`]
 }

@@ -1,5 +1,11 @@
 import { GAME_CONFIG } from '@/core/gameConfig'
 import {
+  TYPE_CHART,
+  listTypes,
+  resolveSkillType,
+  resolveSpeciesTypes,
+} from '@/core/data/types'
+import {
   resolveStab,
   rollCriticalMultiplier,
 } from '@/core/battle/calculateDamage'
@@ -119,8 +125,9 @@ function buildAttack(entry) {
   const { attack } = entry
   return {
     slot: entry.slot,
-    skillId: entry.slot === 'primary' ? null : attack.id,
-    name: entry.slot === 'primary' ? 'Ataque básico' : formatName(attack.id),
+    skillId: attack.id,
+    name: formatName(attack.id),
+    type: resolveSkillType(attack),
     category: resolveAttackCategory(attack),
     power: attack.damage?.power ?? null,
     area: resolveAttackArea(attack),
@@ -146,6 +153,7 @@ function buildSpecies(species) {
     growthRate: resolveGrowthRate(species),
     bodyRadius: species.body?.capsuleRadius ?? null,
     hasTypes: Boolean(species.types?.length),
+    types: resolveSpeciesTypes(species),
     stats: range.stats,
     energy: range.energy,
     hpRegen: range.hpRegen,
@@ -247,6 +255,9 @@ function buildSkill(skill) {
     id: skill.id,
     name: formatName(skill.id),
     category: summary.category,
+    type: summary.type,
+    // tipos em que o golpe de status não pega (ex.: o roubo de vida em Planta)
+    immuneTypes: skill.immuneTypes ?? [],
     power: summary.power,
     accuracy: summary.accuracy,
     area: summary.area,
@@ -327,6 +338,43 @@ function buildExperience(speciesList) {
   }
 }
 
+/**
+ * Os tipos e a tabela de efetividade: cada tipo com nome e cor, e, por tipo de
+ * golpe, só os pares que não são neutros (`{ attack, defender, multiplier }`).
+ */
+function buildTypes() {
+  const chart = []
+  for (const [attack, row] of Object.entries(TYPE_CHART)) {
+    for (const [defender, multiplier] of Object.entries(row)) {
+      chart.push({ attack, defender, multiplier })
+    }
+  }
+  return {
+    list: listTypes().map(({ id, name, color }) => ({ id, name, color })),
+    chart,
+  }
+}
+
+/**
+ * A queimadura como o jogo aplica hoje — os valores do primeiro golpe que
+ * queima (`effects` com `type: 'burn'`); `null` se nenhum queima.
+ */
+function buildBurn() {
+  for (const skill of listWikiSkills()) {
+    const burn = skill.effects?.find((effect) => effect.type === 'burn')
+    if (!burn) continue
+    return {
+      chance: burn.chance ?? 1,
+      fraction: burn.fraction ?? 0,
+      interval: burn.interval ?? 0,
+      duration: burn.duration ?? 0,
+      attackMultiplier: burn.attackMultiplier ?? 1,
+      immuneTypes: burn.immuneTypes ?? [],
+    }
+  }
+  return null
+}
+
 /** Cada golpe de dano de cada criatura contra a primeira da lista. */
 function buildDamageExamples(speciesList) {
   const defender = speciesList[0]
@@ -337,17 +385,18 @@ function buildDamageExamples(speciesList) {
     for (const { slot } of ATTACK_SLOTS) {
       const attack = resolveAttackForEntity(attacker, slot, ivs)
       if (!attack?.damage) continue
-      const { damage } = resolveDamagePreview({
+      const { damage, stab, typeMultiplier } = resolveDamagePreview({
         attacker: { species: attacker, individualValues: ivs },
         defender: { species: defender, individualValues: ivs },
         slot,
       })
       rows.push({
         attackerName: formatName(attacker.id),
-        attackName:
-          slot === 'primary' ? 'Ataque básico' : formatName(attack.id),
+        attackName: formatName(attack.id),
         category: resolveAttackCategory(attack),
         power: attack.damage.power ?? null,
+        stab,
+        typeMultiplier: typeMultiplier.multiplier,
         channel: damage.channel,
         min: damage.channel ? damage.total : damage.min,
         max: damage.channel ? damage.total : damage.max,
@@ -400,7 +449,6 @@ export function buildWikiData() {
       speedFactorMax: BATTLE.ATTACK_SPEED.MAX_FACTOR,
       defaultAccuracy: DEFAULT_ACCURACY,
       maxCombatHeight: BATTLE.MAX_COMBAT_HEIGHT_DIFF,
-      meleeAssistAngle: toDegrees(BATTLE.MELEE_AIM_HALF_ANGLE),
       windupSteering: BATTLE.ATTACK_WINDUP_STEERING,
       combatModeTimeout: BATTLE.COMBAT_MODE_TIMEOUT,
       hitStun: BATTLE.HIT_STUN_DURATION,
@@ -414,6 +462,7 @@ export function buildWikiData() {
       coneBonus: ACTION_COST.CONE_BONUS,
       stageWeight: AI_ATTACK.STAT_STAGE_VALUE,
       drainWeight: AI_ATTACK.LEECH_SEED_VALUE,
+      burnWeight: AI_ATTACK.BURN_VALUE,
       runWeight: ACTION_COST.RUN_WEIGHT_PER_SECOND,
       dashWeight: ACTION_COST.DASH_WEIGHT,
       jumpWeight: ACTION_COST.JUMP_WEIGHT,
@@ -492,6 +541,8 @@ export function buildWikiData() {
       scanRange: getItem('pokedex')?.scanner?.range ?? null,
       historyLimit: SCAN_HISTORY_LIMIT,
     },
+    types: buildTypes(),
+    burn: buildBurn(),
     experience: buildExperience(speciesList),
     moves: buildMoves(),
     species: speciesList.map(buildSpecies),

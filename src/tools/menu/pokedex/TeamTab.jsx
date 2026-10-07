@@ -11,7 +11,9 @@ import {
   PartyProgress,
 } from '@/core/traits'
 import { MAX_MASTERY, MOVE_SLOTS } from '@/core/data/species/moves'
-import { formatSpeciesName } from '@/view/shared/statusDisplay'
+import { formatSpeciesName, TypeBadge } from '@/view/shared/statusDisplay'
+import { getSkill } from '@/core/data/skills'
+import { resolveSkillType } from '@/core/data/types'
 import { formatProgressPercent } from '@/view/shared/formatProgress'
 import { StatsScreen } from '../../shared/StatsScreen'
 
@@ -115,8 +117,11 @@ function MoveList({ moves }) {
         return (
           <div key={moveSlot} className="flex items-center gap-2 text-[11px]">
             <span className="w-3 text-white/50">{MOVE_KEYS[moveSlot]}</span>
-            <span className="flex-1">
+            <span className="flex flex-1 items-center gap-1.5">
               {move ? formatSpeciesName(move.id) : '—'}
+              {move && getSkill(move.id) && (
+                <TypeBadge type={resolveSkillType(getSkill(move.id))} />
+              )}
             </span>
             {move && (
               <>

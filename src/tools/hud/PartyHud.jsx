@@ -24,7 +24,9 @@ import {
   resolveDisplayLevel,
   resolveXpPercent,
   SpritePortrait,
+  ConditionBadges,
   StatStageBadges,
+  TypeBadges,
   VitalBar,
 } from '@/view/shared/statusDisplay'
 import { CARD_TRANSITION, statusLayoutId } from './statusMotion'
@@ -333,6 +335,7 @@ function PartySlotCard({
             </span>
           )}
         </div>
+        <TypeBadges types={species.types} compact align="start" />
         {faintTimeLeft > 0 && (
           <span className="text-[10px] text-red-400">
             desmaiada · {formatCountdown(faintTimeLeft)}
@@ -350,6 +353,7 @@ function PartySlotCard({
           max={maxStamina}
           colorClass="bg-sky-400"
         />
+        <ConditionBadges entity={activeEntity} compact align="start" />
         <StatStageBadges entity={activeEntity} compact align="start" />
       </div>
     </motion.div>

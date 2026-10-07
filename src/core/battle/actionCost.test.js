@@ -95,20 +95,16 @@ describe('custo e recarga pela fórmula', () => {
     )
   })
 
-  it('withActionCost: ausentes saem da fórmula; o básico não tem recarga', () => {
+  it('withActionCost: ausentes saem da fórmula', () => {
     const tackle = melee({ damage: { power: 40 } })
-    const skill = withActionCost(tackle, { slot: 'secondary1', level: 5 })
+    const skill = withActionCost(tackle, { level: 5 })
     expect(skill.staminaCost).toBeCloseTo(resolveLevelCost(5, 40))
     expect(skill.cooldown).toBeCloseTo(resolveAttackCooldown(40))
-
-    const basic = withActionCost(tackle, { slot: 'primary', level: 5 })
-    expect(basic.staminaCost).toBeCloseTo(resolveLevelCost(5, 40))
-    expect(basic.cooldown).toBe(0)
   })
 
   it('withActionCost: escrito na definição (skill ou override) ganha da fórmula', () => {
     const custom = melee({ damage: { power: 40 }, staminaCost: 9, cooldown: 7 })
-    const resolved = withActionCost(custom, { slot: 'secondary1', level: 5 })
+    const resolved = withActionCost(custom, { level: 5 })
     expect(resolved.staminaCost).toBe(9)
     expect(resolved.cooldown).toBe(7)
   })
@@ -153,12 +149,15 @@ describe('resolveAttackForEntity — o golpe de verdade, com o preço', () => {
     expect(ember.staminaCost).toBeGreaterThan(tackle.staminaCost)
   })
 
-  it('o básico tem custo simbólico e nenhuma recarga', () => {
-    const basic = resolveAttackForEntity(CHARMANDER, 'primary', IVS)
-    const tackle = resolveAttackForEntity(CHARMANDER, 'secondary2', IVS)
-    expect(basic.staminaCost).toBeGreaterThan(0)
-    expect(basic.staminaCost).toBeLessThan(tackle.staminaCost / 4)
-    expect(basic.cooldown).toBe(0)
+  it('todo golpe do kit tem custo e recarga pela fórmula (sem básico de graça)', () => {
+    for (const slot of ['secondary1', 'secondary2', 'secondary3']) {
+      const attack = resolveAttackForEntity(CHARMANDER, slot, IVS)
+      if (!attack) continue
+      expect(attack.staminaCost).toBeGreaterThan(0)
+      if (attack.damage || attack.effects?.length) {
+        expect(attack.cooldown).toBeGreaterThan(0)
+      }
+    }
   })
 })
 

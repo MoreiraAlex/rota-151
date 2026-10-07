@@ -4,7 +4,8 @@ import { resolveLevelCost } from './levelCost'
 
 /**
  * Peso de cada tipo de efeito no preço do golpe — a mesma régua da nota da IA
- * (`AI_ATTACK.STAT_STAGE_VALUE`/`LEECH_SEED_VALUE`, `aiEffectEvaluators.js`),
+ * (`AI_ATTACK.STAT_STAGE_VALUE`/`LEECH_SEED_VALUE`/`BURN_VALUE`,
+ * `aiEffectEvaluators.js`),
  * no valor CHEIO (alvo sem o efeito). Tipo de efeito novo no motor de batalha
  * → peso novo aqui; tipo sem peso vale 0.
  */
@@ -12,6 +13,7 @@ const EFFECT_WEIGHTS = {
   statStage: (effect) =>
     GAME_CONFIG.AI_ATTACK.STAT_STAGE_VALUE * Math.abs(effect.stages ?? 0),
   leechSeed: () => GAME_CONFIG.AI_ATTACK.LEECH_SEED_VALUE,
+  burn: (effect) => GAME_CONFIG.AI_ATTACK.BURN_VALUE * (effect.chance ?? 1),
 }
 
 export { resolveLevelCost }
@@ -62,8 +64,8 @@ export function resolveTrainingHours(attack) {
 
 /**
  * Recarga: `peso × COOLDOWN_PER_WEIGHT × speedFactor` — sem nível (é tempo);
- * `speedFactor` é o mesmo do básico (`calculateAttackDurationFactor`: < 1
- * pra quem é rápido).
+ * `speedFactor` é o mesmo da duração do golpe (`calculateAttackDurationFactor`:
+ * < 1 pra quem é rápido).
  */
 export function resolveAttackCooldown(weight, speedFactor = 1) {
   return weight * GAME_CONFIG.ACTION_COST.COOLDOWN_PER_WEIGHT * speedFactor
@@ -71,16 +73,13 @@ export function resolveAttackCooldown(weight, speedFactor = 1) {
 
 /**
  * O ataque com `staminaCost`/`cooldown` resolvidos: os escritos na definição
- * (skill ou override da espécie) ganham; os ausentes saem da fórmula. O
- * básico (`primary`) não tem recarga — o ritmo dele vem da duração.
+ * (skill ou override da espécie) ganham; os ausentes saem da fórmula.
  */
-export function withActionCost(attack, { slot, level, speedFactor = 1 }) {
+export function withActionCost(attack, { level, speedFactor = 1 }) {
   const weight = resolveAttackWeight(attack)
-  const formulaCooldown =
-    slot === 'primary' ? 0 : resolveAttackCooldown(weight, speedFactor)
   return {
     ...attack,
     staminaCost: attack.staminaCost ?? resolveLevelCost(level, weight),
-    cooldown: attack.cooldown ?? formulaCooldown,
+    cooldown: attack.cooldown ?? resolveAttackCooldown(weight, speedFactor),
   }
 }

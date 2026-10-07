@@ -6,6 +6,7 @@ import {
   resolveDisplayLevel,
   resolveXpPercent,
   SpritePortrait,
+  TypeBadges,
 } from '@/view/shared/statusDisplay'
 
 // Mesmas chaves de `species.stats` (`core/data/species/stats.js`) —
@@ -112,6 +113,7 @@ export function StatsScreen({
                 <span className="text-sm font-semibold">
                   {formatSpeciesName(species.id)}
                 </span>
+                <TypeBadges types={species.types} align="start" />
 
                 {cp != null && (
                   <span className="text-[11px] text-amber-400">CP {cp}</span>

@@ -39,7 +39,7 @@ import { trait } from 'koota'
  * `speed: 3.33` — e nem o COMENTÁRIO ao lado do `duration` batia com
  * nenhum dos dois, `2.5`). Agora `duration` (já a única fonte de
  * verdade de "quanto tempo a ação trava a entidade", configurada em
- * `basicAttack`/`skills[N]`/`actions.<id>`) é também a ÚNICA fonte da
+ * a skill/`actions.<id>`) é também a ÚNICA fonte da
  * velocidade de playback: quem DISPARA a ação (`playerActionSystem`/
  * `partySummonSystem`/`creatureAttackSystem`, os mesmos donos de
  * escrita de `current`/`elapsed` abaixo) grava `1 / duration` aqui, no
@@ -69,6 +69,11 @@ import { trait } from 'koota'
  * sorteadas no disparo (`rollChannelWeights`, somam 1), e o índice do
  * próximo tick. `null`/`0` fora disso. Dono: `creatureAttackSystem`.
  *
+ * `channelEffectTargets` — só em ataque CANALIZADO: quem já sorteou o efeito
+ * secundário do golpe neste lançamento (ex.: a chance de queimar), pra cada
+ * alvo sortear uma vez só (`applyChannelTick`). Lista transitória de
+ * entidades, zerada no disparo e no fim. `null` fora disso.
+ *
  * `pendingSlot` guarda QUAL slot a ação em andamento diz respeito, com
  * significado diferente por ação (mesmo campo reaproveitado, não um por
  * ação — igual a `dirX/dirY/dirZ`):
@@ -76,14 +81,10 @@ import { trait } from 'koota'
  *   (`'slot1' | 'slot2' | 'slot3'`), já que o efeito de verdade (spawnar
  *   ou destruir a `SummonedCreature`) só acontece depois, no instante de
  *   `EFFECT_AT`, não no disparo.
- * - ataque/skill de criatura (`creatureAttackSystem.js`, desde a 9ª
- *   rodada de docs/features/025-ataque-comum-de-criatura.md): qual botão
- *   disparou (`'primary' | 'secondary1' | 'secondary2' | 'secondary3'`,
- *   mesmos rótulos de `species.basicAttack`/`species.skills[N]`) — precisa disso porque
- *   `current` some diz "attack" pras duas fontes (mouse e Q/E/R), sem
- *   dizer QUAL ataque resolver durante o progresso (`effectAt`/
- *   `duration`); sem o slot, `creatureAttackSystem` não saberia se deve
- *   reler `basicAttack` ou `skills[1]` no meio do gesto.
+ * - golpe de criatura (`creatureAttackSystem.js`): qual slot disparou
+ *   (`'secondary1' | 'secondary2' | 'secondary3'`, ou `'training'`) —
+ *   `current` só diz "attack", sem dizer QUAL golpe resolver durante o
+ *   progresso (`effectAt`/`duration`).
  *
  * `null` quando não há ação relevante em andamento.
  *
@@ -108,6 +109,7 @@ export const ActionState = trait({
   animationKey: null,
   channelWeights: null,
   channelTick: 0,
+  channelEffectTargets: null,
   dirX: 0,
   dirY: 0,
   dirZ: 0,

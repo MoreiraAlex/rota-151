@@ -20,6 +20,9 @@ import {
   resolveReachFor,
   scoreAiAttack,
 } from './aiAttackChoice'
+import { resolveAttackForEntity } from './attackCasting'
+import { resolveStab } from './calculateDamage'
+import { resolveTypeEffectiveness } from '../data/types'
 
 const {
   IN_REACH_BONUS,
@@ -136,6 +139,36 @@ describe('scoreAiAttack — só pelos campos da definição', () => {
     ).toBe(0)
   })
 
+  it('tipo: multiplica o dano por STAB × efetividade contra o alvo', () => {
+    const { attacker, spawnEnemy } = setup()
+    const attackerSpecies = getSpecies('charmander')
+    const targetSpecies = getSpecies('bulbasaur')
+    attacker.add(WildCreature({ speciesId: attackerSpecies.id }))
+    const target = spawnEnemy(0, 5)
+    target.add(WildCreature({ speciesId: targetSpecies.id }))
+    const type = attackerSpecies.types[0]
+    const expected =
+      40 *
+      resolveStab(type, attackerSpecies.types) *
+      resolveTypeEffectiveness(type, targetSpecies.types).multiplier
+    expect(scoreAiAttack({ ...HIT, type }, situation(attacker, target))).toBe(
+      expected,
+    )
+  })
+
+  it('tipo: golpe de status que não pega no tipo do alvo vale 0', () => {
+    const { attacker, spawnEnemy } = setup()
+    const targetSpecies = getSpecies('bulbasaur')
+    const target = spawnEnemy(0, 2)
+    target.add(WildCreature({ speciesId: targetSpecies.id }))
+    expect(
+      scoreAiAttack(
+        { ...SEED, immuneTypes: [targetSpecies.types[0]] },
+        situation(attacker, target),
+      ),
+    ).toBe(0)
+  })
+
   it('`ai.weight` multiplica a nota', () => {
     const { attacker, spawnEnemy } = setup()
     const far = spawnEnemy(0, 5)
@@ -192,23 +225,24 @@ describe('planAiAttack — com uma espécie de verdade', () => {
 
   it('alvo longe: o golpe à distância (já alcança) tem a maior chance', () => {
     const { wild, trainer } = spawnCharmanders()
-    // A 6m só o Ember (alcance 8) alcança: 40 × bônus = 50, contra 40 do
-    // Tackle; o Growl (25, fora do alcance) fica fora do sorteio. Ordem dos
-    // slots: Tackle (E) antes do Ember (R).
+    // A 6m só o Ember (alcance 8) alcança e ainda tem STAB (Charmander é de
+    // Fogo): a nota dele é a maior, então o sorteio no topo cai nele.
     const plan = planAiAttack(wild, CHARMANDER, trainer, [], null, () => 0.99)
     expect(plan.attack.id).toBe('ember')
     expect(plan.reach).toBeGreaterThan(6)
-    expect(
-      planAiAttack(wild, CHARMANDER, trainer, [], null, () => 0).attack.id,
-    ).toBe('tackle')
   })
 
   it('golpe em cooldown ou sem stamina fica de fora; nada pronto → null', () => {
     const { wild, trainer } = spawnCharmanders()
     wild.set(AttackCooldowns, { secondary1: 5, secondary2: 5, secondary3: 5 })
     expect(
+      planAiAttack(wild, CHARMANDER, trainer, [], null, () => 0),
+    ).toBeNull()
+
+    wild.set(AttackCooldowns, { secondary2: 0 })
+    expect(
       planAiAttack(wild, CHARMANDER, trainer, [], null, () => 0).slot,
-    ).toBe('primary')
+    ).toBe('secondary2')
     wild.set(Vitals, { stamina: 0 })
     expect(
       planAiAttack(wild, CHARMANDER, trainer, [], null, () => 0),
@@ -217,39 +251,46 @@ describe('planAiAttack — com uma espécie de verdade', () => {
 
   it('mantém o golpe planejado enquanto ele continua pronto', () => {
     const { wild, trainer } = spawnCharmanders()
-    const plan = planAiAttack(wild, CHARMANDER, trainer, [], 'primary', () => 0)
-    expect(plan.slot).toBe('primary')
-    wild.set(AttackCooldowns, { primary: 1 })
+    const plan = planAiAttack(
+      wild,
+      CHARMANDER,
+      trainer,
+      [],
+      'secondary2',
+      () => 0,
+    )
+    expect(plan.slot).toBe('secondary2')
+    wild.set(AttackCooldowns, { secondary2: 1 })
     expect(
-      planAiAttack(wild, CHARMANDER, trainer, [], 'primary', () => 0).slot,
-    ).not.toBe('primary')
+      planAiAttack(wild, CHARMANDER, trainer, [], 'secondary2', () => 0)?.slot,
+    ).not.toBe('secondary2')
   })
 
-  it('espécie sem habilidades: só o básico', () => {
+  it('espécie sem golpes: nada a planejar', () => {
     const noSkills = { ...CHARMANDER, skills: {} }
     const { wild, trainer } = spawnCharmanders()
     expect(
-      planAiAttack(wild, noSkills, trainer, [], null, () => 0.99).slot,
-    ).toBe('primary')
+      planAiAttack(wild, noSkills, trainer, [], null, () => 0.99),
+    ).toBeNull()
   })
 
-  it('energia baixa: golpes mais caros que o mais barato ficam de fora (reserva)', () => {
+  it('energia baixa: golpes mais caros que o mais barato só se sobrar a reserva', () => {
     const { wild, trainer } = spawnCharmanders()
     const { maxStamina } = wild.get(Vitals)
-    wild.set(Vitals, {
-      stamina: GAME_CONFIG.AI_ENERGY.SKILL_RESERVE_FRACTION * maxStamina,
-    })
-    // Growl (2) e Ember (4) não cabem; o básico e o Tackle deste Charmander
-    // custam o mesmo 0.25 (o mais barato) e continuam.
-    const cheap = ['primary', 'secondary2']
-    for (const roll of [0, 0.5, 0.99]) {
-      expect(cheap).toContain(
-        planAiAttack(wild, CHARMANDER, trainer, [], null, () => roll).slot,
+    const stamina = GAME_CONFIG.AI_ENERGY.SKILL_RESERVE_FRACTION * maxStamina
+    wild.set(Vitals, { stamina })
+    const costs = ['secondary1', 'secondary2', 'secondary3']
+      .map((slot) =>
+        resolveAttackForEntity(CHARMANDER, slot, wild.get(IndividualValues)),
       )
+      .filter((attack) => attack && attack.staminaCost <= stamina)
+      .map((attack) => attack.staminaCost)
+    const cheapest = Math.min(...costs)
+
+    for (const roll of [0, 0.5, 0.99]) {
+      const plan = planAiAttack(wild, CHARMANDER, trainer, [], null, () => roll)
+      if (!plan) continue
+      expect(plan.attack.staminaCost).toBeLessThanOrEqual(cheapest)
     }
-    // Plano numa habilidade que deixou de caber na reserva é descartado.
-    expect(cheap).toContain(
-      planAiAttack(wild, CHARMANDER, trainer, [], 'secondary3', () => 0).slot,
-    )
   })
 })

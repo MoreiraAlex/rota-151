@@ -9,7 +9,6 @@ import { createWorld } from 'koota'
 import { CreatureMoves, Training } from '../traits'
 
 const SPECIES = {
-  basicAttack: { id: 'test-basic', range: 1 },
   skills: {
     1: 'ember',
     2: { id: 'ember', overrides: { range: 9 } },
@@ -17,8 +16,8 @@ const SPECIES = {
 }
 
 describe('resolveCreatureAttack', () => {
-  it('primary é o ataque básico próprio da espécie', () => {
-    expect(resolveCreatureAttack(SPECIES, 'primary')).toBe(SPECIES.basicAttack)
+  it('não existe ataque básico: o clique (primary) não resolve golpe', () => {
+    expect(resolveCreatureAttack(SPECIES, 'primary')).toBeNull()
   })
 
   it('secondaryN resolve a habilidade N de `skills` (compartilhada, com override por espécie)', () => {
@@ -28,10 +27,10 @@ describe('resolveCreatureAttack', () => {
     expect(resolveCreatureAttack(SPECIES, 'secondary2').range).toBe(9)
   })
 
-  it('slot vazio, espécie sem básico ou sem espécie → null', () => {
+  it('slot vazio, espécie sem golpes ou sem espécie → null', () => {
     expect(resolveCreatureAttack(SPECIES, 'secondary3')).toBeNull()
-    expect(resolveCreatureAttack({}, 'primary')).toBeNull()
-    expect(resolveCreatureAttack(null, 'primary')).toBeNull()
+    expect(resolveCreatureAttack({}, 'secondary1')).toBeNull()
+    expect(resolveCreatureAttack(null, 'secondary1')).toBeNull()
   })
 
   it('com moveSet, o golpe vem da criatura, com os overrides da espécie', () => {

@@ -22,6 +22,7 @@ import {
 import { resolveDashCost } from '../actions/stamina'
 import { resolveAttackForEntity } from './attackCasting'
 import { resolveReachFor } from './aiAttackChoice'
+import { isChannelAttack, isSelfAttack } from './channelAttack'
 import {
   advanceAiDash,
   moveInFight,
@@ -31,6 +32,17 @@ import {
 
 const DELTA = 1 / 60
 const CHARMANDER = getSpecies('charmander')
+// Um golpe corpo a corpo de dano do kit (sem fixar qual) — o "golpe de
+// sempre" dos testes de desvio.
+const MELEE_SLOT = ['secondary1', 'secondary2', 'secondary3'].find((slot) => {
+  const attack = resolveAttackForEntity(CHARMANDER, slot, null)
+  return (
+    attack?.damage &&
+    attack.aim === 'melee' &&
+    !isSelfAttack(attack) &&
+    !isChannelAttack(attack)
+  )
+})
 const BODY = CHARMANDER.body
 const MOVE = GAME_CONFIG.AI_MOVEMENT
 const DASH = GAME_CONFIG.PLAYER_ACTIONS.dash
@@ -130,7 +142,7 @@ describe('resolveIncomingAttack — dentro do aviso de um golpe', () => {
     // Atacante 1m atrás (-Z), golpeando pra +Z; ela 0.1m pro lado +X.
     mover.set(Position, at(0.1, 0))
     const enemy = spawnEnemy(at(0, -1))
-    charge(enemy, 'primary', 0.05, { x: 0, z: 1 })
+    charge(enemy, MELEE_SLOT, 0.05, { x: 0, z: 1 })
 
     const incoming = resolveIncomingAttack(
       enemy,
@@ -141,7 +153,7 @@ describe('resolveIncomingAttack — dentro do aviso de um golpe', () => {
 
     expect(incoming.timeLeft).toBeGreaterThan(0)
     // radius + corpo - 0.1 de lado até sair.
-    const basic = resolveAttackForEntity(CHARMANDER, 'primary', null)
+    const basic = resolveAttackForEntity(CHARMANDER, MELEE_SLOT, null)
     expect(incoming.exitDistance).toBeCloseTo(
       basic.radius + BODY.capsuleRadius - 0.1,
     )
@@ -162,9 +174,9 @@ describe('resolveIncomingAttack — dentro do aviso de um golpe', () => {
       )
 
     expect(check()).toBeNull() // sem golpe
-    charge(enemy, 'primary', 0.05, { x: 1, z: 0 }) // golpe pro lado
+    charge(enemy, MELEE_SLOT, 0.05, { x: 1, z: 0 }) // golpe pro lado
     expect(check()).toBeNull()
-    charge(enemy, 'primary', 5, { x: 0, z: 1 }) // já aconteceu
+    charge(enemy, MELEE_SLOT, 5, { x: 0, z: 1 }) // já aconteceu
     expect(check()).toBeNull()
   })
 
@@ -194,7 +206,7 @@ describe('moveInFight — desvio', () => {
 
   it('reage (sorteio) depois do tempo de reação: corre pro lado', () => {
     const { mover, enemy } = incomingSetup()
-    charge(enemy, 'primary', MOVE.DODGE_REACTION_TIME + 0.01, { x: 0, z: 1 })
+    charge(enemy, MELEE_SLOT, MOVE.DODGE_REACTION_TIME + 0.01, { x: 0, z: 1 })
 
     expect(run(mover, enemy, {}, REACT)).toBe('dodge')
     expect(velOf(mover).x).toBeGreaterThan(0)
@@ -203,13 +215,13 @@ describe('moveInFight — desvio', () => {
 
   it('antes do tempo de reação, não desvia ainda', () => {
     const { mover, enemy } = incomingSetup()
-    charge(enemy, 'primary', MOVE.DODGE_REACTION_TIME / 2, { x: 0, z: 1 })
+    charge(enemy, MELEE_SLOT, MOVE.DODGE_REACTION_TIME / 2, { x: 0, z: 1 })
     expect(run(mover, enemy, {}, REACT)).not.toBe('dodge')
   })
 
   it('o sorteio é UMA vez por golpe: não reagiu, não reage no tick seguinte', () => {
     const { mover, enemy } = incomingSetup()
-    charge(enemy, 'primary', MOVE.DODGE_REACTION_TIME + 0.01, { x: 0, z: 1 })
+    charge(enemy, MELEE_SLOT, MOVE.DODGE_REACTION_TIME + 0.01, { x: 0, z: 1 })
 
     expect(run(mover, enemy, {}, IGNORE)).not.toBe('dodge')
     expect(run(mover, enemy, {}, REACT)).not.toBe('dodge')
@@ -217,24 +229,24 @@ describe('moveInFight — desvio', () => {
 
   it('golpe acabou: o próximo golpe é sorteado de novo', () => {
     const { mover, enemy } = incomingSetup()
-    charge(enemy, 'primary', MOVE.DODGE_REACTION_TIME + 0.01, { x: 0, z: 1 })
+    charge(enemy, MELEE_SLOT, MOVE.DODGE_REACTION_TIME + 0.01, { x: 0, z: 1 })
     run(mover, enemy, {}, IGNORE)
 
     enemy.set(ActionState, { current: null })
     run(mover, enemy, {}, IGNORE)
-    charge(enemy, 'primary', MOVE.DODGE_REACTION_TIME + 0.01, { x: 0, z: 1 })
+    charge(enemy, MELEE_SLOT, MOVE.DODGE_REACTION_TIME + 0.01, { x: 0, z: 1 })
     expect(run(mover, enemy, {}, REACT)).toBe('dodge')
   })
 
   it('descansando, não desvia', () => {
     const { mover, enemy } = incomingSetup()
-    charge(enemy, 'primary', MOVE.DODGE_REACTION_TIME + 0.01, { x: 0, z: 1 })
+    charge(enemy, MELEE_SLOT, MOVE.DODGE_REACTION_TIME + 0.01, { x: 0, z: 1 })
     expect(run(mover, enemy, { resting: true }, REACT)).not.toBe('dodge')
   })
 
   it('correndo não dá tempo: sai de dash (gasta energia); sem chão, corre', () => {
     const { mover, enemy } = incomingSetup()
-    const attack = charge(enemy, 'primary', 0, { x: 0, z: 1 })
+    const attack = charge(enemy, MELEE_SLOT, 0, { x: 0, z: 1 })
     // Quase no golpe: não dá pra sair correndo a tempo.
     const hitAt = attack.effectAt
     enemy.set(ActionState, { elapsed: hitAt - 0.02 })
@@ -263,7 +275,7 @@ describe('moveInFight — o corpo gira pra onde está indo (dash e desvio)', () 
     const { mover, spawnEnemy } = setup()
     mover.set(Position, at(0.1, 0))
     const enemy = spawnEnemy(at(0, -1))
-    charge(enemy, 'primary', MOVE.DODGE_REACTION_TIME + 0.01, { x: 0, z: 1 })
+    charge(enemy, MELEE_SLOT, MOVE.DODGE_REACTION_TIME + 0.01, { x: 0, z: 1 })
     mover.set(Rotation, { y: Math.PI }) // encarando o atacante (-Z)
 
     for (let i = 0; i < 20; i++)
@@ -319,9 +331,9 @@ describe('moveInFight — recuo, aproximação e dash', () => {
   it('golpe corpo a corpo com o alvo perto: não recua', () => {
     const { mover, spawnEnemy } = setup()
     const target = spawnEnemy(at(0, 0.5)) // perto o bastante pra recuar
-    const basic = resolveAttackForEntity(CHARMANDER, 'primary', null)
+    const basic = resolveAttackForEntity(CHARMANDER, MELEE_SLOT, null)
     const plan = {
-      slot: 'primary',
+      slot: MELEE_SLOT,
       attack: basic,
       reach: resolveReachFor(basic, BODY),
     }

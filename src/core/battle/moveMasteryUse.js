@@ -33,7 +33,8 @@ function landedThisStep(events, entity) {
       event.type === EVENT_TYPES.ATTACK_RESOLVED &&
       event.attacker === entity &&
       !!event.target &&
-      !event.missed,
+      !event.missed &&
+      event.effectiveness !== 'immune',
   )
 }
 

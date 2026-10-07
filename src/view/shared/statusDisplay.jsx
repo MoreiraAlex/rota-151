@@ -1,8 +1,11 @@
 import Image from 'next/image'
+import { GAME_CONFIG } from '@/core/gameConfig'
 import { CREATURE_TINTS } from '@/view/creatureTints'
 import { ATTACK_COLORS } from '@/view/attackColors'
 import { resolveFeedbackColor, resolveSide } from '@/view/vfx/feedbackColors'
 import { useStatStages } from './useStatStages'
+import { useConditions } from './useConditions'
+import { getType } from '@/core/data/types'
 import {
   resolveGrowthRate,
   resolveLevelProgress,
@@ -136,6 +139,81 @@ export function StatStageBadges({ entity, compact = false, align = 'center' }) {
           </span>
         )
       })}
+    </div>
+  )
+}
+
+/**
+ * Selo das condições de status (docs/features/039-tipos-e-combate-classico.md,
+ * Parte 4) — hoje só a queimadura, "QUEIMADO" na cor dela
+ * (`GAME_CONFIG.FEEDBACK.CONDITION_COLORS`). Sem condição, nada. `compact` e
+ * `align` como em `StatStageBadges`.
+ */
+export function ConditionBadges({ entity, compact = false, align = 'center' }) {
+  const conditions = useConditions(entity)
+  if (conditions.length === 0) return null
+  return (
+    <div
+      className={`flex items-center gap-0.5 ${
+        align === 'start' ? 'justify-start' : 'justify-center'
+      }`}
+    >
+      {conditions.map((condition) => (
+        <span
+          key={condition}
+          className="rounded px-1 font-mono font-bold uppercase leading-tight text-white"
+          style={{
+            backgroundColor: GAME_CONFIG.FEEDBACK.CONDITION_COLORS[condition],
+            textShadow: '0 1px 1px rgba(0, 0, 0, 0.6)',
+            fontSize: compact ? '7px' : '9px',
+          }}
+        >
+          {CONDITION_LABELS[condition] ?? condition}
+        </span>
+      ))}
+    </div>
+  )
+}
+
+const CONDITION_LABELS = { burn: 'Queimado' }
+
+/**
+ * Selo de UM tipo elemental (docs/features/039-tipos-e-combate-classico.md): o nome
+ * do tipo na cor dele (`core/data/types/index.js`). `compact`: menor
+ * (etiqueta flutuante, cartão compacto). Tipo desconhecido não renderiza.
+ */
+export function TypeBadge({ type, compact = false }) {
+  const data = getType(type)
+  if (!data) return null
+  return (
+    <span
+      className="rounded px-1 font-mono font-bold uppercase leading-tight text-white"
+      style={{
+        backgroundColor: data.color,
+        textShadow: '0 1px 1px rgba(0, 0, 0, 0.6)',
+        fontSize: compact ? '7px' : '9px',
+      }}
+    >
+      {data.name}
+    </span>
+  )
+}
+
+/**
+ * Selos dos tipos de uma espécie (`species.types`). Sem tipo (treinador), nada.
+ * `align` como em `StatStageBadges`.
+ */
+export function TypeBadges({ types, compact = false, align = 'center' }) {
+  if (!types?.length) return null
+  return (
+    <div
+      className={`flex items-center gap-0.5 ${
+        align === 'start' ? 'justify-start' : 'justify-center'
+      }`}
+    >
+      {types.map((type) => (
+        <TypeBadge key={type} type={type} compact={compact} />
+      ))}
     </div>
   )
 }

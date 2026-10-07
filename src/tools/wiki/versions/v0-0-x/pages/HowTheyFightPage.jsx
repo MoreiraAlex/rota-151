@@ -45,6 +45,15 @@ export function HowTheyFightPage({ data, version }) {
             dar certo.
           </li>
           <li>
+            O <strong>tipo</strong> conta: golpe do mesmo tipo dela e golpe
+            super efetivo contra o alvo valem mais; golpe que não afeta o alvo
+            não é usado (
+            <WikiLink version={version} to="batalha/tipos">
+              Tipos
+            </WikiLink>
+            ).
+          </li>
+          <li>
             Ela renova efeitos que estão perto de acabar (faltando{' '}
             {formatSeconds(ai.refreshTime, 0)} ou menos).
           </li>
@@ -64,8 +73,9 @@ export function HowTheyFightPage({ data, version }) {
       <Section id="energia" title="Cuidando da energia">
         <ul>
           <li>
-            Ela nunca gasta toda a energia em habilidades: só usa uma se sobrar
-            pelo menos {formatPercent(ai.skillReserve, 0)} depois.
+            Ela nunca gasta toda a energia: um golpe mais caro que o mais barato
+            pronto só sai se sobrar pelo menos{' '}
+            {formatPercent(ai.skillReserve, 0)} depois.
           </li>
           <li>
             Com {formatPercent(ai.restEnter, 0)} de energia ou menos, ela{' '}

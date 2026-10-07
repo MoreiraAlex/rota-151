@@ -1,17 +1,23 @@
 import { verticalClearance } from '../physics/colliders'
 import { registrarParticipante } from '../actions/experience'
+import { readBurnAttackMultiplier } from '../actions/burn'
 import { resolveDamageAmount } from './calculateDamage'
+import { resolveSkillType } from '../data/types'
 import { isChannelAttack, isSelfAttack } from './channelAttack'
 import { resolveAttackOrigin, resolveFootElevation } from './attackGeometry'
 import { readStatStages } from './statStages'
 import { rollAttackFails, rollHit } from './accuracy'
 import { gameplayRng } from '../rng'
-import { attackFailed, attackResolved } from '../events'
+import { attackFailed, attackResolved, attackUsed } from '../events'
 import { resolveAttackSoundKey } from '../data/audio/attackSound'
 import { resolveAttackImpactPoint } from './attackTrajectory'
 import { resolveAttackTarget, resolveEffectTargets } from './attackTargets'
 import { resolveEffectPlacement } from './attackEffectPlacement'
-import { applyAttackEffects, applySelfEffects } from './attackStatusEffects'
+import {
+  applyAttackEffects,
+  applySecondaryEffects,
+  applySelfEffects,
+} from './attackStatusEffects'
 import {
   AttackEffect,
   AttackPulse,
@@ -23,9 +29,12 @@ import {
   applyDamage,
 } from '../traits'
 
-/** Fórmula de dano + `applyDamage` num alvo resolvido. */
+/**
+ * Fórmula de dano + `applyDamage` num alvo resolvido. Alvo imune ao tipo do
+ * golpe (docs/features/039-tipos-e-combate-classico.md): nada é aplicado.
+ */
 function damageTarget(attack, attacker, target, attackerStages) {
-  const { amount, critical } = resolveDamageAmount({
+  const { amount, critical, effectiveness } = resolveDamageAmount({
     attackerSpecies: attacker.species,
     attackerIndividualValues: attacker.individualValues,
     attackerLevel: attacker.level,
@@ -33,16 +42,19 @@ function damageTarget(attack, attacker, target, attackerStages) {
     defenderIndividualValues: target.individualValues,
     defenderLevel: target.level,
     damage: attack.damage,
+    attackType: resolveSkillType(attack),
     // estágios de atributo (golpes de status): o do atacante e o do alvo
     attackerStages,
     defenderStages: readStatStages(target.entity),
+    attackerBurnMultiplier: readBurnAttackMultiplier(attacker.entity),
     rng: gameplayRng,
   })
+  if (effectiveness === 'immune') return { amount: 0, critical, effectiveness }
   target.entity.set(
     Vitals,
     applyDamage(target.vitals, amount, target.vitals.hpRegenDelayAfterDamage),
   )
-  return { amount, critical }
+  return { amount, critical, effectiveness }
 }
 
 /**
@@ -71,6 +83,9 @@ export function resolveAttackImpact(world, events, context) {
   } = context
   const channel = isChannelAttack(attack)
 
+  events.emit(
+    attackUsed({ entity, attackId: attack.id, slot: action.pendingSlot }),
+  )
   if (rollAttackFails(attack, gameplayRng)) {
     events.emit(
       attackFailed({ entity, attackId: attack.id, slot: action.pendingSlot }),
@@ -132,11 +147,13 @@ export function resolveAttackImpact(world, events, context) {
     const attackerStages = readStatStages(entity)
     const missed =
       !!target && !rollHit(attack, attackerStages.accuracy, gameplayRng)
-    const { amount, critical } =
+    const { amount, critical, effectiveness } =
       target && !missed
         ? damageTarget(attack, context, target, attackerStages)
-        : { amount: 0, critical: false }
-    if (target && !missed) {
+        : { amount: 0, critical: false, effectiveness: 'neutral' }
+    // imune: acertou, mas não pegou — sem dano, efeito nem participação
+    const landed = target && !missed && effectiveness !== 'immune'
+    if (landed) {
       damaged.add(target.entity)
       // quem acertou entra na divisão do XP se ela desmaiar
       registrarParticipante(world, entity, target.entity)
@@ -160,19 +177,13 @@ export function resolveAttackImpact(world, events, context) {
         damage: amount,
         critical,
         missed,
+        effectiveness,
       }),
     )
-    // golpe com dano E efeito (ex.: dano + baixar defesa): o efeito
-    // vai no alvo que levou o dano
-    if (target && !missed && attack.effects?.length) {
-      applyAttackEffects(world, events, {
-        entity,
-        action,
-        attack,
-        targets: [target],
-        origin,
-        impactPoint,
-      })
+    // golpe com dano E efeito (ex.: a chance de queimar do Ember): o efeito
+    // vai no alvo que levou o dano, sem sortear precisão de novo
+    if (landed) {
+      applySecondaryEffects(events, { entity, attack, target })
     }
   } else if (attack.effects?.length && !channel) {
     // Golpe SÓ de efeito (sem dano — ex.: Growl): acha os alvos (cone
@@ -207,7 +218,7 @@ export function resolveAttackImpact(world, events, context) {
         radius: attack.radius,
         effectGroup: attack.visual.effectGroup ?? DEFAULT_ATTACK_EFFECT_GROUP,
         revealDuration: attack.visual.revealDuration ?? 0,
-        impactType: attack.visual.impactType ?? attack.damage?.type ?? '',
+        impactType: attack.visual.impactType ?? attack.type ?? '',
         visualScale: attack.visual.scale ?? 1,
         // da PARTIDA do golpe (origem + `positionOffset`) até onde o VFX
         // nasce — um VFX que sai da criatura (Brasa) precisa saber o
@@ -231,7 +242,7 @@ export function resolveAttackImpact(world, events, context) {
   // anterior ainda não foi consumido, só troca o slot.
   const pulse = {
     slot: action.pendingSlot,
-    key: resolveAttackSoundKey(action.pendingSlot, attack) ?? '',
+    key: resolveAttackSoundKey(attack) ?? '',
   }
   if (entity.has(AttackPulse)) {
     entity.set(AttackPulse, pulse)

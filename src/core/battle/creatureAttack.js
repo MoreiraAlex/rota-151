@@ -15,10 +15,8 @@ export const TRAINING_SLOT = 'training'
 
 /**
  * Qual ataque o `slot` dispara — o ponto único que HUDs, mira, som, alvos, IA
- * e `creatureAttackSystem` consultam:
- * - `'primary'` (mouse) → o ataque BÁSICO, único da espécie
- *   (`species.basicAttack`, definição completa em
- *   `core/data/species/<id>/basicAttack.js`);
+ * e `creatureAttackSystem` consultam. Só golpes — não existe ataque básico
+ * (docs/features/039-tipos-e-combate-classico.md, Parte 5: como nos clássicos):
  * - `'secondary1-3'` (Q/E/R) → o golpe daquele slot no `moveSet` da criatura
  *   (`resolveEntityMoveSet`), com os `overrides` que a espécie declara pra
  *   ele (`resolveSpeciesMoveReference`). Sem `moveSet` (wiki, previews), o
@@ -30,7 +28,6 @@ export const TRAINING_SLOT = 'training'
  */
 export function resolveCreatureAttack(species, slot, moveSet) {
   if (!species) return null
-  if (slot === 'primary') return species.basicAttack ?? null
   if (!moveSet) return resolveSkill(species.skills?.[skillNumber(slot)])
   const move = resolveSlotMove(species, slot, moveSet)
   if (!move) return null

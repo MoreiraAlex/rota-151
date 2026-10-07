@@ -36,12 +36,10 @@ import { WhirlpoolAttackEffect } from './WhirlpoolAttackEffect'
  *
  * `'tackle'` (arranhão, malha de rip, revelado progressivamente — ver
  * `TackleAttackEffect.jsx`) e `'punch'` (flash + onda de choque, também
- * rip) são os grupos do ataque COMUM (`basicAttack`); `'vine-whip'`/
- * `'ember'`/`'whirlpool'` (9ª rodada, skills de verdade — ver
- * docs/features/025) são os grupos das 3 primeiras SKILLS
- * (`skills[1]`), uma por Pokémon inicial. Cada um usado por um
- * subconjunto de espécies (ver `core/data/skills/<id>/index.js` pras
- * definições, e `basicAttack`/`skills[N]` em cada `core/data/species/<id>/
+ * rip), `'vine-whip'`/`'ember'`/`'whirlpool'` e os demais são grupos de
+ * golpe (`visual.effectGroup` da skill). Cada um usado por um subconjunto de
+ * espécies (ver `core/data/skills/<id>/index.js` pras definições, e
+ * `skills[N]`/`moves` em cada `core/data/species/<id>/
  * index.js` pra ver quem usa qual). Um golpe novo entra do mesmo jeito —
  * nova entrada + componente aqui, mais a definição em `core/data/
  * attacks/<id>/index.js` — `AttackEffectView.jsx` não muda nada.

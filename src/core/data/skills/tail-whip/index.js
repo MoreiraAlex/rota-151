@@ -20,6 +20,7 @@
  */
 export const TAIL_WHIP_SKILL = {
   id: 'tail-whip',
+  type: 'normal',
   duration: 1,
   effectAt: 0.6,
   range: 3,
@@ -50,7 +51,7 @@ export const TAIL_WHIP_SKILL = {
   },
   // sem ícone próprio ainda: reaproveita o do Growl
   sprite: {
-    path: '/assets/sprites/abilities/growl.png',
+    path: '/assets/sprites/abilities/tail-whip.png',
     scale: 1,
   },
   // o som da cauda toca em loop do `effectAt` ao fim da ação (`actionGroup`)

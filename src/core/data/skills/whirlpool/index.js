@@ -27,6 +27,7 @@
  */
 export const WHIRLPOOL_SKILL = {
   id: 'whirlpool',
+  type: 'water',
   duration: 0.6,
   effectAt: 0.3,
   range: 1.6,
@@ -53,6 +54,6 @@ export const WHIRLPOOL_SKILL = {
   animation: {
     clipKey: 'attack',
   },
-  // Especial, poder de referência: o de "Whirlpool" nos jogos originais. Ver comentário sobre `type: null` em `../tackle/index.js`.
-  damage: { power: 35, category: 'special', type: null },
+  // Especial, poder de referência: o de "Whirlpool" nos jogos originais.
+  damage: { power: 35, category: 'special' },
 }

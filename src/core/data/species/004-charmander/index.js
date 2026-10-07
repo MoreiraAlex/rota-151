@@ -1,5 +1,4 @@
 import CRY_CLIP from './clips/cry.json'
-import { BASIC_ATTACK } from './basicAttack'
 
 const LEVEL = 5
 
@@ -24,6 +23,7 @@ export const CHARMANDER = {
   baseXp: 62,
   growthRate: 'medium-slow',
   kind: 'pokemon',
+  types: ['fire'],
   sprite: {
     path: 'https://play.pokemonshowdown.com/sprites/ani/charmander.gif',
   },
@@ -126,7 +126,6 @@ export const CHARMANDER = {
     dashGroup: 'default',
     jumpGroup: 'default',
   },
-  basicAttack: BASIC_ATTACK,
   skills: {
     1: {
       id: 'growl',

@@ -20,6 +20,7 @@ import {
 import {
   formatSpeciesName,
   resolveDisplayLevel,
+  ConditionBadges,
   StatStageBadges,
   VitalBar,
 } from '../shared/statusDisplay'
@@ -231,6 +232,7 @@ function NameplateView({ entity, species }) {
             max={vitals.maxStamina}
             colorClass="bg-sky-400"
           />
+          <ConditionBadges entity={entity} compact />
           <StatStageBadges entity={entity} compact />
         </div>
       </Html>

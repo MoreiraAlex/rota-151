@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import { EVENT_TYPES } from '@/core/events'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import { getView } from '../registry/viewRegistry'
+import { isOutline } from '../materials/toonMaterial'
 import { resolveFeedbackColor, resolveSide } from '../vfx/feedbackColors'
 
 const { DURATION, INTENSITY } = GAME_CONFIG.FEEDBACK.HIT_FLASH
@@ -42,7 +43,8 @@ function collectFlashSlots(entity, root) {
 
   const slots = []
   root.traverse((child) => {
-    if (!child.isMesh) return
+    // contorno toon: cor chapada, sem brilho — não precisa de material próprio
+    if (!child.isMesh || isOutline(child)) return
 
     const isArray = Array.isArray(child.material)
     const materials = (isArray ? child.material : [child.material]).map(
@@ -139,6 +141,8 @@ export function hitFlashSystem(context) {
     if (event.result !== 'hit') continue
     // golpe de status (sem dano): quem acende é o statStageChanged
     if (event.status) continue
+    // imune ao tipo: não pegou, não acende
+    if (event.effectiveness === 'immune') continue
     consider(event.target, 'damage')
   }
 

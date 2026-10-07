@@ -41,6 +41,7 @@ export const WIKI_V0_0_X = {
       links: [
         { slug: 'batalha/golpes', label: 'Golpes' },
         { slug: 'batalha/dano', label: 'Dano' },
+        { slug: 'batalha/tipos', label: 'Tipos' },
         { slug: 'batalha/acerto-e-erro', label: 'Acerto e erro' },
         { slug: 'batalha/efeitos', label: 'Efeitos em batalha' },
         { slug: 'batalha/energia-e-recarga', label: 'Energia e recarga' },

@@ -52,9 +52,17 @@ function at(dx, dz) {
   return { x: BASE.x + dx, y: BASE.y, z: BASE.z + dz }
 }
 
-// Habilidades travadas em cooldown: só o básico — os testes de distância/
-// intervalo não dependem do sorteio do golpe.
-const SKILLS_LOCKED = { secondary1: 999, secondary2: 999, secondary3: 999 }
+const SLOTS = ['secondary1', 'secondary2', 'secondary3']
+// Um golpe corpo a corpo de dano do kit (sem fixar qual).
+const MELEE_SLOT = SLOTS.find((slot) => {
+  const attack = resolveCreatureAttack(CHARMANDER, slot)
+  return attack?.damage && attack.aim === 'melee' && !attack.damageMode
+})
+// Só o golpe corpo a corpo pronto (os outros travados em cooldown) — os testes
+// de distância/intervalo não dependem do sorteio do golpe.
+const SKILLS_LOCKED = Object.fromEntries(
+  SLOTS.filter((slot) => slot !== MELEE_SLOT).map((slot) => [slot, 999]),
+)
 
 /** Criatura do time como o `summonBallSystem` cria (fora do controle). */
 function spawnPartyCreature(
@@ -121,7 +129,7 @@ function hit(attacker, target) {
     attacker,
     target,
     attackId: 'tackle',
-    slot: 'primary',
+    slot: MELEE_SLOT,
     origin: { x: 0, y: 0, z: 0 },
     impactPoint: { x: 0, y: 0, z: 1 },
     damage: 5,
@@ -202,8 +210,8 @@ describe('partyReactionSystem — sempre defensiva', () => {
 })
 
 describe('partyBehaviorSystem — lutando', () => {
-  const tackle = resolveCreatureAttack(CHARMANDER, 'primary')
-  const REACH = tackle.range + tackle.radius + CHARMANDER.body.capsuleRadius
+  const melee = resolveCreatureAttack(CHARMANDER, MELEE_SLOT)
+  const REACH = melee.range + melee.radius + CHARMANDER.body.capsuleRadius
 
   function tick(world) {
     partyBehaviorSystem({ world, delta: DELTA })
@@ -426,7 +434,7 @@ describe('partyBehaviorSystem — habilidades (escolha do golpe)', () => {
 
     expect(mine.get(Vitals).hp).toBeLessThan(mine.get(Vitals).maxHp)
     expect(wild.get(Vitals).hp).toBeLessThan(wildHpBefore)
-    expect([...used].some((slot) => slot !== 'primary')).toBe(true)
+    expect(used.size).toBeGreaterThan(0)
   })
 
   it('energia baixa: descansa — sem golpe e sem correr até recuperar', () => {

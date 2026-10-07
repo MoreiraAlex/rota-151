@@ -32,9 +32,9 @@ export function resolveImpactType(type) {
 }
 
 /**
- * Tipo de impacto de um ataque resolvido: `visual.impactType`, senão
- * `damage.type` (reservado pro STAB, hoje `null`), senão `'normal'`.
+ * Tipo de impacto de um ataque resolvido: `visual.impactType`, senão o tipo
+ * do golpe (`attack.type`), senão `'normal'`.
  */
 export function resolveAttackImpactType(attack) {
-  return resolveImpactType(attack?.visual?.impactType ?? attack?.damage?.type)
+  return resolveImpactType(attack?.visual?.impactType ?? attack?.type)
 }

@@ -1,5 +1,4 @@
 import CRY_CLIP from './clips/cry.json'
-import { BASIC_ATTACK } from './basicAttack'
 
 const LEVEL = 5
 
@@ -24,6 +23,7 @@ export const BULBASAUR = {
   baseXp: 64,
   growthRate: 'medium-slow',
   kind: 'pokemon',
+  types: ['grass', 'poison'],
   sprite: {
     path: 'https://play.pokemonshowdown.com/sprites/ani/bulbasaur.gif',
   },
@@ -130,7 +130,6 @@ export const BULBASAUR = {
     dashGroup: 'default',
     jumpGroup: 'default',
   },
-  basicAttack: BASIC_ATTACK,
   skills: {
     1: {
       id: 'growl',
@@ -170,5 +169,5 @@ export const BULBASAUR = {
     sp_def: { base: SP_DEF, ev: SP_DEF_EV },
     speed: { base: SPEED, ev: SPEED_EV },
   },
-  moves: [{ id: 'leech-seed' }],
+  moves: [{ id: 'leech-seed' }, { id: 'growth' }],
 }

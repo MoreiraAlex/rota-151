@@ -11,9 +11,9 @@ describe('resolveActionSlots', () => {
     })
   })
 
-  it("'pokemon' resolve primary como ataque comum e secondary1-3 como papéis genéricos de skill (Q/E/R, conteúdo real vem de species.skills[N])", () => {
+  it("'pokemon': o clique só confirma a mira (sem ataque básico) e secondary1-3 são os golpes (Q/E/R)", () => {
     expect(resolveActionSlots('pokemon')).toEqual({
-      primary: 'attack',
+      primary: 'confirmAim',
       secondary1: 'skill1',
       secondary2: 'skill2',
       secondary3: 'skill3',

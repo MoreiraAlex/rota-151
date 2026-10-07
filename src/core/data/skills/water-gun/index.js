@@ -20,6 +20,7 @@
  */
 export const WATER_GUN_SKILL = {
   id: 'water-gun',
+  type: 'water',
   // canal de até `duration`; o jato começa no fim do `attackRangedAltStart`
   duration: 2.5,
   effectAt: 0.6,
@@ -48,5 +49,5 @@ export const WATER_GUN_SKILL = {
   },
   audio: { group: 'water-gun' },
   animation: { clipKey: 'attackRangedAlt' },
-  damage: { power: 40, category: 'special', type: null },
+  damage: { power: 40, category: 'special' },
 }

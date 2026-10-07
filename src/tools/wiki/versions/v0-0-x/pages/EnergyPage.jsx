@@ -47,7 +47,8 @@ export function EnergyPage({ data, version }) {
           <p className="text-muted-foreground">
             Cada nível de atributo que o golpe sobe ou baixa vale{' '}
             {formatNumber(cost.stageWeight)}; roubar vida vale{' '}
-            {formatNumber(cost.drainWeight)}.
+            {formatNumber(cost.drainWeight)}; a chance de queimar vale{' '}
+            {formatNumber(cost.burnWeight)} × a chance.
           </p>
         </Formula>
         <p>O peso só define o preço: não muda o dano.</p>
@@ -87,7 +88,6 @@ export function EnergyPage({ data, version }) {
             : criaturas rápidas recarregam mais depressa.
           </li>
           <li>A recarga começa a contar quando o golpe termina.</li>
-          <li>O ataque básico não tem recarga.</li>
           <li>
             Golpes ainda não dominados custam mais energia e demoram mais pra
             recarregar (ver{' '}

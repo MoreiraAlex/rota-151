@@ -10,7 +10,7 @@
  * até quem plantou a cada drenagem. As espécies ainda não têm tipo, então
  * a imunidade das plantas não existe aqui.
  *
- * Alvo único (o primeiro corpo na trajetória, como o básico), com o sorteio de
+ * Alvo único (o primeiro corpo na trajetória, como um golpe de dano), com o sorteio de
  * precisão (`accuracy`) e interrompível na carga (golpe de status).
  * O efeito (`effects`, tipo `leechSeed`) é aplicado no `effectAt` por
  * `plantarSemente`; quem drena é o `leechSeedSystem`.
@@ -19,6 +19,7 @@
  */
 export const LEECH_SEED_SKILL = {
   id: 'leech-seed',
+  type: 'grass',
   duration: 1.2,
   effectAt: 0.6,
   range: 5,
@@ -27,6 +28,8 @@ export const LEECH_SEED_SKILL = {
   radius: 0.4,
   accuracy: 90,
   damage: null,
+  // Não pega em tipo Planta (regra clássica do Leech Seed).
+  immuneTypes: ['grass'],
   effects: [{ type: 'leechSeed', fraction: 1 / 16, interval: 2, duration: 6 }],
   visual: {
     effectGroup: 'leech-seed',

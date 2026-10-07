@@ -15,6 +15,7 @@ import {
 } from '@/core/battle/channelAttack'
 import { formatName } from './wikiFormat'
 import { listWikiSpecies, resolveSpeciesAttacks } from './speciesEntry'
+import { resolveSkillType } from '@/core/data/types'
 
 /**
  * Dados de golpe prontos pra wiki (`/wiki/golpes`) — lidos da definição e
@@ -56,7 +57,7 @@ export function resolveSkillSummary(attack) {
   return {
     power: attack.damage?.power ?? null,
     category: resolveAttackCategory(attack),
-    type: attack.damage?.type ?? null,
+    type: resolveSkillType(attack),
     accuracy: resolveMoveAccuracy(attack),
     area: resolveAttackArea(attack),
     range: attack.range,
@@ -86,9 +87,7 @@ export function listSkillUsers(skillId, registry) {
   const users = []
   for (const species of listWikiSpecies(registry)) {
     const slots = ATTACK_SLOTS.filter(
-      ({ slot }) =>
-        slot !== 'primary' &&
-        resolveCreatureAttack(species, slot)?.id === skillId,
+      ({ slot }) => resolveCreatureAttack(species, slot)?.id === skillId,
     ).map(({ slot }) => slot)
 
     for (const entry of resolveSpeciesAttacks(species)) {

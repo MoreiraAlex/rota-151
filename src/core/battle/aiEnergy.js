@@ -22,9 +22,9 @@ export function resolveResting(resting, vitals) {
 
 /**
  * O golpe cabe na reserva de energia? O mais barato dos prontos
- * (`cheapestCost`, normalmente o básico) sempre cabe; os outros só se, depois
- * de pagar, sobrar `SKILL_RESERVE_FRACTION` da energia máxima — a IA não
- * esvazia a energia em habilidades.
+ * (`cheapestCost`) sempre cabe; os outros só se, depois de pagar, sobrar
+ * `SKILL_RESERVE_FRACTION` da energia máxima — a IA não esvazia a energia
+ * nos golpes caros.
  */
 export function fitsEnergyReserve(attack, vitals, cheapestCost) {
   const { SKILL_RESERVE_FRACTION } = GAME_CONFIG.AI_ENERGY
