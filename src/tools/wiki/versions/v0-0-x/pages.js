@@ -1,5 +1,6 @@
 import { HomePage } from './pages/HomePage'
-import { ControlsPage, ItemsPage, TrainerPage } from './pages/SoonPages'
+import { ControlsPage, TrainerPage } from './pages/SoonPages'
+import { ItemsPage } from './pages/CatalogItems'
 import { StatusPage } from './pages/StatusPage'
 import { VitalsPage } from './pages/VitalsPage'
 import { TeamPage } from './pages/TeamPage'
@@ -124,7 +125,11 @@ const PAGES = {
   },
   'catalogo/criaturas': { title: 'Criaturas', Component: CreatureListPage },
   'catalogo/golpes': { title: 'Golpes', Component: MoveListPage },
-  'catalogo/itens': { title: 'Itens', Component: ItemsPage },
+  'catalogo/itens': {
+    title: 'Itens',
+    summary: 'Pokébolas, poções e frutas: como usar e o que cada uma faz.',
+    Component: ItemsPage,
+  },
   calculadora: {
     title: 'Calculadora de dano',
     Component: CalculatorPage,

@@ -77,6 +77,11 @@ export const CHARMANDER = {
       loop: 'restLoop',
       end: 'restEnd',
     },
+    eat: {
+      start: 'eatStart',
+      loop: 'eatLoop',
+      end: 'eatEnd',
+    },
     fall: 'fallLoop',
     jump: 'jumpLoop',
     dash: { sequence: ['stepIn', { animation: 'stepInEnd', frames: 10 }] },
@@ -84,6 +89,16 @@ export const CHARMANDER = {
     appeal: 'appeal',
     // atordoada por golpe interrompido (ação `'hit'`)
     hit: 'hit',
+  },
+  // Onde fica a fruta enquanto come (docs/features/042-itens-da-beta.md,
+  // `view/systems/eatingFoodViewSystem.js`) — ver `_template/`.
+  vfx: {
+    eatFood: {
+      hands: ['left_hand', 'right_hand'],
+      position: { x: 0, y: 0, z: 0.05 },
+      rotation: { x: 0, y: 180, z: 0 },
+      scale: 1.25,
+    },
   },
   nativeBlink: { animation: 'blink', minInterval: 2, maxInterval: 6 },
   actions: {

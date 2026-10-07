@@ -1,5 +1,6 @@
 import { GAME_CONFIG } from '../gameConfig'
 import { isHitStunned } from '../actions/hitStun'
+import { isEating } from '../actions/eating'
 import {
   Velocity,
   Rotation,
@@ -153,6 +154,8 @@ export function characterPhysicsSystem(context) {
         entity.has(InputControlled) &&
         // atordoada (golpe interrompido) não faz nada, nem pular
         !isHitStunned(entity) &&
+        // comendo (docs/features/042-itens-da-beta.md) também não pula
+        !isEating(entity) &&
         vitals.stamina >= vitals.jumpStaminaCost
       ) {
         vel.y = stats.jumpSpeed

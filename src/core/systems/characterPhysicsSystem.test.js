@@ -218,6 +218,19 @@ describe('characterPhysicsSystem + integração Rapier', () => {
     world.destroy()
   })
 
+  it('comendo (ação "eat", docs/features/042-itens-da-beta.md) não pula', () => {
+    const { world, player } = makeWorld({
+      playerPosition: { x: 0, y: 1, z: 0 },
+    })
+    run(world, 30)
+    player.set(ActionState, { current: 'eat' })
+
+    tick(world, { jump: true })
+
+    expect(player.has(Jumped)).toBe(false)
+    world.destroy()
+  })
+
   it('pulo de verdade adiciona o pulso `Jumped` — sem tentar pular, ou sem conseguir, não adiciona', () => {
     const { world, player } = makeWorld({
       playerPosition: { x: 0, y: 1, z: 0 },

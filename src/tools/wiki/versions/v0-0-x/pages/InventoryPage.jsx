@@ -18,9 +18,10 @@ export function InventoryPage({ version }) {
         </p>
         <Notice tone="soon">
           <p>
-            Por enquanto o jogo começa com a Pokédex e uma criatura de cada
-            espécie. O kit de início e as formas de conseguir itens e criaturas
-            novas vão entrar aqui quando estiverem definidos.
+            Por enquanto, pra teste, o jogo começa com a Pokédex, um punhado de
+            cada item e uma criatura de cada espécie. O kit de início de verdade
+            e as formas de conseguir itens e criaturas novas vão entrar aqui
+            quando estiverem definidos.
           </p>
         </Notice>
       </Section>
@@ -28,9 +29,11 @@ export function InventoryPage({ version }) {
       <Section id="arrumar" title="Arrumando do seu jeito">
         <ul>
           <li>
-            Cada item e cada criatura ocupa um espaço da grade.{' '}
-            <strong>Arraste</strong> pra qualquer espaço — pode deixar espaços
-            vazios no meio.
+            Cada item e cada criatura ocupa um espaço da grade. Itens que se
+            acumulam (Pokébolas, poções, frutas) mostram a quantidade; a Pokédex
+            e as criaturas, não. Cada criatura aparece como a Pokébola em que
+            foi capturada. <strong>Arraste</strong> pra qualquer espaço — pode
+            deixar espaços vazios no meio.
           </li>
           <li>Soltando sobre um espaço ocupado, os dois trocam de lugar.</li>
           <li>O que chega no inventário entra no primeiro espaço livre.</li>
@@ -47,7 +50,11 @@ export function InventoryPage({ version }) {
           O treinador usa o item que está <strong>na mão</strong>. Arraste um
           item da grade pra mão pra equipar; tirando da mão, ele volta pra
           grade. Se só existe uma unidade, ela fica na mão e sai da grade
-          enquanto estiver equipada.
+          enquanto estiver equipada. O que cada item faz está em{' '}
+          <WikiLink version={version} to="catalogo/itens">
+            Itens
+          </WikiLink>
+          .
         </p>
       </Section>
 

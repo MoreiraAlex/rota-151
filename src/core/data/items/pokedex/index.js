@@ -28,6 +28,8 @@ export const POKEDEX = {
   description:
     'Escaneia Pokémon: segure o botão direito pra mirar e solte pra registrar.',
   category: 'scanner',
+  // Não acumula: o inventário não mostra quantidade.
+  stackable: false,
   sprite: { path: '/assets/sprites/itens/pokedex.png' },
   scanner: {
     range: 40,

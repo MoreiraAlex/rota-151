@@ -61,7 +61,7 @@ const TRAINER_EYE_HEIGHT = 2 + 1.2
 describe('scannerModeSystem', () => {
   it('sem item scanner equipado, segurar o botão direito não liga o modo', () => {
     const { player, tick } = setup()
-    player.set(HeldItem, { itemId: 'pebble' }) // throwable, não scanner
+    player.set(HeldItem, { itemId: 'poke-ball' }) // não é scanner
 
     tick({ secondaryHeld: true })
 
@@ -336,7 +336,7 @@ describe('scannerModeSystem — clique esquerdo abre o menu da Pokédex', () => 
 
   it('sem item scanner equipado, clique esquerdo não pede pra abrir o menu', () => {
     const { player, tick } = setup()
-    player.set(HeldItem, { itemId: 'pebble' })
+    player.set(HeldItem, { itemId: 'poke-ball' })
 
     tick({ primary: true })
 

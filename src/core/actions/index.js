@@ -10,6 +10,7 @@ export {
   resolvePokemonOf,
   findSummonedCreature,
   resolvePokemonSpeciesId,
+  resolvePokemonBallId,
 } from './pokemon'
 export {
   countItem,
@@ -23,6 +24,15 @@ export {
   moverNoInventario,
   organizarInventario,
 } from './inventory'
+export {
+  isEating,
+  resolveEatenFraction,
+  podeComer,
+  comecarAComer,
+  terminarDeComer,
+  derrubarComida,
+} from './eating'
+export { resolveItemUseBlock, usarItemNaCriatura } from './itemUse'
 export { registrarScan } from './scanning'
 export { entrarEmCombate, sairDeCombate } from './combat'
 export {

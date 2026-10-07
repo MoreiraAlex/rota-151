@@ -18,6 +18,7 @@ import {
 } from '../traits'
 import { voltarAVagar } from './wildBehavior'
 import { resolveOwner } from './owner'
+import { derrubarComida } from './eating'
 
 /**
  * A criatura desmaia (chegou a 0 de HP): começa a contagem pra acordar
@@ -36,6 +37,8 @@ export function desmaiar(world, entity) {
     Fainted({ timeLeft: GAME_CONFIG.FAINT.DURATION_MINUTES * 60, elapsed: 0 }),
   )
 
+  // Desmaiou comendo: a fruta cai no chão (docs/features/042-itens-da-beta.md).
+  derrubarComida(world, entity)
   if (entity.has(ActionState)) {
     entity.set(ActionState, {
       current: null,

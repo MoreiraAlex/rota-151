@@ -81,6 +81,11 @@ export const BULBASAUR = {
       loop: 'restLoop',
       end: 'restEnd',
     },
+    eat: {
+      start: 'eatStart',
+      loop: 'eatLoop',
+      end: 'eatEnd',
+    },
     fall: 'fallLoop',
     jump: 'jumpLoop',
     dash: { sequence: ['stepIn', { animation: 'stepInEnd', frames: 10 }] },
@@ -90,6 +95,16 @@ export const BULBASAUR = {
     charge: { loop: 'charge' },
   },
 
+  // Onde fica a fruta enquanto come (docs/features/042-itens-da-beta.md,
+  // `view/systems/eatingFoodViewSystem.js`) — ver `_template/`.
+  vfx: {
+    eatFood: {
+      ground: 'jaw',
+      position: { x: 0, y: -0.05, z: 0.25 },
+      rotation: { x: 90, y: 0, z: 90 },
+      scale: 1.5,
+    },
+  },
   nativeBlink: { animation: 'blink', minInterval: 2, maxInterval: 6 },
   actions: {
     appeal: { duration: 1 },

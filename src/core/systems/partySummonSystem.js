@@ -3,6 +3,7 @@ import { resolveAimPoint, resolveHandOrigin } from '../aim'
 import { GAME_CONFIG } from '../gameConfig'
 import { destroyCharacterBody } from '../physics/colliders'
 import { findOwnedCreature, hasOwnedBallInFlight } from '../actions/owner'
+import { derrubarComida } from '../actions/eating'
 import {
   findPartyPokemon,
   isPokemonFainted,
@@ -50,6 +51,33 @@ function needsAutoRecall(trainer, slot, creature) {
   if (!pokemon || findPartyPokemon(trainer, slot) !== pokemon) return true
   const fainted = creature.get(Fainted)
   return !!fainted && fainted.elapsed >= GAME_CONFIG.FAINT.PARTY_RECALL_DELAY
+}
+
+/**
+ * O que apertar o botão do `slot` faz agora: `'recall'` (já tem criatura
+ * em campo), `'summon'` (tem um Pokémon que pode sair) ou `null`.
+ *
+ * Pra invocar, confere a espécie ANTES de travar a ação — espécie inválida
+ * não deve nem começar a ocupar o treinador (mesmo padrão de
+ * `playerActionSystem.js`: precondições checadas antes de escrever
+ * `action.current`, não só no instante de efeito). `hasOwnedBallInFlight`
+ * evita uma SEGUNDA esfera pro mesmo slot enquanto a primeira ainda está em
+ * voo — a esfera vive bem mais que o gesto (`duration`), e duas pousando
+ * nasceriam duas criaturas do mesmo slot. Desmaiado (`StoredFaint`) não sai
+ * da bola até reanimar.
+ */
+function resolveSlotCommand(world, trainer, slot) {
+  if (findOwnedCreature(world, trainer, slot)) return 'recall'
+  const pokemon = findPartyPokemon(trainer, slot)
+  if (
+    pokemon &&
+    getSpecies(resolvePokemonSpeciesId(pokemon)) &&
+    !hasOwnedBallInFlight(world, trainer, slot) &&
+    !isPokemonFainted(pokemon)
+  ) {
+    return 'summon'
+  }
+  return null
 }
 
 /**
@@ -196,6 +224,8 @@ function applyRecall(world, trainer, pos, rot, slot) {
     }),
   )
 
+  // Recolhida comendo: a fruta cai no chão (docs/features/042-itens-da-beta.md).
+  derrubarComida(world, creature)
   storeOutOfField(creature)
 
   destroyCharacterBody(creature.get(PhysicsBody).bodyHandle)
@@ -383,7 +413,9 @@ export function partySummonSystem(context) {
         return
       }
 
-      if (action.current !== null) return // ocupado com dash/arremesso/uso
+      // Ocupado com dash/arremesso/uso — ou comendo: invocar/recolher
+      // espera acabar (docs/features/042-itens-da-beta.md).
+      if (action.current !== null) return
 
       // secondaryN (Q/E/R) só invoca/recolhe enquanto o TREINADOR está no
       // controle — `context.input` é um snapshot global (único dispositivo
@@ -398,24 +430,10 @@ export function partySummonSystem(context) {
       for (const { input: inputKey, slot } of SLOTS) {
         if (!input[inputKey]) continue
 
-        const pokemon = findPartyPokemon(entity, slot)
-        if (findOwnedCreature(world, entity, slot)) {
+        const command = resolveSlotCommand(world, entity, slot)
+        if (command === 'recall') {
           beginRecall(world, entity, action, pos, rot, slot, RECALL.duration)
-        } else if (
-          pokemon &&
-          getSpecies(resolvePokemonSpeciesId(pokemon)) &&
-          !hasOwnedBallInFlight(world, entity, slot) &&
-          !isPokemonFainted(pokemon)
-        ) {
-          // Confere a espécie ANTES de travar a ação — espécie inválida
-          // não deve nem começar a ocupar o treinador (mesmo padrão de
-          // `playerActionSystem.js`: precondições checadas antes de
-          // escrever `action.current`, não só no instante de efeito).
-          // `hasOwnedBallInFlight` evita uma SEGUNDA esfera pro mesmo slot
-          // enquanto a primeira ainda está em voo — a esfera vive bem mais
-          // que o gesto (`duration`), e duas pousando nasceriam duas
-          // criaturas do mesmo slot.
-          // Desmaiado (`StoredFaint`) não sai da bola até reanimar.
+        } else if (command === 'summon') {
           beginSummon(world, action, pos, rot, body, slot)
         }
         break // só um secondaryN processado por tick

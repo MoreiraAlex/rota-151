@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { givePokemon, makeWorld, spawnTrainer } from '@/test/makeWorld'
+import { DEFAULT_POKEBALL_ID, listItems } from '../data/items'
 import { getSpecies } from '../data/species'
 import { createLevelState } from '../data/species/experience'
 import { createMovesState } from '../data/species/moves'
@@ -17,6 +18,7 @@ import {
   listInventoryPokemon,
   listOwnedPokemon,
   resolvePartySlot,
+  resolvePokemonBallId,
   tirarDoTime,
 } from './pokemon'
 
@@ -53,6 +55,21 @@ describe('criarPokemon', () => {
     expect(pokemon.get(StoredVitals).vitals).toBe(null)
     expect(resolvePartySlot(player, pokemon)).toBe(null)
     expect(listInventoryPokemon(world, player)).toContain(pokemon)
+  })
+
+  it('sem bola informada, é da Pokébola comum; com ela, guarda a bola', () => {
+    const { world, player } = setup()
+    const otherBall = listItems().find(
+      (item) => item.category === 'pokeball' && item.id !== DEFAULT_POKEBALL_ID,
+    ).id
+
+    const starter = criarPokemon(world, player, SPECIES_ID)
+    const caught = criarPokemon(world, player, SPECIES_ID, {
+      ballId: otherBall,
+    })
+
+    expect(resolvePokemonBallId(starter)).toBe(DEFAULT_POKEBALL_ID)
+    expect(resolvePokemonBallId(caught)).toBe(otherBall)
   })
 
   it('espécie desconhecida não cria nada', () => {

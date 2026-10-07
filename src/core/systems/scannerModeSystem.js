@@ -1,3 +1,4 @@
+import { isEating } from '../actions/eating'
 import { getItem } from '../data/items'
 import { getPlayerSpecies } from '../data/species'
 import { GAME_CONFIG } from '../gameConfig'
@@ -152,7 +153,8 @@ export function scannerModeSystem(context) {
       }
 
       const wasActive = scan.active
-      const held = !!input.secondaryHeld
+      // Comendo (docs/features/042-itens-da-beta.md) não escaneia.
+      const held = !!input.secondaryHeld && !isEating(entity)
 
       if (input.primary && !held) scan.menuOpenRequests += 1
 

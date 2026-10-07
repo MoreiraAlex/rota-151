@@ -241,6 +241,28 @@ export const GAME_CONFIG = {
     // _MAX conforme a velocidade da queda (m/s): abaixo de MIN_FALL_SPEED não
     // solta nada (degrau, rampa) e em MAX_FALL_SPEED é a força total. SCALE
     // multiplica tamanho e raio. Valores de partida, ajustar jogando.
+    // Fruta sendo comida (docs/features/042-itens-da-beta.md,
+    // `view/systems/eatingFoodViewSystem.js` e `view/scene/
+    // EatingVfxView.jsx`). A cada mordida (a cada BITE_INTERVAL s, ou quando
+    // o pedaço do modelo troca) a fruta dá um "aperto" (achata BITE_SQUASH e
+    // volta numa mola de rigidez BITE_SPRING), pula BITE_HOP (m, só a do
+    // chão) e solta JUICE_COUNT gotas de suco e CRUMB_COUNT farelos. Enquanto
+    // come, brilhos de cura sobem em volta de quem come (HEAL_SPARKLE_RATE
+    // por segundo). A fruta caída respinga ao quicar (LAND_JUICE_COUNT).
+    // SCALE multiplica o tamanho das partículas. Valores de partida,
+    // ajustar jogando.
+    EAT_FOOD: {
+      ENABLED: true,
+      BITE_INTERVAL: 0.7,
+      BITE_SQUASH: 0.22,
+      BITE_SPRING: 300,
+      BITE_HOP: 0.04,
+      JUICE_COUNT: 5,
+      CRUMB_COUNT: 3,
+      HEAL_SPARKLE_RATE: 6,
+      LAND_JUICE_COUNT: 4,
+      SCALE: 1,
+    },
     JUMP_DUST: {
       ENABLED: true,
       SCALE: 0.5,
@@ -323,6 +345,32 @@ export const GAME_CONFIG = {
       // vez de cair de uma vez no tick seguinte. Limitado a metade de
       // DURATION; 0 desliga. Ver `resolveDashSpeed` (core/actions/dash.js).
       EASE_OUT_TIME: 0.25,
+    },
+  },
+  // Itens (docs/features/042-itens-da-beta.md).
+  ITEMS: {
+    // Fruta derrubada por quem foi interrompido comendo (`derrubarComida`):
+    // quanto tempo (s) fica no chão antes de sumir, e a que distância (m)
+    // na frente de quem comia ela cai.
+    DROPPED_FOOD_LIFETIME: 6,
+    DROPPED_FOOD_FORWARD_OFFSET: 0.4,
+    // Física da fruta caída (`droppedFoodSystem`) — só visual, ninguém
+    // pega. Sai com um impulso pra frente (TOSS_FORWARD) e pra cima
+    // (TOSS_UP), espalhado pros lados em até ±TOSS_SPREAD (m/s); cai com a
+    // gravidade do jogo; quica devolvendo RESTITUTION da velocidade
+    // vertical; no chão, o atrito tira FRICTION (fração por segundo) da
+    // velocidade horizontal; abaixo de REST_SPEED (m/s) ela para.
+    DROPPED_FOOD_PHYSICS: {
+      TOSS_FORWARD: 1.2,
+      TOSS_UP: 2.2,
+      TOSS_SPREAD: 0.8,
+      RESTITUTION: 0.35,
+      FRICTION: 3,
+      REST_SPEED: 0.15,
+      // Batida no chão acima desta velocidade (m/s) quica e conta como
+      // "quicou" (`DroppedFood.landings`, pro respingo da view); abaixo,
+      // ela só assenta.
+      LANDING_MIN_SPEED: 1,
     },
   },
   // Grade de navegação usada por `core/pathfinding.js` pra contornar

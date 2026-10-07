@@ -26,6 +26,13 @@ describe('resolveAnimationState', () => {
     ).toBe('attack')
   })
 
+  it('comendo → eat, cíclico (sem eat, a idle)', () => {
+    const ctx = { speed: 0, grounded: true, inCombat: true, action: 'eat' }
+    expect(resolveAnimationState(ctx)).toBe('eat')
+    expect(resolveAnimationFallback('eat')).toBe('idle')
+    expect(isOneShotAnimationState('eat')).toBe(false)
+  })
+
   it('velocidade zero e no chão → idle', () => {
     expect(resolveAnimationState({ speed: 0, grounded: true })).toBe('idle')
   })

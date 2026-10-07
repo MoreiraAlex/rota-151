@@ -66,7 +66,7 @@ export const WIKI_V0_0_X = {
       links: [
         { slug: 'catalogo/criaturas', label: 'Criaturas' },
         { slug: 'catalogo/golpes', label: 'Golpes' },
-        { slug: 'catalogo/itens', label: 'Itens', soon: true },
+        { slug: 'catalogo/itens', label: 'Itens' },
       ],
     },
     {

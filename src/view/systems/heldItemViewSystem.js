@@ -18,7 +18,7 @@ const worldScale = new THREE.Vector3()
 /**
  * Mostra o item equipado (`HeldItem`) encaixado na mão do jogador sempre
  * que for `throwable` — sem modelo 3D próprio por item ainda (ver
- * core/data/items/pebble/index.js), então é a mesma esfera cinza do
+ * core/data/items/_template/index.js), então é a mesma esfera cinza do
  * projétil em voo (`throwableVisual.js`) — muda de "na mão" pra "voando"
  * sem trocar de aparência.
  *

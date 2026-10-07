@@ -43,3 +43,11 @@ export function randomInt(rng, min, max) {
  * verdade, troca-se aqui, um lugar só.
  */
 export const gameplayRng = createRng(GAME_CONFIG.WORLD.SEED)
+
+/**
+ * RNG COSMÉTICO (regra 3.5) — sorteios que só mudam a aparência, sem efeito
+ * em regra de jogo (ex.: pra onde a fruta derrubada voa, docs/features/042-
+ * itens-da-beta.md). Separado do de gameplay pra um efeito visual a mais ou a
+ * menos não mudar a sequência dos sorteios que importam.
+ */
+export const cosmeticRng = createRng(GAME_CONFIG.WORLD.SEED + 1)

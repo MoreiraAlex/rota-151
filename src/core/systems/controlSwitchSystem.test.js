@@ -1,12 +1,16 @@
 import { describe, it, expect } from 'vitest'
 import { givePartyPokemon, makeWorld, ownedByPlayer } from '@/test/makeWorld'
 import { findPartyPokemon } from '@/core/actions/pokemon'
+import { comecarAComer } from '@/core/actions/eating'
+import { listItems } from '@/core/data/items'
 import {
+  ActionState,
   CameraTarget,
   InputControlled,
   PARTY_SLOT_IDS,
   Party,
   SummonedCreature,
+  Vitals,
 } from '@/core/traits'
 import { controlSwitchSystem } from './controlSwitchSystem'
 
@@ -123,5 +127,38 @@ describe('controlSwitchSystem', () => {
     world.queryFirst(Party).destroy()
 
     expect(() => tick(world, { switchSlot1: true })).not.toThrow()
+  })
+
+  it('o treinador comendo não troca o controle (docs/features/042-itens-da-beta.md)', () => {
+    const { world, player } = makeWorld()
+    const creature = spawnCreature(world, 'slot1')
+    const vitals = player.get(Vitals)
+    player.set(Vitals, { ...vitals, hp: vitals.maxHp / 2 })
+    comecarAComer(
+      player,
+      listItems().find((item) => item.category === 'berry'),
+    )
+
+    tick(world, { switchSlot1: true })
+
+    expect(player.has(InputControlled)).toBe(true)
+    expect(creature.has(InputControlled)).toBe(false)
+  })
+
+  it('a criatura comendo devolve o controle pro treinador, mas não troca pra outra criatura', () => {
+    const { world, player } = makeWorld()
+    const eater = spawnCreature(world, 'slot1')
+    const other = spawnCreature(world, 'slot2')
+    eater.add(ActionState({ current: 'eat' }))
+    eater.add(InputControlled, CameraTarget)
+    player.remove(InputControlled, CameraTarget)
+
+    tick(world, { switchSlot2: true })
+    expect(eater.has(InputControlled)).toBe(true)
+    expect(other.has(InputControlled)).toBe(false)
+
+    tick(world, { returnToBot: true })
+    expect(player.has(InputControlled)).toBe(true)
+    expect(eater.has(InputControlled)).toBe(false)
   })
 })

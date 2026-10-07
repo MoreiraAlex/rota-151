@@ -34,7 +34,12 @@ import {
   resolveGrowthRate,
 } from '@/core/data/species/experience'
 import { FORMULA_MAX_LEVEL } from '@/core/data/species/formulaLevel'
-import { getItem } from '@/core/data/items'
+import {
+  ITEM_CATEGORY_ORDER,
+  getItem,
+  isStackableItem,
+  listItems,
+} from '@/core/data/items'
 import {
   MAX_MASTERY,
   MOVE_SLOTS,
@@ -111,6 +116,31 @@ const EXAMPLE_COURAGE = [
   { own: 0.5, hit: 0.4, attacker: 1 },
   { own: 0.25, hit: 0.1, attacker: 0.25 },
 ]
+
+/**
+ * Os itens do jogo, na ordem do inventário organizado (por categoria). Só o
+ * que o jogador vê: nome, descrição, ícone e o que cada um faz.
+ */
+function buildItems() {
+  const order = (item) => {
+    const index = ITEM_CATEGORY_ORDER.indexOf(item.category)
+    return index === -1 ? ITEM_CATEGORY_ORDER.length : index
+  }
+  return [...listItems()]
+    .sort((a, b) => order(a) - order(b))
+    .map((item) => ({
+      id: item.id,
+      name: item.name ?? formatName(item.id),
+      description: item.description ?? null,
+      category: item.category,
+      sprite: item.sprite?.path ?? null,
+      stackable: isStackableItem(item),
+      heal: item.consumable?.healAmount ?? null,
+      berryHeal: item.berry?.healAmount ?? null,
+      berryDuration: item.berry?.duration ?? null,
+      captureMultiplier: item.pokeball?.captureMultiplier ?? null,
+    }))
+}
 
 function toDegrees(radians) {
   return (radians * 180) / Math.PI
@@ -541,6 +571,7 @@ export function buildWikiData() {
       scanRange: getItem('pokedex')?.scanner?.range ?? null,
       historyLimit: SCAN_HISTORY_LIMIT,
     },
+    items: buildItems(),
     types: buildTypes(),
     burn: buildBurn(),
     experience: buildExperience(speciesList),

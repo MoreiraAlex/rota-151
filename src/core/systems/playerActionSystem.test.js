@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from 'vitest'
+import { describe, it, expect, afterEach, beforeAll, afterAll } from 'vitest'
 import { makeWorld } from '@/test/makeWorld'
 import {
   ActionState,
@@ -11,6 +11,7 @@ import {
   Inventory,
   Projectile,
   ConsumeEffect,
+  Eating,
   Grounded,
   InputState,
   MovementStats,
@@ -18,7 +19,7 @@ import {
   resolveMovementCosts,
 } from '@/core/traits'
 import { GAME_CONFIG } from '@/core/gameConfig'
-import { getItem } from '@/core/data/items'
+import { ITEM_REGISTRY, getItem, listItems } from '@/core/data/items'
 import { getSpecies, getPlayerSpecies } from '@/core/data/species'
 import { computeAimRay } from '@/core/camera/orbitCamera'
 import { resolveDashCost } from '../actions/stamina'
@@ -54,6 +55,33 @@ function resolveHandOrigin(pos, rotY) {
     y: pos.y + handHeightOffset,
     z: pos.z + forwardZ * handForwardOffset + rightZ * handSideOffset,
   }
+}
+
+// Nenhum item da beta é `throwable` (a Pokébola só ganha função na 043,
+// docs/features/042-itens-da-beta.md): o arremesso é testado com um item de
+// teste injetado no registro.
+const TEST_THROWABLE = {
+  id: 'test-throwable',
+  name: 'Item de teste',
+  category: 'throwable',
+}
+const THROWABLE = TEST_THROWABLE.id
+beforeAll(() => {
+  ITEM_REGISTRY[THROWABLE] = TEST_THROWABLE
+})
+afterAll(() => {
+  delete ITEM_REGISTRY[THROWABLE]
+})
+
+// Itens do catálogo, pela categoria (sem fixar id).
+const POTION = listItems().find((item) => item.category === 'consumable').id
+const BERRY = listItems().find((item) => item.category === 'berry')
+const POKEBALL = listItems().find((item) => item.category === 'pokeball').id
+
+// Poção e fruta não são usadas com a vida cheia: deixa o player ferido.
+function hurt(player) {
+  const vitals = player.get(Vitals)
+  player.set(Vitals, { ...vitals, hp: vitals.maxHp / 2 })
 }
 
 // koota limita a 16 worlds vivos por vez — este arquivo sozinho já passa
@@ -298,8 +326,8 @@ describe('playerActionSystem — arremesso (item throwable)', () => {
     // a UI (PartyHud/InventoryPanel/EquipmentPanel, via useTrait) só
     // atualizava quando outra coisa forçava um re-render (trocar de tela).
     const { world, player } = spawnWorld()
-    player.set(HeldItem, { itemId: 'pebble' })
-    player.set(Inventory, { counts: { pebble: 2 } })
+    player.set(HeldItem, { itemId: THROWABLE })
+    player.set(Inventory, { counts: { [THROWABLE]: 2 } })
 
     let changed = false
     world.onChange(Inventory, (entity) => {
@@ -311,7 +339,7 @@ describe('playerActionSystem — arremesso (item throwable)', () => {
     for (let i = 0; i < ticksUntilRelease; i++) tick(world, {})
 
     expect(changed).toBe(true)
-    expect(player.get(Inventory).counts).toEqual({ pebble: 1 })
+    expect(player.get(Inventory).counts).toEqual({ [THROWABLE]: 1 })
   })
 
   it('não dispara sem item em mãos', () => {
@@ -324,7 +352,7 @@ describe('playerActionSystem — arremesso (item throwable)', () => {
 
   it('dispara com item throwable equipado, trava a velocidade de lançamento (reta até o ponto de mira, sem arco) no instante do disparo, e vira o corpo pra encarar o arremesso', () => {
     const { world, player, camera } = spawnWorld()
-    player.set(HeldItem, { itemId: 'pebble' })
+    player.set(HeldItem, { itemId: THROWABLE })
     player.set(Rotation, { y: Math.PI / 2 }) // deve ser sobrescrito
     camera.set(OrbitCamera, { yaw: Math.PI / 3, pitch: 0.4, distance: 8 })
 
@@ -386,7 +414,7 @@ describe('playerActionSystem — arremesso (item throwable)', () => {
 
   it('desconta o custo de stamina do arremesso uma única vez, no disparo, e reseta o delay de regeneração', () => {
     const { world, player } = spawnWorld()
-    player.set(HeldItem, { itemId: 'pebble' })
+    player.set(HeldItem, { itemId: THROWABLE })
     const { maxStamina } = player.get(Vitals)
 
     tick(world, { primary: true })
@@ -406,7 +434,7 @@ describe('playerActionSystem — arremesso (item throwable)', () => {
 
   it('sem stamina suficiente, o arremesso não dispara', () => {
     const { world, player } = spawnWorld()
-    player.set(HeldItem, { itemId: 'pebble' })
+    player.set(HeldItem, { itemId: THROWABLE })
     player.set(Vitals, { stamina: THROW.staminaCost - 1 })
 
     tick(world, { primary: true })
@@ -417,7 +445,7 @@ describe('playerActionSystem — arremesso (item throwable)', () => {
 
   it('mudar AIM_RANGE muda de verdade a direção resolvida do arremesso — não fica preso a um alcance fixo', () => {
     const { world, player, camera } = spawnWorld()
-    player.set(HeldItem, { itemId: 'pebble' })
+    player.set(HeldItem, { itemId: THROWABLE })
     camera.set(OrbitCamera, { yaw: 0, pitch: 0.3, distance: 10 })
     const throwConfig = getPlayerSpecies().actions.throw
     const originalRange = throwConfig.aimRange
@@ -430,7 +458,7 @@ describe('playerActionSystem — arremesso (item throwable)', () => {
       for (let i = 0; i < Math.ceil(THROW.duration / (1 / 60)) + 1; i++) {
         tick(world, {})
       }
-      player.set(HeldItem, { itemId: 'pebble' })
+      player.set(HeldItem, { itemId: THROWABLE })
 
       throwConfig.aimRange = 300
       tick(world, { primary: true })
@@ -462,7 +490,7 @@ describe('playerActionSystem — arremesso (item throwable)', () => {
 
   it('só spawna o projétil ao cruzar o instante de liberação, uma vez só', () => {
     const { world, player } = spawnWorld()
-    player.set(HeldItem, { itemId: 'pebble' })
+    player.set(HeldItem, { itemId: THROWABLE })
     player.set(Rotation, { y: 0 })
 
     tick(world, { primary: true })
@@ -491,7 +519,7 @@ describe('playerActionSystem — arremesso (item throwable)', () => {
 
   it('o projétil nasce com a velocidade/lifetime resolvidos no disparo (reto até o ponto de mira, sem arco)', () => {
     const { world, player } = spawnWorld()
-    player.set(HeldItem, { itemId: 'pebble' })
+    player.set(HeldItem, { itemId: THROWABLE })
 
     tick(world, { primary: true })
     const action = { ...player.get(ActionState) }
@@ -518,7 +546,7 @@ describe('playerActionSystem — arremesso (item throwable)', () => {
 
   it('encerra sozinho depois da duração e devolve o controle', () => {
     const { world, player } = spawnWorld()
-    player.set(HeldItem, { itemId: 'pebble' })
+    player.set(HeldItem, { itemId: THROWABLE })
 
     tick(world, { primary: true })
     const steps = Math.ceil(THROW.duration / (1 / 60)) + 1
@@ -529,8 +557,8 @@ describe('playerActionSystem — arremesso (item throwable)', () => {
 
   it('remove uma unidade do item do inventário ao arremessar, e desequipa (estoque zerou)', () => {
     const { world, player } = spawnWorld()
-    player.set(HeldItem, { itemId: 'pebble' })
-    player.set(Inventory, { counts: { pebble: 1 } })
+    player.set(HeldItem, { itemId: THROWABLE })
+    player.set(Inventory, { counts: { [THROWABLE]: 1 } })
 
     tick(world, { primary: true })
     const ticksUntilRelease = Math.ceil(THROW.effectAt / (1 / 60))
@@ -542,21 +570,21 @@ describe('playerActionSystem — arremesso (item throwable)', () => {
 
   it('tendo mais de uma unidade, arremessar consome só uma (a pilha continua) e não desequipa', () => {
     const { world, player } = spawnWorld()
-    player.set(HeldItem, { itemId: 'pebble' })
-    player.set(Inventory, { counts: { pebble: 2 } })
+    player.set(HeldItem, { itemId: THROWABLE })
+    player.set(Inventory, { counts: { [THROWABLE]: 2 } })
 
     tick(world, { primary: true })
     const ticksUntilRelease = Math.ceil(THROW.effectAt / (1 / 60))
     for (let i = 0; i < ticksUntilRelease; i++) tick(world, {})
 
-    expect(player.get(Inventory).counts).toEqual({ pebble: 1 })
-    expect(player.get(HeldItem).itemId).toBe('pebble')
+    expect(player.get(Inventory).counts).toEqual({ [THROWABLE]: 1 })
+    expect(player.get(HeldItem).itemId).toBe(THROWABLE)
   })
 
   it('com estoque restante, dá pra arremessar de novo sem reequipar', () => {
     const { world, player } = spawnWorld()
-    player.set(HeldItem, { itemId: 'pebble' })
-    player.set(Inventory, { counts: { pebble: 2 } })
+    player.set(HeldItem, { itemId: THROWABLE })
+    player.set(Inventory, { counts: { [THROWABLE]: 2 } })
 
     tick(world, { primary: true })
     const ticksUntilRelease = Math.ceil(THROW.effectAt / (1 / 60))
@@ -587,7 +615,8 @@ describe('playerActionSystem — uso (item consumable)', () => {
 
   it('dispara com item consumable equipado', () => {
     const { world, player } = spawnWorld()
-    player.set(HeldItem, { itemId: 'potion' })
+    hurt(player)
+    player.set(HeldItem, { itemId: POTION })
 
     tick(world, { primary: true })
 
@@ -597,7 +626,8 @@ describe('playerActionSystem — uso (item consumable)', () => {
   it('cura no instante de efeito, uma vez só', () => {
     const { world, player } = spawnWorld()
     player.set(Vitals, { hp: 50, maxHp: 100 })
-    player.set(HeldItem, { itemId: 'potion' })
+    hurt(player)
+    player.set(HeldItem, { itemId: POTION })
 
     tick(world, { primary: true })
 
@@ -608,7 +638,7 @@ describe('playerActionSystem — uso (item consumable)', () => {
     }
 
     tick(world, {}) // cruza o instante de efeito
-    const healed = 50 + getItem('potion').consumable.healAmount
+    const healed = 50 + getItem(POTION).consumable.healAmount
     expect(player.get(Vitals).hp).toBeCloseTo(healed)
 
     // continuar a ação não cura de novo
@@ -618,7 +648,8 @@ describe('playerActionSystem — uso (item consumable)', () => {
 
   it('encerra sozinho depois da duração e devolve o controle', () => {
     const { world, player } = spawnWorld()
-    player.set(HeldItem, { itemId: 'potion' })
+    hurt(player)
+    player.set(HeldItem, { itemId: POTION })
 
     tick(world, { primary: true })
     const steps = Math.ceil(CONSUME.duration / (1 / 60)) + 1
@@ -629,8 +660,9 @@ describe('playerActionSystem — uso (item consumable)', () => {
 
   it('remove uma unidade do item do inventário ao usar, e desequipa (estoque zerou)', () => {
     const { world, player } = spawnWorld()
-    player.set(HeldItem, { itemId: 'potion' })
-    player.set(Inventory, { counts: { potion: 1 } })
+    hurt(player)
+    player.set(HeldItem, { itemId: POTION })
+    player.set(Inventory, { counts: { [POTION]: 1 } })
 
     tick(world, { primary: true })
     const ticksUntilEffect = Math.ceil(CONSUME.effectAt / (1 / 60))
@@ -642,7 +674,8 @@ describe('playerActionSystem — uso (item consumable)', () => {
 
   it('spawna um ConsumeEffect no instante de efeito, na posição do jogador', () => {
     const { world, player } = spawnWorld()
-    player.set(HeldItem, { itemId: 'potion' })
+    hurt(player)
+    player.set(HeldItem, { itemId: POTION })
 
     tick(world, { primary: true })
     const ticksUntilEffect = Math.ceil(CONSUME.effectAt / (1 / 60))
@@ -657,14 +690,90 @@ describe('playerActionSystem — uso (item consumable)', () => {
 
   it('tendo mais de uma unidade, usar consome só uma (a pilha continua) e não desequipa', () => {
     const { world, player } = spawnWorld()
-    player.set(HeldItem, { itemId: 'potion' })
-    player.set(Inventory, { counts: { potion: 2 } })
+    hurt(player)
+    player.set(HeldItem, { itemId: POTION })
+    player.set(Inventory, { counts: { [POTION]: 2 } })
 
     tick(world, { primary: true })
     const ticksUntilEffect = Math.ceil(CONSUME.effectAt / (1 / 60))
     for (let i = 0; i < ticksUntilEffect; i++) tick(world, {})
 
-    expect(player.get(Inventory).counts).toEqual({ potion: 1 })
-    expect(player.get(HeldItem).itemId).toBe('potion')
+    expect(player.get(Inventory).counts).toEqual({ [POTION]: 1 })
+    expect(player.get(HeldItem).itemId).toBe(POTION)
+  })
+})
+
+describe('playerActionSystem — itens da beta (042)', () => {
+  it('poção com a vida cheia não é usada nem gasta', () => {
+    const { world, player } = spawnWorld()
+    player.set(HeldItem, { itemId: POTION })
+    player.set(Inventory, { counts: { [POTION]: 1 } })
+
+    tick(world, { primary: true })
+
+    expect(player.get(ActionState).current).toBe(null)
+    expect(player.get(Inventory).counts).toEqual({ [POTION]: 1 })
+  })
+
+  it('fruta na mão: começa a comer e gasta a unidade na hora', () => {
+    const { world, player } = spawnWorld()
+    hurt(player)
+    player.set(HeldItem, { itemId: BERRY.id })
+    player.set(Inventory, { counts: { [BERRY.id]: 2 } })
+
+    tick(world, { primary: true })
+
+    expect(player.get(ActionState).current).toBe('eat')
+    expect(player.get(Eating).itemId).toBe(BERRY.id)
+    expect(player.get(Inventory).counts).toEqual({ [BERRY.id]: 1 })
+    expect(player.get(HeldItem).itemId).toBe(BERRY.id)
+  })
+
+  it('fruta com a vida cheia não começa a comer', () => {
+    const { world, player } = spawnWorld()
+    player.set(HeldItem, { itemId: BERRY.id })
+    player.set(Inventory, { counts: { [BERRY.id]: 1 } })
+
+    tick(world, { primary: true })
+
+    expect(player.get(ActionState).current).toBe(null)
+    expect(player.has(Eating)).toBe(false)
+  })
+
+  it('comendo, clicar de novo não começa outra fruta nem gasta', () => {
+    const { world, player } = spawnWorld()
+    hurt(player)
+    player.set(HeldItem, { itemId: BERRY.id })
+    player.set(Inventory, { counts: { [BERRY.id]: 2 } })
+
+    tick(world, { primary: true })
+    tick(world, { primary: true })
+
+    expect(player.get(Inventory).counts).toEqual({ [BERRY.id]: 1 })
+  })
+
+  it('comendo, o dash não dispara', () => {
+    const { world, player } = spawnWorld()
+    player.add(Grounded)
+    hurt(player)
+    player.set(HeldItem, { itemId: BERRY.id })
+    player.set(Inventory, { counts: { [BERRY.id]: 1 } })
+
+    tick(world, { primary: true })
+    tick(world, { dash: true })
+
+    expect(player.get(ActionState).current).toBe('eat')
+  })
+
+  it('Pokébola na mão não faz nada', () => {
+    const { world, player } = spawnWorld()
+    player.set(HeldItem, { itemId: POKEBALL })
+    player.set(Inventory, { counts: { [POKEBALL]: 1 } })
+
+    tick(world, { primary: true })
+
+    expect(player.get(ActionState).current).toBe(null)
+    expect(world.query(Projectile).length).toBe(0)
+    expect(player.get(Inventory).counts).toEqual({ [POKEBALL]: 1 })
   })
 })

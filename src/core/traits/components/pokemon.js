@@ -8,11 +8,17 @@ import { relation, trait } from 'koota'
  * `OwnedBy` (o treinador). Quando é invocado, a `SummonedCreature` nasce com
  * cópias desses dados e aponta de volta pra cá (`SummonedFrom`).
  *
+ * `ballId` — a Pokébola (id de item) em que ele foi capturado, que é o
+ * ícone dele no inventário (docs/features/042-itens-da-beta.md). `null` é a
+ * comum (`DEFAULT_POKEBALL_ID`, caso dos iniciais) — ver
+ * `resolvePokemonBallId`. A captura (043) grava a bola usada.
+ *
  * Dono de escrita: `criarPokemon` (`core/actions/pokemon.js`), que monta o
  * registro inteiro.
  */
 export const Pokemon = trait({
   speciesId: null,
+  ballId: null,
 })
 
 /**

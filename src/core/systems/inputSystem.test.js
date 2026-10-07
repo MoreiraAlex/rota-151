@@ -95,7 +95,7 @@ describe('inputSystem — bloqueio de ações no modo Scan', () => {
 
   it('sem item scanner equipado, segurar o botão direito não bloqueia nada', () => {
     const { world, player } = makeWorld()
-    player.set(HeldItem, { itemId: 'pebble' })
+    player.set(HeldItem, { itemId: 'poke-ball' })
 
     const input = { run: true, jump: true, secondaryHeld: true }
     inputSystem({ world, delta: 1 / 60, input })

@@ -289,6 +289,31 @@ export const SPECIES_TEMPLATE = {
   //        summon: { clips: ['/assets/audio/summon/summon-01.wav', ...], volume: 0.6 },
   //        recall: { clips: ['/assets/audio/recall/recall-01.wav', ...], volume: 0.6 },
   //      },
+  // `vfx.eatFood` (opcional — docs/features/042-itens-da-beta.md) — onde a
+  // fruta fica enquanto a espécie come (`view/systems/
+  // eatingFoodViewSystem.js`). Uma das duas âncoras:
+  // - `hands: ['osso', ...]` — leva a comida à boca: a fruta fica no ponto
+  //   médio dos ossos (uma ou as duas mãos) e acompanha a animação;
+  // - `ground: 'osso'` — come direto do chão: a fruta fica no chão embaixo
+  //   do osso (a boca), parada onde apareceu.
+  // `position` desloca a fruta (metros) no referencial do CORPO de quem
+  // come — `x` à direita, `y` pra cima, `z` pra frente —, não do osso;
+  // ajusta na mão olhando no jogo. `rotation` gira a fruta (graus, em volta
+  // dos eixos dela mesma), por cima da orientação de sempre (de frente pra
+  // quem come, acompanhando a mão). `scale` multiplica o tamanho da fruta.
+  // `biteInterval` (opcional, s) — de quanto em quanto tempo ela morde,
+  // pra casar com a animação (sem ele, `GAME_CONFIG.FEEDBACK.EAT_FOOD.
+  // BITE_INTERVAL`).
+  // Sem `vfx.eatFood` (ou com um osso que o modelo não tem), a fruta fica no
+  // chão um pouco à frente.
+  //      vfx: {
+  //        eatFood: {
+  //          hands: ['left_hand', 'right_hand'], // ou ground: 'jaw'
+  //          position: { x: 0, y: 0, z: 0 },
+  //          rotation: { x: 0, y: 0, z: 0 },
+  //          scale: 1,
+  //        },
+  //      },
   // `vfx.tailFire` (opcional — ver `../004-charmander/index.js`, docs/
   // features/022-fogo-de-cauda-do-charmander.md) — fogo de partícula
   // encaixado num osso nomeado (`TAIL_BONE_BY_SPECIES`, hardcoded em

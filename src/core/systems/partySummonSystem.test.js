@@ -6,12 +6,15 @@ import {
   tirarDoTime,
 } from '@/core/actions/pokemon'
 import { getPlayerSpecies } from '@/core/data/species'
+import { listItems } from '@/core/data/items'
+import { comecarAComer, isEating } from '@/core/actions/eating'
 import { computeAimRay } from '@/core/camera/orbitCamera'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import {
   ActionState,
   AnimationState,
   CharacterController,
+  DroppedFood,
   InputControlled,
   MovementStats,
   OrbitCamera,
@@ -599,5 +602,43 @@ describe('partySummonSystem', () => {
 
     advanceUntilResolved(world, player)
     expect(world.query(SummonedCreature).length).toBe(1) // só uma criatura nasceu
+  })
+
+  describe('comendo (docs/features/042-itens-da-beta.md)', () => {
+    const BERRY = listItems().find((item) => item.category === 'berry')
+
+    function startEating(entity) {
+      const vitals = entity.get(Vitals)
+      entity.set(Vitals, { ...vitals, hp: vitals.maxHp / 2 })
+      expect(comecarAComer(entity, BERRY)).toBe(true)
+    }
+
+    it('o treinador comendo não invoca nem recolhe até acabar de comer', () => {
+      const { world, player } = spawnWorld()
+      givePartyPokemon(world, player, { slot1: 'bulbasaur' })
+      startEating(player)
+
+      tick(world, { secondary1: true })
+
+      expect(isEating(player)).toBe(true)
+      expect(world.query(DroppedFood).length).toBe(0)
+      expect(world.query(SummonBall).length).toBe(0)
+    })
+
+    it('recolher a criatura que está comendo derruba a comida dela', () => {
+      const { world, player } = spawnWorld()
+      givePartyPokemon(world, player, { slot1: 'bulbasaur' })
+      tick(world, { secondary1: true })
+      advanceUntilResolved(world, player)
+      const [creature] = world.query(SummonedCreature)
+      creature.set(ActionState, { current: null })
+      startEating(creature)
+
+      tick(world, { secondary1: true })
+      advanceUntilFree(world, player)
+
+      expect(world.query(SummonedCreature).length).toBe(0)
+      expect(world.query(DroppedFood).length).toBe(1)
+    })
   })
 })

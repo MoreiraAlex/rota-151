@@ -11,9 +11,11 @@ import {
   listLearnset,
   resolveMoveStatus,
 } from '@/core/data/species/moves'
+import { CREATURE_USABLE_CATEGORIES, getItem } from '@/core/data/items'
 import {
   CreatureLevel,
   CreatureMoves,
+  Inventory,
   OwnedBy,
   Pokemon,
   SummonedCreature,
@@ -27,12 +29,16 @@ import {
   pararTreino,
   pedirAprendizado,
   reordenarGolpes,
+  resolveItemUseBlock,
   resolveTrainingBlock,
+  usarItemNaCriatura,
 } from '@/core/actions'
 import { formatSpeciesName, TypeBadge } from '@/view/shared/statusDisplay'
 import { getSkill } from '@/core/data/skills'
 import { resolveSkillType } from '@/core/data/types'
 import { formatProgressPercent } from '@/view/shared/formatProgress'
+import { SlotPreview } from '../shared/SlotPreview'
+import { formatItemName } from './inventory/InventoryDetails'
 
 const SLOT_KEYS = { 1: 'Q', 2: 'E', 3: 'R' }
 
@@ -45,13 +51,24 @@ const TRAINING_BLOCK_TEXT = {
   'no-object': 'Leve o Pokémon até um objeto de treino.',
 }
 
+// Por que não dá pra usar o item agora (`resolveItemUseBlock`) — texto pro
+// jogador. `no-item` não aparece: a lista só mostra o que o treinador tem.
+const ITEM_BLOCK_TEXT = {
+  'trainer-eating': 'Termine de comer primeiro.',
+  'not-summoned': 'Invoque o Pokémon para usar um item.',
+  fainted: 'Desmaiado — poção não reanima.',
+  'full-hp': 'A vida já está cheia.',
+  eating: 'Já está comendo.',
+  busy: 'Ocupado — espere terminar o que está fazendo.',
+}
+
 // Intervalo (ms) pra reavaliar o que depende da posição (perto do objeto).
 const REFRESH_MS = 250
 
 /**
  * Menu de ações treinador↔Pokémon (docs/features/038-aprendizado-treino-e-
  * dominio-de-golpes.md) — aberto ao SEGURAR Q/E/R no modo treinador
- * (`PartyActionMenu.slot`). Duas ações por enquanto:
+ * (`PartyActionMenu.slot`). Três ações por enquanto:
  *
  * - **Treino** — o learnset inteiro da criatura: golpe bloqueado aparece
  *   como `???`; apto, com a barra de treino e "Treinar" (só perto de um
@@ -59,6 +76,8 @@ const REFRESH_MS = 250
  *   com a barra de domínio e "Treinar" enquanto não estiver dominado (o
  *   treino no objeto também sobe o domínio).
  * - **Golpes** — os 3 slots (Q/E/R), com setas pra reordenar.
+ * - **Itens** — poções e frutas do treinador, pra usar na criatura invocada
+ *   (docs/features/042-itens-da-beta.md, `usarItemNaCriatura`).
  *
  * Só lê traits e chama actions do core; quem fecha é o X, o Esc ou travar o
  * ponteiro de novo (`PartyMenus`).
@@ -118,6 +137,9 @@ export function PartyActionMenu({ trainer, slot }) {
           <TabButton active={tab === 'moves'} onClick={() => setTab('moves')}>
             Golpes
           </TabButton>
+          <TabButton active={tab === 'items'} onClick={() => setTab('items')}>
+            Itens
+          </TabButton>
         </div>
 
         {tab === 'training' && (
@@ -137,7 +159,56 @@ export function PartyActionMenu({ trainer, slot }) {
         {tab === 'moves' && (
           <MoveSlots world={world} pokemon={pokemon} moves={moves} />
         )}
+
+        {tab === 'items' && (
+          <ItemList world={world} trainer={trainer} slot={slot} />
+        )}
       </div>
+    </div>
+  )
+}
+
+function ItemList({ world, trainer, slot }) {
+  const counts = useTrait(trainer, Inventory)?.counts ?? {}
+  const usable = Object.keys(counts).filter((itemId) =>
+    CREATURE_USABLE_CATEGORIES.includes(getItem(itemId)?.category),
+  )
+
+  if (usable.length === 0) {
+    return (
+      <p className="text-xs text-white/50">Você não tem poções nem frutas.</p>
+    )
+  }
+
+  // O motivo geral (sem criatura, desmaiada...) é o mesmo pra todo item: o
+  // do primeiro que estiver bloqueado vai no topo; cada linha só desabilita.
+  const blocks = usable.map((itemId) =>
+    resolveItemUseBlock(world, trainer, slot, itemId),
+  )
+  const firstBlock = blocks.find(Boolean)
+
+  return (
+    <div className="space-y-2">
+      {firstBlock && (
+        <p className="text-xs text-amber-300/80">
+          {ITEM_BLOCK_TEXT[firstBlock]}
+        </p>
+      )}
+      {usable.map((itemId, index) => (
+        <div
+          key={itemId}
+          className="flex items-center gap-2 rounded bg-white/5 px-2 py-1.5 text-xs"
+        >
+          <SlotPreview kind="item" id={itemId} count={counts[itemId]} />
+          <span className="flex-1 truncate">{formatItemName(itemId)}</span>
+          <ActionButton
+            disabled={!!blocks[index]}
+            onClick={() => usarItemNaCriatura(world, trainer, slot, itemId)}
+          >
+            Usar
+          </ActionButton>
+        </div>
+      ))}
     </div>
   )
 }

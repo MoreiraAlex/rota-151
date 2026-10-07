@@ -1,36 +1,68 @@
 /**
- * Registro de itens. Mesma forma de `core/data/species/index.js`: eu
- * construo o mecanismo (este arquivo, `getItem`/`listItems`, `_template/`);
- * item de jogo de verdade (pokébola, poção com valores reais...) é conteúdo
- * livre pra adicionar quando quiser. Todos os itens aqui embaixo são de
- * teste (ver docs/features/012-mecanismo-de-item.md e
- * docs/features/017-inventario-em-grade.md — mais variedade pra validar o
- * inventário em grade), não conteúdo de jogo de verdade.
+ * Registro de itens. Mesma forma de `core/data/species/index.js`: o
+ * mecanismo (este arquivo, `getItem`/`listItems`, `_template/`) e os itens
+ * da beta (docs/features/042-itens-da-beta.md) — Pokébolas, poções, frutas
+ * e a Pokédex.
  *
  * Pra adicionar um item:
  * 1) copia `_template/` pra `<id>/`
  * 2) preenche `index.js`
  * 3) importa aqui embaixo e adiciona uma linha no ITEM_REGISTRY
  */
-import { PEBBLE } from './pebble'
-import { ROCK } from './rock'
-import { POTION } from './potion'
-import { ELIXIR } from './elixir'
 import { POKEDEX } from './pokedex'
+import { POKE_BALL } from './poke-ball'
+import { GREAT_BALL } from './great-ball'
+import { ULTRA_BALL } from './ultra-ball'
+import { POTION } from './potion'
+import { SUPER_POTION } from './super-potion'
+import { HYPER_POTION } from './hyper-potion'
+import { RAZZ_BERRY } from './razz-berry'
+import { NANAB_BERRY } from './nanab-berry'
+import { PINAP_BERRY } from './pinap-berry'
 
 export const ITEM_REGISTRY = {
-  [PEBBLE.id]: PEBBLE,
-  [ROCK.id]: ROCK,
-  [POTION.id]: POTION,
-  [ELIXIR.id]: ELIXIR,
   [POKEDEX.id]: POKEDEX,
+  [POKE_BALL.id]: POKE_BALL,
+  [GREAT_BALL.id]: GREAT_BALL,
+  [ULTRA_BALL.id]: ULTRA_BALL,
+  [POTION.id]: POTION,
+  [SUPER_POTION.id]: SUPER_POTION,
+  [HYPER_POTION.id]: HYPER_POTION,
+  [RAZZ_BERRY.id]: RAZZ_BERRY,
+  [NANAB_BERRY.id]: NANAB_BERRY,
+  [PINAP_BERRY.id]: PINAP_BERRY,
 }
 
 /**
  * Ordem das categorias quando o Inventário é organizado (botão
  * "Organizar", `organizarInventario`). Categoria fora da lista vai pro fim.
  */
-export const ITEM_CATEGORY_ORDER = ['scanner', 'throwable', 'consumable']
+export const ITEM_CATEGORY_ORDER = [
+  'scanner',
+  'pokeball',
+  'consumable',
+  'berry',
+]
+
+/**
+ * Categorias que o treinador pode usar NUM Pokémon (menu de ações,
+ * `usarItemNaCriatura`) — poção cura na hora, fruta a criatura come.
+ */
+export const CREATURE_USABLE_CATEGORIES = ['consumable', 'berry']
+
+/**
+ * Pokébola de quem não foi capturado com outra — os Pokémon iniciais (ver
+ * `Pokemon.ballId`, `core/traits/components/pokemon.js`).
+ */
+export const DEFAULT_POKEBALL_ID = POKE_BALL.id
+
+/**
+ * O item acumula (mostra a quantidade, ex.: "x3")? `stackable: false` no
+ * dado do item diz que não (ex.: a Pokédex); sem o campo, acumula.
+ */
+export function isStackableItem(item) {
+  return item?.stackable ?? true
+}
 
 export function getItem(id, registry = ITEM_REGISTRY) {
   return registry[id] ?? null

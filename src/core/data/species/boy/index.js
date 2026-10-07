@@ -81,6 +81,16 @@ export const BOY = {
     fall: FALL_CLIP,
     dash: ROLL_CLIP,
   },
+  // Onde fica a fruta enquanto come (docs/features/042-itens-da-beta.md,
+  // `view/systems/eatingFoodViewSystem.js`) — ver `_template/`.
+  vfx: {
+    eatFood: {
+      hands: ['RHand'],
+      position: { x: 0, y: 0, z: 0 },
+      rotation: { x: 0, y: 0, z: 0 },
+      scale: 1,
+    },
+  },
   body: {
     capsuleRadius: 0.3,
     capsuleHalfHeight: 0.7,

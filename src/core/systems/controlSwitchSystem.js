@@ -1,5 +1,6 @@
 import { InputControlled, CameraTarget, Fainted } from '../traits'
 import { findOwnedCreature, resolveLocalTrainer } from '../actions/owner'
+import { isEating } from '../actions/eating'
 
 // Correspondência de slot pro pulso de input de troca (ver
 // docs/features/018-troca-de-controle-treinador-criatura.md — 1/2/3, não
@@ -18,9 +19,12 @@ const SLOT_SWITCH = [
  * sendo `partySummonSystem.js`, por Q/E/R). No-op se `target` já é quem
  * está no controle.
  */
-function switchControlTo(world, target) {
+function switchControlTo(world, target, trainer) {
   const current = world.queryFirst(InputControlled)
   if (!current || current === target) return
+  // Comendo, não troca o controle até acabar — só a criatura pode devolver
+  // o controle pro treinador (docs/features/042-itens-da-beta.md).
+  if (isEating(current) && (current === trainer || target !== trainer)) return
   current.remove(InputControlled, CameraTarget)
   target.add(InputControlled, CameraTarget)
 }
@@ -60,7 +64,7 @@ export function controlSwitchSystem(context) {
   if (!trainer) return
 
   if (input.returnToBot) {
-    switchControlTo(world, trainer)
+    switchControlTo(world, trainer, trainer)
     return
   }
 
@@ -68,7 +72,9 @@ export function controlSwitchSystem(context) {
     if (!input[key]) continue
     const creature = findOwnedCreature(world, trainer, slot)
     // Desmaiada não pode ser pilotada (`Fainted`).
-    if (creature && !creature.has(Fainted)) switchControlTo(world, creature)
+    if (creature && !creature.has(Fainted)) {
+      switchControlTo(world, creature, trainer)
+    }
     break // só um switchSlotN processado por tick
   }
 }

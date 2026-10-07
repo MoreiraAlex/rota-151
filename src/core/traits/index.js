@@ -49,6 +49,7 @@ export { Inventory } from './components/inventory'
 export { Party, SummonPulse, RecallPulse } from './components/party'
 export { Projectile } from './components/projectile'
 export { ConsumeEffect } from './components/consumeEffect'
+export { Eating, DroppedFood } from './components/eating'
 export {
   AttackEffect,
   AttackPulse,

@@ -46,9 +46,20 @@ const PLAYER_SPECIES = getSpecies(PLAYER_SPECIES_ID)
 
 const vitals = vitalsFromSpecies(PLAYER_SPECIES)
 
-// Kit inicial (docs/features/041-inventario-de-itens-e-pokemon.md): só a
-// Pokédex — os itens de verdade chegam na 042.
-const STARTING_ITEMS = { pokedex: 1 }
+// Kit de TESTE (docs/features/042-itens-da-beta.md): a Pokédex e todos os
+// itens da beta. O kit de verdade é definido na 060.
+const STARTING_ITEMS = {
+  pokedex: 1,
+  'poke-ball': 10,
+  'great-ball': 5,
+  'ultra-ball': 3,
+  potion: 5,
+  'super-potion': 3,
+  'hyper-potion': 2,
+  'razz-berry': 5,
+  'nanab-berry': 3,
+  'pinap-berry': 2,
+}
 
 // Quem começa no time, por slot. Os outros Pokémon iniciais (um de cada
 // espécie `kind: 'pokemon'`) começam no inventário.

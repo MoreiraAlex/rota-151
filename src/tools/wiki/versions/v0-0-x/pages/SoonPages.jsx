@@ -24,14 +24,3 @@ export function TrainerPage() {
     </Notice>
   )
 }
-
-export function ItemsPage() {
-  return (
-    <Notice tone="soon">
-      <p>
-        Os itens do jogo ainda estão em definição. A Pokédex, que já funciona,
-        tem a <strong>própria página</strong> no menu.
-      </p>
-    </Notice>
-  )
-}

@@ -7,6 +7,9 @@ import { SummonBallsView } from './SummonBallView'
 import { SummonFlashesView } from './SummonFlashView'
 import { RecallBeamsView } from './RecallBeamView'
 import { ConsumeEffectsView } from './ConsumeEffectView'
+import { DroppedFoodsView } from './DroppedFoodView'
+import { EatingFoodsView } from './EatingFoodView'
+import { EatingVfxView } from './EatingVfxView'
 import { AttackEffectsView } from './AttackEffectView'
 import { AttackIndicatorView } from './AttackIndicatorView'
 import { AttackTelegraphView } from './AttackTelegraphView'
@@ -113,6 +116,9 @@ export function GameScene({ children }) {
       <SummonFlashesView />
       <RecallBeamsView />
       <ConsumeEffectsView />
+      <DroppedFoodsView />
+      <EatingFoodsView />
+      <EatingVfxView />
       <AttackEffectsView />
       <AttackIndicatorView />
       <AttackTelegraphView />

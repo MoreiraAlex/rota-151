@@ -2,9 +2,9 @@
 
 ---
 
-# ✅ Já feito (0.0.1 – 0.0.41)
+# ✅ Já feito (0.0.1 – 0.0.42)
 
-Base construída antes da beta 0.1. Detalhes de cada uma em `docs/features/`.
+O que já foi entregue, por tema. Detalhes de cada uma em `docs/features/`.
 
 ### Fundação
 - [x] **001 — Fundação do projeto**
@@ -37,6 +37,7 @@ Base construída antes da beta 0.1. Detalhes de cada uma em `docs/features/`.
 - [x] **026 — Preparo do treinador `boy`**
 - [x] **040 — Dono da criatura**
 - [x] **041 — Inventário de itens e Pokémon**
+- [x] **042 — Itens da beta**
 
 ### Pokémon e mundo
 - [x] **020 — Selvagens, cena maior e textura por espécie**
@@ -72,8 +73,9 @@ o seu treinador, escolhe o inicial, explora biomas, acha itens, captura e treina
 o time com o progresso salvo. No fim, amigos jogam juntos no mesmo mundo, trocam
 Pokémon e duelam.
 
-Desenvolvimento offline primeiro (Marcos 1 a 3); o multiplayer vem por último
-(Marco 4). Tudo roda local até o deploy, que fecha a beta.
+Desenvolvimento offline primeiro (Marcos 1 a 3); depois o multiplayer
+(Marco 4). Tudo roda local até o deploy, que fecha a beta. O Marco 5 junta
+as revisões e pendências identificadas no caminho.
 
 ---
 
@@ -82,9 +84,8 @@ Desenvolvimento offline primeiro (Marcos 1 a 3); o multiplayer vem por último
 **Objetivo:** jogar sozinho, capturar Pokémon, organizar o time e o inventário e,
 ao fechar e abrir o jogo, encontrar tudo como deixou.
 
-- [ ] **042 — Itens da beta** — catálogo de itens de verdade: **Pokébolas** (Poké Ball, Great Ball, Ultra Ball, cada uma com multiplicador de captura), **cura** (Potion, Super Potion, Hyper Potion, no lugar da Poção e do Elixir de teste) e **frutas** (Oran, Sitrus: o Pokémon segura e usa sozinho com HP baixo, ou come quando você dá). Pedra e Pedrinha de teste saem ou ficam só no debug.
 - [ ] **043 — Captura** — arremessar uma Pokébola (gasta do inventário) num selvagem; chance pelo HP restante e pelo tipo de bola; a bola balança, captura ou escapa. Mantém nível, IV e golpes; vai para o inventário. Capturar dá XP. Retorno visual e sonoro de "Capturado!" / "Escapou!".
-- [ ] **044 — Salvar o jogo** — treinador, Pokémon do time e do inventário (espécie, nível, XP, IV, golpes, domínio e item segurado) e inventário no banco (Prisma). Salva automático, carrega ao entrar. Formato salvo com número de versão.
+- [ ] **044 — Salvar o jogo** — treinador, Pokémon do time e do inventário (espécie, nível, XP, IV, golpes, domínio e a Pokébola em que foi capturado) e inventário no banco (Prisma). Salva automático, carrega ao entrar. Formato salvo com número de versão.
 
 ---
 
@@ -122,7 +123,7 @@ ações completas.
 - [ ] **057 — Derrota do treinador** — cai ao chegar a 0 de HP e reaparece no último Pokécenter com o time curado.
 - [ ] **058 — Criação do treinador** — escolha entre menino e menina e cores de cada parte (pele, cabelo, boné, blusa, calça, sapatos, mochila, olhos), aproveitando os materiais separados do modelo. Salvo com a conta.
 - [ ] **059 — Áudio do treinador e da treinadora** — voz, passos, dash/rolamento, pulo, invocar/recolher, arremesso, dano e derrota para os dois modelos, mais os sons das ações revisadas na 056. Ver `docs/reference/audio.md`.
-- [ ] **060 — Início do jogo e escolha do inicial** — primeira entrada: login → criação do treinador → escolha entre Bulbasaur, Charmander e Squirtle → mundo, com o kit inicial de itens. Quem já tem treinador vai direto para o mundo.
+- [ ] **060 — Início do jogo e escolha do inicial** — primeira entrada: login → criação do treinador → escolha entre Bulbasaur, Charmander e Squirtle → mundo, com o kit inicial de itens (definido aqui; até lá o kit é de teste, ver 042). Quem já tem treinador vai direto para o mundo.
 - [ ] **061 — Tutorial com o inicial** — passos guiados: andar, invocar/recolher, atacar, trocar o controle, usar um item, enfraquecer e capturar um selvagem. Avança ao fazer a ação; dá para pular.
 
 > **Modelo da menina (058):** o `boy` veio do Legends (`tr0001`); a `girl`
@@ -149,6 +150,16 @@ cada um com o próprio progresso salvo. O jogo vai para o ar.
 
 > ⚠️ **Para rever depois:** o movimento é decidido pelo cliente (o servidor só
 > repassa). Funciona entre amigos, mas não impede trapaça.
+
+---
+
+## Marco 5 — Revisão e pendências
+
+**Objetivo:** juntar num lugar só as revisões e pendências que forem
+aparecendo ao longo da beta, pra não interromper a feature em andamento. Cada
+item entra aqui quando for identificado e vira feature quando chegar a vez.
+
+- [ ] **071 — Revisão das ações das poções** — rever como as poções são usadas *(detalhar quando chegar)*.
 
 ---
 

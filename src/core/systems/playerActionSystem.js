@@ -7,6 +7,7 @@ import {
 import { resolveMoveSpeed } from '../actions/movementSpeed'
 import { resolveDashCost } from '../actions/stamina'
 import { gastarItem } from '../actions/inventory'
+import { comecarAComer, podeComer } from '../actions/eating'
 import { getItem } from '../data/items'
 import { getPlayerSpecies } from '../data/species'
 import { resolveAimPoint, resolveHandOrigin } from '../aim'
@@ -107,8 +108,9 @@ function resolveDashExitSpeed(entity) {
  * stamina suficiente, a ação simplesmente não dispara (mesma forma que a
  * precondição de `Grounded` já bloqueia o dash). Uso de consumível não
  * custa stamina. Quem decide se `primary` dispara algo é a categoria do
- * item em `HeldItem` (`throwable` → arremesso, `consumable` → uso, sem
- * item ou `weapon` → nada). `primary` (clique esquerdo) dispara sozinho —
+ * item em `HeldItem` (`throwable` → arremesso, `consumable` → uso, só com
+ * a vida abaixo do máximo; `berry` → começa a comer, ver
+ * `core/actions/eating.js`; `pokeball`, sem item ou outra → nada). `primary` (clique esquerdo) dispara sozinho —
  * não precisa mais segurar o botão direito antes (mira removida, ver
  * docs/features/029-*.md).
  *
@@ -198,7 +200,11 @@ export function playerActionSystem(context) {
             rot.y = Math.atan2(velocity.x, velocity.z)
             vitals.stamina -= THROW.staminaCost
             vitals.staminaRegenDelay = vitals.staminaRegenDelayAfterUse
-          } else if (item?.category === 'consumable') {
+          } else if (
+            item?.category === 'consumable' &&
+            vitals.hp < vitals.maxHp
+          ) {
+            // Com a vida cheia não usa (não gasta a poção à toa).
             action.current = 'consume'
             action.elapsed = 0
             // Ver docstring de `ActionState.animationSpeed` — o
@@ -206,7 +212,14 @@ export function playerActionSystem(context) {
             // `speed` fixo no JSON do clipe.
             action.animationSpeed =
               CONSUME.duration > 0 ? 1 / CONSUME.duration : 1
+          } else if (item?.category === 'berry' && podeComer(entity, action)) {
+            // Fruta: começa a comer (a ação `'eat'`, avançada pelo
+            // `eatingSystem`) e já gasta — interrompido, ela cai no chão.
+            comecarAComer(entity, item, action)
+            spendHeldItem(entity, heldItem)
+            return
           } else {
+            // Pokébola (a captura é a 043) ou nada na mão: nada acontece.
             return
           }
         } else {

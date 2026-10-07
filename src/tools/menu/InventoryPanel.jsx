@@ -13,6 +13,7 @@ import {
 import {
   colocarNoTime,
   countItem,
+  resolvePokemonBallId,
   countVisibleItem,
   desequiparMao,
   equiparNaMao,
@@ -25,7 +26,7 @@ import {
 import { formatSpeciesName } from '@/view/shared/formatName'
 import { useOwnedPokemon, usePartyPokemon } from '@/view/hooks/usePartyPokemon'
 import { useTraitVersion } from '@/view/hooks/useTraitVersion'
-import { SlotPreview, getSlotColor } from '../shared/SlotPreview'
+import { DRAG_IMAGE_ATTRIBUTE, SlotPreview } from '../shared/SlotPreview'
 import { InventoryDetails, formatItemName } from './inventory/InventoryDetails'
 
 // Grade de posição livre (docs/features/041-inventario-de-itens-e-
@@ -50,36 +51,19 @@ const DRAG_TYPE = {
 const ORIGIN_TYPE = 'text/x-inventory-origin'
 
 /**
- * Imagem de arraste — desenho no mesmo estilo do `SlotPreview` (quadrado
- * pra item, círculo pra Pokémon, cor por categoria/espécie) num canvas fora
- * da tela, em vez do recorte do elemento HTML que o browser faria.
- * `setDragImage` exige o elemento no DOM na hora; removido logo depois.
+ * Imagem de arraste: o próprio ícone da célula/slot (o elemento marcado com
+ * `DRAG_IMAGE_ATTRIBUTE` dentro do `SlotPreview` — sprite ou ícone padrão,
+ * sem a contagem), pra o que se arrasta ser igual ao que está na tela. Sem
+ * ícone achado, fica a imagem padrão do browser.
  */
-function createDragImage(kind, colorId) {
-  const canvas = document.createElement('canvas')
-  canvas.width = 40
-  canvas.height = 40
-  canvas.style.position = 'fixed'
-  canvas.style.top = '-1000px'
-  canvas.style.left = '-1000px'
-
-  const ctx = canvas.getContext('2d')
-  ctx.fillStyle = getSlotColor(kind, colorId)
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)'
-  ctx.lineWidth = 2
-
-  if (kind === 'creature') {
-    ctx.beginPath()
-    ctx.arc(20, 20, 16, 0, Math.PI * 2)
-    ctx.fill()
-    ctx.stroke()
-  } else {
-    ctx.fillRect(4, 4, 32, 32)
-    ctx.strokeRect(4, 4, 32, 32)
-  }
-
-  document.body.appendChild(canvas)
-  return canvas
+function setEntryDragImage(event) {
+  const icon = event.currentTarget.querySelector(`[${DRAG_IMAGE_ATTRIBUTE}]`)
+  if (!icon) return
+  event.dataTransfer.setDragImage(
+    icon,
+    icon.offsetWidth / 2,
+    icon.offsetHeight / 2,
+  )
 }
 
 /** Chave de uma entrada (item ou Pokémon). */
@@ -171,14 +155,12 @@ export function InventoryPanel() {
 
   const drag = {
     key: dragKey,
-    start(event, entry, origin, colorId) {
+    start(event, entry, origin) {
       const value = entry.kind === 'item' ? entry.id : String(entry.pokemon)
       event.dataTransfer.setData(DRAG_TYPE[entry.kind], value)
       event.dataTransfer.setData(ORIGIN_TYPE, origin)
       event.dataTransfer.effectAllowed = 'move'
-      const dragImage = createDragImage(entry.kind, colorId)
-      event.dataTransfer.setDragImage(dragImage, 20, 20)
-      setTimeout(() => dragImage.remove(), 0)
+      setEntryDragImage(event)
       // Esconder a origem só no próximo tick: mexer nela no próprio
       // `dragstart` cancela o arraste. Se o arraste já acabou, não esconde.
       dragActive.current = true
@@ -315,9 +297,11 @@ function frameClass({ selected, dropStatus }) {
 function GridCell({ entry, dragging, selected, drag, onSelect, onDrop }) {
   const [dropStatus, setDropStatus] = useState(null)
   const title = useEntryTitle(entry)
-  const speciesId = useTrait(entry?.pokemon, Pokemon)?.speciesId
+  // Pokémon aparece como a Pokébola em que foi capturado.
+  useTrait(entry?.pokemon, Pokemon)
+  const ballId =
+    entry?.kind === 'creature' ? resolvePokemonBallId(entry.pokemon) : null
   const visible = entry != null && !dragging
-  const colorId = entry?.kind === 'creature' ? speciesId : entry?.id
 
   const handleDragOver = (event) => {
     if (!hasDragType(event, ['item', 'creature'])) return
@@ -330,9 +314,7 @@ function GridCell({ entry, dragging, selected, drag, onSelect, onDrop }) {
     <div
       draggable={visible}
       onDragStart={
-        visible
-          ? (event) => drag.start(event, entry, 'grid', colorId)
-          : undefined
+        visible ? (event) => drag.start(event, entry, 'grid') : undefined
       }
       onDragEnd={drag.end}
       onDragOver={handleDragOver}
@@ -355,7 +337,7 @@ function GridCell({ entry, dragging, selected, drag, onSelect, onDrop }) {
         />
       )}
       {visible && entry.kind === 'creature' && (
-        <SlotPreview kind="creature" id={speciesId} />
+        <SlotPreview kind="creature" id={ballId} />
       )}
     </div>
   )
@@ -365,12 +347,12 @@ function GridCell({ entry, dragging, selected, drag, onSelect, onDrop }) {
  * grade (tira do time) ou pra outro slot (troca). */
 function PartySlot({ slot, pokemon, drag, selectionKey, onSelect }) {
   const entry = pokemon ? { kind: 'creature', pokemon } : null
-  const speciesId = useTrait(pokemon, Pokemon)?.speciesId
+  useTrait(pokemon, Pokemon)
   return (
     <EquipmentSlot
       label={slot.replace('slot', '')}
       entry={entry}
-      colorId={speciesId}
+      previewId={pokemon ? resolvePokemonBallId(pokemon) : null}
       origin={slot}
       accepts="creature"
       drag={drag}
@@ -390,7 +372,9 @@ function HandSlot({ itemId, drag, selectionKey, onSelect }) {
     <EquipmentSlot
       label="mão"
       entry={entry}
-      colorId={itemId}
+      previewId={itemId}
+      // Na mão fica uma unidade; o resto aparece na grade.
+      count={itemId ? 1 : null}
       origin="hand"
       accepts="item"
       drag={drag}
@@ -410,7 +394,8 @@ function HandSlot({ itemId, drag, selectionKey, onSelect }) {
 function EquipmentSlot({
   label,
   entry,
-  colorId,
+  previewId,
+  count = null,
   origin,
   accepts,
   drag,
@@ -444,9 +429,7 @@ function EquipmentSlot({
     <div
       draggable={visible}
       onDragStart={
-        visible
-          ? (event) => drag.start(event, entry, origin, colorId)
-          : undefined
+        visible ? (event) => drag.start(event, entry, origin) : undefined
       }
       onDragEnd={drag.end}
       onDragOver={handleDragOver}
@@ -460,7 +443,7 @@ function EquipmentSlot({
     >
       <span className="text-[9px] text-white/50">{label}</span>
       {visible ? (
-        <SlotPreview kind={entry.kind} id={colorId} />
+        <SlotPreview kind={entry.kind} id={previewId} count={count} />
       ) : (
         <span className="h-5 w-5 rounded border border-dashed border-white/20" />
       )}

@@ -32,6 +32,9 @@ import { partyReactionSystem } from '@/core/systems/partyReactionSystem'
 import { trainerBattleSystem } from '@/core/systems/trainerBattleSystem'
 import { projectileSystem } from '@/core/systems/projectileSystem'
 import { consumeEffectSystem } from '@/core/systems/consumeEffectSystem'
+import { eatingSystem } from '@/core/systems/eatingSystem'
+import { eatingInterruptSystem } from '@/core/systems/eatingInterruptSystem'
+import { droppedFoodSystem } from '@/core/systems/droppedFoodSystem'
 import { summonEffectsSystem } from '@/core/systems/summonEffectsSystem'
 import { characterPhysicsSystem } from '@/core/systems/characterPhysicsSystem'
 import { physicsStepSystem } from '@/core/systems/physicsStepSystem'
@@ -42,6 +45,8 @@ import { cameraFollowSystem } from '@/view/systems/cameraFollowSystem'
 import { animationSystem } from '@/view/systems/animationSystem'
 import { hitStopSystem } from '@/view/systems/hitStopSystem'
 import { heldItemViewSystem } from '@/view/systems/heldItemViewSystem'
+import { eatingFoodViewSystem } from '@/view/systems/eatingFoodViewSystem'
+import { droppedFoodViewSystem } from '@/view/systems/droppedFoodViewSystem'
 import { tailFireSystem } from '@/view/systems/tailFireSystem'
 import { audioListenerSystem } from '@/view/systems/audioListenerSystem'
 import { footstepAudioSystem } from '@/view/systems/footstepAudioSystem'
@@ -184,6 +189,9 @@ export function registerGameSystems() {
   registerSystem(GAME_PHASES.SIMULATION, leechSeedSystem)
   // Idem pra queimadura.
   registerSystem(GAME_PHASES.SIMULATION, burnSystem)
+  // Quem come uma fruta cura aos poucos (docs/features/042-itens-da-beta.md)
+  // — depois do dano do tick, antes do desmaio.
+  registerSystem(GAME_PHASES.SIMULATION, eatingSystem)
   // Logo depois do ataque: quem zerou o HP desmaia no mesmo tick do golpe
   // (e antes do partySummonSystem, que recolhe a do time desmaiada).
   registerSystem(GAME_PHASES.SIMULATION, faintSystem)
@@ -191,6 +199,7 @@ export function registerGameSystems() {
   registerSystem(GAME_PHASES.SIMULATION, combatModeSystem)
   registerSystem(GAME_PHASES.SIMULATION, projectileSystem)
   registerSystem(GAME_PHASES.SIMULATION, consumeEffectSystem)
+  registerSystem(GAME_PHASES.SIMULATION, droppedFoodSystem)
   registerSystem(GAME_PHASES.SIMULATION, attackEffectSystem)
   registerSystem(GAME_PHASES.SIMULATION, statStageSystem)
   registerSystem(GAME_PHASES.SIMULATION, summonEffectsSystem)
@@ -220,6 +229,8 @@ export function registerGameSystems() {
   // na luta contra a selvagem que acertou alguém do grupo.
   registerSystem(GAME_PHASES.EVENTS, wildReactionSystem)
   registerSystem(GAME_PHASES.EVENTS, partyReactionSystem)
+  // Tomar dano comendo derruba a fruta.
+  registerSystem(GAME_PHASES.EVENTS, eatingInterruptSystem)
 
   registerSystem(GAME_PHASES.PRESENTATION, syncTransformSystem)
   registerSystem(GAME_PHASES.PRESENTATION, cameraFollowSystem)
@@ -227,6 +238,11 @@ export function registerGameSystems() {
   registerSystem(GAME_PHASES.PRESENTATION, hitStopSystem)
   registerSystem(GAME_PHASES.PRESENTATION, animationSystem)
   registerSystem(GAME_PHASES.PRESENTATION, heldItemViewSystem)
+  // A fruta de quem come, na mão/no chão — depois da animação (ossos na
+  // pose deste frame).
+  registerSystem(GAME_PHASES.PRESENTATION, eatingFoodViewSystem)
+  // A fruta caída rolando e respingando ao quicar.
+  registerSystem(GAME_PHASES.PRESENTATION, droppedFoodViewSystem)
   registerSystem(GAME_PHASES.PRESENTATION, tailFireSystem)
   registerSystem(GAME_PHASES.PRESENTATION, audioListenerSystem)
   registerSystem(GAME_PHASES.PRESENTATION, footstepAudioSystem)

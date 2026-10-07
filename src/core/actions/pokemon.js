@@ -1,3 +1,4 @@
+import { DEFAULT_POKEBALL_ID } from '../data/items'
 import { getSpecies } from '../data/species'
 import { rollIndividualValues } from '../data/species/stats'
 import { createLevelState } from '../data/species/experience'
@@ -31,10 +32,16 @@ import { findFreeCell, resolveInventoryCells } from './inventory'
 /**
  * Cria um Pokémon de `speciesId` para o `trainer`: IV sorteado, nível inicial
  * da espécie, kit de golpes da espécie, vida cheia. Nasce no inventário, na
- * primeira célula livre.
+ * primeira célula livre. `ballId` é a Pokébola em que foi capturado (sem
+ * ela, a comum — ver `Pokemon.ballId`); `rng` sorteia o IV.
  * Devolve o registro, ou `null` pra espécie desconhecida.
  */
-export function criarPokemon(world, trainer, speciesId, rng = gameplayRng) {
+export function criarPokemon(
+  world,
+  trainer,
+  speciesId,
+  { ballId = null, rng = gameplayRng } = {},
+) {
   const species = getSpecies(speciesId)
   if (!species) return null
 
@@ -47,7 +54,7 @@ export function criarPokemon(world, trainer, speciesId, rng = gameplayRng) {
       : {}
 
   return world.spawn(
-    Pokemon({ speciesId }),
+    Pokemon({ speciesId, ballId }),
     IndividualValues(individualValues),
     CreatureLevel(createLevelState(species, species.level ?? 1)),
     CreatureMoves(createMovesState(species)),
@@ -164,4 +171,9 @@ export function findSummonedCreature(world, pokemon) {
 /** A espécie do `pokemon` (id), ou `null`. */
 export function resolvePokemonSpeciesId(pokemon) {
   return pokemon?.get?.(Pokemon)?.speciesId ?? null
+}
+
+/** A Pokébola (id de item) do Pokémon — a comum se não tiver uma gravada. */
+export function resolvePokemonBallId(pokemon) {
+  return pokemon?.get?.(Pokemon)?.ballId ?? DEFAULT_POKEBALL_ID
 }

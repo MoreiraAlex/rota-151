@@ -59,7 +59,7 @@ export function TeamPage({ data, version }) {
         <p>
           Segurando o comando de invocar ou recolher uma criatura (em vez de só
           tocar), abre o <strong>menu de ações</strong> dela. Por enquanto ele
-          tem duas ações:
+          tem três ações:
         </p>
         <ul>
           <li>
@@ -72,6 +72,14 @@ export function TeamPage({ data, version }) {
           </li>
           <li>
             <strong>Golpes</strong> — trocar a ordem dos três golpes dela.
+          </li>
+          <li>
+            <strong>Itens</strong> — dar uma poção ou uma fruta pra ela, se
+            estiver em campo (
+            <WikiLink version={version} to="catalogo/itens#como-usar">
+              Itens
+            </WikiLink>
+            ).
           </li>
         </ul>
         <p>Com o menu aberto, o treinador e o time não fazem outras ações.</p>

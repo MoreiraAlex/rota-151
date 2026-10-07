@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import { listSkills } from '@/core/data/skills'
+import { listItems } from '@/core/data/items'
 import { buildWikiData } from './wikiData'
 import { listWikiSpecies } from './speciesEntry'
 
@@ -33,6 +34,24 @@ describe('buildWikiData', () => {
       listWikiSpecies().map((entry) => entry.id),
     )
     expect(data.skills).toHaveLength(listSkills().length)
+  })
+
+  it('traz todo item do jogo, com o que cada categoria faz', () => {
+    expect(data.items.map((item) => item.id).sort()).toEqual(
+      listItems()
+        .map((item) => item.id)
+        .sort(),
+    )
+    for (const item of data.items) {
+      if (item.category === 'consumable') expect(item.heal).toBeGreaterThan(0)
+      if (item.category === 'berry') {
+        expect(item.berryHeal).toBeGreaterThan(0)
+        expect(item.berryDuration).toBeGreaterThan(0)
+      }
+      if (item.category === 'pokeball') {
+        expect(item.captureMultiplier).toBeGreaterThan(0)
+      }
+    }
   })
 
   it('números de regra saem da config do jogo', () => {
