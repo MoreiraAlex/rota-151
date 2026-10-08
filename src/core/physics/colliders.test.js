@@ -4,12 +4,13 @@ import {
   characterClearance,
   createCharacterBody,
   createTerrainChunkCollider,
+  debugRenderWithoutTerrain,
   destroyTerrainChunkCollider,
   resolveFreeTurn,
 } from './colliders'
 import { castRay } from './raycast'
 import { GAME_CONFIG } from '../gameConfig'
-import { createHeightSampler } from '../terrain/terrainHeight'
+import { createTerrainSampler } from '../terrain/terrainHeight'
 import { chunkHeightAt, generateTerrainChunk } from '../terrain/terrainChunk'
 
 const OFFSET = GAME_CONFIG.PHYSICS.CHARACTER.CONTROLLER_OFFSET
@@ -106,7 +107,7 @@ describe('createTerrainChunkCollider — o colisor bate com o relevo do chunk', 
   }
 
   it('o raio para baixo acerta na altura de chunkHeightAt, em qualquer ponto', () => {
-    const chunk = generateTerrainChunk(createHeightSampler(5), 1, -1)
+    const chunk = generateTerrainChunk(createTerrainSampler(5), 1, -1)
     createTerrainChunkCollider(chunk)
     stepPhysics()
 
@@ -126,7 +127,7 @@ describe('createTerrainChunkCollider — o colisor bate com o relevo do chunk', 
   })
 
   it('destroyTerrainChunkCollider tira o chão', () => {
-    const chunk = generateTerrainChunk(createHeightSampler(5), 0, 0)
+    const chunk = generateTerrainChunk(createTerrainSampler(5), 0, 0)
     const handle = createTerrainChunkCollider(chunk)
     stepPhysics()
     expect(groundByRay(0, 0)).not.toBeNull()
@@ -134,5 +135,24 @@ describe('createTerrainChunkCollider — o colisor bate com o relevo do chunk', 
     destroyTerrainChunkCollider(handle)
     stepPhysics()
     expect(groundByRay(0, 0)).toBeNull()
+  })
+})
+
+describe('debugRenderWithoutTerrain', () => {
+  afterEach(() => disposePhysics())
+
+  it('sem física, devolve null', () => {
+    expect(debugRenderWithoutTerrain()).toBeNull()
+  })
+
+  it('deixa o relevo de fora e mantém os outros colliders', async () => {
+    await initPhysics()
+    const chunk = generateTerrainChunk(createTerrainSampler(5), 0, 0)
+    createTerrainChunkCollider(chunk)
+    const onlyTerrain = debugRenderWithoutTerrain()
+    expect(onlyTerrain.vertices.length).toBe(0)
+
+    createCharacterBody({ x: 0, y: 30, z: 0 }, { radius: 0.3, halfHeight: 0.5 })
+    expect(debugRenderWithoutTerrain().vertices.length).toBeGreaterThan(0)
   })
 })

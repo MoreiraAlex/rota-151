@@ -1,16 +1,31 @@
 import { describe, expect, it } from 'vitest'
 import * as THREE from 'three'
 import { GAME_CONFIG } from '@/core/gameConfig'
-import { createHeightSampler } from '@/core/terrain/terrainHeight'
+import {
+  copyTerrainRecipe,
+  createTerrainSampler,
+  currentTerrainRecipe,
+} from '@/core/terrain/terrainHeight'
 import {
   chunkHeightAt,
   generateTerrainChunk,
 } from '@/core/terrain/terrainChunk'
-import { buildTerrainChunkGeometry, terrainColorAt } from './terrainGeometry'
-import { TERRAIN_PALETTE } from './terrainPalette'
+import {
+  addGroundLayers,
+  buildTerrainChunkGeometry,
+  terrainColorAt,
+} from './terrainGeometry'
+import { TERRAIN_COLOR_MODES } from './terrainColorMode'
+import {
+  MAX_TERRAIN_LAYERS,
+  TERRAIN_LAYERS,
+  terrainLayerIndex,
+} from './terrainLayers'
+import { listBiomes } from '@/core/data/biomes'
 
 const { WATER_LEVEL } = GAME_CONFIG.TERRAIN
-const chunk = generateTerrainChunk(createHeightSampler(9), 1, 0)
+const { SHORE_HEIGHT, SLOPE_FULL } = GAME_CONFIG.TERRAIN_COLOR
+const chunk = generateTerrainChunk(createTerrainSampler(9), 1, 0)
 
 describe('buildTerrainChunkGeometry', () => {
   const geometry = buildTerrainChunkGeometry(chunk, WATER_LEVEL)
@@ -55,27 +70,114 @@ describe('buildTerrainChunkGeometry', () => {
   })
 })
 
-describe('terrainColorAt', () => {
-  const color = (hex) => new THREE.Color(hex)
+const expectColor = (actual, hex) => {
+  const expected = new THREE.Color(hex)
+  expect(actual.r).toBeCloseTo(expected.r, 5)
+  expect(actual.g).toBeCloseTo(expected.g, 5)
+  expect(actual.b).toBeCloseTo(expected.b, 5)
+}
 
-  it('abaixo da água é fundo de lago; logo acima, margem', () => {
-    expect(terrainColorAt(-1, 1, new THREE.Color())).toEqual(
-      color(TERRAIN_PALETTE.lakeBed),
+describe('cor por bioma', () => {
+  it('no modo bioma, cada vértice tem a cor de debug do bioma', () => {
+    // Receita com um bioma só: todo vértice é 100% dele.
+    const [biome] = listBiomes()
+    const recipe = copyTerrainRecipe(currentTerrainRecipe())
+    recipe.biomeList = [structuredClone(biome)]
+    const single = generateTerrainChunk(createTerrainSampler(9, recipe), 0, 0)
+    const colors = buildTerrainChunkGeometry(
+      single,
+      WATER_LEVEL,
+      TERRAIN_COLOR_MODES.biome,
+    ).getAttribute('color')
+
+    for (let i = 0; i < colors.count; i += 53) {
+      expectColor(
+        new THREE.Color().fromBufferAttribute(colors, i),
+        biome.palette.debug,
+      )
+    }
+  })
+})
+
+describe('camadas de desenho do chão', () => {
+  const layersOf = (biome, height, normalY) => {
+    const weights = new Float32Array(MAX_TERRAIN_LAYERS)
+    addGroundLayers(biome, height, normalY, 1, weights)
+    return weights
+  }
+  const only = (layer) => {
+    const weights = new Float32Array(MAX_TERRAIN_LAYERS)
+    weights[terrainLayerIndex(layer)] = 1
+    return weights
+  }
+
+  it('cabem nos pesos por vértice', () => {
+    expect(TERRAIN_LAYERS.length).toBeLessThanOrEqual(MAX_TERRAIN_LAYERS)
+  })
+
+  it.each(listBiomes())('$id: usa só camadas que existem', ({ ground }) => {
+    const names = [
+      ground.texture,
+      ground.slopeTexture,
+      ground.shoreTexture,
+      ground.peakTexture,
+    ].filter(Boolean)
+    for (const name of names) expect(TERRAIN_LAYERS).toContain(name)
+    expect(ground.detail).toBeGreaterThanOrEqual(0)
+    expect(ground.detail).toBeLessThanOrEqual(1)
+  })
+
+  it.each(listBiomes())('$id: chão, encosta, margem e pico', (biome) => {
+    const { ground, palette } = biome
+    const flatHeight = palette.highHeight / 2
+    expect(layersOf(biome, flatHeight, 1)).toEqual(only(ground.texture))
+    expect(layersOf(biome, flatHeight, SLOPE_FULL)).toEqual(
+      only(ground.slopeTexture),
     )
-    expect(
-      terrainColorAt(TERRAIN_PALETTE.SHORE_HEIGHT / 2, 1, new THREE.Color()),
-    ).toEqual(color(TERRAIN_PALETTE.shore))
+    expect(layersOf(biome, -1, 1)).toEqual(
+      only(ground.shoreTexture ?? ground.texture),
+    )
+    if (palette.peak) {
+      expect(
+        layersOf(biome, palette.peakHeight + SHORE_HEIGHT * 10, 1),
+      ).toEqual(only(ground.peakTexture ?? ground.texture))
+    }
+  })
+
+  it('na geometria, os pesos das camadas somam 1 e o desenho é o do bioma', () => {
+    const geometry = buildTerrainChunkGeometry(chunk, WATER_LEVEL)
+    const layers0 = geometry.getAttribute('groundLayers0')
+    const layers1 = geometry.getAttribute('groundLayers1')
+    const detail = geometry.getAttribute('groundDetail')
+    const details = listBiomes().map(({ ground }) => ground.detail)
+    for (let i = 0; i < layers0.count; i += 31) {
+      let total = 0
+      for (let c = 0; c < 4; c++) {
+        total += layers0.array[i * 4 + c] + layers1.array[i * 4 + c]
+      }
+      expect(total).toBeCloseTo(1, 5)
+      expect(detail.getX(i)).toBeGreaterThanOrEqual(Math.min(...details) - 1e-6)
+      expect(detail.getX(i)).toBeLessThanOrEqual(Math.max(...details) + 1e-6)
+    }
+  })
+})
+
+describe.each(listBiomes())('terrainColorAt — $id', ({ palette }) => {
+  const at = (height, normalY) =>
+    terrainColorAt(palette, height, normalY, new THREE.Color())
+
+  it('abaixo da água é o fundo; logo acima, a margem', () => {
+    expectColor(at(-1, 1), palette.bed)
+    expectColor(at(SHORE_HEIGHT / 2, 1), palette.shore)
   })
 
   it('encosta íngreme puxa para a cor de encosta', () => {
-    const height = TERRAIN_PALETTE.GRASS_TOP_HEIGHT / 2
-    const flat = terrainColorAt(height, 1, new THREE.Color())
-    const steep = terrainColorAt(
-      height,
-      TERRAIN_PALETTE.SLOPE_FULL,
-      new THREE.Color(),
-    )
-    expect(flat.equals(steep)).toBe(false)
-    expect(steep).toEqual(color(TERRAIN_PALETTE.slope))
+    const height = palette.highHeight / 2
+    expect(at(height, 1).equals(at(height, SLOPE_FULL))).toBe(false)
+    expectColor(at(height, SLOPE_FULL), palette.slope)
+  })
+
+  it.runIf(palette.peak)('no alto, a cor do pico', () => {
+    expectColor(at(palette.peakHeight + SHORE_HEIGHT * 10, 1), palette.peak)
   })
 })

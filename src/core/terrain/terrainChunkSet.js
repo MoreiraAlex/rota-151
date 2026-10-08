@@ -1,5 +1,8 @@
-import { GAME_CONFIG } from '../gameConfig'
-import { createHeightSampler } from './terrainHeight'
+import {
+  copyTerrainRecipe,
+  createTerrainSampler,
+  currentTerrainRecipe,
+} from './terrainHeight'
 import {
   chunkCoordAt,
   chunkHeightAt,
@@ -31,6 +34,8 @@ import {
  *
  * @typedef {object} TerrainChunkSet
  * @property {(x: number, z: number) => number} heightAt
+ * @property {(x: number, z: number) => object} biomeAt - bioma de maior
+ *   peso (`core/data/biomes/`)
  * @property {(chunkX: number, chunkZ: number) => import('./terrainChunk').TerrainChunk} load
  * @property {(chunkX: number, chunkZ: number) => import('./terrainChunk').TerrainChunk | null} unload
  * @property {(chunkX: number, chunkZ: number) => boolean} isLoaded
@@ -38,7 +43,7 @@ import {
  * @property {() => import('./terrainChunk').TerrainChunk[]} loadedChunks
  * @property {(status: StreamingStatus) => void} setStreamingStatus
  * @property {() => StreamingStatus} streamingStatus
- * @property {(seed: number, params?: object) => void} reconfigure
+ * @property {(seed: number, recipe?: import('./terrainHeight').TerrainRecipe) => void} reconfigure
  * @property {() => number} chunkSize
  * @property {() => number} getRevision
  * @property {(listener: () => void) => () => void} subscribe
@@ -52,12 +57,15 @@ const sameKeys = (a, b) =>
   a.length === b.length && a.every((key, index) => key === b[index])
 
 /** @returns {TerrainChunkSet} */
-export function createTerrainChunkSet({ seed, params = GAME_CONFIG.TERRAIN }) {
-  let sampler = createHeightSampler(seed, params)
-  // Cópia: o painel de ajuste mexe no `GAME_CONFIG.TERRAIN` ao vivo, e os
-  // chunks carregados seguem a receita com que nasceram até o
+export function createTerrainChunkSet({
+  seed,
+  recipe: initialRecipe = currentTerrainRecipe(),
+}) {
+  // Cópia: o painel de ajuste mexe no `GAME_CONFIG` e nos biomas ao vivo, e
+  // os chunks carregados seguem a receita com que nasceram até o
   // `reconfigure`.
-  let recipe = { ...params }
+  let recipe = copyTerrainRecipe(initialRecipe)
+  let sampler = createTerrainSampler(seed, recipe)
   const chunks = new Map()
   let status = NO_STATUS
   let revision = 0
@@ -68,7 +76,7 @@ export function createTerrainChunkSet({ seed, params = GAME_CONFIG.TERRAIN }) {
     for (const listener of listeners) listener()
   }
 
-  const size = () => recipe.CHUNK_SIZE
+  const size = () => recipe.terrain.CHUNK_SIZE
   const chunkAt = (x, z) =>
     chunks.get(chunkKey(chunkCoordAt(x, size()), chunkCoordAt(z, size())))
 
@@ -80,10 +88,17 @@ export function createTerrainChunkSet({ seed, params = GAME_CONFIG.TERRAIN }) {
         : latticeHeightAt(sampler, x, z, size())
     },
 
+    biomeAt: (x, z) => sampler.biomeAt(x, z),
+
     load(chunkX, chunkZ) {
       const key = chunkKey(chunkX, chunkZ)
       if (chunks.has(key)) return chunks.get(key)
-      const chunk = generateTerrainChunk(sampler, chunkX, chunkZ, recipe)
+      const chunk = generateTerrainChunk(
+        sampler,
+        chunkX,
+        chunkZ,
+        recipe.terrain,
+      )
       chunks.set(key, chunk)
       notify()
       return chunk
@@ -117,12 +132,12 @@ export function createTerrainChunkSet({ seed, params = GAME_CONFIG.TERRAIN }) {
      * carregado: os chunks de antes têm colisor e grade que só as actions
      * sabem desfazer.
      */
-    reconfigure(newSeed, newParams = GAME_CONFIG.TERRAIN) {
+    reconfigure(newSeed, newRecipe = currentTerrainRecipe()) {
       if (chunks.size > 0) {
         throw new Error('reconfigure com chunks carregados')
       }
-      sampler = createHeightSampler(newSeed, newParams)
-      recipe = { ...newParams }
+      recipe = copyTerrainRecipe(newRecipe)
+      sampler = createTerrainSampler(newSeed, recipe)
       status = NO_STATUS
       notify()
     },

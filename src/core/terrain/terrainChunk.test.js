@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { GAME_CONFIG } from '../gameConfig'
-import { createHeightSampler } from './terrainHeight'
+import { createTerrainSampler } from './terrainHeight'
 import {
   chunkCoordAt,
   chunkHeightAt,
@@ -11,12 +11,12 @@ import {
 const { CHUNK_SIZE, GENERATION_VERSION } = GAME_CONFIG.TERRAIN
 // Um vértice por metro.
 const CHUNK_RESOLUTION = CHUNK_SIZE
-const sampler = createHeightSampler(7)
+const sampler = createTerrainSampler(7)
 
 describe('generateTerrainChunk', () => {
   it('mesma entrada, mesmas alturas', () => {
-    const a = generateTerrainChunk(createHeightSampler(7), 2, -1)
-    const b = generateTerrainChunk(createHeightSampler(7), 2, -1)
+    const a = generateTerrainChunk(createTerrainSampler(7), 2, -1)
+    const b = generateTerrainChunk(createTerrainSampler(7), 2, -1)
     expect(a.heights).toEqual(b.heights)
   })
 
@@ -58,9 +58,41 @@ describe('generateTerrainChunk', () => {
       [CHUNK_RESOLUTION, 1],
     ]) {
       expect(chunk.heights[heightIndex(CHUNK_RESOLUTION, ix, iz)]).toBeCloseTo(
-        sampler(chunk.minX + ix * step, chunk.minZ + iz * step),
+        sampler.heightAt(chunk.minX + ix * step, chunk.minZ + iz * step),
         4,
       )
+    }
+  })
+})
+
+describe('generateTerrainChunk — biomas', () => {
+  const chunk = generateTerrainChunk(sampler, 1, -1)
+  const biomeCount = chunk.biomeIds.length
+  const weightsAt = (target, ix, iz) =>
+    Array.from({ length: biomeCount }, (_, biome) => {
+      const index = heightIndex(target.resolution, ix, iz)
+      return target.biomeWeights[index * biomeCount + biome]
+    })
+
+  it('guarda os biomas do relevo, na ordem dos pesos', () => {
+    expect(chunk.biomeIds).toEqual(sampler.biomes.map(({ id }) => id))
+    expect(chunk.biomeIds).toContain(chunk.biome)
+  })
+
+  it('os pesos de cada vértice somam um inteiro (arredondados)', () => {
+    for (let i = 0; i < chunk.heights.length; i += 97) {
+      const ix = Math.floor(i / (CHUNK_RESOLUTION + 1))
+      const iz = i % (CHUNK_RESOLUTION + 1)
+      const total = weightsAt(chunk, ix, iz).reduce((a, b) => a + b, 0)
+      expect(Math.abs(total - 255)).toBeLessThanOrEqual(biomeCount)
+    }
+  })
+
+  it('a borda comum de dois chunks vizinhos tem os mesmos pesos', () => {
+    const last = CHUNK_RESOLUTION
+    const east = generateTerrainChunk(sampler, 2, -1)
+    for (let i = 0; i <= last; i += 7) {
+      expect(weightsAt(east, 0, i)).toEqual(weightsAt(chunk, last, i))
     }
   })
 })

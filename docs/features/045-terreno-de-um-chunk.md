@@ -48,13 +48,13 @@ Versão: `0.0.45` (`package.json`). Branch: `feature/045-terreno-de-um-chunk`.
    plataforma, corredor, parede, degrau, pilar e pedras de teste saem (iam
    boiar ou afundar no relevo). Ficam os **muros de borda** (enquanto a área
    for fixa) e os **objetos de treino**, apoiados no terreno. Os tipos
-   `ramp`/`floor` continuam suportados no pathfinding (estruturas da 052).
+   `ramp`/`floor` continuam suportados no pathfinding (estruturas da 053).
 2. **Ruído pela lib `simplex-noise`** (v4), alimentada pelo nosso PRNG
    seedado (`createRng`) — sem `Math.random()`.
 3. **Tamanho do chunk e da área parametrizáveis** em `GAME_CONFIG.TERRAIN`
    (ex.: chunk de 48 m com 1 vértice por metro, área de 3×3 chunks —
    fictícios).
-4. **Seed fixa** no `gameConfig` (`WORLD.SEED`). Na 064 o servidor passa a
+4. **Seed fixa** no `gameConfig` (`WORLD.SEED`). Na 065 o servidor passa a
    ser o dono dela.
 
 ---
@@ -232,7 +232,7 @@ constantes locais em `testLevel.js`.
   células PLANAS de heightfield (medido: cerca de 1 em 10 num chão todo
   plano). O relevo por ruído não tem célula plana (nenhum erro em centenas de
   raios no relevo do jogo), então hoje não aparece; vai importar quando
-  houver terreno aplainado (048/052). Virou o item 076 do Marco 5. O nível
+  houver terreno aplainado (048/053). Virou o item 077 do Marco 5. O nível
   plano dos testes usa caixa como chão por isso.
 - **Wiki**: página nova "O mundo" (relevo, área cercada por enquanto e o que
   ainda vai chegar), no grupo "Começando".
@@ -249,7 +249,7 @@ constantes locais em `testLevel.js`.
 - Biomas e cores por bioma — 047.
 - A água em si (visual, rasa/funda, bloqueio) — 048.
 - Escolher um ponto de nascimento seco — junto da água (048) ou do
-  Pokécenter (052).
+  Pokécenter (053).
 
 ---
 

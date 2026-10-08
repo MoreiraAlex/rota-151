@@ -62,7 +62,7 @@ Versão: `0.0.46` (`package.json`). Branch: `feature/046-sistema-de-chunks`.
 3. **Entidade em chunk descarregado congela**: selvagens, objetos de treino
    e criatura do time que ficou longe param (sem física e sem IA) e voltam
    de onde estavam quando o chunk carrega de novo. Despawn de verdade é da
-   054.
+   055.
 4. **Pathfinding por chunk (opção A)**: uma grade por chunk, assada quando
    o chunk carrega e liberada quando descarrega; o A* atravessa os chunks
    carregados.
@@ -216,7 +216,7 @@ Versão: `0.0.46` (`package.json`). Branch: `feature/046-sistema-de-chunks`.
   da área inteira a cada chamada.
 - **Nível** (`core/data/testLevel.js`): saem `bounds` e os muros de borda;
   selvagens nascem num quadrado fixo em volta da origem (provisório até a
-  054).
+  055).
 - **Painel de ajuste (F2)**: `regenerarTerreno` descarrega tudo, refaz a
   receita e põe quem ficou enterrado em cima do chão; o streaming carrega
   de novo no tick seguinte. Os raios de carregar/descarregar entram no
@@ -277,10 +277,10 @@ ver uma chunk sendo gerada ou removida, respeitando os parâmetros da chunk".
 - **Teste no jogo pelo usuário**: aprovado ("ficou bom", depois "perfeito").
 - **Achado para depois**: no relevo, o corpo das entidades não acompanha a
   inclinação (sobe o morro reto) e às vezes as skills saem da cabeça do
-  personagem — virou o item 077 do Marco 5.
+  personagem — virou o item 078 do Marco 5.
 - **Wiki**: página "O mundo", seção "Tamanho" — mundo sem fim, névoa no
   horizonte, criaturas longe param e coisas largadas longe somem.
-- Roadmap: 046 no "Já feito"; 077 no Marco 5. Backlog sem mudança.
+- Roadmap: 046 no "Já feito"; 078 no Marco 5. Backlog sem mudança.
 - Gates: `npm test` inteiro (192 arquivos, 1855 testes, com
   `--maxWorkers=2`), `npm run lint` e build (numa cópia, com o `next dev`
   rodando) passando.
@@ -291,9 +291,9 @@ ver uma chunk sendo gerada ou removida, respeitando os parâmetros da chunk".
 
 - Biomas e cores por bioma — 047.
 - Água (visual, rasa/funda, bloqueio) — 048.
-- Spawn e despawn de selvagens por chunk — 054.
-- Servidor dono da seed e geração compartilhada — 064.
-- Célula plana do heightfield — 076.
+- Spawn e despawn de selvagens por chunk — 055.
+- Servidor dono da seed e geração compartilhada — 065.
+- Célula plana do heightfield — 077.
 
 ---
 

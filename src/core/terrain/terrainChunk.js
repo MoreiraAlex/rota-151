@@ -22,6 +22,11 @@ import { clamp } from '../math'
  * @property {Float32Array} heights - `(resolution + 1)²` alturas (m)
  * @property {number} minHeight
  * @property {number} maxHeight
+ * @property {string[]} biomeIds - ids dos biomas, na ordem dos pesos
+ * @property {Uint8Array} biomeWeights - peso de cada bioma por vértice (0 a
+ *   255; só para a cor): `biomeWeights[índice da altura × biomeIds.length +
+ *   bioma]`
+ * @property {string} biome - id do bioma com mais peso no chunk
  */
 
 /** Chunk que contém a coordenada de mundo `value` (num eixo). */
@@ -40,13 +45,14 @@ export function heightIndex(resolution, ix, iz) {
 }
 
 /**
- * Gera o chunk `(chunkX, chunkZ)` a partir de `heightAt` (`createHeightSampler`).
+ * Gera o chunk `(chunkX, chunkZ)` a partir do relevo (`createTerrainSampler`,
+ * `terrainHeight.js`): alturas e pesos dos biomas por vértice.
  * `params` tem a forma de `GAME_CONFIG.TERRAIN`.
  *
  * @returns {TerrainChunk}
  */
 export function generateTerrainChunk(
-  heightAt,
+  sampler,
   chunkX,
   chunkZ,
   params = GAME_CONFIG.TERRAIN,
@@ -58,20 +64,35 @@ export function generateTerrainChunk(
   const minX = (chunkX - 0.5) * size
   const minZ = (chunkZ - 0.5) * size
   const heights = new Float32Array((resolution + 1) ** 2)
+  const biomeCount = sampler.biomes.length
+  const biomeWeights = new Uint8Array(heights.length * biomeCount)
+  const weights = new Float64Array(biomeCount)
+  const biomeTotals = new Float64Array(biomeCount)
 
   let minHeight = Infinity
   let maxHeight = -Infinity
   for (let ix = 0; ix <= resolution; ix++) {
     for (let iz = 0; iz <= resolution; iz++) {
       const index = heightIndex(resolution, ix, iz)
-      heights[index] = heightAt(minX + ix * step, minZ + iz * step)
+      heights[index] = sampler.sample(
+        minX + ix * step,
+        minZ + iz * step,
+        weights,
+      )
       // Do valor guardado (float32), não do calculado.
       const height = heights[index]
       minHeight = Math.min(minHeight, height)
       maxHeight = Math.max(maxHeight, height)
+      for (let biome = 0; biome < biomeCount; biome++) {
+        biomeWeights[index * biomeCount + biome] = Math.round(
+          weights[biome] * 255,
+        )
+        biomeTotals[biome] += weights[biome]
+      }
     }
   }
 
+  const dominant = biomeTotals.indexOf(Math.max(...biomeTotals))
   return {
     chunkX,
     chunkZ,
@@ -83,6 +104,9 @@ export function generateTerrainChunk(
     heights,
     minHeight,
     maxHeight,
+    biomeIds: sampler.biomes.map(({ id }) => id),
+    biomeWeights,
+    biome: sampler.biomes[dominant].id,
   }
 }
 
@@ -124,13 +148,13 @@ function triangleHeight(a, b, c, d, u, v) {
 
 /**
  * Altura em `(x, z)` com os mesmos vértices e triângulos que um chunk
- * teria ali, direto do ruído (`heightAt` de `createHeightSampler`) — vale
+ * teria ali, direto do ruído (`createTerrainSampler`) — vale
  * com o chunk carregado ou não (docs/features/046-sistema-de-chunks.md). Os
  * vértices ficam onde os dos chunks ficam (a cada metro a partir da borda
  * de um chunk) e as alturas passam por float32, como em `heights`.
  */
 export function latticeHeightAt(
-  heightAt,
+  sampler,
   x,
   z,
   size = GAME_CONFIG.TERRAIN.CHUNK_SIZE,
@@ -143,7 +167,7 @@ export function latticeHeightAt(
   const iz = Math.floor(fz)
 
   const corner = (dx, dz) =>
-    Math.fround(heightAt(offset + ix + dx, offset + iz + dz))
+    Math.fround(sampler.heightAt(offset + ix + dx, offset + iz + dz))
   return triangleHeight(
     corner(0, 0),
     corner(1, 0),

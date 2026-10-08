@@ -10,6 +10,7 @@ import {
   TrainerReady,
 } from '../traits'
 import { aplicarSave, pedirSave, prepararTreinador } from './save'
+import { TEST_LEVEL } from '../data/testLevel'
 
 // Salvar e carregar (docs/features/044-salvar-o-jogo.md). Espécies só como
 // dado de teste.
@@ -18,8 +19,12 @@ afterEach(() => {
   while (worlds.length) worlds.pop().destroy()
 })
 
+// Acima do chão da origem: abaixo dele o save sobe o treinador para a
+// superfície (docs/features/045-terreno-de-um-chunk.md).
 function setup() {
-  const { world, player } = makeWorld()
+  const { world, player } = makeWorld({
+    playerPosition: { x: 0, y: TEST_LEVEL.terrain.heightAt(0, 0) + 5, z: 0 },
+  })
   worlds.push(world)
   return { world, player }
 }

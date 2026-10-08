@@ -74,6 +74,22 @@ export function removeLevelChunkCollider(chunkX, chunkZ) {
   chunkBodies.delete(key)
 }
 
+/**
+ * Linhas dos colliders para o debug (F2, `tools/debug/PhysicsDebugView.jsx`)
+ * SEM o relevo: o heightfield de cada chunk tem os mesmos triângulos da
+ * malha visível (`terrainGeometry.js`, testado) e, com vários chunks
+ * carregados, redesenhá-lo a cada quadro derrubava o FPS. Sem física, `null`.
+ */
+export function debugRenderWithoutTerrain() {
+  const world = getRapierWorld()
+  if (!world) return null
+  const { ShapeType } = getRapier()
+  return world.debugRender(
+    undefined,
+    (collider) => collider.shapeType() !== ShapeType.HeightField,
+  )
+}
+
 /** O chunk `(chunkX, chunkZ)` tem colisor no nível? */
 export function hasLevelChunkCollider(chunkX, chunkZ) {
   return chunkBodies.has(chunkKey(chunkX, chunkZ))

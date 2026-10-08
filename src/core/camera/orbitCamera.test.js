@@ -3,6 +3,7 @@ import {
   buildGameLevelAtOrigin,
   clearGameLevelChunks,
 } from '@/test/gameLevelChunks'
+import { TEST_LEVEL } from '../data/testLevel'
 import { GAME_CONFIG } from '../gameConfig'
 import {
   initPhysics,
@@ -230,21 +231,22 @@ describe('resolveCameraCollision', () => {
 
     it('puxa a posição pra logo antes do chão em vez de atravessar', async () => {
       await initPhysics()
-      buildGameLevelAtOrigin() // chão com a superfície em y=0
+      buildGameLevelAtOrigin()
       stepPhysics() // broad-phase só existe depois de um step (ver raycast.js)
+      const ground = TEST_LEVEL.terrain.heightAt(0, 0)
 
-      const pivot = { x: 0, y: 2, z: 0 }
-      const uncollided = { x: 0, y: -5, z: 0 } // bem abaixo do chão
+      const pivot = { x: 0, y: ground + 2, z: 0 }
+      const uncollided = { x: 0, y: ground - 5, z: 0 } // bem abaixo do chão
 
       const result = resolveCameraCollision(pivot, uncollided, undefined, {
         COLLISION_MARGIN: 0.3,
         MIN_DISTANCE_AFTER_COLLISION: 0.5,
       })
 
-      // Bateu no chão (y=0) a 2 unidades do pivô — resultado fica a
+      // Bateu no chão a 2 unidades do pivô — resultado fica a
       // (2 - COLLISION_MARGIN) = 1.7 do pivô, não nas -5 originais.
-      expect(result.y).toBeCloseTo(2 - 1.7)
-      expect(result.y).toBeGreaterThan(0) // acima do chão, não atravessou
+      expect(result.y).toBeCloseTo(ground + 2 - 1.7)
+      expect(result.y).toBeGreaterThan(ground) // acima do chão, não atravessou
     })
   })
 })
@@ -260,7 +262,7 @@ describe('computeAimRay — colisão da câmera (bug real, relatado jogando)', (
     buildGameLevelAtOrigin()
     stepPhysics()
 
-    const target = { x: 0, y: 1, z: 0 }
+    const target = { x: 0, y: TEST_LEVEL.terrain.heightAt(0, 0) + 1, z: 0 }
     // MIN_PITCH (olhando pro céu) + distância máxima — a posição IDEAL da
     // câmera (sem colisão) fica bem abaixo do chão (y=0) com esses
     // valores, mesma configuração que causava o arremesso saindo em
@@ -273,6 +275,9 @@ describe('computeAimRay — colisão da câmera (bug real, relatado jogando)', (
 
     const { origin } = computeAimRay(target, orbit)
 
-    expect(origin.y).toBeGreaterThan(0) // corrigida — não afundada no chão
+    // Corrigida — não afundada no chão.
+    expect(origin.y).toBeGreaterThan(
+      TEST_LEVEL.terrain.heightAt(origin.x, origin.z),
+    )
   })
 })

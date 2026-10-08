@@ -70,7 +70,7 @@ Versão: `0.0.43` (`package.json`). Branch: `feature/043-captura`.
    pesando (hostil tende a brigar, pacífico tende a fugir). Se estava
    **desmaiado**, acorda com uma parte da vida.
    - A revisão geral da batalha e da IA (ofensiva/fuga) foi para o Marco 5
-     (072).
+     (073).
 7. **Capturado**:
    1. vai para o **primeiro slot vazio do time**; sem slot, para o
       **inventário**; com o inventário cheio, **fica no chão** (pegar do
@@ -334,7 +334,7 @@ estouro de escape e bola quebrando. Sem os arquivos, o som fica pendente
   no chão (`BallOnGround`, `GroundBallsView`); mover pra fora da grade e
   tirar do time sem lugar são recusados. Item novo com a grade cheia ainda
   ganha posição fora dela (não aparece) — revisar quando houver itens no
-  mundo (051).
+  mundo (052).
 - **Condições**: `StoredConditions` no registro, escrito no recolher e na
   captura; `storedConditionSystem` queima a vida guardada com a mesma conta
   do `burnSystem` (`avancarQueimaduraGuardada`) e, zerando, desmaia na bola
@@ -552,11 +552,11 @@ sessão; o Cobblemon tem o dele):
 - Pegar do chão (bola perdida e bola com Pokémon) — depois.
 - Arremesso furtivo/agachado e grama alta (stealth do Legends Arceus) — depois.
 - Bolas de peso diferente (Pesada/Pena) e outras bolas.
-- Revisão da batalha e da IA (ofensiva/fuga) — 072, Marco 5.
+- Revisão da batalha e da IA (ofensiva/fuga) — 073, Marco 5.
 - XP do treinador (backlog).
 - Salvar — 044 (precisa guardar `ballId`, condições guardadas e a bola no
   chão).
-- Captura no servidor — 067.
+- Captura no servidor — 068.
 - Sons, se os arquivos não vierem.
 
 ---
@@ -618,4 +618,4 @@ sessão; o Cobblemon tem o dele):
       de cada espécie, capturou,
       escapou); o bônus de captura de cada condição fica na descrição dela
       (efeito do golpe e "Efeitos em batalha"); "Itens", "Seu time" e
-      "Inventário" (o limite da grade). Revisão geral da wiki: 073.
+      "Inventário" (o limite da grade). Revisão geral da wiki: 074.

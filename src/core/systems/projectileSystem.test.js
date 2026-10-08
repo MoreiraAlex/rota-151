@@ -5,6 +5,7 @@ import {
 } from '@/test/gameLevelChunks'
 import { createWorld } from 'koota'
 import { makeWorld } from '@/test/makeWorld'
+import { TEST_LEVEL } from '@/core/data/testLevel'
 import { Projectile, Position, Velocity, PhysicsBody } from '@/core/traits'
 import {
   initPhysics,
@@ -87,20 +88,21 @@ describe('projectileSystem — colisão com o mundo', () => {
     stepPhysics() // broad-phase só existe depois de um step (ver raycast.js)
 
     const world = spawnWorld()
+    const ground = TEST_LEVEL.terrain.heightAt(0, 0)
     // Sem gravidade (voo reto), a velocidade precisa apontar pro chão de
     // propósito — nada mais faz o projétil descer sozinho.
     const projectile = world.spawn(
-      Position({ x: 0, y: 3, z: 0 }),
+      Position({ x: 0, y: ground + 3, z: 0 }),
       Velocity({ x: 0, y: -20, z: 0 }),
       Projectile({ lifetime: 5 }),
     )
 
-    // Ticks grandes o bastante pro segmento do tick varrer o chão (y=0) em
-    // vez de "pular" por cima dele.
+    // Ticks grandes o bastante pro segmento do tick varrer o chão em vez
+    // de "pular" por cima dele.
     for (let i = 0; i < 30; i++) tick(world, 1 / 30)
 
     expect(projectile.get(Projectile).hit).toBe(true)
-    expect(projectile.get(Position).y).toBeCloseTo(0, 1)
+    expect(projectile.get(Position).y).toBeCloseTo(ground, 1)
     expect(projectile.get(Velocity).y).toBe(0)
   })
 

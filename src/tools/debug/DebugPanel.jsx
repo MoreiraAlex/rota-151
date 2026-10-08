@@ -6,6 +6,7 @@ import { useTrait, useTag, useQuery, useQueryFirst } from 'koota/react'
 import { playerEntity, cameraEntity, world } from '@/core/world/world'
 import { getItem, listItems } from '@/core/data/items'
 import { getSpecies } from '@/core/data/species'
+import { TEST_LEVEL } from '@/core/data/testLevel'
 import {
   desequiparMao,
   equiparNaMao,
@@ -138,6 +139,8 @@ export function DebugPanel({ onDeleteSave = null }) {
         {position.z.toFixed(2)}
       </p>
       <ChunkDebugCounter />
+      {/* Bioma onde está quem é controlado (docs/features/047-biomas.md). */}
+      <p>bioma: {TEST_LEVEL.terrain.biomeAt(position.x, position.z).name}</p>
       <p>
         speed: {speed.toFixed(2)} u/s · {grounded ? 'no chão' : 'no ar'}
       </p>

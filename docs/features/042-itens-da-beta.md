@@ -68,7 +68,7 @@ Versão: `0.0.42` (`package.json`). Branch: `feature/042-itens-da-beta`.
    treinador (correção depois do teste no jogo).
 9. **Pedra, Pedrinha e Elixir saem de vez.** A `potion` de teste vira a Poção
    de verdade.
-10. **Kit inicial definitivo é da 060.** Por enquanto, para testar, o jogo
+10. **Kit inicial definitivo é da 061.** Por enquanto, para testar, o jogo
    começa com todos os itens novos no inventário.
 11. **Ícone padrão** para item sem sprite. O usuário coloca os sprites em
     `public/assets/sprites/itens/`.
@@ -169,7 +169,7 @@ Versão: `0.0.42` (`package.json`). Branch: `feature/042-itens-da-beta`.
 ### Kit de teste (`core/world/world.js`)
 
 - `STARTING_ITEMS`: a Pokédex na mão e todos os itens novos no inventário,
-  com quantidades de teste. O kit de verdade é da 060.
+  com quantidades de teste. O kit de verdade é da 061.
 - Debug: o seletor de item da mão lista o catálogo novo.
 
 ### Testes
@@ -302,8 +302,8 @@ Versão: `0.0.42` (`package.json`). Branch: `feature/042-itens-da-beta`.
 - Função da Pokébola (arremesso de captura) — 043.
 - Pokémon segurar item.
 - Pegar a comida do chão, condição/estrago de itens — depois da beta.
-- Itens no mundo e árvores de frutas — 051.
-- Kit inicial definitivo — 060.
+- Itens no mundo e árvores de frutas — 052.
+- Kit inicial definitivo — 061.
 - Clipes de animação de comer (o estado fica preparado; Bulbasaur, Charmander
   e Squirtle já têm, o treinador ainda não).
 - Salvar — 044.

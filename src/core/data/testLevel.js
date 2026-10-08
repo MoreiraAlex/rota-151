@@ -47,7 +47,7 @@ const WILD_CREATURE_COUNT = 10
 const WILD_CREATURE_SPECIES = ['bulbasaur', 'charmander', 'squirtle']
 
 // Metade do lado (m) do quadrado em volta da origem onde os selvagens
-// nascem — provisório até o spawn por chunk (054).
+// nascem — provisório até o spawn por chunk (055).
 const WILD_AREA_HALF_SIZE = 84
 
 // Objetos de treino (ver `trainingObjects` no cabeçalho) — x/z fixos, o y
@@ -153,14 +153,15 @@ export function subscribeLevelChanges(listener) {
 }
 
 /**
- * Refaz, com a config atual (`GAME_CONFIG.TERRAIN`/`WORLD.SEED`), tudo do
- * nível que sai do relevo: a receita do terreno e os objetos de treino. Só
+ * Refaz, com a config atual (`GAME_CONFIG.TERRAIN`/`BIOMES`/`WORLD.SEED` e
+ * os biomas do registro), tudo do nível que sai do relevo: a receita do
+ * terreno e os objetos de treino. Só
  * com nenhum chunk carregado (quem descarrega antes é `regenerarTerreno`).
  * Os selvagens já nascidos ficam (quem os sobe para a superfície é
  * `regenerarTerreno`). Só a ferramenta de debug chama isto.
  */
 export function rebuildTerrainDependentLevel() {
-  TEST_LEVEL.terrain.reconfigure(terrainSeed(), GAME_CONFIG.TERRAIN)
+  TEST_LEVEL.terrain.reconfigure(terrainSeed())
   Object.assign(TEST_LEVEL, buildTerrainDependentLevel(TEST_LEVEL.terrain))
   levelRevision += 1
   for (const listener of levelListeners) listener()

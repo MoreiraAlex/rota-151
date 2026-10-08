@@ -2,7 +2,7 @@
 
 ---
 
-# ✅ Já feito (0.0.1 – 0.0.46)
+# ✅ Já feito (0.0.1 – 0.0.47)
 
 O que já foi entregue, por tema. Detalhes de cada uma em `docs/features/`.
 
@@ -48,6 +48,7 @@ O que já foi entregue, por tema. Detalhes de cada uma em `docs/features/`.
 - [x] **029 — Melhorias na Pokédex e nos controles de exploração**
 - [x] **045 — Terreno de um chunk**
 - [x] **046 — Sistema de chunks**
+- [x] **047 — Biomas**
 
 ### Combate
 - [x] **025 — Ataque comum de criatura**
@@ -95,22 +96,22 @@ Concluído: a 044 (salvar o jogo) fechou o ciclo offline.
 ## Marco 2 — Mundo procedural
 
 **Objetivo:** um mundo infinito gerado por seed, em chunks, com biomas, água,
-dia e noite e clima. Há itens para achar, as 10 espécies aparecem conforme
+dia e noite, clima e cavernas. Há itens para achar, as 10 espécies aparecem conforme
 bioma, horário e clima, e há um Pokécenter para curar o time.
 
-- [ ] **047 — Biomas** — mapa de biomas por ruído (temperatura/umidade); cada bioma define terreno, cores, vegetação e tags para o spawn.
 - [ ] **048 — Água** — lagos e rios; parte rasa andável (com respingo visual e sonoro), parte funda bloqueia treinador e criaturas; IA desvia da água funda; shader simples. Tag "perto de água" para o spawn.
-- [ ] **049 — Dia, noite e clima** — relógio do jogo pelo `delta` do loop (ciclo de alguns minutos, no `gameConfig`); céu e luz acompanham o horário; clima por bioma (limpo, chuva, tempestade, neve) com partículas e som (chuva, trovão, vento). Horário e clima viram condições de spawn.
-- [ ] **050 — Vegetação e objetos** — árvores, pedras e grama alta pela seed e pelo bioma, com instancing e colisão.
-- [ ] **051 — Itens no mundo** — itens espalhados pela seed conforme o bioma (no chão e em arbustos: Pokébolas, poções) e **árvores de frutas** que dá para colher e voltam a dar fruto com o tempo. É a forma de conseguir itens além do kit inicial.
-- [ ] **052 — Estruturas e Pokécenter** — sistema para colocar construções pré-modeladas no mundo procedural (posição pela seed, terreno aplainado). Primeiro: o Pokécenter, que cura o time (com o som de cura) e é o ponto de reaparecimento.
-- [ ] **053 — As 10 espécies** — Bulbasaur, Charmander, Squirtle, Caterpie, Weedle, Pidgey, Rattata, Spearow, Ekans e Pikachu (7 novas): modelo, status, golpes, sons e animações. Sons mapeados em `docs/reference/audio.md`.
-- [ ] **054 — Spawn estilo Cobblemon** — limite por jogador ativo, nascer fora da vista, despawn dos distantes; condições por espécie: bioma, tags, horário, clima, faixa de nível e raridade.
-- [ ] **055 — Design da HUD** — visual definitivo da interface (com horário e clima); menus saem de `src/tools/menu/` para `view/`.
+- [ ] **049 — Cavernas** — camada subterrânea gerada pela seed (túneis e salões com malha, colisor e grade de navegação próprios, por chunk), sem mexer na superfície; boca numa encosta de montanha. Save e spawn passam a saber em que camada a entidade está.
+- [ ] **050 — Dia, noite e clima** — relógio do jogo pelo `delta` do loop (ciclo de alguns minutos, no `gameConfig`); céu e luz acompanham o horário; clima por bioma (limpo, chuva, tempestade, neve) com partículas e som (chuva, trovão, vento). Horário e clima viram condições de spawn.
+- [ ] **051 — Vegetação, objetos e luz** — árvores, pedras e grama alta pela seed e pelo bioma, com instancing e colisão (a vegetação declarada por bioma na 047). Junto: revisar o visual de cada bioma (cores, desenho do chão) e a luz no estilo Zelda Breath of the Wild (sol quente, sombra azulada, névoa leve).
+- [ ] **052 — Itens no mundo** — itens espalhados pela seed conforme o bioma (no chão e em arbustos: Pokébolas, poções) e **árvores de frutas** que dá para colher e voltam a dar fruto com o tempo. É a forma de conseguir itens além do kit inicial.
+- [ ] **053 — Estruturas e Pokécenter** — sistema para colocar construções pré-modeladas no mundo procedural (posição pela seed, terreno aplainado). Primeiro: o Pokécenter, que cura o time (com o som de cura) e é o ponto de reaparecimento.
+- [ ] **054 — As 10 espécies** — Bulbasaur, Charmander, Squirtle, Caterpie, Weedle, Pidgey, Rattata, Spearow, Ekans e Pikachu (7 novas): modelo, status, golpes, sons e animações. Sons mapeados em `docs/reference/audio.md`.
+- [ ] **055 — Spawn estilo Cobblemon** — limite por jogador ativo, nascer fora da vista, despawn dos distantes; condições por espécie: bioma, tags, horário, clima, faixa de nível e raridade.
+- [ ] **056 — Design da HUD** — visual definitivo da interface (com horário e clima); menus saem de `src/tools/menu/` para `view/`.
 
-> **Modelos das espécies (053):** o Sword/Shield só tem Caterpie e Pikachu.
+> **Modelos das espécies (054):** o Sword/Shield só tem Caterpie e Pikachu.
 > Weedle, Pidgey, Rattata, Spearow e Ekans precisam vir do Let's Go (todos os
-> 151, com andar) ou do HOME (só animações de exibição). Resolver antes da 053.
+> 151, com andar) ou do HOME (só animações de exibição). Resolver antes da 054.
 
 ---
 
@@ -120,14 +121,14 @@ bioma, horário e clima, e há um Pokécenter para curar o time.
 aprende a jogar com um tutorial curto e controla um treinador com animações e
 ações completas.
 
-- [ ] **056 — Animações e ações do treinador** — revisar e completar o que o treinador faz *(detalhar quando chegar)*.
-- [ ] **057 — Derrota do treinador** — cai ao chegar a 0 de HP e reaparece no último Pokécenter com o time curado.
-- [ ] **058 — Criação do treinador** — escolha entre menino e menina e cores de cada parte (pele, cabelo, boné, blusa, calça, sapatos, mochila, olhos), aproveitando os materiais separados do modelo. Salvo com a conta.
-- [ ] **059 — Áudio do treinador e da treinadora** — voz, passos, dash/rolamento, pulo, invocar/recolher, arremesso, dano e derrota para os dois modelos, mais os sons das ações revisadas na 056. Ver `docs/reference/audio.md`.
-- [ ] **060 — Início do jogo e escolha do inicial** — primeira entrada: login → criação do treinador → escolha entre Bulbasaur, Charmander e Squirtle → mundo, com o kit inicial de itens (definido aqui; até lá o kit é de teste, ver 042). Quem já tem treinador vai direto para o mundo.
-- [ ] **061 — Tutorial com o inicial** — passos guiados: andar, invocar/recolher, atacar, trocar o controle, usar um item, enfraquecer e capturar um selvagem. Avança ao fazer a ação; dá para pular.
+- [ ] **057 — Animações e ações do treinador** — revisar e completar o que o treinador faz *(detalhar quando chegar)*.
+- [ ] **058 — Derrota do treinador** — cai ao chegar a 0 de HP e reaparece no último Pokécenter com o time curado.
+- [ ] **059 — Criação do treinador** — escolha entre menino e menina e cores de cada parte (pele, cabelo, boné, blusa, calça, sapatos, mochila, olhos), aproveitando os materiais separados do modelo. Salvo com a conta.
+- [ ] **060 — Áudio do treinador e da treinadora** — voz, passos, dash/rolamento, pulo, invocar/recolher, arremesso, dano e derrota para os dois modelos, mais os sons das ações revisadas na 057. Ver `docs/reference/audio.md`.
+- [ ] **061 — Início do jogo e escolha do inicial** — primeira entrada: login → criação do treinador → escolha entre Bulbasaur, Charmander e Squirtle → mundo, com o kit inicial de itens (definido aqui; até lá o kit é de teste, ver 042). Quem já tem treinador vai direto para o mundo.
+- [ ] **062 — Tutorial com o inicial** — passos guiados: andar, invocar/recolher, atacar, trocar o controle, usar um item, enfraquecer e capturar um selvagem. Avança ao fazer a ação; dá para pular.
 
-> **Modelo da menina (058):** o `boy` veio do Legends (`tr0001`); a `girl`
+> **Modelo da menina (059):** o `boy` veio do Legends (`tr0001`); a `girl`
 > antiga foi removida. Usar a mesma fonte para ter os mesmos materiais e
 > esqueleto.
 
@@ -139,15 +140,15 @@ ações completas.
 mesmos selvagens, itens, horário e clima, batalham, capturam, trocam e duelam,
 cada um com o próprio progresso salvo. O jogo vai para o ar.
 
-- [ ] **062 — Servidor e sala** — Colyseus com uma sala, local. Servidor no mesmo repositório (ex.: `server/`) importando o `src/core/`.
-- [ ] **063 — Entrar e ver os outros jogadores** — login na sala (Better Auth com `bearer()`), posição/rotação/animação sincronizadas com interpolação, aparência do treinador, nome acima da cabeça, entrar/sair e reconexão.
-- [ ] **064 — Mundo compartilhado** — servidor é dono da seed, do horário e do clima; clientes e servidor geram os mesmos chunks.
-- [ ] **065 — Selvagens no servidor** — spawn e IA no servidor, limite por jogadores ativos, cada jogador só recebe os selvagens perto dele. Entram aqui o bando e as regras de acerto pendentes do backlog.
-- [ ] **066 — Combate no servidor** — cliente manda a intenção, servidor calcula dano, efetividade, status, desmaio e XP. A mira deixa de ler a câmera dentro do `core/` (`aim.js`).
-- [ ] **067 — Captura, itens e save no servidor** — captura decidida no servidor; pegar itens do mundo e colher frutas passam pelo servidor (cada item pego some para todos); inventário e time mudam pelo servidor; só o servidor grava no banco.
-- [ ] **068 — Troca entre jogadores** — pedir troca, os dois escolhem e confirmam; transação única no banco.
-- [ ] **069 — Duelo PvP** — desafiar e lutar time contra time com o combate existente; usa a derrota do treinador da 057.
-- [ ] **070 — Deploy** — jogo na Vercel e servidor na VPS da Hostinger (`wss://` com SSL via nginx, PM2 ou Docker, acesso ao banco). Fecha a beta 0.1.
+- [ ] **063 — Servidor e sala** — Colyseus com uma sala, local. Servidor no mesmo repositório (ex.: `server/`) importando o `src/core/`.
+- [ ] **064 — Entrar e ver os outros jogadores** — login na sala (Better Auth com `bearer()`), posição/rotação/animação sincronizadas com interpolação, aparência do treinador, nome acima da cabeça, entrar/sair e reconexão.
+- [ ] **065 — Mundo compartilhado** — servidor é dono da seed, do horário e do clima; clientes e servidor geram os mesmos chunks.
+- [ ] **066 — Selvagens no servidor** — spawn e IA no servidor, limite por jogadores ativos, cada jogador só recebe os selvagens perto dele. Entram aqui o bando e as regras de acerto pendentes do backlog.
+- [ ] **067 — Combate no servidor** — cliente manda a intenção, servidor calcula dano, efetividade, status, desmaio e XP. A mira deixa de ler a câmera dentro do `core/` (`aim.js`).
+- [ ] **068 — Captura, itens e save no servidor** — captura decidida no servidor; pegar itens do mundo e colher frutas passam pelo servidor (cada item pego some para todos); inventário e time mudam pelo servidor; só o servidor grava no banco.
+- [ ] **069 — Troca entre jogadores** — pedir troca, os dois escolhem e confirmam; transação única no banco.
+- [ ] **070 — Duelo PvP** — desafiar e lutar time contra time com o combate existente; usa a derrota do treinador da 058.
+- [ ] **071 — Deploy** — jogo na Vercel e servidor na VPS da Hostinger (`wss://` com SSL via nginx, PM2 ou Docker, acesso ao banco). Fecha a beta 0.1.
 
 > ⚠️ **Para rever depois:** o movimento é decidido pelo cliente (o servidor só
 > repassa). Funciona entre amigos, mas não impede trapaça.
@@ -160,13 +161,13 @@ cada um com o próprio progresso salvo. O jogo vai para o ar.
 aparecendo ao longo da beta, pra não interromper a feature em andamento. Cada
 item entra aqui quando for identificado e vira feature quando chegar a vez.
 
-- [ ] **071 — Revisão das ações das poções** — rever como as poções são usadas *(detalhar quando chegar)*.
-- [ ] **072 — Revisão da batalha e da IA** — rever o combate e as decisões da IA dos selvagens (partir para a ofensiva ou fugir) *(detalhar quando chegar)*.
-- [ ] **073 — Revisão da wiki** — rever a wiki inteira *(detalhar quando chegar)*.
-- [ ] **074 — Limpeza de código sem uso** — achar e remover código que ficou de testes ou de ideias descartadas (systems, traits, componentes, dados, assets e configs que nada mais usa) *(detalhar quando chegar)*.
-- [ ] **075 — Revisão do diagrama ER** — com todos os requisitos da beta conhecidos (save, mundo, multiplayer, troca, duelo), rever as tabelas do banco desenhadas na 044 e montar um diagrama ER melhor *(detalhar quando chegar)*.
-- [ ] **076 — Chão plano no relevo** — o Rapier erra parte dos raios (bola, comida, câmera, mira) em células PLANAS do heightfield do relevo (medido na 045; o relevo por ruído não tem célula plana, então hoje não aparece). Resolver antes de aplainar terreno (chão da água na 048, estruturas na 052) — ex.: colisor próprio pra área plana *(detalhar quando chegar)*.
-- [ ] **077 — Rotação das entidades no relevo** — rever como o corpo acompanha a inclinação do terreno: subindo um morro o corpo continua reto, e às vezes as skills saem da cabeça do personagem *(detalhar quando chegar)*.
+- [ ] **072 — Revisão das ações das poções** — rever como as poções são usadas *(detalhar quando chegar)*.
+- [ ] **073 — Revisão da batalha e da IA** — rever o combate e as decisões da IA dos selvagens (partir para a ofensiva ou fugir) *(detalhar quando chegar)*.
+- [ ] **074 — Revisão da wiki** — rever a wiki inteira *(detalhar quando chegar)*.
+- [ ] **075 — Limpeza de código sem uso** — achar e remover código que ficou de testes ou de ideias descartadas (systems, traits, componentes, dados, assets e configs que nada mais usa) *(detalhar quando chegar)*.
+- [ ] **076 — Revisão do diagrama ER** — com todos os requisitos da beta conhecidos (save, mundo, multiplayer, troca, duelo), rever as tabelas do banco desenhadas na 044 e montar um diagrama ER melhor *(detalhar quando chegar)*.
+- [ ] **077 — Chão plano no relevo** — o Rapier erra parte dos raios (bola, comida, câmera, mira) em células PLANAS do heightfield do relevo (medido na 045; o relevo por ruído não tem célula plana, então hoje não aparece). Resolver antes de aplainar terreno (chão da água na 048, estruturas na 053) — ex.: colisor próprio pra área plana *(detalhar quando chegar)*.
+- [ ] **078 — Rotação das entidades no relevo** — rever como o corpo acompanha a inclinação do terreno: subindo um morro o corpo continua reto, e às vezes as skills saem da cabeça do personagem *(detalhar quando chegar)*.
 
 ---
 

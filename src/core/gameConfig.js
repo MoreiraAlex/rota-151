@@ -27,22 +27,15 @@ export const GAME_CONFIG = {
     SEED: 151,
   },
   // Relevo procedural (docs/features/045-terreno-de-um-chunk.md). Mudar
-  // qualquer valor da geração muda o relevo da seed — subir
-  // GENERATION_VERSION junto.
+  // qualquer valor da geração (aqui, em BIOMES ou no `relief`/`climate`/
+  // `size` de um bioma, core/data/biomes/) muda o relevo da seed — subir
+  // GENERATION_VERSION junto. A forma dos morros é de cada bioma
+  // (docs/features/047-biomas.md).
   TERRAIN: {
     // Identifica a receita do relevo; subir quando a geração mudar.
-    GENERATION_VERSION: 1,
-    // Largura (m) dos morros grandes — a distância de um topo ao próximo.
-    HILL_SIZE: 128,
-    // Altura máxima (m) dos morros acima da origem; os vales descem o mesmo.
-    HILL_HEIGHT: 16,
-    // Detalhe miúdo sobre os morros (0 a 1): 0 = morros lisos; perto de 1 =
-    // chão todo ondulado.
-    ROUGHNESS: 0.24,
-    // 1 = relevo natural; acima disso, mais campo plano entre morros e vales
-    // mais marcados.
-    FLATNESS: 1.3,
+    GENERATION_VERSION: 2,
     // Altura (m) da superfície da água: o que fica abaixo vira lago na 048.
+    // O relevo dos biomas é medido a partir dela (`relief.baseHeight`).
     WATER_LEVEL: -2,
     // Lado (m) de um chunk — sempre um vértice por metro.
     CHUNK_SIZE: 64,
@@ -62,6 +55,75 @@ export const GAME_CONFIG = {
     // Folga (m) entre os pés e o chão de quem entra no mundo (treinador,
     // selvagens) — cai até pousar.
     SPAWN_HEIGHT: 1,
+  },
+  // Mapa de biomas (docs/features/047-biomas.md, core/terrain/biomeMap.js).
+  // Os eixos do clima (temperatura, umidade, continentalidade, relevo) vão
+  // de 0 a 1 — a fração do mundo abaixo daquele valor —, e cada bioma diz
+  // em que faixa de cada eixo ele vive (`climate`, core/data/biomes/).
+  BIOMES: {
+    // Tamanho (m) das manchas de temperatura, umidade e relevo — quem fica
+    // vizinho de quem (deserto perto de savana, tundra perto de montanha).
+    // O tamanho de cada bioma é o `size` dele.
+    CLIMATE_SIZE: 5000,
+    // Tamanho (m) dos continentes e oceanos.
+    CONTINENT_SIZE: 3200,
+    // Quanto um bioma perde por estar fora da própria faixa de clima: maior
+    // = fronteira de clima mais firme (e transição mais curta).
+    CLIMATE_SHARPNESS: 6,
+    // Quanto as manchas próprias de cada bioma (do tamanho do `size` dele)
+    // pesam contra o clima: são elas que decidem entre biomas do mesmo
+    // clima — o menor por cima, o maior de fundo.
+    PRESENCE_STRENGTH: 0.3,
+    // Fração (0 a 1) da área que as manchas de um bioma cobrem.
+    PATCH_COVERAGE: 0.4,
+    // Largura da borda de uma mancha (na mesma escala de 0 a 1): maior =
+    // contorno mais suave.
+    PATCH_EDGE: 0.08,
+    // Faixa de mistura na disputa (em pontos): biomas que chegam perto do
+    // vencedor entram um pouco na fronteira.
+    BLEND: 0.1,
+    // Grade (m) em que a disputa é feita; entre os pontos dela os pesos são
+    // suavizados, e a transição entre dois biomas dura umas três células —
+    // maior = fronteira de relevo e cor mais larga e suave.
+    BLEND_CELL: 32,
+    // Continentalidade mínima na origem (0 a 1, acima da faixa da praia):
+    // quem nasce em (0, y, 0) está sempre em terra firme...
+    SPAWN_CONTINENT: 0.55,
+    // ...até esta distância (m) da origem, sumindo aos poucos.
+    SPAWN_LAND_RADIUS: 400,
+    // Ids dos biomas que ficam fora do mundo (o resto disputa o lugar
+    // deles). Ferramenta de teste: o painel do debug (F2) esconde biomas
+    // para olhar um só. Vazio no jogo.
+    HIDDEN: [],
+  },
+  // Desenho do chão (view/terrain/terrainMaterial.js,
+  // docs/features/047-biomas.md): sobre a cor da paleta de cada bioma, o
+  // claro e escuro e o relevo de luz das camadas de textura (`ground` do
+  // bioma) e manchas suaves. O painel do debug (F2) ajusta ao vivo.
+  TERRAIN_LOOK: {
+    // Tamanho (m) de uma repetição da textura no chão.
+    TEXTURE_SIZE: 4,
+    // Força do relevo de luz do mapa de normal (0 = liso).
+    NORMAL_STRENGTH: 0.8,
+    // Quanto do claro e escuro da textura entra, para todos os biomas (vezes
+    // o `ground.detail` de cada um).
+    TEXTURE_DETAIL: 1,
+    // Manchas grandes de claro e escuro, do tamanho PATCH_SIZE (m) — a
+    // variação suave de cor do chão...
+    PATCH_STRENGTH: 0.15,
+    PATCH_SIZE: 9,
+    // ...e um granulado fino por cima.
+    GRAIN_STRENGTH: 0.05,
+  },
+  // Cor do chão (view/terrain/terrainGeometry.js); as cores são de cada
+  // bioma (`palette`, core/data/biomes/).
+  TERRAIN_COLOR: {
+    // Margem: da água até esta altura (m) acima dela.
+    SHORE_HEIGHT: 0.6,
+    // Encosta: começa a misturar quando a inclinação passa de SLOPE_START
+    // (normal.y abaixo dele) e chega cheia em SLOPE_FULL.
+    SLOPE_START: 0.9,
+    SLOPE_FULL: 0.75,
   },
   BATTLE: {
     // Velocidade dos golpes pelo status `speed` (ver

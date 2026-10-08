@@ -39,11 +39,16 @@ describe('castRay', () => {
     buildGameLevelAtOrigin()
     settle()
 
-    const hit = castRay({ x: 0, y: 5, z: 0 }, { x: 0, y: -1, z: 0 }, 10)
+    const ground = TEST_LEVEL.terrain.heightAt(0, 0)
+    const hit = castRay(
+      { x: 0, y: ground + 5, z: 0 },
+      { x: 0, y: -1, z: 0 },
+      10,
+    )
 
     expect(hit).not.toBeNull()
     expect(hit.distance).toBeCloseTo(5)
-    expect(hit.point.y).toBeCloseTo(0)
+    expect(hit.point.y).toBeCloseTo(ground)
   })
 
   it('sem nada dentro do alcance, devolve null', async () => {
@@ -51,7 +56,8 @@ describe('castRay', () => {
     buildGameLevelAtOrigin()
     settle()
 
-    const hit = castRay({ x: 0, y: 5, z: 0 }, { x: 0, y: -1, z: 0 }, 2)
+    const ground = TEST_LEVEL.terrain.heightAt(0, 0)
+    const hit = castRay({ x: 0, y: ground + 5, z: 0 }, { x: 0, y: -1, z: 0 }, 2)
 
     expect(hit).toBeNull()
   })

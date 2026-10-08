@@ -4,16 +4,19 @@ import { useEffect } from 'react'
 import GUI from 'lil-gui'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import { regenerarTerreno } from '@/core/actions/terrain'
+import { BIOME_REGISTRY, listBiomes } from '@/core/data/biomes'
 import { world } from '@/core/world/world'
+import {
+  TERRAIN_COLOR_MODES,
+  getTerrainColorMode,
+  setTerrainColorMode,
+} from '@/view/terrain/terrainColorMode'
+import { notifyTerrainLookChanged } from '@/view/terrain/terrainLook'
 
 // Faixas dos controles: [mín, máx, passo]. Só a ferramenta usa.
 // `keepsTerrain`: só muda o carregar/descarregar (o `chunkStreamingSystem`
 // lê a config a cada tick) — não precisa refazer o relevo.
 const CONTROLS = {
-  HILL_SIZE: { label: 'Largura dos morros (m)', range: [10, 300, 1] },
-  HILL_HEIGHT: { label: 'Altura dos morros (m)', range: [0, 30, 0.1] },
-  ROUGHNESS: { label: 'Detalhe miúdo', range: [0, 1, 0.01] },
-  FLATNESS: { label: 'Campo plano', range: [0.5, 3, 0.05] },
   WATER_LEVEL: { label: 'Nível da água (m)', range: [-15, 15, 0.1] },
   // Par: a borda do chunk cai em borda de célula do pathfinding.
   CHUNK_SIZE: { label: 'Lado do chunk (m)', range: [16, 128, 2] },
@@ -29,21 +32,94 @@ const CONTROLS = {
   },
 }
 
+// Mapa de biomas (`GAME_CONFIG.BIOMES`, docs/features/047-biomas.md).
+const BIOME_MAP_CONTROLS = {
+  CLIMATE_SIZE: { label: 'Tamanho do clima (m)', range: [500, 20000, 100] },
+  CONTINENT_SIZE: {
+    label: 'Tamanho dos continentes (m)',
+    range: [500, 20000, 100],
+  },
+  CLIMATE_SHARPNESS: { label: 'Firmeza do clima', range: [0, 30, 0.5] },
+  PRESENCE_STRENGTH: { label: 'Peso das manchas', range: [0, 2, 0.01] },
+  PATCH_COVERAGE: { label: 'Cobertura das manchas', range: [0, 1, 0.01] },
+  BLEND_CELL: { label: 'Largura da transição (m)', range: [4, 128, 1] },
+}
+
+// Por bioma (`size` e `relief`, core/data/biomes/).
+const BIOME_CONTROLS = {
+  size: { label: 'Tamanho (m)', range: [50, 5000, 10] },
+  baseHeight: { label: 'Chão médio (m)', range: [-40, 60, 0.1] },
+  hillHeight: { label: 'Altura dos morros (m)', range: [0, 60, 0.1] },
+  hillSize: { label: 'Largura dos morros (m)', range: [10, 600, 1] },
+  roughness: { label: 'Detalhe miúdo', range: [0, 1, 0.01] },
+  flatness: { label: 'Campo plano', range: [0.3, 3, 0.05] },
+}
+const isBiomeSize = (key) => key === 'size'
+const biomeTarget = (biome, key) => (isBiomeSize(key) ? biome : biome.relief)
+
+const biomeTuning = (biome) =>
+  Object.fromEntries(
+    Object.keys(BIOME_CONTROLS).map((key) => [
+      key,
+      biomeTarget(biome, key)[key],
+    ]),
+  )
+
+// Desenho do chão (`GAME_CONFIG.TERRAIN_LOOK`): só muda o material, sem
+// refazer o relevo.
+const LOOK_CONTROLS = {
+  TEXTURE_SIZE: { label: 'Tamanho da textura (m)', range: [0.5, 20, 0.1] },
+  NORMAL_STRENGTH: { label: 'Relevo da textura', range: [0, 2, 0.01] },
+  TEXTURE_DETAIL: { label: 'Desenho da textura', range: [0, 2, 0.01] },
+  PATCH_STRENGTH: { label: 'Manchas', range: [0, 1, 0.01] },
+  PATCH_SIZE: { label: 'Tamanho das manchas (m)', range: [0.5, 50, 0.1] },
+  GRAIN_STRENGTH: { label: 'Granulado', range: [0, 0.5, 0.01] },
+}
+
 // Valores de quando o jogo carregou — o "Voltar ao inicial".
-const INITIAL = { seed: GAME_CONFIG.WORLD.SEED, ...GAME_CONFIG.TERRAIN }
+const INITIAL = {
+  seed: GAME_CONFIG.WORLD.SEED,
+  terrain: { ...GAME_CONFIG.TERRAIN },
+  look: { ...GAME_CONFIG.TERRAIN_LOOK },
+  biomeMap: {
+    ...GAME_CONFIG.BIOMES,
+    HIDDEN: [...GAME_CONFIG.BIOMES.HIDDEN],
+  },
+  biomes: Object.fromEntries(
+    listBiomes().map((biome) => [biome.id, biomeTuning(biome)]),
+  ),
+}
 
 const configAsText = () =>
-  `WORLD.SEED: ${GAME_CONFIG.WORLD.SEED}\n` +
-  Object.keys(CONTROLS)
-    .map((key) => `${key}: ${GAME_CONFIG.TERRAIN[key]},`)
-    .join('\n')
+  [
+    `WORLD.SEED: ${GAME_CONFIG.WORLD.SEED}`,
+    'TERRAIN:',
+    ...Object.keys(CONTROLS).map(
+      (key) => `  ${key}: ${GAME_CONFIG.TERRAIN[key]},`,
+    ),
+    'TERRAIN_LOOK:',
+    ...Object.keys(GAME_CONFIG.TERRAIN_LOOK).map(
+      (key) => `  ${key}: ${JSON.stringify(GAME_CONFIG.TERRAIN_LOOK[key])},`,
+    ),
+    'BIOMES:',
+    ...Object.keys(BIOME_MAP_CONTROLS).map(
+      (key) => `  ${key}: ${GAME_CONFIG.BIOMES[key]},`,
+    ),
+    ...listBiomes().map(
+      (biome) => `${biome.id}: ${JSON.stringify(biomeTuning(biome))}`,
+    ),
+  ].join('\n')
 
 /**
  * Debug (F2, montado por `src/app/(auth)/page.js`): painel `lil-gui` que
- * ajusta o relevo em tempo real (docs/features/045-terreno-de-um-chunk.md).
- * Mexe direto em `GAME_CONFIG.TERRAIN`/`WORLD.SEED` (só nesta sessão) e chama
- * `regenerarTerreno`. "Copiar valores" leva os números para colar no
- * `gameConfig.js` — é o caminho para o ajuste virar config de verdade.
+ * ajusta o relevo em tempo real (docs/features/045-terreno-de-um-chunk.md,
+ * docs/features/047-biomas.md). Mexe direto em `GAME_CONFIG.TERRAIN`/
+ * `BIOMES`/`WORLD.SEED` e no `size`/`relief` de um bioma escolhido (só
+ * nesta sessão) e chama `regenerarTerreno`. "Copiar valores" leva os
+ * números para colar no `gameConfig.js` e nos biomas
+ * (`core/data/biomes/`) — é o caminho para o ajuste virar config de
+ * verdade. "Chão por bioma" pinta cada bioma de uma cor chapada; "Biomas
+ * no mundo" esconde biomas (`BIOMES.HIDDEN`) para olhar um só.
  *
  * A seed aqui só muda o relevo e o que depende dele: o RNG de gameplay já
  * foi criado com a seed do início.
@@ -75,6 +151,95 @@ export function TerrainTuningPanel() {
       if (!keepsTerrain) controller.onChange(regenerate)
     }
 
+    const colorState = {
+      byBiome: getTerrainColorMode() === TERRAIN_COLOR_MODES.biome,
+    }
+    gui
+      .add(colorState, 'byBiome')
+      .name('Chão por bioma')
+      .onChange((byBiome) =>
+        setTerrainColorMode(
+          byBiome ? TERRAIN_COLOR_MODES.biome : TERRAIN_COLOR_MODES.natural,
+        ),
+      )
+
+    const lookFolder = gui.addFolder('Desenho do chão')
+    for (const [key, { label, range }] of Object.entries(LOOK_CONTROLS)) {
+      lookFolder
+        .add(GAME_CONFIG.TERRAIN_LOOK, key, ...range)
+        .name(label)
+        .onChange(notifyTerrainLookChanged)
+    }
+
+    const mapFolder = gui.addFolder('Mapa de biomas')
+    for (const [key, { label, range }] of Object.entries(BIOME_MAP_CONTROLS)) {
+      mapFolder
+        .add(GAME_CONFIG.BIOMES, key, ...range)
+        .name(label)
+        .onFinishChange(regenerate)
+    }
+
+    // Um bioma por vez: trocar o escolhido refaz os controles da pasta.
+    const biomeFolder = gui.addFolder('Bioma')
+    const choice = { id: listBiomes()[0].id }
+    let biomeControllers = []
+    const showBiome = () => {
+      biomeControllers.forEach((controller) => controller.destroy())
+      const biome = BIOME_REGISTRY[choice.id]
+      biomeControllers = Object.entries(BIOME_CONTROLS).map(
+        ([key, { label, range }]) =>
+          biomeFolder
+            .add(biomeTarget(biome, key), key, ...range)
+            .name(label)
+            .onFinishChange(regenerate),
+      )
+    }
+    biomeFolder
+      .add(
+        choice,
+        'id',
+        Object.fromEntries(listBiomes().map(({ id, name }) => [name, id])),
+      )
+      .name('Escolhido')
+      .onChange(showBiome)
+    showBiome()
+
+    // Esconder biomas (`BIOMES.HIDDEN`): o mundo é refeito sem eles — com
+    // um só ligado, o mundo inteiro é ele. Pelo menos um fica ligado.
+    const visibleFolder = gui.addFolder('Biomas no mundo')
+    const visible = Object.fromEntries(
+      listBiomes().map(({ id }) => [
+        id,
+        !GAME_CONFIG.BIOMES.HIDDEN.includes(id),
+      ]),
+    )
+    const applyVisible = () => {
+      GAME_CONFIG.BIOMES.HIDDEN = listBiomes()
+        .map(({ id }) => id)
+        .filter((id) => !visible[id])
+      visibleFolder.controllersRecursive().forEach((c) => c.updateDisplay())
+      regenerate()
+    }
+    const showOnly = (keep) => {
+      for (const id of Object.keys(visible)) visible[id] = keep(id)
+      applyVisible()
+    }
+    for (const { id, name } of listBiomes()) {
+      visibleFolder
+        .add(visible, id)
+        .name(name)
+        .onChange(() => {
+          if (!Object.values(visible).some(Boolean)) visible[id] = true
+          applyVisible()
+        })
+    }
+    visibleFolder
+      .add({ only: () => showOnly((id) => id === choice.id) }, 'only')
+      .name('Só o escolhido (pasta Bioma)')
+    visibleFolder
+      .add({ all: () => showOnly(() => true) }, 'all')
+      .name('Mostrar todos')
+
     gui
       .add(
         {
@@ -87,10 +252,22 @@ export function TerrainTuningPanel() {
       .add(
         {
           reset: () => {
-            const { seed, ...terrain } = INITIAL
-            GAME_CONFIG.WORLD.SEED = seed
-            seedState.seed = seed
-            Object.assign(GAME_CONFIG.TERRAIN, terrain)
+            GAME_CONFIG.WORLD.SEED = INITIAL.seed
+            seedState.seed = INITIAL.seed
+            Object.assign(GAME_CONFIG.TERRAIN, INITIAL.terrain)
+            Object.assign(GAME_CONFIG.BIOMES, INITIAL.biomeMap)
+            Object.assign(GAME_CONFIG.TERRAIN_LOOK, INITIAL.look)
+            notifyTerrainLookChanged()
+            for (const id of Object.keys(visible)) {
+              visible[id] = !INITIAL.biomeMap.HIDDEN.includes(id)
+            }
+            for (const biome of listBiomes()) {
+              for (const [key, value] of Object.entries(
+                INITIAL.biomes[biome.id],
+              )) {
+                biomeTarget(biome, key)[key] = value
+              }
+            }
             gui.controllersRecursive().forEach((c) => c.updateDisplay())
             regenerate()
           },
