@@ -7,14 +7,26 @@ import { regenerarTerreno } from '@/core/actions/terrain'
 import { world } from '@/core/world/world'
 
 // Faixas dos controles: [mín, máx, passo]. Só a ferramenta usa.
+// `keepsTerrain`: só muda o carregar/descarregar (o `chunkStreamingSystem`
+// lê a config a cada tick) — não precisa refazer o relevo.
 const CONTROLS = {
   HILL_SIZE: { label: 'Largura dos morros (m)', range: [10, 300, 1] },
   HILL_HEIGHT: { label: 'Altura dos morros (m)', range: [0, 30, 0.1] },
   ROUGHNESS: { label: 'Detalhe miúdo', range: [0, 1, 0.01] },
   FLATNESS: { label: 'Campo plano', range: [0.5, 3, 0.05] },
   WATER_LEVEL: { label: 'Nível da água (m)', range: [-15, 15, 0.1] },
-  CHUNK_SIZE: { label: 'Lado do chunk (m)', range: [16, 128, 1] },
-  AREA_RADIUS: { label: 'Raio da área (chunks)', range: [0, 4, 1] },
+  // Par: a borda do chunk cai em borda de célula do pathfinding.
+  CHUNK_SIZE: { label: 'Lado do chunk (m)', range: [16, 128, 2] },
+  LOAD_RADIUS: {
+    label: 'Raio de carregar (chunks)',
+    range: [1, 6, 1],
+    keepsTerrain: true,
+  },
+  UNLOAD_RADIUS: {
+    label: 'Raio de descarregar (chunks)',
+    range: [1, 8, 1],
+    keepsTerrain: true,
+  },
 }
 
 // Valores de quando o jogo carregou — o "Voltar ao inicial".
@@ -56,11 +68,11 @@ export function TerrainTuningPanel() {
         regenerate()
       })
 
-    for (const [key, { label, range }] of Object.entries(CONTROLS)) {
-      gui
-        .add(GAME_CONFIG.TERRAIN, key, ...range)
-        .name(label)
-        .onChange(regenerate)
+    for (const [key, { label, range, keepsTerrain }] of Object.entries(
+      CONTROLS,
+    )) {
+      const controller = gui.add(GAME_CONFIG.TERRAIN, key, ...range).name(label)
+      if (!keepsTerrain) controller.onChange(regenerate)
     }
 
     gui

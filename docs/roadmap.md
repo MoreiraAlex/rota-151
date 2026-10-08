@@ -2,7 +2,7 @@
 
 ---
 
-# ✅ Já feito (0.0.1 – 0.0.45)
+# ✅ Já feito (0.0.1 – 0.0.46)
 
 O que já foi entregue, por tema. Detalhes de cada uma em `docs/features/`.
 
@@ -47,6 +47,7 @@ O que já foi entregue, por tema. Detalhes de cada uma em `docs/features/`.
 - [x] **022 — Fogo de cauda do Charmander**
 - [x] **029 — Melhorias na Pokédex e nos controles de exploração**
 - [x] **045 — Terreno de um chunk**
+- [x] **046 — Sistema de chunks**
 
 ### Combate
 - [x] **025 — Ataque comum de criatura**
@@ -97,7 +98,6 @@ Concluído: a 044 (salvar o jogo) fechou o ciclo offline.
 dia e noite e clima. Há itens para achar, as 10 espécies aparecem conforme
 bioma, horário e clima, e há um Pokécenter para curar o time.
 
-- [ ] **046 — Sistema de chunks** — carregar em volta do jogador e descarregar os distantes, com colisores e memória liberados. Pathfinding gerado por chunk. Possível Web Worker para a geração.
 - [ ] **047 — Biomas** — mapa de biomas por ruído (temperatura/umidade); cada bioma define terreno, cores, vegetação e tags para o spawn.
 - [ ] **048 — Água** — lagos e rios; parte rasa andável (com respingo visual e sonoro), parte funda bloqueia treinador e criaturas; IA desvia da água funda; shader simples. Tag "perto de água" para o spawn.
 - [ ] **049 — Dia, noite e clima** — relógio do jogo pelo `delta` do loop (ciclo de alguns minutos, no `gameConfig`); céu e luz acompanham o horário; clima por bioma (limpo, chuva, tempestade, neve) com partículas e som (chuva, trovão, vento). Horário e clima viram condições de spawn.
@@ -166,6 +166,7 @@ item entra aqui quando for identificado e vira feature quando chegar a vez.
 - [ ] **074 — Limpeza de código sem uso** — achar e remover código que ficou de testes ou de ideias descartadas (systems, traits, componentes, dados, assets e configs que nada mais usa) *(detalhar quando chegar)*.
 - [ ] **075 — Revisão do diagrama ER** — com todos os requisitos da beta conhecidos (save, mundo, multiplayer, troca, duelo), rever as tabelas do banco desenhadas na 044 e montar um diagrama ER melhor *(detalhar quando chegar)*.
 - [ ] **076 — Chão plano no relevo** — o Rapier erra parte dos raios (bola, comida, câmera, mira) em células PLANAS do heightfield do relevo (medido na 045; o relevo por ruído não tem célula plana, então hoje não aparece). Resolver antes de aplainar terreno (chão da água na 048, estruturas na 052) — ex.: colisor próprio pra área plana *(detalhar quando chegar)*.
+- [ ] **077 — Rotação das entidades no relevo** — rever como o corpo acompanha a inclinação do terreno: subindo um morro o corpo continua reto, e às vezes as skills saem da cabeça do personagem *(detalhar quando chegar)*.
 
 ---
 

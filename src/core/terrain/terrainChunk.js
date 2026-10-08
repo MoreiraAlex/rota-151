@@ -29,6 +29,11 @@ export function chunkCoordAt(value, size = GAME_CONFIG.TERRAIN.CHUNK_SIZE) {
   return Math.floor(value / size + 0.5)
 }
 
+/** Chave do chunk `(chunkX, chunkZ)` em mapas e listas. */
+export function chunkKey(chunkX, chunkZ) {
+  return `${chunkX},${chunkZ}`
+}
+
 /** Índice da altura do vértice `(ix, iz)` no array `heights`. */
 export function heightIndex(resolution, ix, iz) {
   return iz + ix * (resolution + 1)
@@ -97,11 +102,54 @@ export function chunkHeightAt(chunk, x, z) {
   const v = fz - iz
 
   const corner = (dx, dz) => heights[heightIndex(resolution, ix + dx, iz + dz)]
-  const a = corner(0, 0)
-  const b = corner(1, 0)
-  const c = corner(0, 1)
-  const d = corner(1, 1)
+  return triangleHeight(
+    corner(0, 0),
+    corner(1, 0),
+    corner(0, 1),
+    corner(1, 1),
+    u,
+    v,
+  )
+}
 
+/**
+ * Altura dentro de uma célula de cantos `a` (`-x,-z`), `b` (`+x,-z`), `c`
+ * (`-x,+z`) e `d` (`+x,+z`), em `(u, v)` de 0 a 1 — a triangulação do
+ * colisor (diagonal de `b` a `c`).
+ */
+function triangleHeight(a, b, c, d, u, v) {
   if (u + v <= 1) return a + (b - a) * u + (c - a) * v
   return d + (c - d) * (1 - u) + (b - d) * (1 - v)
+}
+
+/**
+ * Altura em `(x, z)` com os mesmos vértices e triângulos que um chunk
+ * teria ali, direto do ruído (`heightAt` de `createHeightSampler`) — vale
+ * com o chunk carregado ou não (docs/features/046-sistema-de-chunks.md). Os
+ * vértices ficam onde os dos chunks ficam (a cada metro a partir da borda
+ * de um chunk) e as alturas passam por float32, como em `heights`.
+ */
+export function latticeHeightAt(
+  heightAt,
+  x,
+  z,
+  size = GAME_CONFIG.TERRAIN.CHUNK_SIZE,
+) {
+  // Borda de chunk: `(chunkX - 0.5) × size`; um vértice por metro.
+  const offset = -size / 2
+  const fx = x - offset
+  const fz = z - offset
+  const ix = Math.floor(fx)
+  const iz = Math.floor(fz)
+
+  const corner = (dx, dz) =>
+    Math.fround(heightAt(offset + ix + dx, offset + iz + dz))
+  return triangleHeight(
+    corner(0, 0),
+    corner(1, 0),
+    corner(0, 1),
+    corner(1, 1),
+    fx - ix,
+    fz - iz,
+  )
 }

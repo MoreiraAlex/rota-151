@@ -12,11 +12,10 @@ import { clamp } from './math'
  * uma malha separada.
  *
  * `createNavigation(level)` monta a navegação de um nível qualquer
- * (`{ bounds, terrain?, obstacles }`, a forma de `TEST_LEVEL`) — os testes
+ * (`{ bounds?, terrain?, obstacles }`, a forma de `TEST_LEVEL`) — os testes
  * usam níveis próprios. `findPath`/`isWalkableAt`/`inspectCell` exportados
- * usam a do nível do jogo, construída de forma preguiçosa e cacheada (o
- * nível é estático, mesma premissa de `createStaticLevel`) — só a primeira
- * chamada paga o custo de bake.
+ * usam a do nível do jogo, feita de uma região de grade por chunk carregado
+ * (docs/features/046-sistema-de-chunks.md, ver `createNavigation`).
  *
  * ## Elevação (heightmap)
  *
@@ -75,6 +74,20 @@ import { clamp } from './math'
  * (várias grades empilhadas conectadas por rampas) — fora de escopo aqui.
  */
 
+/**
+ * Grade de uma região (um chunk ou a área fixa de um nível): células de
+ * mundo `minCol..minCol + cols - 1` × `minRow..minRow + rows - 1`, por
+ * linha (`(row - minRow) × cols + (col - minCol)`).
+ *
+ * @typedef {object} NavRegion
+ * @property {number} minCol
+ * @property {number} minRow
+ * @property {number} cols
+ * @property {number} rows
+ * @property {Uint8Array} walkable - 1 = andável
+ * @property {Float32Array} elevation - m
+ */
+
 function rampElevationAt(obstacle, x, z) {
   const { axis, angle } = obstacle.rotation
   const [ox, oy, oz] = obstacle.position
@@ -83,41 +96,70 @@ function rampElevationAt(obstacle, x, z) {
     : oy - (z - oz) * Math.tan(angle)
 }
 
-function buildNavGrid(level) {
+// Faixa de células `{ minCol, minRow, cols, rows }` (índices de célula de
+// mundo: a célula `col` vai de `col × CELL_SIZE` a `(col + 1) × CELL_SIZE`)
+// que cobre os limites `{ minX, maxX, minZ, maxZ }`.
+function cellRectFromBounds({ minX, maxX, minZ, maxZ }) {
+  const { CELL_SIZE } = GAME_CONFIG.PATHFINDING
+  return {
+    minCol: Math.round(minX / CELL_SIZE),
+    minRow: Math.round(minZ / CELL_SIZE),
+    cols: Math.round((maxX - minX) / CELL_SIZE),
+    rows: Math.round((maxZ - minZ) / CELL_SIZE),
+  }
+}
+
+/**
+ * Assa a grade de uma região (um chunk, ou o nível inteiro de quem tem
+ * `bounds`): elevação e andável por célula. As passadas trabalham numa
+ * faixa uma célula MAIOR que a região em cada lado (a "moldura"), com o
+ * relevo e os obstáculos de lá — assim a regra de penhasco da borda compara
+ * com a vizinha de verdade, do chunk do lado, carregado ou não
+ * (docs/features/046-sistema-de-chunks.md). Só as células de dentro são
+ * guardadas.
+ *
+ * @returns {NavRegion}
+ */
+function bakeNavRegion(level, { minCol, minRow, cols, rows }) {
   const { CELL_SIZE, OBSTACLE_MARGIN, MAX_CLIMB_STEP } = GAME_CONFIG.PATHFINDING
   const { AUTOSTEP_HEIGHT } = GAME_CONFIG.PHYSICS.CHARACTER
-  const { bounds, obstacles } = level
+  const { obstacles } = level
   const groundAt = (x, z) => level.terrain?.heightAt(x, z) ?? 0
 
-  const cols = Math.round((bounds.maxX - bounds.minX) / CELL_SIZE)
-  const rows = Math.round((bounds.maxZ - bounds.minZ) / CELL_SIZE)
-  const originX = bounds.minX
-  const originZ = bounds.minZ
+  // A faixa com a moldura.
+  const frameCols = cols + 2
+  const frameRows = rows + 2
+  const frameMinCol = minCol - 1
+  const frameMinRow = minRow - 1
 
-  const elevation = new Float32Array(cols * rows)
-  const blocked = new Uint8Array(cols * rows)
-  const index = (col, row) => row * cols + col
-  const cellCenter = (col, row) =>
-    gridToWorldXZ(originX, originZ, CELL_SIZE, col, row)
-
-  const cellRangeFor = (ox, oz, halfW, halfD) => ({
-    minCol: clamp(Math.floor((ox - halfW - originX) / CELL_SIZE), 0, cols - 1),
-    maxCol: clamp(
-      Math.ceil((ox + halfW - originX) / CELL_SIZE) - 1,
-      0,
-      cols - 1,
-    ),
-    minRow: clamp(Math.floor((oz - halfD - originZ) / CELL_SIZE), 0, rows - 1),
-    maxRow: clamp(
-      Math.ceil((oz + halfD - originZ) / CELL_SIZE) - 1,
-      0,
-      rows - 1,
-    ),
+  const elevation = new Float32Array(frameCols * frameRows)
+  const blocked = new Uint8Array(frameCols * frameRows)
+  const index = (col, row) => row * frameCols + col
+  const cellCenter = (col, row) => ({
+    x: (frameMinCol + col + 0.5) * CELL_SIZE,
+    z: (frameMinRow + row + 0.5) * CELL_SIZE,
   })
 
+  // Células da faixa debaixo do retângulo; `null` se ele não toca a faixa.
+  const cellRangeFor = (ox, oz, halfW, halfD) => {
+    const minC = Math.floor((ox - halfW) / CELL_SIZE) - frameMinCol
+    const maxC = Math.ceil((ox + halfW) / CELL_SIZE) - 1 - frameMinCol
+    const minR = Math.floor((oz - halfD) / CELL_SIZE) - frameMinRow
+    const maxR = Math.ceil((oz + halfD) / CELL_SIZE) - 1 - frameMinRow
+    if (maxC < 0 || maxR < 0 || minC >= frameCols || minR >= frameRows) {
+      return null
+    }
+    return {
+      minCol: clamp(minC, 0, frameCols - 1),
+      maxCol: clamp(maxC, 0, frameCols - 1),
+      minRow: clamp(minR, 0, frameRows - 1),
+      maxRow: clamp(maxR, 0, frameRows - 1),
+    }
+  }
+
   // Passada 0: o relevo.
-  for (let col = 0; col < cols; col++) {
-    for (let row = 0; row < rows; row++) {
+  for (let col = 0; col < frameCols; col++) {
+    for (let row = 0; row < frameRows; row++) {
       const { x, z } = cellCenter(col, row)
       elevation[index(col, row)] = groundAt(x, z)
     }
@@ -139,16 +181,12 @@ function buildNavGrid(level) {
     if (obstacle.type !== 'floor') continue
     const [ox, , oz] = obstacle.position
     const [halfW, , halfD] = obstacle.size.map((s) => s / 2)
-    const { minCol, maxCol, minRow, maxRow } = cellRangeFor(
-      ox,
-      oz,
-      halfW,
-      halfD,
-    )
+    const range = cellRangeFor(ox, oz, halfW, halfD)
+    if (!range) continue
     const topY = obstacle.position[1] + obstacle.size[1] / 2
 
-    for (let col = minCol; col <= maxCol; col++) {
-      for (let row = minRow; row <= maxRow; row++) {
+    for (let col = range.minCol; col <= range.maxCol; col++) {
+      for (let row = range.minRow; row <= range.maxRow; row++) {
         elevation[index(col, row)] = topY
       }
     }
@@ -158,15 +196,11 @@ function buildNavGrid(level) {
     if (obstacle.type !== 'ramp') continue
     const [ox, , oz] = obstacle.position
     const [halfW, , halfD] = obstacle.size.map((s) => s / 2)
-    const { minCol, maxCol, minRow, maxRow } = cellRangeFor(
-      ox,
-      oz,
-      halfW,
-      halfD,
-    )
+    const range = cellRangeFor(ox, oz, halfW, halfD)
+    if (!range) continue
 
-    for (let col = minCol; col <= maxCol; col++) {
-      for (let row = minRow; row <= maxRow; row++) {
+    for (let col = range.minCol; col <= range.maxCol; col++) {
+      for (let row = range.minRow; row <= range.maxRow; row++) {
         const { x, z } = cellCenter(col, row)
         elevation[index(col, row)] = rampElevationAt(obstacle, x, z)
       }
@@ -183,85 +217,66 @@ function buildNavGrid(level) {
     if (topY - groundAt(ox, oz) <= AUTOSTEP_HEIGHT) continue
 
     const [halfW, , halfD] = obstacle.size.map((s) => s / 2 + OBSTACLE_MARGIN)
-    const { minCol, maxCol, minRow, maxRow } = cellRangeFor(
-      ox,
-      oz,
-      halfW,
-      halfD,
-    )
+    const range = cellRangeFor(ox, oz, halfW, halfD)
+    if (!range) continue
 
-    for (let col = minCol; col <= maxCol; col++) {
-      for (let row = minRow; row <= maxRow; row++) {
+    for (let col = range.minCol; col <= range.maxCol; col++) {
+      for (let row = range.minRow; row <= range.maxRow; row++) {
         blocked[index(col, row)] = 1
       }
     }
   }
 
-  // Passada 3: penhasco — célula livre com salto de elevação grande demais
+  // Passada 3: penhasco, só nas células de dentro (a moldura dá as
+  // vizinhas da borda) — célula livre com salto de elevação grande demais
   // pra qualquer vizinha (das 8) que também esteja livre vira bloqueada. O
   // limite cresce com a distância até a vizinha (diagonal = √2 células).
-  const grid = new PF.Grid(cols, rows)
-  for (let col = 0; col < cols; col++) {
-    for (let row = 0; row < rows; row++) {
+  const region = {
+    minCol,
+    minRow,
+    cols,
+    rows,
+    walkable: new Uint8Array(cols * rows),
+    elevation: new Float32Array(cols * rows),
+  }
+  for (let col = 1; col <= cols; col++) {
+    for (let row = 1; row <= rows; row++) {
       const i = index(col, row)
-      if (blocked[i]) {
-        grid.setWalkableAt(col, row, false)
-        continue
-      }
+      const inner = (row - 1) * cols + (col - 1)
+      region.elevation[inner] = elevation[i]
+      if (blocked[i]) continue
 
       let isCliff = false
       for (let dc = -1; dc <= 1 && !isCliff; dc++) {
         for (let dr = -1; dr <= 1 && !isCliff; dr++) {
           if (dc === 0 && dr === 0) continue
-          const nc = col + dc
-          const nr = row + dr
-          if (nc < 0 || nc >= cols || nr < 0 || nr >= rows) continue
-          const ni = index(nc, nr)
+          const ni = index(col + dc, row + dr)
           if (blocked[ni]) continue
           const maxStep = MAX_CLIMB_STEP * Math.hypot(dc, dr)
           if (Math.abs(elevation[i] - elevation[ni]) > maxStep) isCliff = true
         }
       }
-      if (isCliff) grid.setWalkableAt(col, row, false)
+      if (!isCliff) region.walkable[inner] = 1
     }
   }
 
-  return {
-    grid,
-    elevation,
-    cols,
-    rows,
-    originX,
-    originZ,
-    cellSize: CELL_SIZE,
-    index,
-  }
+  return region
 }
 
-function worldToGrid({ originX, originZ, cellSize, cols, rows }, x, z) {
-  return {
-    col: clamp(Math.floor((x - originX) / cellSize), 0, cols - 1),
-    row: clamp(Math.floor((z - originZ) / cellSize), 0, rows - 1),
-  }
+/** A célula de mundo que contém `(x, z)`. */
+function worldToCell(x, z) {
+  const { CELL_SIZE } = GAME_CONFIG.PATHFINDING
+  return { col: Math.floor(x / CELL_SIZE), row: Math.floor(z / CELL_SIZE) }
 }
 
-function gridToWorldXZ(originX, originZ, cellSize, col, row) {
-  return {
-    x: originX + (col + 0.5) * cellSize,
-    z: originZ + (row + 0.5) * cellSize,
-  }
-}
+const regionHasCell = (region, col, row) =>
+  col >= region.minCol &&
+  row >= region.minRow &&
+  col < region.minCol + region.cols &&
+  row < region.minRow + region.rows
 
-function gridToWorld(nav, col, row) {
-  const { x, z } = gridToWorldXZ(
-    nav.originX,
-    nav.originZ,
-    nav.cellSize,
-    col,
-    row,
-  )
-  return { x, y: nav.elevation[nav.index(col, row)], z }
-}
+const regionIndex = (region, col, row) =>
+  (row - region.minRow) * region.cols + (col - region.minCol)
 
 const finder = new PF.AStarFinder({
   allowDiagonal: true,
@@ -323,43 +338,115 @@ function boundedSmoothPath(grid, rawPath, maxJumpDistance) {
 }
 
 /**
- * Navegação de um nível (`{ bounds, terrain?, obstacles }`). A grade é
- * construída na primeira consulta.
+ * Navegação de um nível (`{ bounds?, terrain?, obstacles }`), feita de
+ * REGIÕES de grade (docs/features/046-sistema-de-chunks.md): no jogo, uma
+ * por chunk carregado (`addRegion`/`removeRegion`, chamadas por
+ * `carregarChunk`/`descarregarChunk`); num nível com `bounds` fixos (os dos
+ * testes), uma região só com a área toda, assada na primeira consulta.
+ *
+ * O A* roda numa janela em volta da origem e do destino
+ * (`PATHFINDING.SEARCH_MARGIN` a mais em cada lado), montada das regiões
+ * que a tocam — célula sem região é bloqueada. Assim o caminho atravessa
+ * a borda de chunks, e a busca não paga pelo mundo carregado inteiro.
  */
 export function createNavigation(level) {
-  let nav = null
-  const getNav = () => {
-    if (!nav) nav = buildNavGrid(level)
-    return nav
+  const regions = new Map()
+  let isFixedAreaBaked = !level.bounds
+
+  const allRegions = () => {
+    if (!isFixedAreaBaked) {
+      regions.set(
+        'level',
+        bakeNavRegion(level, cellRectFromBounds(level.bounds)),
+      )
+      isFixedAreaBaked = true
+    }
+    return regions.values()
   }
 
+  const regionAtCell = (col, row) => {
+    for (const region of allRegions()) {
+      if (regionHasCell(region, col, row)) return region
+    }
+    return null
+  }
+
+  /** Assa a região `key` (um chunk) cobrindo `bounds`. */
+  function addRegion(key, bounds) {
+    regions.set(key, bakeNavRegion(level, cellRectFromBounds(bounds)))
+  }
+
+  /** Libera a região `key`. */
+  function removeRegion(key) {
+    regions.delete(key)
+  }
+
+  const hasRegion = (key) => regions.has(key)
+
   /**
-   * Inspeciona a célula da grade que contém `(x, z)` — elevação e se está
-   * andável. Uso de teste: testar a regra de penhasco/elevação direto pelas
+   * Inspeciona a célula que contém `(x, z)` — elevação e se está andável.
+   * Uso de teste: testar a regra de penhasco/elevação direto pelas
    * células é mais preciso que inferir pelo caminho que `findPath` devolve.
+   * Fora de toda região: `null`.
    */
   function inspectCell(x, z) {
-    const grid = getNav()
-    const { col, row } = worldToGrid(grid, x, z)
+    const { col, row } = worldToCell(x, z)
+    const region = regionAtCell(col, row)
+    if (!region) return null
+    const i = regionIndex(region, col, row)
     return {
-      elevation: grid.elevation[grid.index(col, row)],
-      walkable: grid.grid.isWalkableAt(col, row),
+      elevation: region.elevation[i],
+      walkable: region.walkable[i] === 1,
     }
   }
 
   /**
-   * O ponto `(x, z)` está DENTRO do mapa navegável e numa célula andável?
-   * Fora da grade → `false` (diferente de `findPath`, que prende a
-   * coordenada na borda). Usado pra escolher destino de fuga
-   * (`core/battle/flee.js`) — destino dentro de obstáculo ou fora do mapa
-   * fazia a criatura correr contra a parede.
+   * O ponto `(x, z)` está numa região (chunk carregado, ou dentro do mapa
+   * de um nível fixo) e numa célula andável? Usado pra escolher destino de
+   * fuga (`core/battle/flee.js`) — destino dentro de obstáculo ou fora do
+   * mapa fazia a criatura correr contra a parede.
    */
   function isWalkableAt(x, z) {
-    const { originX, originZ, cellSize, cols, rows, grid } = getNav()
-    const col = Math.floor((x - originX) / cellSize)
-    const row = Math.floor((z - originZ) / cellSize)
-    if (col < 0 || row < 0 || col >= cols || row >= rows) return false
-    return grid.isWalkableAt(col, row)
+    return inspectCell(x, z)?.walkable ?? false
+  }
+
+  // Grade do A* na janela: andável só onde uma região diz que é.
+  function buildSearchWindow(from, to) {
+    const { CELL_SIZE, SEARCH_MARGIN } = GAME_CONFIG.PATHFINDING
+    const margin = Math.ceil(SEARCH_MARGIN / CELL_SIZE)
+    const minCol = Math.min(from.col, to.col) - margin
+    const minRow = Math.min(from.row, to.row) - margin
+    const cols = Math.abs(from.col - to.col) + 2 * margin + 1
+    const rows = Math.abs(from.row - to.row) + 2 * margin + 1
+
+    // `PF.Grid` lê a matriz por linha: 1 = bloqueado.
+    const matrix = Array.from({ length: rows }, () => new Array(cols).fill(1))
+    for (const region of allRegions()) {
+      const colStart = Math.max(minCol, region.minCol)
+      const colEnd = Math.min(minCol + cols, region.minCol + region.cols)
+      const rowStart = Math.max(minRow, region.minRow)
+      const rowEnd = Math.min(minRow + rows, region.minRow + region.rows)
+      for (let row = rowStart; row < rowEnd; row++) {
+        const line = matrix[row - minRow]
+        for (let col = colStart; col < colEnd; col++) {
+          if (region.walkable[regionIndex(region, col, row)]) {
+            line[col - minCol] = 0
+          }
+        }
+      }
+    }
+    return { grid: new PF.Grid(cols, rows, matrix), minCol, minRow }
+  }
+
+  // Centro da célula, com a elevação dela.
+  function cellToWorld(col, row) {
+    const { CELL_SIZE } = GAME_CONFIG.PATHFINDING
+    const region = regionAtCell(col, row)
+    return {
+      x: (col + 0.5) * CELL_SIZE,
+      y: region ? region.elevation[regionIndex(region, col, row)] : 0,
+      z: (row + 0.5) * CELL_SIZE,
+    }
   }
 
   /**
@@ -375,14 +462,11 @@ export function createNavigation(level) {
    * a visualização de debug (`PathfindingDebugView.jsx`) acompanhar o
    * relevo de verdade em vez de flutuar na altura atual da criatura.
    *
-   * Retorna `[]` quando origem/destino caem na mesma célula ou quando não
-   * existe caminho (alvo bloqueado/inatingível, incluindo do lado errado de
-   * um penhasco) — quem chama trata isso como "sem obstáculo relevante no
-   * meio", indo direto.
-   *
-   * `finder.findPath` MUTA a grade recebida (marca nós visitados) — por isso
-   * sempre `grid.clone()` aqui; a grade guardada nunca é
-   * passada direto pra busca.
+   * Retorna `[]` quando origem/destino caem na mesma célula, quando um dos
+   * dois está fora de toda região (chunk não carregado) ou quando não
+   * existe caminho dentro da janela de busca (alvo bloqueado/inatingível,
+   * incluindo do lado errado de um penhasco) — quem chama trata isso como
+   * "sem obstáculo relevante no meio", indo direto.
    *
    * O último waypoint é substituído pela posição EXATA de `toWorld` (x/z da
    * grade, y do próprio `toWorld` se presente) — sem isso, todo alvo chega
@@ -392,29 +476,32 @@ export function createNavigation(level) {
    * chegada final precisa ser precisa.
    */
   function findPath(fromWorld, toWorld) {
-    const grid = getNav()
-    const from = worldToGrid(grid, fromWorld.x, fromWorld.z)
-    const to = worldToGrid(grid, toWorld.x, toWorld.z)
+    const from = worldToCell(fromWorld.x, fromWorld.z)
+    const to = worldToCell(toWorld.x, toWorld.z)
 
     if (from.col === to.col && from.row === to.row) return []
+    if (!regionAtCell(from.col, from.row) || !regionAtCell(to.col, to.row)) {
+      return []
+    }
 
+    const { grid, minCol, minRow } = buildSearchWindow(from, to)
     const rawPath = finder.findPath(
-      from.col,
-      from.row,
-      to.col,
-      to.row,
-      grid.grid.clone(),
+      from.col - minCol,
+      from.row - minRow,
+      to.col - minCol,
+      to.row - minRow,
+      grid,
     )
     if (rawPath.length <= 1) return []
 
     const smoothed = boundedSmoothPath(
-      grid.grid,
+      grid,
       rawPath,
       GAME_CONFIG.PATHFINDING.MAX_SHORTCUT_DISTANCE,
     )
     const waypoints = smoothed
       .slice(1)
-      .map(([col, row]) => gridToWorld(grid, col, row))
+      .map(([col, row]) => cellToWorld(col + minCol, row + minRow))
     waypoints[waypoints.length - 1] = {
       x: toWorld.x,
       y: toWorld.y ?? waypoints[waypoints.length - 1].y,
@@ -423,7 +510,14 @@ export function createNavigation(level) {
     return waypoints
   }
 
-  return { findPath, isWalkableAt, inspectCell }
+  return {
+    findPath,
+    isWalkableAt,
+    inspectCell,
+    addRegion,
+    removeRegion,
+    hasRegion,
+  }
 }
 
 let levelNavigation = null
@@ -434,11 +528,27 @@ function getLevelNavigation() {
 }
 
 /**
- * Descarta a navegação do nível do jogo; a próxima consulta refaz a grade
- * (relevo ajustado em tempo real, `regenerarTerreno`).
+ * Descarta a navegação do nível do jogo, regiões incluídas; a próxima
+ * consulta começa do zero (relevo ajustado em tempo real,
+ * `regenerarTerreno`).
  */
 export function resetLevelNavigation() {
   levelNavigation = null
+}
+
+/** Assa a grade do chunk `key` (`carregarChunk`, core/actions/chunks.js). */
+export function addLevelNavigationRegion(key, bounds) {
+  getLevelNavigation().addRegion(key, bounds)
+}
+
+/** Libera a grade do chunk `key` (`descarregarChunk`). */
+export function removeLevelNavigationRegion(key) {
+  getLevelNavigation().removeRegion(key)
+}
+
+/** O chunk `key` tem grade na navegação do nível do jogo? */
+export function hasLevelNavigationRegion(key) {
+  return getLevelNavigation().hasRegion(key)
 }
 
 /** `findPath` da navegação do nível do jogo (ver `createNavigation`). */

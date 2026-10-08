@@ -1,10 +1,12 @@
-import { describe, it, expect } from 'vitest'
+import { afterAll, beforeAll, describe, it, expect } from 'vitest'
 import { GAME_CONFIG } from './gameConfig'
-import { TEST_LEVEL } from './data/testLevel'
+import { carregarChunk, descarregarTodosOsChunks } from './actions/chunks'
+import { chunkKey } from './terrain/terrainChunk'
 import { makeFlatTestLevel } from '@/test/flatTestLevel'
 import {
   createNavigation,
   findPath as findLevelPath,
+  hasLevelNavigationRegion,
   isWalkableAt as isLevelWalkableAt,
 } from './pathfinding'
 
@@ -222,16 +224,77 @@ describe('relevo (terrain)', () => {
   })
 })
 
-describe('nível do jogo (TEST_LEVEL)', () => {
-  const { bounds } = TEST_LEVEL
+describe('regiões (uma grade por chunk)', () => {
+  const { MAX_CLIMB_STEP } = GAME_CONFIG.PATHFINDING
+  // Degrau alto em x = 0 (bem na emenda das duas regiões) e uma rampa
+  // suave ao longo de z.
+  const level = {
+    obstacles: [],
+    terrain: {
+      heightAt: (x, z) => (x < 0 ? 0 : MAX_CLIMB_STEP * 4) + z * 0.1,
+    },
+  }
+  const left = { minX: -10, maxX: 0, minZ: -10, maxZ: 10 }
+  const right = { minX: 0, maxX: 10, minZ: -10, maxZ: 10 }
 
-  it('a origem é andável', () => {
+  it('duas regiões vizinhas dão a mesma grade que uma região só', () => {
+    const split = createNavigation(level)
+    split.addRegion('left', left)
+    split.addRegion('right', right)
+    const whole = createNavigation({
+      ...level,
+      bounds: { minX: -10, maxX: 10, minZ: -10, maxZ: 10 },
+    })
+
+    for (let x = -9.5; x < 10; x += 1) {
+      for (let z = -9.5; z < 10; z += 1) {
+        expect(split.inspectCell(x, z)).toEqual(whole.inspectCell(x, z))
+      }
+    }
+    // O degrau da emenda é penhasco dos dois lados.
+    expect(split.inspectCell(-0.5, 0).walkable).toBe(false)
+    expect(split.inspectCell(0.5, 0).walkable).toBe(false)
+  })
+
+  it('o caminho atravessa a emenda de duas regiões', () => {
+    const flat = createNavigation({
+      obstacles: [],
+      terrain: { heightAt: () => 0 },
+    })
+    flat.addRegion('left', left)
+    flat.addRegion('right', right)
+    const to = { x: 8, z: 3 }
+    expect(flat.findPath({ x: -8, z: -3 }, to).at(-1)).toMatchObject(to)
+  })
+
+  it('fora de toda região não é andável e não tem caminho', () => {
+    const nav = createNavigation(level)
+    nav.addRegion('left', left)
+    expect(nav.inspectCell(5, 0)).toBeNull()
+    expect(nav.isWalkableAt(5, 0)).toBe(false)
+    expect(nav.findPath({ x: -5, z: 0 }, { x: 5, z: 0 })).toEqual([])
+  })
+
+  it('removeRegion libera a grade', () => {
+    const nav = createNavigation(level)
+    nav.addRegion('left', left)
+    nav.removeRegion('left')
+    expect(nav.hasRegion('left')).toBe(false)
+    expect(nav.isWalkableAt(-5, 0)).toBe(false)
+  })
+})
+
+describe('nível do jogo (TEST_LEVEL)', () => {
+  beforeAll(() => carregarChunk(0, 0))
+  afterAll(() => descarregarTodosOsChunks())
+
+  it('o chunk carregado ganha grade: a origem é andável', () => {
+    expect(hasLevelNavigationRegion(chunkKey(0, 0))).toBe(true)
     expect(isLevelWalkableAt(0, 0)).toBe(true)
   })
 
-  it('os muros de borda bloqueiam a beira e fora da área não é andável', () => {
-    expect(isLevelWalkableAt(bounds.maxX - 0.1, 0)).toBe(false)
-    expect(isLevelWalkableAt(bounds.maxX + 5, 0)).toBe(false)
+  it('fora dos chunks carregados não é andável', () => {
+    expect(isLevelWalkableAt(GAME_CONFIG.TERRAIN.CHUNK_SIZE * 2, 0)).toBe(false)
   })
 
   it('acha caminho da origem até um ponto andável por perto', () => {

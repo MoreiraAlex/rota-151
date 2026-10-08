@@ -186,6 +186,14 @@ function NameplateView({ entity, species }) {
       NAMEPLATE_DISTANCE_MIN_SCALE +
       (NAMEPLATE_DISTANCE_MAX_SCALE - NAMEPLATE_DISTANCE_MIN_SCALE) * t
     content.style.transform = `scale(${NAMEPLATE_SCALE * distanceScale})`
+
+    // Some junto com a névoa (`FogView`, docs/features/046-sistema-de-
+    // chunks.md) — overlay de DOM não é enevoado pelo shader, e ficaria
+    // boiando no meio dela.
+    const { fog } = state.scene
+    content.style.opacity = fog
+      ? String(1 - clamp((distance - fog.near) / (fog.far - fog.near), 0, 1))
+      : '1'
   })
 
   if (!vitals) return null

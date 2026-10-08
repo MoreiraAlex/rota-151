@@ -8,6 +8,7 @@ import {
 } from '../data/testLevel'
 import { Position } from '../traits'
 import { regenerarTerreno } from './terrain'
+import { carregarChunk, descarregarTodosOsChunks } from './chunks'
 
 const TERRAIN = GAME_CONFIG.TERRAIN
 const original = { ...TERRAIN }
@@ -15,6 +16,7 @@ const worlds = []
 
 afterEach(() => {
   Object.assign(TERRAIN, original)
+  descarregarTodosOsChunks()
   rebuildTerrainDependentLevel()
   while (worlds.length) worlds.pop().destroy()
 })
@@ -29,14 +31,26 @@ describe('regenerarTerreno', () => {
   it('refaz o relevo com a config atual e avisa quem desenha', () => {
     const { world } = setup()
     const revision = getLevelRevision()
-    const before = TEST_LEVEL.terrain
+    // Um ponto fora do vale da origem (altura 0 com qualquer seed).
+    const x = TERRAIN.HILL_SIZE * 0.37
+    const before = TEST_LEVEL.terrain.heightAt(x, x)
 
     TERRAIN.HILL_HEIGHT = original.HILL_HEIGHT * 2
     regenerarTerreno(world)
 
     expect(getLevelRevision()).toBe(revision + 1)
-    expect(TEST_LEVEL.terrain).not.toBe(before)
-    expect(TEST_LEVEL.terrain.maxHeight).toBeGreaterThan(before.maxHeight)
+    expect(Math.abs(TEST_LEVEL.terrain.heightAt(x, x))).toBeGreaterThan(
+      Math.abs(before),
+    )
+  })
+
+  it('descarrega os chunks (o streaming carrega de novo com a receita nova)', () => {
+    const { world } = setup()
+    carregarChunk(0, 0)
+
+    regenerarTerreno(world)
+
+    expect(TEST_LEVEL.terrain.loadedChunks()).toEqual([])
   })
 
   it('quem ficou enterrado sobe para cima do chão', () => {
@@ -47,20 +61,6 @@ describe('regenerarTerreno', () => {
     expect(player.get(Position).y).toBeGreaterThan(
       TEST_LEVEL.terrain.heightAt(10, 10),
     )
-  })
-
-  it('quem ficou fora da área volta para dentro dela', () => {
-    const { world, player } = setup({ x: 0, y: 0, z: 0 })
-    TERRAIN.AREA_RADIUS = 0
-    regenerarTerreno(world)
-    player.set(Position, { x: 500, y: 50, z: -500 })
-
-    regenerarTerreno(world)
-
-    const { x, z } = player.get(Position)
-    const { bounds } = TEST_LEVEL
-    expect(x).toBeLessThan(bounds.maxX)
-    expect(z).toBeGreaterThan(bounds.minZ)
   })
 
   it('quem está em cima do chão fica onde está', () => {

@@ -46,9 +46,19 @@ export const GAME_CONFIG = {
     WATER_LEVEL: -2,
     // Lado (m) de um chunk — sempre um vértice por metro.
     CHUNK_SIZE: 64,
-    // Área fixa do nível: chunks de -AREA_RADIUS a AREA_RADIUS em volta da
-    // origem, nos dois eixos (o carregar/descarregar é a 046).
-    AREA_RADIUS: 1,
+    // Raio (em chunks) carregado em volta do treinador e da criatura
+    // controlada — um quadrado de lado 2 × raio + 1.
+    LOAD_RADIUS: 2,
+    // Raio (em chunks) a partir do qual um chunk descarrega. Maior que o de
+    // carregar: a folga entre os dois evita carregar e descarregar o mesmo
+    // chunk andando na borda.
+    UNLOAD_RADIUS: 3,
+    // Raio (em chunks) que carrega na hora, sem esperar a vez — o chão
+    // debaixo e em volta de quem anda.
+    NEAR_RADIUS: 1,
+    // Quantos chunks carregam por tick fora do NEAR_RADIUS (cada um custa
+    // alguns ms; muitos de uma vez travam o quadro).
+    CHUNKS_PER_TICK: 1,
     // Folga (m) entre os pés e o chão de quem entra no mundo (treinador,
     // selvagens) — cai até pousar.
     SPAWN_HEIGHT: 1,
@@ -578,9 +588,14 @@ export const GAME_CONFIG = {
   // obstáculos e encostas do `TEST_LEVEL` em vez de andar em linha reta —
   // ver `creatureFollowSystem.js`.
   PATHFINDING: {
-    // Tamanho (m) de cada célula da grade — a grade cobre
-    // `TEST_LEVEL.bounds` (lado / CELL_SIZE células por eixo).
+    // Tamanho (m) de cada célula da grade (uma grade por chunk carregado).
+    // A borda dos chunks precisa cair em borda de célula: metade do
+    // `TERRAIN.CHUNK_SIZE` tem que ser múltiplo dele.
     CELL_SIZE: 1,
+    // Folga (m) em volta da origem e do destino em que o A* procura o
+    // caminho — desvio maior que isso não é achado (anda reto e desvia
+    // pela física).
+    SEARCH_MARGIN: 24,
     // Margem (m) somada ao contorno de cada obstáculo antes de marcar
     // células como não-andáveis — evita a cápsula da criatura raspar
     // quina de obstáculo (a grade só sabe de células inteiras).
@@ -1082,6 +1097,20 @@ export const GAME_CONFIG = {
   // voiceSound.js, nível em core/data/testLevel.js/ambientSound.js) —
   // nenhum é um número genérico igual pra tudo, então nenhum fica aqui.
   // Ver docs/features/019-som-ambiente-e-passos.md.
+  // Névoa que esconde a borda do mundo carregado — o chunk nascendo ou
+  // sumindo (docs/features/046-sistema-de-chunks.md). A distância sai do
+  // raio de carregar e do lado do chunk (`view/terrain/fogRange.js`).
+  FOG: {
+    // Cor da névoa — também a do horizonte do céu, pra o relevo enevoado
+    // não aparecer recortado contra ele.
+    COLOR: '#cfe0ee',
+    // Cor do alto do céu.
+    SKY_TOP_COLOR: '#5d9ad8',
+    // Onde a névoa começa, como fração da distância em que ela fecha.
+    START_FRACTION: 0.55,
+    // Menor distância (m) em que ela fecha, mesmo com raio e chunk pequenos.
+    MIN_DISTANCE: 24,
+  },
   RENDER: {
     // Visual toon (estilo Zelda) — ver src/view/materials/toonMaterial.js
     TOON: true, // false = visual antigo (MeshStandardMaterial do .glb)

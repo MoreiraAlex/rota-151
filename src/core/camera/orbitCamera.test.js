@@ -1,11 +1,14 @@
 import { describe, it, expect, afterEach } from 'vitest'
+import {
+  buildGameLevelAtOrigin,
+  clearGameLevelChunks,
+} from '@/test/gameLevelChunks'
 import { GAME_CONFIG } from '../gameConfig'
 import {
   initPhysics,
   disposePhysics,
   stepPhysics,
 } from '../physics/physicsWorld'
-import { createStaticLevel } from '../physics/colliders'
 import {
   computeOrbitOffset,
   computeCameraPosition,
@@ -222,11 +225,12 @@ describe('resolveCameraCollision', () => {
   describe('com física real', () => {
     afterEach(() => {
       disposePhysics()
+      clearGameLevelChunks()
     })
 
     it('puxa a posição pra logo antes do chão em vez de atravessar', async () => {
       await initPhysics()
-      createStaticLevel() // chão com a superfície em y=0
+      buildGameLevelAtOrigin() // chão com a superfície em y=0
       stepPhysics() // broad-phase só existe depois de um step (ver raycast.js)
 
       const pivot = { x: 0, y: 2, z: 0 }
@@ -248,11 +252,12 @@ describe('resolveCameraCollision', () => {
 describe('computeAimRay — colisão da câmera (bug real, relatado jogando)', () => {
   afterEach(() => {
     disposePhysics()
+    clearGameLevelChunks()
   })
 
   it('pitch extremo faria a câmera IDEAL ficar dentro do chão — a origem da mira usa a posição JÁ corrigida, não a ideal', async () => {
     await initPhysics()
-    createStaticLevel()
+    buildGameLevelAtOrigin()
     stepPhysics()
 
     const target = { x: 0, y: 1, z: 0 }

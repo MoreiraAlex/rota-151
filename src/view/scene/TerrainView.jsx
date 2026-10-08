@@ -1,11 +1,13 @@
 import { useEffect, useMemo } from 'react'
 import { TEST_LEVEL } from '@/core/data/testLevel'
 import { GAME_CONFIG } from '@/core/gameConfig'
+import { useTerrainChunks } from '@/view/hooks/useTerrainChunks'
 import { buildTerrainChunkGeometry } from '@/view/terrain/terrainGeometry'
 
 /**
  * Malha de um chunk do relevo. A geometria nasce aqui (das mesmas alturas
- * do colisor) e é liberada ao desmontar (regra 5.3).
+ * do colisor) e é liberada ao desmontar — quando o chunk descarrega (regra
+ * 5.3).
  */
 function TerrainChunkView({ chunk }) {
   const geometry = useMemo(
@@ -22,11 +24,15 @@ function TerrainChunkView({ chunk }) {
 }
 
 /**
- * O relevo do nível: um mesh por chunk de `TEST_LEVEL.terrain`
- * (docs/features/045-terreno-de-um-chunk.md).
+ * O relevo: um mesh por chunk carregado de `TEST_LEVEL.terrain`
+ * (docs/features/046-sistema-de-chunks.md) — monta quem carrega e desmonta
+ * quem descarrega.
  */
 export function TerrainView() {
-  return TEST_LEVEL.terrain.chunks.map((chunk) => (
-    <TerrainChunkView key={`${chunk.chunkX},${chunk.chunkZ}`} chunk={chunk} />
-  ))
+  useTerrainChunks()
+  return TEST_LEVEL.terrain
+    .loadedChunks()
+    .map((chunk) => (
+      <TerrainChunkView key={`${chunk.chunkX},${chunk.chunkZ}`} chunk={chunk} />
+    ))
 }

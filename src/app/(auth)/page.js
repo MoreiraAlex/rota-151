@@ -13,6 +13,7 @@ import { PhysicsDebugView } from '@/tools/debug/PhysicsDebugView'
 import { PathfindingDebugView } from '@/tools/debug/PathfindingDebugView'
 import { ScanRangeDebugView } from '@/tools/debug/ScanRangeDebugView'
 import { WaterLevelDebugView } from '@/tools/debug/WaterLevelDebugView'
+import { ChunkDebugView } from '@/tools/debug/ChunkDebugView'
 import { TerrainTuningPanel } from '@/tools/debug/TerrainTuningPanel'
 import { WildBehaviorDebugView } from '@/tools/debug/WildBehaviorDebugView'
 import { PartyBehaviorDebugView } from '@/tools/debug/PartyBehaviorDebugView'
@@ -385,6 +386,7 @@ function GameScreen({ saveError, onDeleteSave, onSceneReady }) {
                 <PathfindingDebugView />
                 <ScanRangeDebugView />
                 <WaterLevelDebugView />
+                <ChunkDebugView />
                 <WildBehaviorDebugView />
                 <PartyBehaviorDebugView />
               </>

@@ -2,6 +2,9 @@ import { registerSystem, GAME_PHASES } from '@/core/systems'
 import { inputSystem } from '@/core/systems/inputSystem'
 import { physicsBootstrapSystem } from '@/core/systems/physicsBootstrapSystem'
 import { controlSwitchSystem } from '@/core/systems/controlSwitchSystem'
+import { chunkStreamingSystem } from '@/core/systems/chunkStreamingSystem'
+import { chunkFreezeSystem } from '@/core/systems/chunkFreezeSystem'
+import { chunkObjectCleanupSystem } from '@/core/systems/chunkObjectCleanupSystem'
 import { cameraControlSystem } from '@/core/systems/cameraControlSystem'
 import { vitalsRegenSystem } from '@/core/systems/vitalsRegenSystem'
 import { movementSystem } from '@/core/systems/movementSystem'
@@ -180,6 +183,13 @@ export function registerGameSystems() {
 
   registerSystem(GAME_PHASES.SIMULATION, physicsBootstrapSystem)
   registerSystem(GAME_PHASES.SIMULATION, controlSwitchSystem)
+  // Chunks em volta do treinador e da criatura controlada (já com a troca
+  // de controle deste tick); quem ficou em chunk descarregado congela e os
+  // objetos soltos de lá somem — antes de qualquer IA ou física
+  // (docs/features/046-sistema-de-chunks.md).
+  registerSystem(GAME_PHASES.SIMULATION, chunkStreamingSystem)
+  registerSystem(GAME_PHASES.SIMULATION, chunkFreezeSystem)
+  registerSystem(GAME_PHASES.SIMULATION, chunkObjectCleanupSystem)
   registerSystem(GAME_PHASES.SIMULATION, cameraControlSystem)
   // Mira da Pokébola (043): com a órbita deste tick, antes do movimento
   // (que vira o corpo pra mira) e do arremesso (que usa a mira).

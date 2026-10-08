@@ -1,4 +1,8 @@
 import { describe, it, expect, afterEach } from 'vitest'
+import {
+  buildGameLevelAtOrigin,
+  clearGameLevelChunks,
+} from '@/test/gameLevelChunks'
 import { createWorld } from 'koota'
 import { makeWorld } from '@/test/makeWorld'
 import { Projectile, Position, Velocity, PhysicsBody } from '@/core/traits'
@@ -7,10 +11,7 @@ import {
   disposePhysics,
   stepPhysics,
 } from '@/core/physics/physicsWorld'
-import {
-  createStaticLevel,
-  createCharacterBody,
-} from '@/core/physics/colliders'
+import { createCharacterBody } from '@/core/physics/colliders'
 import { projectileSystem } from './projectileSystem'
 
 const spawnedWorlds = []
@@ -77,11 +78,12 @@ describe('projectileSystem', () => {
 describe('projectileSystem — colisão com o mundo', () => {
   afterEach(() => {
     disposePhysics()
+    clearGameLevelChunks()
   })
 
   it('para no ponto de impacto ao atingir o chão, marcando hit', async () => {
     await initPhysics()
-    createStaticLevel()
+    buildGameLevelAtOrigin()
     stepPhysics() // broad-phase só existe depois de um step (ver raycast.js)
 
     const world = spawnWorld()
@@ -104,7 +106,7 @@ describe('projectileSystem — colisão com o mundo', () => {
 
   it('depois de colidir, congela (não integra mais posição) mas o lifetime continua contando', async () => {
     await initPhysics()
-    createStaticLevel()
+    buildGameLevelAtOrigin()
     stepPhysics()
 
     const world = spawnWorld()
@@ -125,7 +127,7 @@ describe('projectileSystem — colisão com o mundo', () => {
 
   it('exclui a cápsula de quem atirou — não se autoacerta logo ao nascer perto do próprio corpo', async () => {
     await initPhysics()
-    createStaticLevel()
+    buildGameLevelAtOrigin()
 
     const { world, player } = makeWorld({
       playerPosition: { x: 0, y: 2, z: 0 },

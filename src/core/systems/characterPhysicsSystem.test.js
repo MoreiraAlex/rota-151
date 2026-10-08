@@ -18,6 +18,7 @@ import {
   Jumped,
   Jumping,
   ActionState,
+  ChunkFrozen,
 } from '@/core/traits'
 import {
   initPhysics,
@@ -110,6 +111,17 @@ describe('characterPhysicsSystem + integração Rapier', () => {
     expect(pos.y).toBeGreaterThan(restingHeight - 0.05)
     expect(pos.y).toBeLessThan(restingHeight + 0.3)
     expect(player.has(Grounded)).toBe(true)
+  })
+
+  it('congelado por chunk (046): não cai nem anda', () => {
+    const { world, player } = makeWorld({
+      playerPosition: { x: 0, y: 3, z: 0 },
+    })
+    player.add(ChunkFrozen)
+    run(world, 60, { forward: true })
+    expect(player.get(Position)).toMatchObject({ x: 0, y: 3, z: 0 })
+    // Este arquivo já chega perto do limite de worlds do koota.
+    world.destroy()
   })
 
   it('cápsula deitada (capsuleAxis x) repousa numa altura diferente — só o raio, não raio+meia-altura', () => {

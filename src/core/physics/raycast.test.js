@@ -6,9 +6,12 @@ import {
   getRapier,
   getRapierWorld,
 } from './physicsWorld'
-import { createStaticLevel } from './colliders'
 import { castRay } from './raycast'
 import { TEST_LEVEL } from '../data/testLevel'
+import {
+  buildGameLevelAtOrigin,
+  clearGameLevelChunks,
+} from '@/test/gameLevelChunks'
 
 // Collider recém-criado só entra na consideração do castRay depois de pelo
 // menos um world.step() — a broad-phase só é construída no step (ver a nota
@@ -23,6 +26,7 @@ function settle() {
 describe('castRay', () => {
   afterEach(() => {
     disposePhysics()
+    clearGameLevelChunks()
   })
 
   it('sem física inicializada, devolve null em vez de lançar erro', () => {
@@ -32,7 +36,7 @@ describe('castRay', () => {
 
   it('acerta o chão de cima, com a distância/ponto certos', async () => {
     await initPhysics()
-    createStaticLevel()
+    buildGameLevelAtOrigin()
     settle()
 
     const hit = castRay({ x: 0, y: 5, z: 0 }, { x: 0, y: -1, z: 0 }, 10)
@@ -44,7 +48,7 @@ describe('castRay', () => {
 
   it('sem nada dentro do alcance, devolve null', async () => {
     await initPhysics()
-    createStaticLevel()
+    buildGameLevelAtOrigin()
     settle()
 
     const hit = castRay({ x: 0, y: 5, z: 0 }, { x: 0, y: -1, z: 0 }, 2)
@@ -52,27 +56,19 @@ describe('castRay', () => {
     expect(hit).toBeNull()
   })
 
-  it('com o nível montado, acerta o relevo embaixo e o muro de borda', async () => {
+  it('com o chunk da origem carregado, acerta o relevo embaixo', async () => {
     await initPhysics()
-    createStaticLevel()
+    buildGameLevelAtOrigin()
     settle()
-    const { terrain, bounds } = TEST_LEVEL
+    const { terrain } = TEST_LEVEL
     const ground = terrain.heightAt(0, 0)
 
     const down = castRay(
-      { x: 0, y: terrain.maxHeight + 1, z: 0 },
+      { x: 0, y: ground + 50, z: 0 },
       { x: 0, y: -1, z: 0 },
-      terrain.maxHeight - terrain.minHeight + 2,
+      100,
     )
     expect(down.point.y).toBeCloseTo(ground, 3)
-
-    const sideways = castRay(
-      { x: 0, y: ground + 1, z: 0 },
-      { x: 1, y: 0, z: 0 },
-      bounds.maxX * 2,
-    )
-    expect(sideways.point.x).toBeLessThanOrEqual(bounds.maxX)
-    expect(sideways.point.x).toBeGreaterThan(0)
   })
 
   it('excludeColliderHandle tira um collider específico da consideração', async () => {

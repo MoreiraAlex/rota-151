@@ -14,6 +14,7 @@ import {
   Jumping,
   InputControlled,
   Fainted,
+  ChunkFrozen,
 } from '../traits'
 import {
   isPhysicsReady,
@@ -135,6 +136,9 @@ export function characterPhysicsSystem(context) {
     )
     .updateEach(([character, stats, vitals, body, vel, rot], entity) => {
       if (body.bodyHandle < 0) return
+      // Chunk debaixo não carregado: sem relevo para pisar, fica parado
+      // (docs/features/046-sistema-de-chunks.md).
+      if (entity.has(ChunkFrozen)) return
 
       const rigidBody = rapierWorld.getRigidBody(body.bodyHandle)
       const collider = rapierWorld.getCollider(body.colliderHandle)

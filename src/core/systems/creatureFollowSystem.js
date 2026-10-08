@@ -24,6 +24,7 @@ import {
   Velocity,
   Vitals,
   WildCreature,
+  ChunkFrozen,
 } from '../traits'
 
 /**
@@ -238,6 +239,8 @@ export function creatureFollowSystem(context) {
     )
     .updateEach(([, stats, vel, rot, pos, vitals], entity) => {
       if (entity.has(InputControlled)) return // é quem está sendo pilotado — não segue ninguém
+      // Num chunk descarregado: parada até ele voltar (046).
+      if (entity.has(ChunkFrozen)) return
       // `WildCreature` também tem `CharacterController` (mesmo pipeline
       // físico) mas vaga sozinha (`wildWanderSystem.js`, docs/features/020-
       // fox-selvagens-cena-e-texturas.md) — sem este filtro, as duas

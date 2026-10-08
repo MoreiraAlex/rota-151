@@ -5,6 +5,7 @@ import {
   quaternionFromAxisAngle,
   wrapAngle,
 } from '../math'
+import { chunkKey } from '../terrain/terrainChunk'
 import { getRapier, getRapierWorld } from './physicsWorld'
 
 /**
@@ -46,20 +47,54 @@ export function destroyTerrainChunkCollider(bodyHandle) {
   world.removeRigidBody(body)
 }
 
-// Corpos criados por `createStaticLevel` — para `destroyStaticLevel`.
+// Corpos dos obstáculos criados por `createStaticLevel` — para
+// `destroyStaticLevel`.
 let staticLevelBodies = []
+// Corpo do colisor de cada chunk carregado, por chave
+// (docs/features/046-sistema-de-chunks.md).
+const chunkBodies = new Map()
 
 /**
- * Cria os colliders estáticos do nível (relevo + obstáculos) a partir de
- * TEST_LEVEL. Corpos fixos; obstáculos são cuboides.
+ * Colisor do chunk carregado `chunk` no nível (`carregarChunk`,
+ * core/actions/chunks.js). Se já tinha um, troca.
+ */
+export function addLevelChunkCollider(chunk) {
+  removeLevelChunkCollider(chunk.chunkX, chunk.chunkZ)
+  chunkBodies.set(
+    chunkKey(chunk.chunkX, chunk.chunkZ),
+    createTerrainChunkCollider(chunk),
+  )
+}
+
+/** Desfaz `addLevelChunkCollider` (`descarregarChunk`). */
+export function removeLevelChunkCollider(chunkX, chunkZ) {
+  const key = chunkKey(chunkX, chunkZ)
+  if (!chunkBodies.has(key)) return
+  destroyTerrainChunkCollider(chunkBodies.get(key))
+  chunkBodies.delete(key)
+}
+
+/** O chunk `(chunkX, chunkZ)` tem colisor no nível? */
+export function hasLevelChunkCollider(chunkX, chunkZ) {
+  return chunkBodies.has(chunkKey(chunkX, chunkZ))
+}
+
+/**
+ * Cria os colliders estáticos do nível a partir de TEST_LEVEL: os
+ * obstáculos (corpos fixos, cuboides) e o relevo dos chunks JÁ carregados —
+ * os que carregarem depois ganham colisor em `carregarChunk`. Chamado uma
+ * vez quando a física fica pronta (`physicsBootstrapSystem`, que também
+ * cobre o world refeito do hot-reload).
  */
 export function createStaticLevel() {
   const RAPIER = getRapier()
   const world = getRapierWorld()
   staticLevelBodies = []
 
-  for (const chunk of TEST_LEVEL.terrain.chunks) {
-    staticLevelBodies.push(createTerrainChunkCollider(chunk))
+  // World novo: os handles de antes não valem mais.
+  chunkBodies.clear()
+  for (const chunk of TEST_LEVEL.terrain.loadedChunks()) {
+    addLevelChunkCollider(chunk)
   }
 
   for (const obstacle of TEST_LEVEL.obstacles) {
@@ -94,6 +129,10 @@ export function destroyStaticLevel() {
     if (body) world.removeRigidBody(body)
   }
   staticLevelBodies = []
+  for (const handle of chunkBodies.values()) {
+    destroyTerrainChunkCollider(handle)
+  }
+  chunkBodies.clear()
 }
 
 // Rapier gera a cápsula em pé (comprida no eixo Y local). Deitar ela é girar

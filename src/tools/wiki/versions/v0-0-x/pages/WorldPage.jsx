@@ -25,9 +25,20 @@ export function WorldPage() {
 
       <Section id="tamanho" title="Tamanho">
         <p>
-          Por enquanto o mundo é uma área fechada, cercada por muros. Ele vai
-          crescer sozinho conforme você anda.
+          O mundo <strong>não tem fim</strong>: dá pra andar em qualquer direção
+          sem bater numa borda. O que está longe fica escondido por uma névoa no
+          horizonte e vai aparecendo conforme você chega perto.
         </p>
+        <ul>
+          <li>
+            Criaturas que ficaram muito longe param onde estão e continuam de lá
+            quando você volta.
+          </li>
+          <li>
+            Coisas largadas no chão (comida derrubada, Pokébola caída) somem de
+            vez quando você se afasta muito delas.
+          </li>
+        </ul>
       </Section>
 
       <Notice tone="soon">

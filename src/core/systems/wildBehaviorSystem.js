@@ -42,6 +42,7 @@ import {
   WantsToAttack,
   WildBehavior,
   WildCreature,
+  ChunkFrozen,
 } from '../traits'
 
 /**
@@ -210,6 +211,8 @@ export function wildBehaviorSystem(context) {
       ([creature, behavior, pos, rot, vel, stats, body, vitals], entity) => {
         if (behavior.state === 'wander') return
         if (entity.has(Fainted) || entity.has(BeingCaptured)) return
+        // Num chunk descarregado: parada até ele voltar (046).
+        if (entity.has(ChunkFrozen)) return
         const target = behavior.target
         if (!target) return
 

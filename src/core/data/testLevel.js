@@ -1,6 +1,6 @@
 import { GAME_CONFIG } from '../gameConfig'
 import { createRng, deriveSeed, randomInt } from '../rng'
-import { createTerrainArea } from '../terrain/terrainArea'
+import { createTerrainChunkSet } from '../terrain/terrainChunkSet'
 import { verticalClearance } from '../physics/capsule'
 import { getSpecies } from './species'
 
@@ -11,10 +11,12 @@ import { getSpecies } from './species'
  * (core/pathfinding.js) e os meshes (view/scene/GameScene) são gerados a
  * partir daqui, então o visível bate com o colidível/andável.
  *
- * - terrain: o relevo — área fixa de chunks gerada pela seed do mundo
- *   (`core/terrain/terrainArea.js`, docs/features/045-terreno-de-um-chunk.md).
- * - bounds: limites da área andável ({ minX, maxX, minZ, maxZ }), os mesmos
- *   do terreno; a grade de pathfinding cobre isso.
+ * - terrain: o relevo — os chunks carregados agora, gerados pela seed do
+ *   mundo (`core/terrain/terrainChunkSet.js`, docs/features/046-sistema-
+ *   de-chunks.md). O mundo não tem borda: quem carrega e descarrega é o
+ *   `chunkStreamingSystem`. Um nível sem chunks (os dos testes) pode ter
+ *   `bounds` ({ minX, maxX, minZ, maxZ }): a área fixa que a grade de
+ *   pathfinding cobre.
  * - obstacles: `{ id, type: 'box' | 'ramp' | 'floor', position, size,
  *   rotation? }` — position é o centro.
  * - size: dimensões completas [largura(x), altura(y), profundidade(z)], em unidades.
@@ -44,14 +46,9 @@ const WILD_CREATURE_COUNT = 10
 
 const WILD_CREATURE_SPECIES = ['bulbasaur', 'charmander', 'squirtle']
 
-// Distância (m) da borda da área em que nenhum selvagem nasce.
-const WILD_AREA_MARGIN = 12
-
-// Muros provisórios na borda da área — sem eles, sair do terreno é queda
-// livre (não há chão fora da área). Saem com o carregar de chunks (046).
-// Espessura (m) e quanto sobem (m) acima do ponto mais alto do relevo.
-const WALL_THICKNESS = 1
-const WALL_HEIGHT = 4
+// Metade do lado (m) do quadrado em volta da origem onde os selvagens
+// nascem — provisório até o spawn por chunk (054).
+const WILD_AREA_HALF_SIZE = 84
 
 // Objetos de treino (ver `trainingObjects` no cabeçalho) — x/z fixos, o y
 // vem do relevo.
@@ -60,8 +57,7 @@ const TRAINING_SPOTS = [
   { id: 'training-rock-1', kind: 'rock', x: 9, z: -6, size: [1.2, 1, 1.2] },
 ]
 
-const generateTerrain = () =>
-  createTerrainArea({ seed: deriveSeed(GAME_CONFIG.WORLD.SEED, 'terrain') })
+const terrainSeed = () => deriveSeed(GAME_CONFIG.WORLD.SEED, 'terrain')
 
 // Chão mais baixo debaixo de uma caixa (centro e cantos) — a caixa nunca
 // fica com um canto flutuando numa encosta.
@@ -78,15 +74,13 @@ const groundUnder = (terrain, x, z, halfW, halfD) =>
 // cada vez que o jogo abre.
 function generateWildCreatures(terrain, count) {
   const rng = createRng(deriveSeed(GAME_CONFIG.WORLD.SEED, 'wild-spawn'))
-  const { minX, maxX, minZ, maxZ } = terrain.bounds
-  const between = (min, max) =>
-    min + WILD_AREA_MARGIN + rng() * (max - min - 2 * WILD_AREA_MARGIN)
+  const between = (min, max) => min + rng() * (max - min)
 
   return Array.from({ length: count }, (_, index) => {
     const speciesId =
       WILD_CREATURE_SPECIES[randomInt(rng, 0, WILD_CREATURE_SPECIES.length - 1)]
-    const x = between(minX, maxX)
-    const z = between(minZ, maxZ)
+    const x = between(-WILD_AREA_HALF_SIZE, WILD_AREA_HALF_SIZE)
+    const z = between(-WILD_AREA_HALF_SIZE, WILD_AREA_HALF_SIZE)
     // Pés acima do chão (o centro fica a `verticalClearance` deles).
     const y =
       terrain.heightAt(x, z) +
@@ -115,57 +109,17 @@ const trainingObstacles = (trainingObjects) =>
     trainingKind: kind,
   }))
 
-function generateBoundaryWalls(terrain) {
-  const { minX, maxX, minZ, maxZ } = terrain.bounds
-  const bottom = terrain.minHeight
-  const top = terrain.maxHeight + WALL_HEIGHT
-  const y = (bottom + top) / 2
-  const height = top - bottom
-  const width = maxX - minX + WALL_THICKNESS
-  const depth = maxZ - minZ + WALL_THICKNESS
-  const centerX = (minX + maxX) / 2
-  const centerZ = (minZ + maxZ) / 2
-
-  return [
-    {
-      id: 'boundary-north',
-      position: [centerX, y, minZ],
-      size: [width, height, WALL_THICKNESS],
-    },
-    {
-      id: 'boundary-south',
-      position: [centerX, y, maxZ],
-      size: [width, height, WALL_THICKNESS],
-    },
-    {
-      id: 'boundary-east',
-      position: [maxX, y, centerZ],
-      size: [WALL_THICKNESS, height, depth],
-    },
-    {
-      id: 'boundary-west',
-      position: [minX, y, centerZ],
-      size: [WALL_THICKNESS, height, depth],
-    },
-  ].map((wall) => ({ ...wall, type: 'box' }))
-}
-
-// Tudo do nível que sai do relevo.
-function buildTerrainDependentLevel() {
-  const terrain = generateTerrain()
+// O que sai da altura do relevo (não depende de chunk carregado).
+function buildTerrainDependentLevel(terrain) {
   const trainingObjects = placeTrainingObjects(terrain)
   return {
-    terrain,
-    bounds: terrain.bounds,
-    obstacles: [
-      ...generateBoundaryWalls(terrain),
-      ...trainingObstacles(trainingObjects),
-    ],
+    obstacles: trainingObstacles(trainingObjects),
     trainingObjects,
   }
 }
 
-const initialLevel = buildTerrainDependentLevel()
+const terrain = createTerrainChunkSet({ seed: terrainSeed() })
+const initialLevel = buildTerrainDependentLevel(terrain)
 
 export const TEST_LEVEL = {
   ambientSound: {
@@ -177,11 +131,9 @@ export const TEST_LEVEL = {
     minInterval: 2,
     maxInterval: 5,
   },
+  terrain,
   ...initialLevel,
-  wildCreatures: generateWildCreatures(
-    initialLevel.terrain,
-    WILD_CREATURE_COUNT,
-  ),
+  wildCreatures: generateWildCreatures(terrain, WILD_CREATURE_COUNT),
 }
 
 // Ajuste do relevo em tempo real (debug — `regenerarTerreno`,
@@ -202,12 +154,14 @@ export function subscribeLevelChanges(listener) {
 
 /**
  * Refaz, com a config atual (`GAME_CONFIG.TERRAIN`/`WORLD.SEED`), tudo do
- * nível que sai do relevo: o terreno, os limites, os muros e os objetos de
- * treino. Os selvagens já nascidos ficam (quem os sobe para a superfície é
+ * nível que sai do relevo: a receita do terreno e os objetos de treino. Só
+ * com nenhum chunk carregado (quem descarrega antes é `regenerarTerreno`).
+ * Os selvagens já nascidos ficam (quem os sobe para a superfície é
  * `regenerarTerreno`). Só a ferramenta de debug chama isto.
  */
 export function rebuildTerrainDependentLevel() {
-  Object.assign(TEST_LEVEL, buildTerrainDependentLevel())
+  TEST_LEVEL.terrain.reconfigure(terrainSeed(), GAME_CONFIG.TERRAIN)
+  Object.assign(TEST_LEVEL, buildTerrainDependentLevel(TEST_LEVEL.terrain))
   levelRevision += 1
   for (const listener of levelListeners) listener()
 }

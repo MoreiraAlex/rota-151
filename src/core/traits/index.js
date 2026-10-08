@@ -16,6 +16,7 @@ export { ActionState } from './components/action'
 export { Mood } from './components/mood'
 export { CombatMode } from './components/combatMode'
 export { Fainted } from './components/faint'
+export { ChunkFrozen } from './components/chunk'
 export {
   Vitals,
   applyDamage,

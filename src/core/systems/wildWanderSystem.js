@@ -13,6 +13,7 @@ import {
   WanderState,
   WildBehavior,
   WildCreature,
+  ChunkFrozen,
 } from '../traits'
 
 /**
@@ -60,6 +61,8 @@ export function wildWanderSystem(context) {
       // Desmaiada: largada no chão (`desmaiar` já zerou a velocidade). Dentro
       // de uma Pokébola (docs/features/043-captura.md): parada.
       if (entity.has(Fainted) || entity.has(BeingCaptured)) return
+      // Num chunk descarregado: parada até ele voltar (046).
+      if (entity.has(ChunkFrozen)) return
 
       if (wander.pauseTimer > 0) {
         wander.pauseTimer -= delta

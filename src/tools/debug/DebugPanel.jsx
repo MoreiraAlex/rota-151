@@ -41,6 +41,7 @@ import {
   applyDamage,
 } from '@/core/traits'
 import { usePartyPokemon } from '@/view/hooks/usePartyPokemon'
+import { ChunkDebugCounter } from './ChunkDebugView'
 
 const MOOD_OPTIONS = ['awake', 'sleeping', 'angry', 'faint']
 
@@ -136,6 +137,7 @@ export function DebugPanel({ onDeleteSave = null }) {
         pos: {position.x.toFixed(2)}, {position.y.toFixed(2)},{' '}
         {position.z.toFixed(2)}
       </p>
+      <ChunkDebugCounter />
       <p>
         speed: {speed.toFixed(2)} u/s · {grounded ? 'no chão' : 'no ar'}
       </p>

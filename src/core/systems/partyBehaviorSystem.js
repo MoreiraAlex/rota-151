@@ -27,6 +27,7 @@ import {
   Vitals,
   WantsToAttack,
   WildBehavior,
+  ChunkFrozen,
 } from '../traits'
 
 function horizontalDistance(a, b) {
@@ -155,6 +156,8 @@ export function partyBehaviorSystem(context) {
     .updateEach(
       ([creature, behavior, pos, rot, vel, stats, vitals], entity) => {
         if (behavior.state !== 'fight' || !behavior.target) return
+        // Num chunk descarregado: parada até ele voltar (046).
+        if (entity.has(ChunkFrozen)) return
 
         const target = behavior.target
         const { fightingWilds } = groupOf(entity)

@@ -209,23 +209,23 @@ const GROUND = {
   size: [SIZE, 1, SIZE],
 }
 
+// Um relevo plano sem chunk carregável: a área toda conta como carregada
+// (ninguém congela) e o chão é a caixa `GROUND`.
 function flatTerrain() {
-  const half = SIZE / 2
   return {
-    chunks: [],
-    bounds: { minX: -half, maxX: half, minZ: -half, maxZ: half },
-    minHeight: 0,
-    maxHeight: 0,
     heightAt: () => 0,
+    isLoaded: () => true,
+    isLoadedAt: () => true,
+    loadedChunks: () => [],
   }
 }
 
 /** O nível plano: `{ terrain, bounds, obstacles, trainingObjects }`. */
 export function makeFlatTestLevel() {
-  const terrain = flatTerrain()
+  const half = SIZE / 2
   return {
-    terrain,
-    bounds: terrain.bounds,
+    terrain: flatTerrain(),
+    bounds: { minX: -half, maxX: half, minZ: -half, maxZ: half },
     obstacles: [GROUND, ...FLAT_TEST_OBSTACLES],
     trainingObjects: TRAINING_OBJECTS,
   }
