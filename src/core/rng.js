@@ -23,6 +23,20 @@ export function createRng(seed) {
   }
 }
 
+/**
+ * Seed derivada de outra por um nome (`salt`) — cada uso de aleatoriedade
+ * tem a própria sequência a partir da mesma seed do mundo (ex.: o relevo,
+ * docs/features/045-terreno-de-um-chunk.md). Mistura FNV-1a do nome com a
+ * seed; mesma entrada, mesma saída.
+ */
+export function deriveSeed(seed, salt) {
+  let hash = (2166136261 ^ (seed >>> 0)) >>> 0
+  for (let i = 0; i < salt.length; i++) {
+    hash = Math.imul(hash ^ salt.charCodeAt(i), 16777619) >>> 0
+  }
+  return Math.imul(hash ^ (hash >>> 16), 2246822507) >>> 0
+}
+
 /** Inteiro sorteado em `[min, max]`, inclusive nos dois extremos. */
 export function randomInt(rng, min, max) {
   return Math.floor(rng() * (max - min + 1)) + min
@@ -36,11 +50,10 @@ export function randomInt(rng, min, max) {
  * em `core/`, mesma regra): sem save de estado de jogo ainda, a
  * sequência de sorteios é a MESMA a cada reinício do jogo. Efeito
  * aceito por enquanto: os IVs de cada criatura selvagem, na ordem em
- * que nascem, se repetem entre sessões (não a espécie/posição de cada
- * uma — essas continuam sorteadas por `Math.random()` em
- * `core/data/testLevel.js`, pré-existente, fora do escopo desta
- * mudança). Quando existir uma fonte de seed por sessão/save de
- * verdade, troca-se aqui, um lugar só.
+ * que nascem, se repetem entre sessões (a espécie/posição de cada uma vem
+ * do RNG de geração do nível, `core/data/testLevel.js`). Quando existir
+ * uma fonte de seed por sessão/save de verdade, troca-se aqui, um lugar
+ * só.
  */
 export const gameplayRng = createRng(GAME_CONFIG.WORLD.SEED)
 

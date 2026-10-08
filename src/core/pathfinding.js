@@ -9,13 +9,14 @@ import { clamp } from './math'
  * subir terrenos elevados em vez de andar em linha reta até o treinador —
  * usa a lib `pathfinding` (A* em grade) em cima da MESMA fonte de dados dos
  * colliders físicos (`TEST_LEVEL`, ver `core/physics/colliders.js`), não
- * uma malha separada — nível ainda é só boxes/rampas/terraços, sem
- * ferramenta de autoria de navmesh no projeto.
+ * uma malha separada.
  *
- * Nível é estático (estes dados nunca mudam em runtime — mesma premissa de
- * `createStaticLevel`, que também baka os colliders uma vez só), então a
- * grade é construída de forma preguiçosa e cacheada (`getNavGrid`) — só a
- * primeira chamada paga o custo de bake.
+ * `createNavigation(level)` monta a navegação de um nível qualquer
+ * (`{ bounds, terrain?, obstacles }`, a forma de `TEST_LEVEL`) — os testes
+ * usam níveis próprios. `findPath`/`isWalkableAt`/`inspectCell` exportados
+ * usam a do nível do jogo, construída de forma preguiçosa e cacheada (o
+ * nível é estático, mesma premissa de `createStaticLevel`) — só a primeira
+ * chamada paga o custo de bake.
  *
  * ## Elevação (heightmap)
  *
@@ -28,8 +29,9 @@ import { clamp } from './math'
  * realocado. Só um bit não basta; precisa saber QUANTO um vizinho é mais
  * alto.
  *
- * Dois tipos contribuem elevação (o resto do mundo fica em `0`, chão
- * padrão):
+ * A base é a altura do RELEVO (`level.terrain.heightAt`, no centro de cada
+ * célula — docs/features/045-terreno-de-um-chunk.md; sem terreno, `0`). Dois
+ * tipos de obstáculo sobrescrevem:
  * - `type: 'ramp'`: elevação varia ao longo do eixo de inclinação,
  *   calculada exatamente pela mesma rotação de eixo único que
  *   `quaternionFromAxisAngle` usa (`axis: 'z'` inclina ao longo de X,
@@ -40,7 +42,8 @@ import { clamp } from './math'
  *   rampa), só não tem inclinação.
  *
  * `type: 'box'` nunca contribui elevação — continua sendo parede de
- * verdade, bloqueando acima do auto-step como sempre bloqueou.
+ * verdade, bloqueando quando o topo passa do auto-step ACIMA DO TERRENO onde
+ * ela está.
  *
  * ### Regra de "penhasco"
  *
@@ -49,7 +52,9 @@ import { clamp } from './math'
  * diagonais contam) que TAMBÉM estão livres — uma vizinha já bloqueada não
  * entra na conta, já está fora do grafo de qualquer jeito. Se a diferença
  * de elevação para qualquer vizinha passar de
- * `GAME_CONFIG.PATHFINDING.MAX_CLIMB_STEP`, a célula vira bloqueada. Uma
+ * `GAME_CONFIG.PATHFINDING.MAX_CLIMB_STEP` (vezes a distância entre os
+ * centros, em células: a diagonal é mais longa), a célula vira bloqueada —
+ * é também o que bloqueia a encosta íngreme do relevo. Uma
  * rampa, com elevação variando suavemente célula a célula ao longo do
  * próprio comprimento, nunca dispara essa regra nela mesma — só a borda
  * entre dois terraços SEM rampa entre eles (um salto grande numa única
@@ -70,8 +75,6 @@ import { clamp } from './math'
  * (várias grades empilhadas conectadas por rampas) — fora de escopo aqui.
  */
 
-let cachedGrid = null
-
 function rampElevationAt(obstacle, x, z) {
   const { axis, angle } = obstacle.rotation
   const [ox, oy, oz] = obstacle.position
@@ -80,33 +83,45 @@ function rampElevationAt(obstacle, x, z) {
     : oy - (z - oz) * Math.tan(angle)
 }
 
-function buildNavGrid() {
+function buildNavGrid(level) {
   const { CELL_SIZE, OBSTACLE_MARGIN, MAX_CLIMB_STEP } = GAME_CONFIG.PATHFINDING
   const { AUTOSTEP_HEIGHT } = GAME_CONFIG.PHYSICS.CHARACTER
-  const { ground, obstacles } = TEST_LEVEL
+  const { bounds, obstacles } = level
+  const groundAt = (x, z) => level.terrain?.heightAt(x, z) ?? 0
 
-  const cols = Math.round(ground.size / CELL_SIZE)
-  const rows = cols
-  const origin = -ground.size / 2
+  const cols = Math.round((bounds.maxX - bounds.minX) / CELL_SIZE)
+  const rows = Math.round((bounds.maxZ - bounds.minZ) / CELL_SIZE)
+  const originX = bounds.minX
+  const originZ = bounds.minZ
 
-  const elevation = new Float32Array(cols * rows) // default 0 — chão
+  const elevation = new Float32Array(cols * rows)
   const blocked = new Uint8Array(cols * rows)
   const index = (col, row) => row * cols + col
+  const cellCenter = (col, row) =>
+    gridToWorldXZ(originX, originZ, CELL_SIZE, col, row)
 
   const cellRangeFor = (ox, oz, halfW, halfD) => ({
-    minCol: clamp(Math.floor((ox - halfW - origin) / CELL_SIZE), 0, cols - 1),
+    minCol: clamp(Math.floor((ox - halfW - originX) / CELL_SIZE), 0, cols - 1),
     maxCol: clamp(
-      Math.ceil((ox + halfW - origin) / CELL_SIZE) - 1,
+      Math.ceil((ox + halfW - originX) / CELL_SIZE) - 1,
       0,
       cols - 1,
     ),
-    minRow: clamp(Math.floor((oz - halfD - origin) / CELL_SIZE), 0, rows - 1),
+    minRow: clamp(Math.floor((oz - halfD - originZ) / CELL_SIZE), 0, rows - 1),
     maxRow: clamp(
-      Math.ceil((oz + halfD - origin) / CELL_SIZE) - 1,
+      Math.ceil((oz + halfD - originZ) / CELL_SIZE) - 1,
       0,
       rows - 1,
     ),
   })
+
+  // Passada 0: o relevo.
+  for (let col = 0; col < cols; col++) {
+    for (let row = 0; row < rows; row++) {
+      const { x, z } = cellCenter(col, row)
+      elevation[index(col, row)] = groundAt(x, z)
+    }
+  }
 
   // Passada 1: elevação — 'floor' (constante) primeiro, 'ramp' (interpolada)
   // depois, de propósito NESSA ordem: onde os footprints rasterizados de
@@ -115,12 +130,11 @@ function buildNavGrid() {
   // de conteúdo) — se o terraço (valor constante) vencesse ali, a célula
   // ficaria com um salto artificial em relação à célula anterior da rampa
   // (a rampa não necessariamente alcança a altura EXATA do terraço bem no
-  // limite do próprio footprint — pequena imprecisão de autoria, sempre
-  // existiu, só passou a importar agora). Deixando a rampa vencer nessa
-  // sobreposição, a célula de fronteira fica com um valor intermediário
-  // (a própria curva da rampa), suave nos dois lados — sem isso, a regra
-  // de penhasco (abaixo) bloqueava incorretamente a própria junção
-  // rampa→terraço (achado rodando os testes desta função).
+  // limite do próprio footprint — pequena imprecisão de autoria). Deixando
+  // a rampa vencer nessa sobreposição, a célula de fronteira fica com um
+  // valor intermediário (a própria curva da rampa), suave nos dois lados —
+  // sem isso, a regra de penhasco (abaixo) bloqueava incorretamente a
+  // própria junção rampa→terraço.
   for (const obstacle of obstacles) {
     if (obstacle.type !== 'floor') continue
     const [ox, , oz] = obstacle.position
@@ -153,20 +167,21 @@ function buildNavGrid() {
 
     for (let col = minCol; col <= maxCol; col++) {
       for (let row = minRow; row <= maxRow; row++) {
-        const { x, z } = gridToWorldXZ(origin, CELL_SIZE, col, row)
+        const { x, z } = cellCenter(col, row)
         elevation[index(col, row)] = rampElevationAt(obstacle, x, z)
       }
     }
   }
 
-  // Passada 2: bloqueio duro — só 'box' acima do auto-step, igual sempre foi.
+  // Passada 2: bloqueio duro — 'box' cujo topo passa do auto-step acima do
+  // chão onde ela está.
   for (const obstacle of obstacles) {
     if (obstacle.type !== 'box') continue
 
-    const topY = obstacle.position[1] + obstacle.size[1] / 2
-    if (topY <= AUTOSTEP_HEIGHT) continue
-
     const [ox, , oz] = obstacle.position
+    const topY = obstacle.position[1] + obstacle.size[1] / 2
+    if (topY - groundAt(ox, oz) <= AUTOSTEP_HEIGHT) continue
+
     const [halfW, , halfD] = obstacle.size.map((s) => s / 2 + OBSTACLE_MARGIN)
     const { minCol, maxCol, minRow, maxRow } = cellRangeFor(
       ox,
@@ -183,7 +198,8 @@ function buildNavGrid() {
   }
 
   // Passada 3: penhasco — célula livre com salto de elevação grande demais
-  // pra qualquer vizinha (das 8) que também esteja livre vira bloqueada.
+  // pra qualquer vizinha (das 8) que também esteja livre vira bloqueada. O
+  // limite cresce com a distância até a vizinha (diagonal = √2 células).
   const grid = new PF.Grid(cols, rows)
   for (let col = 0; col < cols; col++) {
     for (let row = 0; row < rows; row++) {
@@ -202,70 +218,48 @@ function buildNavGrid() {
           if (nc < 0 || nc >= cols || nr < 0 || nr >= rows) continue
           const ni = index(nc, nr)
           if (blocked[ni]) continue
-          if (Math.abs(elevation[i] - elevation[ni]) > MAX_CLIMB_STEP)
-            isCliff = true
+          const maxStep = MAX_CLIMB_STEP * Math.hypot(dc, dr)
+          if (Math.abs(elevation[i] - elevation[ni]) > maxStep) isCliff = true
         }
       }
       if (isCliff) grid.setWalkableAt(col, row, false)
     }
   }
 
-  return { grid, elevation, cols, rows, origin, cellSize: CELL_SIZE, index }
-}
-
-/**
- * Inspeciona a célula da grade que contém `(x, z)` — elevação e se está
- * andável. Uso exclusivo de teste (`pathfinding.test.js`): testar a regra
- * de penhasco/elevação direto pelas células é mais preciso e menos frágil
- * do que inferir pelo caminho final que `findPath` devolve (que hoje já
- * expõe uma célula por waypoint, mas testar a célula direto continua mais
- * direto pra casos pontuais, sem depender de origem/destino específicos).
- */
-export function inspectCell(x, z) {
-  const nav = getNavGrid()
-  const { col, row } = worldToGrid(nav, x, z)
   return {
-    elevation: nav.elevation[nav.index(col, row)],
-    walkable: nav.grid.isWalkableAt(col, row),
+    grid,
+    elevation,
+    cols,
+    rows,
+    originX,
+    originZ,
+    cellSize: CELL_SIZE,
+    index,
   }
 }
 
-/**
- * O ponto `(x, z)` está DENTRO do mapa navegável e numa célula andável? Fora
- * da grade → `false` (diferente de `findPath`, que prende a coordenada na
- * borda). Usado pra escolher destino de fuga
- * (`core/battle/flee.js`) — destino dentro de obstáculo ou fora do mapa
- * fazia a criatura correr contra a parede.
- */
-export function isWalkableAt(x, z) {
-  const { origin, cellSize, cols, rows, grid } = getNavGrid()
-  const col = Math.floor((x - origin) / cellSize)
-  const row = Math.floor((z - origin) / cellSize)
-  if (col < 0 || row < 0 || col >= cols || row >= rows) return false
-  return grid.isWalkableAt(col, row)
-}
-
-function getNavGrid() {
-  if (!cachedGrid) cachedGrid = buildNavGrid()
-  return cachedGrid
-}
-
-function worldToGrid({ origin, cellSize, cols, rows }, x, z) {
+function worldToGrid({ originX, originZ, cellSize, cols, rows }, x, z) {
   return {
-    col: clamp(Math.floor((x - origin) / cellSize), 0, cols - 1),
-    row: clamp(Math.floor((z - origin) / cellSize), 0, rows - 1),
+    col: clamp(Math.floor((x - originX) / cellSize), 0, cols - 1),
+    row: clamp(Math.floor((z - originZ) / cellSize), 0, rows - 1),
   }
 }
 
-function gridToWorldXZ(origin, cellSize, col, row) {
+function gridToWorldXZ(originX, originZ, cellSize, col, row) {
   return {
-    x: origin + (col + 0.5) * cellSize,
-    z: origin + (row + 0.5) * cellSize,
+    x: originX + (col + 0.5) * cellSize,
+    z: originZ + (row + 0.5) * cellSize,
   }
 }
 
 function gridToWorld(nav, col, row) {
-  const { x, z } = gridToWorldXZ(nav.origin, nav.cellSize, col, row)
+  const { x, z } = gridToWorldXZ(
+    nav.originX,
+    nav.originZ,
+    nav.cellSize,
+    col,
+    row,
+  )
   return { x, y: nav.elevation[nav.index(col, row)], z }
 }
 
@@ -329,62 +323,135 @@ function boundedSmoothPath(grid, rawPath, maxJumpDistance) {
 }
 
 /**
- * Calcula um caminho de `fromWorld` até `toWorld` (`{x, z}` cada, `y`
- * ignorado na entrada) desviando dos obstáculos e penhascos do nível.
- * Retorna uma lista de waypoints em coordenadas de mundo (`[{x, y, z},
- * ...]`, SEM o ponto de partida), suavizada por `boundedSmoothPath`
- * (string pulling com salto máximo — ver docstring dela pra entender POR
- * QUE não é `PF.Util.smoothenPath` puro). O `y` de cada waypoint
- * intermediário vem da elevação da própria célula (`heightmap`) — não é
- * necessário pro movimento em si (a física já sobe rampa/degrau sozinha
- * via auto-step/slope-climb a partir só da direção horizontal), mas deixa
- * a visualização de debug (`PathfindingDebugView.jsx`) acompanhar o
- * relevo de verdade em vez de flutuar na altura atual da criatura.
- *
- * Retorna `[]` quando origem/destino caem na mesma célula ou quando não
- * existe caminho (alvo bloqueado/inatingível, incluindo do lado errado de
- * um penhasco) — quem chama trata isso como "sem obstáculo relevante no
- * meio", indo direto.
- *
- * `finder.findPath` MUTA a grade recebida (marca nós visitados) — por isso
- * sempre `grid.clone()` aqui; a grade cacheada (`getNavGrid`) nunca é
- * passada direto pra busca.
- *
- * O último waypoint é substituído pela posição EXATA de `toWorld` (x/z da
- * grade, y do próprio `toWorld` se presente) — sem isso, todo alvo chega
- * deslocado em até meia célula (`CELL_SIZE`), mesmo sem obstáculo nenhum
- * no meio (o centro da célula raramente cai exatamente em cima do alvo de
- * verdade). Waypoints intermediários continuam em centro de célula — só a
- * chegada final precisa ser precisa.
+ * Navegação de um nível (`{ bounds, terrain?, obstacles }`). A grade é
+ * construída na primeira consulta.
  */
-export function findPath(fromWorld, toWorld) {
-  const nav = getNavGrid()
-  const from = worldToGrid(nav, fromWorld.x, fromWorld.z)
-  const to = worldToGrid(nav, toWorld.x, toWorld.z)
-
-  if (from.col === to.col && from.row === to.row) return []
-
-  const rawPath = finder.findPath(
-    from.col,
-    from.row,
-    to.col,
-    to.row,
-    nav.grid.clone(),
-  )
-  if (rawPath.length <= 1) return []
-
-  const smoothed = boundedSmoothPath(
-    nav.grid,
-    rawPath,
-    GAME_CONFIG.PATHFINDING.MAX_SHORTCUT_DISTANCE,
-  )
-  const waypoints = smoothed
-    .slice(1)
-    .map(([col, row]) => gridToWorld(nav, col, row))
-  waypoints[waypoints.length - 1] = {
-    x: toWorld.x,
-    y: toWorld.y ?? waypoints[waypoints.length - 1].y,
-    z: toWorld.z,
+export function createNavigation(level) {
+  let nav = null
+  const getNav = () => {
+    if (!nav) nav = buildNavGrid(level)
+    return nav
   }
-  return waypoints
+
+  /**
+   * Inspeciona a célula da grade que contém `(x, z)` — elevação e se está
+   * andável. Uso de teste: testar a regra de penhasco/elevação direto pelas
+   * células é mais preciso que inferir pelo caminho que `findPath` devolve.
+   */
+  function inspectCell(x, z) {
+    const grid = getNav()
+    const { col, row } = worldToGrid(grid, x, z)
+    return {
+      elevation: grid.elevation[grid.index(col, row)],
+      walkable: grid.grid.isWalkableAt(col, row),
+    }
+  }
+
+  /**
+   * O ponto `(x, z)` está DENTRO do mapa navegável e numa célula andável?
+   * Fora da grade → `false` (diferente de `findPath`, que prende a
+   * coordenada na borda). Usado pra escolher destino de fuga
+   * (`core/battle/flee.js`) — destino dentro de obstáculo ou fora do mapa
+   * fazia a criatura correr contra a parede.
+   */
+  function isWalkableAt(x, z) {
+    const { originX, originZ, cellSize, cols, rows, grid } = getNav()
+    const col = Math.floor((x - originX) / cellSize)
+    const row = Math.floor((z - originZ) / cellSize)
+    if (col < 0 || row < 0 || col >= cols || row >= rows) return false
+    return grid.isWalkableAt(col, row)
+  }
+
+  /**
+   * Calcula um caminho de `fromWorld` até `toWorld` (`{x, z}` cada, `y`
+   * ignorado na entrada) desviando dos obstáculos e penhascos do nível.
+   * Retorna uma lista de waypoints em coordenadas de mundo (`[{x, y, z},
+   * ...]`, SEM o ponto de partida), suavizada por `boundedSmoothPath`
+   * (string pulling com salto máximo — ver docstring dela pra entender POR
+   * QUE não é `PF.Util.smoothenPath` puro). O `y` de cada waypoint
+   * intermediário vem da elevação da própria célula (`heightmap`) — não é
+   * necessário pro movimento em si (a física já sobe rampa/degrau sozinha
+   * via auto-step/slope-climb a partir só da direção horizontal), mas deixa
+   * a visualização de debug (`PathfindingDebugView.jsx`) acompanhar o
+   * relevo de verdade em vez de flutuar na altura atual da criatura.
+   *
+   * Retorna `[]` quando origem/destino caem na mesma célula ou quando não
+   * existe caminho (alvo bloqueado/inatingível, incluindo do lado errado de
+   * um penhasco) — quem chama trata isso como "sem obstáculo relevante no
+   * meio", indo direto.
+   *
+   * `finder.findPath` MUTA a grade recebida (marca nós visitados) — por isso
+   * sempre `grid.clone()` aqui; a grade guardada nunca é
+   * passada direto pra busca.
+   *
+   * O último waypoint é substituído pela posição EXATA de `toWorld` (x/z da
+   * grade, y do próprio `toWorld` se presente) — sem isso, todo alvo chega
+   * deslocado em até meia célula (`CELL_SIZE`), mesmo sem obstáculo nenhum
+   * no meio (o centro da célula raramente cai exatamente em cima do alvo de
+   * verdade). Waypoints intermediários continuam em centro de célula — só a
+   * chegada final precisa ser precisa.
+   */
+  function findPath(fromWorld, toWorld) {
+    const grid = getNav()
+    const from = worldToGrid(grid, fromWorld.x, fromWorld.z)
+    const to = worldToGrid(grid, toWorld.x, toWorld.z)
+
+    if (from.col === to.col && from.row === to.row) return []
+
+    const rawPath = finder.findPath(
+      from.col,
+      from.row,
+      to.col,
+      to.row,
+      grid.grid.clone(),
+    )
+    if (rawPath.length <= 1) return []
+
+    const smoothed = boundedSmoothPath(
+      grid.grid,
+      rawPath,
+      GAME_CONFIG.PATHFINDING.MAX_SHORTCUT_DISTANCE,
+    )
+    const waypoints = smoothed
+      .slice(1)
+      .map(([col, row]) => gridToWorld(grid, col, row))
+    waypoints[waypoints.length - 1] = {
+      x: toWorld.x,
+      y: toWorld.y ?? waypoints[waypoints.length - 1].y,
+      z: toWorld.z,
+    }
+    return waypoints
+  }
+
+  return { findPath, isWalkableAt, inspectCell }
+}
+
+let levelNavigation = null
+
+function getLevelNavigation() {
+  if (!levelNavigation) levelNavigation = createNavigation(TEST_LEVEL)
+  return levelNavigation
+}
+
+/**
+ * Descarta a navegação do nível do jogo; a próxima consulta refaz a grade
+ * (relevo ajustado em tempo real, `regenerarTerreno`).
+ */
+export function resetLevelNavigation() {
+  levelNavigation = null
+}
+
+/** `findPath` da navegação do nível do jogo (ver `createNavigation`). */
+export function findPath(fromWorld, toWorld) {
+  return getLevelNavigation().findPath(fromWorld, toWorld)
+}
+
+/** `isWalkableAt` da navegação do nível do jogo (ver `createNavigation`). */
+export function isWalkableAt(x, z) {
+  return getLevelNavigation().isWalkableAt(x, z)
+}
+
+/** `inspectCell` da navegação do nível do jogo (ver `createNavigation`). */
+export function inspectCell(x, z) {
+  return getLevelNavigation().inspectCell(x, z)
 }

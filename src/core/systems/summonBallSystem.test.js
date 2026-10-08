@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from 'vitest'
+import { describe, it, expect, afterEach, vi } from 'vitest'
 import { createWorld } from 'koota'
 import {
   givePartyPokemon,
@@ -38,6 +38,13 @@ import {
 } from '@/core/physics/colliders'
 import { resolvePokemonBallId } from '@/core/actions/pokemon'
 import { summonBallSystem } from './summonBallSystem'
+
+// Física e navegação no nível plano de antes do relevo (as peças que estes
+// testes usam) — ver `src/test/flatTestLevel.js`.
+vi.mock('@/core/data/testLevel', async (importOriginal) => {
+  const { withFlatTestLevel } = await import('@/test/flatTestLevel')
+  return withFlatTestLevel(await importOriginal())
+})
 
 const spawnedWorlds = []
 function spawnWorld() {

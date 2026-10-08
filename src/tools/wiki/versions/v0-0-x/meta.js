@@ -22,6 +22,7 @@ export const WIKI_V0_0_X = {
         { slug: 'controles', label: 'Controles', soon: true },
         { slug: 'treinador', label: 'O treinador', soon: true },
         { slug: 'inventario', label: 'Inventário' },
+        { slug: 'mundo', label: 'O mundo' },
       ],
     },
     {

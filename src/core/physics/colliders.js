@@ -8,25 +8,59 @@ import {
 import { getRapier, getRapierWorld } from './physicsWorld'
 
 /**
- * Cria os colliders estáticos do nível (chão + obstáculos) a partir de
- * TEST_LEVEL. Corpos fixos, colliders cuboides.
+ * Colisor do relevo de um chunk (docs/features/045-terreno-de-um-chunk.md):
+ * heightfield do Rapier com as alturas do chunk, posto no lugar dele. O
+ * Rapier centra o heightfield no corpo e lê as alturas por coluna (`ix` ao
+ * longo de X, `iz` ao longo de Z) — a mesma ordem de `TerrainChunk.heights`.
+ * Devolve o handle do corpo (para `destroyTerrainChunkCollider`).
+ */
+export function createTerrainChunkCollider(chunk) {
+  const RAPIER = getRapier()
+  const world = getRapierWorld()
+  const half = chunk.size / 2
+
+  const body = world.createRigidBody(
+    RAPIER.RigidBodyDesc.fixed().setTranslation(
+      chunk.minX + half,
+      0,
+      chunk.minZ + half,
+    ),
+  )
+  world.createCollider(
+    RAPIER.ColliderDesc.heightfield(
+      chunk.resolution,
+      chunk.resolution,
+      chunk.heights,
+      { x: chunk.size, y: 1, z: chunk.size },
+    ),
+    body,
+  )
+  return body.handle
+}
+
+/** Desfaz `createTerrainChunkCollider`. Handle que já não existe: nada. */
+export function destroyTerrainChunkCollider(bodyHandle) {
+  const world = getRapierWorld()
+  const body = world?.getRigidBody(bodyHandle)
+  if (!body) return
+  world.removeRigidBody(body)
+}
+
+// Corpos criados por `createStaticLevel` — para `destroyStaticLevel`.
+let staticLevelBodies = []
+
+/**
+ * Cria os colliders estáticos do nível (relevo + obstáculos) a partir de
+ * TEST_LEVEL. Corpos fixos; obstáculos são cuboides.
  */
 export function createStaticLevel() {
   const RAPIER = getRapier()
   const world = getRapierWorld()
+  staticLevelBodies = []
 
-  const ground = TEST_LEVEL.ground
-  const groundBody = world.createRigidBody(
-    RAPIER.RigidBodyDesc.fixed().setTranslation(0, -ground.thickness / 2, 0),
-  )
-  world.createCollider(
-    RAPIER.ColliderDesc.cuboid(
-      ground.size / 2,
-      ground.thickness / 2,
-      ground.size / 2,
-    ),
-    groundBody,
-  )
+  for (const chunk of TEST_LEVEL.terrain.chunks) {
+    staticLevelBodies.push(createTerrainChunkCollider(chunk))
+  }
 
   for (const obstacle of TEST_LEVEL.obstacles) {
     const [w, h, d] = obstacle.size
@@ -45,7 +79,21 @@ export function createStaticLevel() {
     }
     const body = world.createRigidBody(desc)
     world.createCollider(RAPIER.ColliderDesc.cuboid(w / 2, h / 2, d / 2), body)
+    staticLevelBodies.push(body.handle)
   }
+}
+
+/**
+ * Desfaz `createStaticLevel` — para refazer o nível com o relevo ajustado
+ * (debug, `regenerarTerreno`).
+ */
+export function destroyStaticLevel() {
+  const world = getRapierWorld()
+  for (const handle of staticLevelBodies) {
+    const body = world?.getRigidBody(handle)
+    if (body) world.removeRigidBody(body)
+  }
+  staticLevelBodies = []
 }
 
 // Rapier gera a cápsula em pé (comprida no eixo Y local). Deitar ela é girar
@@ -56,26 +104,9 @@ const CAPSULE_TILT = {
   z: () => quaternionFromAxisAngle('x', Math.PI / 2),
 }
 
-/**
- * Distância vertical do CENTRO da cápsula (`Position`) até o TOPO dela —
- * pra cápsula em pé (`axis: 'y'`), o topo fica `radius + halfHeight` acima
- * do centro; deitada (`'x'`/`'z'`), só o `radius` conta na vertical (o
- * `halfHeight` é horizontal, ao longo do eixo deitado). `body` é
- * `species.body` (ou o trait `CharacterController`, mesmo formato) —
- * qualquer objeto com `capsuleRadius`/`capsuleHalfHeight`/`capsuleAxis`.
- *
- * Extraída de `summonBallSystem.js` (onde morava sozinha, calculando a
- * distância até a BASE pra pousar a `SummonBall` em cima de uma
- * superfície) quando um segundo consumidor (`NameplateView.jsx`,
- * posicionar a etiqueta acima da cabeça) precisou da mesma conta, só que
- * pro lado de CIMA em vez de baixo — mesma distância, sentido oposto a
- * partir do centro (a cápsula é simétrica).
- */
-export function verticalClearance(body) {
-  return body.capsuleAxis === 'y'
-    ? body.capsuleRadius + body.capsuleHalfHeight
-    : body.capsuleRadius
-}
+// Mora em `capsule.js` (sem Rapier) — reexportada aqui por quem já importava
+// daqui.
+export { verticalClearance } from './capsule'
 
 /**
  * Cria o corpo cinemático + collider cápsula do personagem na posição dada.

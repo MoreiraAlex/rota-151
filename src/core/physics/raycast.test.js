@@ -8,6 +8,7 @@ import {
 } from './physicsWorld'
 import { createStaticLevel } from './colliders'
 import { castRay } from './raycast'
+import { TEST_LEVEL } from '../data/testLevel'
 
 // Collider recém-criado só entra na consideração do castRay depois de pelo
 // menos um world.step() — a broad-phase só é construída no step (ver a nota
@@ -51,15 +52,27 @@ describe('castRay', () => {
     expect(hit).toBeNull()
   })
 
-  it('acerta um obstáculo (a parede do nível de teste)', async () => {
+  it('com o nível montado, acerta o relevo embaixo e o muro de borda', async () => {
     await initPhysics()
     createStaticLevel()
     settle()
+    const { terrain, bounds } = TEST_LEVEL
+    const ground = terrain.heightAt(0, 0)
 
-    const hit = castRay({ x: 0, y: 1, z: 0 }, { x: 0, y: 0, z: -1 }, 20)
+    const down = castRay(
+      { x: 0, y: terrain.maxHeight + 1, z: 0 },
+      { x: 0, y: -1, z: 0 },
+      terrain.maxHeight - terrain.minHeight + 2,
+    )
+    expect(down.point.y).toBeCloseTo(ground, 3)
 
-    expect(hit).not.toBeNull()
-    expect(hit.point.z).toBeCloseTo(-6.75, 1)
+    const sideways = castRay(
+      { x: 0, y: ground + 1, z: 0 },
+      { x: 1, y: 0, z: 0 },
+      bounds.maxX * 2,
+    )
+    expect(sideways.point.x).toBeLessThanOrEqual(bounds.maxX)
+    expect(sideways.point.x).toBeGreaterThan(0)
   })
 
   it('excludeColliderHandle tira um collider específico da consideração', async () => {

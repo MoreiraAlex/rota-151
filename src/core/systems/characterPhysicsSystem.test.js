@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { createWorld } from 'koota'
 import { makeWorld } from '@/test/makeWorld'
 import {
@@ -35,6 +35,13 @@ import { movementSystem } from './movementSystem'
 import { characterPhysicsSystem } from './characterPhysicsSystem'
 import { physicsStepSystem } from './physicsStepSystem'
 import { syncPhysicsSystem } from './syncPhysicsSystem'
+
+// Física e navegação no nível plano de antes do relevo (as peças que estes
+// testes usam) — ver `src/test/flatTestLevel.js`.
+vi.mock('@/core/data/testLevel', async (importOriginal) => {
+  const { withFlatTestLevel } = await import('@/test/flatTestLevel')
+  return withFlatTestLevel(await importOriginal())
+})
 
 const PLAYER = getSpecies('boy')
 const CREATURE = getSpecies('charmander')

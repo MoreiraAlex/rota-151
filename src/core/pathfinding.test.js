@@ -1,8 +1,18 @@
 import { describe, it, expect } from 'vitest'
 import { GAME_CONFIG } from './gameConfig'
-import { findPath, inspectCell } from './pathfinding'
+import { TEST_LEVEL } from './data/testLevel'
+import { makeFlatTestLevel } from '@/test/flatTestLevel'
+import {
+  createNavigation,
+  findPath as findLevelPath,
+  isWalkableAt as isLevelWalkableAt,
+} from './pathfinding'
 
-describe('findPath', () => {
+// Regras de obstáculo/rampa/terraço/penhasco no nível plano de antes do
+// relevo (parede, degrau, bloco, rampa, plataforma, trilha de 4 terraços).
+const { findPath, inspectCell } = createNavigation(makeFlatTestLevel())
+
+describe('findPath (nível de teste plano)', () => {
   it('sem obstáculo relevante no meio, retorna só o alvo exato (fallback pra linha reta)', () => {
     const from = { x: 20, y: 1, z: -20 }
     const to = { x: 20, y: 1, z: -19 }
@@ -92,17 +102,6 @@ describe('findPath', () => {
     expect(path[path.length - 1]).toEqual({ x: to.x, y: to.y, z: to.z })
   })
 
-  it('"ramp-backing" (reforço físico sob a rampa) não afeta a elevação — a rampa de verdade sempre vence', () => {
-    // ramp-backing é uma cópia mais grossa da rampa, só pra fechar o vão
-    // físico embaixo dela (ver testLevel.js) — processada ANTES da rampa
-    // fina no bake de elevação, então a rampa (declarada depois no
-    // array) sempre sobrescreve por cima. Se a ordem estivesse errada, a
-    // elevação aqui bateria com a posição da backing (mais baixa), não da
-    // rampa de verdade.
-    const { elevation } = inspectCell(6.5, 0)
-    expect(elevation).toBeCloseTo(0.716, 2) // topo da rampa ali, não da backing
-  })
-
   describe('elevação (heightmap) — trilha de teste de 4 terraços', () => {
     it('rampa interpola elevação suavemente entre o chão (0) e o terraço (1.8)', () => {
       // ramp0: liga o chão (elevação 0, x<-28.2) ao tier1 (elevação 1.8,
@@ -165,5 +164,83 @@ describe('findPath', () => {
         expect(dist).toBeLessThanOrEqual(MAX_SHORTCUT_DISTANCE + 0.01)
       }
     })
+  })
+})
+
+describe('relevo (terrain)', () => {
+  const { MAX_CLIMB_STEP, CELL_SIZE } = GAME_CONFIG.PATHFINDING
+  const { AUTOSTEP_HEIGHT } = GAME_CONFIG.PHYSICS.CHARACTER
+  const bounds = { minX: -20, maxX: 20, minZ: -20, maxZ: 20 }
+
+  // Encosta ao longo de X a partir de x = 0, com subida (m por m) `rise`.
+  const slopeLevel = (rise) => ({
+    bounds,
+    obstacles: [],
+    terrain: { heightAt: (x) => Math.max(0, x) * rise },
+  })
+
+  it('a célula começa com a altura do relevo', () => {
+    const rise = (MAX_CLIMB_STEP / CELL_SIZE) * 0.5
+    const nav = createNavigation(slopeLevel(rise))
+    const cell = nav.inspectCell(10.5, 0)
+    expect(cell.elevation).toBeCloseTo(10.5 * rise, 4)
+  })
+
+  it('encosta suave é andável; íngreme demais vira penhasco', () => {
+    const gentle = createNavigation(
+      slopeLevel((MAX_CLIMB_STEP / CELL_SIZE) * 0.5),
+    )
+    const steep = createNavigation(slopeLevel((MAX_CLIMB_STEP / CELL_SIZE) * 2))
+
+    expect(gentle.inspectCell(10, 0).walkable).toBe(true)
+    expect(
+      gentle.findPath({ x: -10, z: 0 }, { x: 15, z: 0 }).at(-1),
+    ).toMatchObject({ x: 15, z: 0 })
+    expect(steep.inspectCell(10, 0).walkable).toBe(false)
+    expect(steep.findPath({ x: -10, z: 0 }, { x: 15, z: 0 })).toEqual([])
+  })
+
+  it('caixa baixa em cima de um planalto não bloqueia; alta bloqueia', () => {
+    const plateau = AUTOSTEP_HEIGHT * 10
+    const box = (id, x, height) => ({
+      id,
+      type: 'box',
+      position: [x, plateau + height / 2, 0],
+      size: [2, height, 2],
+    })
+    const nav = createNavigation({
+      bounds,
+      terrain: { heightAt: () => plateau },
+      obstacles: [
+        box('low', -10, AUTOSTEP_HEIGHT * 0.5),
+        box('high', 10, AUTOSTEP_HEIGHT * 3),
+      ],
+    })
+
+    expect(nav.inspectCell(-10, 0).walkable).toBe(true)
+    expect(nav.inspectCell(10, 0).walkable).toBe(false)
+  })
+})
+
+describe('nível do jogo (TEST_LEVEL)', () => {
+  const { bounds } = TEST_LEVEL
+
+  it('a origem é andável', () => {
+    expect(isLevelWalkableAt(0, 0)).toBe(true)
+  })
+
+  it('os muros de borda bloqueiam a beira e fora da área não é andável', () => {
+    expect(isLevelWalkableAt(bounds.maxX - 0.1, 0)).toBe(false)
+    expect(isLevelWalkableAt(bounds.maxX + 5, 0)).toBe(false)
+  })
+
+  it('acha caminho da origem até um ponto andável por perto', () => {
+    const candidates = Array.from({ length: 16 }, (_, i) => ({
+      x: 8 * Math.cos((i * Math.PI) / 8),
+      z: 8 * Math.sin((i * Math.PI) / 8),
+    }))
+    const to = candidates.find(({ x, z }) => isLevelWalkableAt(x, z))
+    expect(to).toBeDefined()
+    expect(findLevelPath({ x: 0, z: 0 }, to).at(-1)).toMatchObject(to)
   })
 })

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ownedByPlayer } from '@/test/makeWorld'
 import { createWorld } from 'koota'
 import {
@@ -41,6 +41,13 @@ import {
 import { createEventQueue } from '../events'
 import { creatureAttackSystem } from './creatureAttackSystem'
 import { wildBehaviorSystem } from './wildBehaviorSystem'
+
+// Física e navegação no nível plano de antes do relevo (as peças que estes
+// testes usam) — ver `src/test/flatTestLevel.js`.
+vi.mock('@/core/data/testLevel', async (importOriginal) => {
+  const { withFlatTestLevel } = await import('@/test/flatTestLevel')
+  return withFlatTestLevel(await importOriginal())
+})
 
 const {
   ATTACK_INTERVAL,

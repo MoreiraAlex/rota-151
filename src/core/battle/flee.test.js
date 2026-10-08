@@ -1,13 +1,19 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { GAME_CONFIG } from '../gameConfig'
 import { findPath, isWalkableAt } from '../pathfinding'
 import { resolveFleeDestination } from './flee'
 
+// Física e navegação no nível plano de antes do relevo (as peças que estes
+// testes usam) — ver `src/test/flatTestLevel.js`.
+vi.mock('@/core/data/testLevel', async (importOriginal) => {
+  const { withFlatTestLevel } = await import('@/test/flatTestLevel')
+  return withFlatTestLevel(await importOriginal())
+})
+
+// No nível plano: muros em ±75 e a rocha `rock-1` em (30, 40), 2×2.
 const { FLEE_STEP } = GAME_CONFIG.WILD_BEHAVIOR
 const distance = (a, b) => Math.hypot(b.x - a.x, b.z - a.z)
 
-// Mapa de teste (`TEST_LEVEL`): chão de 150m (paredes em ±75) e a rocha
-// `rock-1` em (30, 40), 2×2.
 describe('isWalkableAt', () => {
   it('campo aberto sim; fora do mapa e dentro de obstáculo não', () => {
     expect(isWalkableAt(30, 30)).toBe(true)

@@ -1,10 +1,11 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { makeWorld, ownedByPlayer } from '@/test/makeWorld'
 import { disposePhysics, initPhysics } from '@/core/physics/physicsWorld'
 import { resolveMoveSpeed } from '../actions/movementSpeed'
 import { perseguirJogador } from '../actions/wildBehavior'
 import { resolveCreatureAttack } from '../battle/creatureAttack'
 import { getSpecies } from '../data/species'
+import { verticalClearance } from '../physics/capsule'
 import { GAME_CONFIG } from '../gameConfig'
 import {
   ActionState,
@@ -40,6 +41,13 @@ import { syncPhysicsSystem } from './syncPhysicsSystem'
 import { wildBehaviorSystem } from './wildBehaviorSystem'
 import { trainerBattleSystem } from './trainerBattleSystem'
 
+// Física e navegação no nível plano de antes do relevo (as peças que estes
+// testes usam) — ver `src/test/flatTestLevel.js`.
+vi.mock('@/core/data/testLevel', async (importOriginal) => {
+  const { withFlatTestLevel } = await import('@/test/flatTestLevel')
+  return withFlatTestLevel(await importOriginal())
+})
+
 const DELTA = 1 / 60
 const CHARMANDER = getSpecies('charmander')
 // Um golpe corpo a corpo de dano do kit (sem fixar qual).
@@ -49,7 +57,13 @@ const MELEE_SLOT = ['secondary1', 'secondary2', 'secondary3'].find((slot) => {
 })
 const { SAFE_DISTANCE, ARRIVE_DISTANCE } = GAME_CONFIG.TRAINER_BATTLE
 // Longe dos obstáculos do nível de teste.
-const BASE = { x: 30, y: 0.45, z: 30 }
+// Altura com os pés do treinador (a cápsula mais alta) acima do chão plano
+// (y = 0) — quem começa com a base abaixo do relevo cai através dele.
+const BASE = {
+  x: 30,
+  y: verticalClearance(getSpecies('boy').body),
+  z: 30,
+}
 const at = (dx, dz) => ({ x: BASE.x + dx, y: BASE.y, z: BASE.z + dz })
 
 const worlds = []

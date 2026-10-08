@@ -11,6 +11,7 @@ import {
   Rotation,
   ScanHistory,
 } from '../traits'
+import { TEST_LEVEL } from '../data/testLevel'
 import { trainerSaveSchema } from './saveFormat'
 import { restoreTrainer, serializeTrainer } from './trainerSave'
 
@@ -69,15 +70,30 @@ describe('serializeTrainer / restoreTrainer', () => {
 
   it('volta na posição e direção salvas', () => {
     const { player } = setup()
-    player.set(Position, { x: 3, y: 1, z: -4 })
+    const position = { x: 3, y: TEST_LEVEL.terrain.heightAt(3, -4) + 5, z: -4 }
+    player.set(Position, position)
     player.set(Rotation, { ...player.get(Rotation), y: 1.2 })
     const saved = serializeTrainer(player)
 
     const target = setup()
     restoreTrainer(target.player, saved)
 
-    expect(target.player.get(Position)).toEqual({ x: 3, y: 1, z: -4 })
+    expect(target.player.get(Position)).toEqual(position)
     expect(target.player.get(Rotation).y).toBe(1.2)
+  })
+
+  it('posição salva dentro do relevo sobe para a superfície', () => {
+    const { player } = setup()
+    const ground = TEST_LEVEL.terrain.heightAt(3, -4)
+    player.set(Position, { x: 3, y: ground - 2, z: -4 })
+    const saved = serializeTrainer(player)
+
+    const target = setup()
+    restoreTrainer(target.player, saved)
+
+    const { x, y, z } = target.player.get(Position)
+    expect({ x, z }).toEqual({ x: 3, z: -4 })
+    expect(y).toBeGreaterThan(ground)
   })
 
   it('save sem posição (de antes dela entrar) fica no ponto inicial', () => {

@@ -1,4 +1,4 @@
-import { afterEach, describe, it, expect } from 'vitest'
+import { afterEach, describe, it, expect, vi } from 'vitest'
 import { createWorld } from 'koota'
 import { makeWorld, ownedByPlayer } from '@/test/makeWorld'
 import { getSpecies, getPlayerSpecies } from '@/core/data/species'
@@ -18,6 +18,13 @@ import {
 } from '@/core/traits'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import { creatureFollowSystem, resolveFollowGait } from './creatureFollowSystem'
+
+// Física e navegação no nível plano de antes do relevo (as peças que estes
+// testes usam) — ver `src/test/flatTestLevel.js`.
+vi.mock('@/core/data/testLevel', async (importOriginal) => {
+  const { withFlatTestLevel } = await import('@/test/flatTestLevel')
+  return withFlatTestLevel(await importOriginal())
+})
 
 // `party` é exclusivo do treinador (`getPlayerSpecies()`, ver
 // docs/features/018-troca-de-controle-treinador-criatura.md) — sempre a
@@ -170,7 +177,7 @@ describe('creatureFollowSystem', () => {
     }
   })
 
-  it('contorna a "wall" do TEST_LEVEL em vez de ir em linha reta', () => {
+  it('contorna a "wall" em vez de ir em linha reta', () => {
     // wall: position [0, 1, -7], size [10, 2, 0.5] — bloqueia ir direto de
     // z=-15 até o treinador em z=5, ambos em x=0.
     const { world } = makeWorld({ playerPosition: { x: 0, y: 1, z: 5 } })
@@ -178,8 +185,9 @@ describe('creatureFollowSystem', () => {
 
     tick(world)
 
-    // linha reta seria vel.x = 0 — o desvio exige um componente em x.
-    expect(creature.get(Velocity).x).not.toBeCloseTo(0)
+    // O caminho passa pela ponta da parede (|x| > metade dela).
+    const { waypoints } = creature.get(PathState)
+    expect(waypoints.some((point) => Math.abs(point.x) > 5)).toBe(true)
   })
 
   it('repathTimer conta regressivo e só reseta quando recalcula (throttle)', () => {

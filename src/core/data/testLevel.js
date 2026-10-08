@@ -1,10 +1,22 @@
+import { GAME_CONFIG } from '../gameConfig'
+import { createRng, deriveSeed, randomInt } from '../rng'
+import { createTerrainArea } from '../terrain/terrainArea'
+import { verticalClearance } from '../physics/capsule'
+import { getSpecies } from './species'
+
 /**
- * Nível de teste da física.
+ * Nível de teste.
  *
  * Fonte única: os colliders (core/physics), a grade de pathfinding
  * (core/pathfinding.js) e os meshes (view/scene/GameScene) são gerados a
  * partir daqui, então o visível bate com o colidível/andável.
  *
+ * - terrain: o relevo — área fixa de chunks gerada pela seed do mundo
+ *   (`core/terrain/terrainArea.js`, docs/features/045-terreno-de-um-chunk.md).
+ * - bounds: limites da área andável ({ minX, maxX, minZ, maxZ }), os mesmos
+ *   do terreno; a grade de pathfinding cobre isso.
+ * - obstacles: `{ id, type: 'box' | 'ramp' | 'floor', position, size,
+ *   rotation? }` — position é o centro.
  * - size: dimensões completas [largura(x), altura(y), profundidade(z)], em unidades.
  * - rotation (opcional): giro em um eixo — { axis: 'x' | 'y' | 'z', angle } (rad).
  * - ambientSound (opcional): som ambiente ESPORÁDICO do nível — toca uma
@@ -32,42 +44,128 @@ const WILD_CREATURE_COUNT = 10
 
 const WILD_CREATURE_SPECIES = ['bulbasaur', 'charmander', 'squirtle']
 
-const generateWildCreatures = (count) =>
-  Array.from({ length: count }, (_, index) => ({
-    id: `wild-${index + 1}`,
-    speciesId:
-      WILD_CREATURE_SPECIES[
-        Math.floor(Math.random() * WILD_CREATURE_SPECIES.length)
-      ],
-    position: [Math.random() * 120 - 60, 1, Math.random() * 120 - 60],
-  }))
+// Distância (m) da borda da área em que nenhum selvagem nasce.
+const WILD_AREA_MARGIN = 12
 
-// Objetos de treino (ver `trainingObjects` no cabeçalho). Viram também
-// obstáculos `box` comuns — sem mecanismo novo em colliders/pathfinding/mesh.
-const TRAINING_OBJECTS = [
-  {
-    id: 'training-log-1',
-    kind: 'log',
-    position: [-9, 0.6, -5],
-    size: [0.8, 1.2, 0.8],
-  },
-  {
-    id: 'training-rock-1',
-    kind: 'rock',
-    position: [9, 0.5, -6],
-    size: [1.2, 1, 1.2],
-  },
+// Muros provisórios na borda da área — sem eles, sair do terreno é queda
+// livre (não há chão fora da área). Saem com o carregar de chunks (046).
+// Espessura (m) e quanto sobem (m) acima do ponto mais alto do relevo.
+const WALL_THICKNESS = 1
+const WALL_HEIGHT = 4
+
+// Objetos de treino (ver `trainingObjects` no cabeçalho) — x/z fixos, o y
+// vem do relevo.
+const TRAINING_SPOTS = [
+  { id: 'training-log-1', kind: 'log', x: -9, z: -5, size: [0.8, 1.2, 0.8] },
+  { id: 'training-rock-1', kind: 'rock', x: 9, z: -6, size: [1.2, 1, 1.2] },
 ]
 
-const TRAINING_OBSTACLES = TRAINING_OBJECTS.map(
-  ({ id, kind, position, size }) => ({
+const generateTerrain = () =>
+  createTerrainArea({ seed: deriveSeed(GAME_CONFIG.WORLD.SEED, 'terrain') })
+
+// Chão mais baixo debaixo de uma caixa (centro e cantos) — a caixa nunca
+// fica com um canto flutuando numa encosta.
+const groundUnder = (terrain, x, z, halfW, halfD) =>
+  Math.min(
+    terrain.heightAt(x, z),
+    terrain.heightAt(x - halfW, z - halfD),
+    terrain.heightAt(x + halfW, z - halfD),
+    terrain.heightAt(x - halfW, z + halfD),
+    terrain.heightAt(x + halfW, z + halfD),
+  )
+
+// Sorteio de geração (regra 3.5): mesmas selvagens, nos mesmos lugares, a
+// cada vez que o jogo abre.
+function generateWildCreatures(terrain, count) {
+  const rng = createRng(deriveSeed(GAME_CONFIG.WORLD.SEED, 'wild-spawn'))
+  const { minX, maxX, minZ, maxZ } = terrain.bounds
+  const between = (min, max) =>
+    min + WILD_AREA_MARGIN + rng() * (max - min - 2 * WILD_AREA_MARGIN)
+
+  return Array.from({ length: count }, (_, index) => {
+    const speciesId =
+      WILD_CREATURE_SPECIES[randomInt(rng, 0, WILD_CREATURE_SPECIES.length - 1)]
+    const x = between(minX, maxX)
+    const z = between(minZ, maxZ)
+    // Pés acima do chão (o centro fica a `verticalClearance` deles).
+    const y =
+      terrain.heightAt(x, z) +
+      verticalClearance(getSpecies(speciesId).body) +
+      GAME_CONFIG.TERRAIN.SPAWN_HEIGHT
+    return { id: `wild-${index + 1}`, speciesId, position: [x, y, z] }
+  })
+}
+
+// Objetos de treino apoiados no relevo.
+const placeTrainingObjects = (terrain) =>
+  TRAINING_SPOTS.map(({ id, kind, x, z, size }) => {
+    const [w, h, d] = size
+    const y = groundUnder(terrain, x, z, w / 2, d / 2) + h / 2
+    return { id, kind, position: [x, y, z], size }
+  })
+
+// Os objetos de treino viram também obstáculos `box` comuns — sem mecanismo
+// novo em colliders/pathfinding/mesh.
+const trainingObstacles = (trainingObjects) =>
+  trainingObjects.map(({ id, kind, position, size }) => ({
     id,
     type: 'box',
     position,
     size,
     trainingKind: kind,
-  }),
-)
+  }))
+
+function generateBoundaryWalls(terrain) {
+  const { minX, maxX, minZ, maxZ } = terrain.bounds
+  const bottom = terrain.minHeight
+  const top = terrain.maxHeight + WALL_HEIGHT
+  const y = (bottom + top) / 2
+  const height = top - bottom
+  const width = maxX - minX + WALL_THICKNESS
+  const depth = maxZ - minZ + WALL_THICKNESS
+  const centerX = (minX + maxX) / 2
+  const centerZ = (minZ + maxZ) / 2
+
+  return [
+    {
+      id: 'boundary-north',
+      position: [centerX, y, minZ],
+      size: [width, height, WALL_THICKNESS],
+    },
+    {
+      id: 'boundary-south',
+      position: [centerX, y, maxZ],
+      size: [width, height, WALL_THICKNESS],
+    },
+    {
+      id: 'boundary-east',
+      position: [maxX, y, centerZ],
+      size: [WALL_THICKNESS, height, depth],
+    },
+    {
+      id: 'boundary-west',
+      position: [minX, y, centerZ],
+      size: [WALL_THICKNESS, height, depth],
+    },
+  ].map((wall) => ({ ...wall, type: 'box' }))
+}
+
+// Tudo do nível que sai do relevo.
+function buildTerrainDependentLevel() {
+  const terrain = generateTerrain()
+  const trainingObjects = placeTrainingObjects(terrain)
+  return {
+    terrain,
+    bounds: terrain.bounds,
+    obstacles: [
+      ...generateBoundaryWalls(terrain),
+      ...trainingObstacles(trainingObjects),
+    ],
+    trainingObjects,
+  }
+}
+
+const initialLevel = buildTerrainDependentLevel()
 
 export const TEST_LEVEL = {
   ambientSound: {
@@ -79,336 +177,37 @@ export const TEST_LEVEL = {
     minInterval: 2,
     maxInterval: 5,
   },
-  // Espaço pras criaturas selvagens vagarem longe de tudo perto da origem
-  // (ver docs/features/020-fox-selvagens-cena-e-texturas.md). A grade de
-  // pathfinding cresce com ele (`size / CELL_SIZE` por eixo), mas é
-  // lazy/cacheada uma vez só (`core/pathfinding.js`), sem custo por tick.
-  ground: { size: 150, thickness: 1 },
-  obstacles: [
-    // Muro de contorno — sem ele, sair da borda do chão é queda livre pro
-    // limbo (nada segura isso hoje, ver characterPhysicsSystem.js). Altura
-    // bem acima do pulo máximo de qualquer espécie (`movement.jumpSpeed` /
-    // `PHYSICS.GRAVITY`), posicionado exatamente na borda de `ground.size`. `type: 'box'` normal — sem mecanismo
-    // novo em TestLevelView/colliders.js/pathfinding.js.
-    {
-      id: 'boundary-north',
-      type: 'box',
-      position: [0, 2, -75],
-      size: [151, 4, 1],
-    },
-    {
-      id: 'boundary-south',
-      type: 'box',
-      position: [0, 2, 75],
-      size: [151, 4, 1],
-    },
-    {
-      id: 'boundary-east',
-      type: 'box',
-      position: [75, 2, 0],
-      size: [1, 4, 151],
-    },
-    {
-      id: 'boundary-west',
-      type: 'box',
-      position: [-75, 2, 0],
-      size: [1, 4, 151],
-    },
-
-    // Pedras espalhadas pela área nova (fora do raio de tudo que já existia
-    // perto da origem) — o que as selvagens (`wildWanderSystem.js`)
-    // desviarem ao vagar.
-    { id: 'rock-1', type: 'box', position: [30, 0.75, 40], size: [2, 1.5, 2] },
-    { id: 'rock-2', type: 'box', position: [45, 1, -20], size: [3, 2, 2.5] },
-    {
-      id: 'rock-3',
-      type: 'box',
-      position: [-40, 0.6, -35],
-      size: [1.8, 1.2, 1.8],
-    },
-    {
-      id: 'rock-4',
-      type: 'box',
-      position: [-55, 1.1, 30],
-      size: [2.5, 2.2, 2],
-    },
-    { id: 'rock-5', type: 'box', position: [20, 0.9, -50], size: [2, 1.8, 3] },
-    {
-      id: 'rock-6',
-      type: 'box',
-      position: [-25, 0.7, 55],
-      size: [2.2, 1.4, 2.2],
-    },
-    {
-      id: 'rock-7',
-      type: 'box',
-      position: [55, 0.8, 55],
-      size: [1.6, 1.6, 1.6],
-    },
-    {
-      id: 'rock-8',
-      type: 'box',
-      position: [-60, 0.9, -55],
-      size: [2.8, 1.8, 2],
-    },
-
-    // Parede para esbarrar e deslizar.
-    { id: 'wall', type: 'box', position: [0, 1, -7], size: [10, 2, 0.5] },
-    // Degrau baixo — transposto sozinho pelo auto-step.
-    { id: 'step-low', type: 'box', position: [-6, 0.15, 1], size: [3, 0.3, 3] },
-    // Bloco alto — exige pulo.
-    {
-      id: 'block-high',
-      type: 'box',
-      position: [-6, 0.75, 5],
-      size: [3, 1.5, 3],
-    },
-    // Toda rampa é uma caixa FINA tombada — sobra um vão
-    // físico em cunha embaixo dela (cresce conforme a rampa sobe, até quase
-    // a altura do topo na ponta alta), sem collider nenhum ali. Uma
-    // criatura consegue fisicamente entrar nesse vão e ficar presa lá — o
-    // pathfinding nem enxerga isso, já que a grade só sabe da elevação NO
-    // TOPO da rampa, não do vazio por baixo (bug real, jogando contra a
-    // trilha de teste). Cada rampa ganha uma "backing" — cópia mais grossa
-    // dela mesma (mesma rotação/posição X,Z), deslocada pra baixo até a
-    // própria face de baixo encostar na face de baixo da rampa fina,
-    // preenchendo o vão com collider sólido. `type: 'ramp'` (não 'box') de
-    // propósito: sempre processada ANTES da rampa fina de verdade no bake
-    // de elevação (`core/pathfinding.js`), que sobrescreve com o valor
-    // certo — a backing nunca contribui elevação nem bloqueia, é só
-    // reforço físico, invisível pro pathfinding.
-    // {
-    //   id: 'ramp-backing',
-    //   type: 'ramp',
-    //   position: [6, -0.7789, 0],
-    //   size: [5, 2.5, 3],
-    //   rotation: { axis: 'z', angle: 0.32 },
-    // },
-    // Rampa subível: a extremidade -x encosta no chão, a +x sobe.
-    {
-      id: 'ramp',
-      type: 'ramp',
-      position: [6, 0.55, 0],
-      size: [5, 0.3, 3],
-      rotation: { axis: 'z', angle: 0.32 },
-    },
-    // Plataforma elevada, alcançável pela rampa. `type: 'floor'` — terreno
-    // andável (contribui elevação pro pathfinding, ver core/pathfinding.js),
-    // não parede — sem isso a criatura nunca conseguiria subir nela sozinha.
-    {
-      id: 'platform',
-      type: 'floor',
-      position: [10.5, 0.9, 0],
-      size: [4, 1.8, 3],
-    },
-    // Pilar isolado perto do spawn — fácil de esbarrar a câmera nele só
-    // virando o olhar por perto, pra testar a colisão da órbita
-    // (docs/backlog.md → "Câmera orbital com colisão").
-    { id: 'pillar', type: 'box', position: [3, 1.5, -1], size: [1, 3, 1] },
-    // Corredor estreito — a distância padrão da câmera não
-    // cabe atrás do jogador aqui dentro sem atravessar uma das paredes,
-    // então força a colisão da órbita a puxar a distância pra dentro o
-    // tempo todo enquanto o jogador atravessa.
-    {
-      id: 'corridor-wall-left',
-      type: 'box',
-      position: [-2, 1.25, -14],
-      size: [0.5, 2.5, 8],
-    },
-    {
-      id: 'corridor-wall-right',
-      type: 'box',
-      position: [2, 1.25, -14],
-      size: [0.5, 5, 8],
-    },
-
-    // Trilha de terraços ("andares") subindo ao longo de +X, longe de
-    // tudo acima — testa o pathfinding
-    // com elevação de verdade (ver "Elevação (heightmap)" em
-    // docs/features/017-locomocao-e-recolhimento-de-criaturas.md). Cada terraço
-    // (`type: 'floor'`) sobe um tanto fixo sobre o anterior; cada transição
-    // tem DUAS rampas paralelas (lanes) — pelo menos 2 caminhos pra alcançar
-    // cada terraço — separadas por uma "espinha" de rocha sólida
-    // (`type: 'box'`) no meio: sem ela, o vão
-    // entre as duas lanes ficaria sem collider (buraco) e sem elevação
-    // definida (cairia pro chão nível 0 por padrão, no meio da subida).
-    // Cada rampa também ganha sua própria "backing" (`ramp{n}-{a,b}-
-    // backing`) — mesma ideia da rampa original acima, fecha o vão em
-    // cunha por baixo.
-    //
-    // Ângulo de rampa abaixo de MIN_SLOPE_SLIDE (sobe inteiro sem
-    // escorregar). LENGTH = subida / sin(ângulo) (vai em size[0]); RUN =
-    // LENGTH × cos(ângulo) é só o espaço horizontal consumido, usado pra
-    // centralizar cada peça — não é o `size` da caixa.
-    // {
-    //   id: 'ramp0-a-backing',
-    //   type: 'ramp',
-    //   position: [-26.137, -0.3606, 15],
-    //   size: [4.138, 2.5, 4],
-    //   rotation: { axis: 'z', angle: 0.45 },
-    // },
-    {
-      id: 'ramp0-a',
-      type: 'ramp',
-      position: [-26.137, 0.9, 15],
-      size: [4.138, 0.3, 4],
-      rotation: { axis: 'z', angle: 0.45 },
-    },
-    // {
-    //   id: 'ramp0-b-backing',
-    //   type: 'ramp',
-    //   position: [-26.137, -0.3606, 25],
-    //   size: [4.138, 2.5, 4],
-    //   rotation: { axis: 'z', angle: 0.45 },
-    // },
-    {
-      id: 'ramp0-b',
-      type: 'ramp',
-      position: [-26.137, 0.9, 25],
-      size: [4.138, 0.3, 4],
-      rotation: { axis: 'z', angle: 0.45 },
-    },
-    {
-      id: 'spine0',
-      type: 'box',
-      position: [-26.137, 4, 20],
-      size: [3.726, 8, 6],
-    },
-    {
-      id: 'tier1',
-      type: 'floor',
-      position: [-21.774, 0.9, 20],
-      size: [5, 1.8, 14],
-    },
-
-    // {
-    //   id: 'ramp1-a-backing',
-    //   type: 'ramp',
-    //   position: [-17.411, 1.4394, 15],
-    //   size: [4.138, 2.5, 4],
-    //   rotation: { axis: 'z', angle: 0.45 },
-    // },
-    {
-      id: 'ramp1-a',
-      type: 'ramp',
-      position: [-17.411, 2.7, 15],
-      size: [4.138, 0.3, 4],
-      rotation: { axis: 'z', angle: 0.45 },
-    },
-    // {
-    //   id: 'ramp1-b-backing',
-    //   type: 'ramp',
-    //   position: [-17.411, 1.4394, 25],
-    //   size: [4.138, 2.5, 4],
-    //   rotation: { axis: 'z', angle: 0.45 },
-    // },
-    {
-      id: 'ramp1-b',
-      type: 'ramp',
-      position: [-17.411, 2.7, 25],
-      size: [4.138, 0.3, 4],
-      rotation: { axis: 'z', angle: 0.45 },
-    },
-    {
-      id: 'spine1',
-      type: 'box',
-      position: [-17.411, 4, 20],
-      size: [3.726, 8, 6],
-    },
-    {
-      id: 'tier2',
-      type: 'floor',
-      position: [-13.047, 1.8, 20],
-      size: [5, 3.6, 14],
-    },
-
-    // {
-    //   id: 'ramp2-a-backing',
-    //   type: 'ramp',
-    //   position: [-8.684, 3.2394, 15],
-    //   size: [4.138, 2.5, 4],
-    //   rotation: { axis: 'z', angle: 0.45 },
-    // },
-    {
-      id: 'ramp2-a',
-      type: 'ramp',
-      position: [-8.684, 4.5, 15],
-      size: [4.138, 0.3, 4],
-      rotation: { axis: 'z', angle: 0.45 },
-    },
-    // {
-    //   id: 'ramp2-b-backing',
-    //   type: 'ramp',
-    //   position: [-8.684, 3.2394, 25],
-    //   size: [4.138, 2.5, 4],
-    //   rotation: { axis: 'z', angle: 0.45 },
-    // },
-    {
-      id: 'ramp2-b',
-      type: 'ramp',
-      position: [-8.684, 4.5, 25],
-      size: [4.138, 0.3, 4],
-      rotation: { axis: 'z', angle: 0.45 },
-    },
-    {
-      id: 'spine2',
-      type: 'box',
-      position: [-8.684, 4, 20],
-      size: [3.726, 8, 6],
-    },
-    {
-      id: 'tier3',
-      type: 'floor',
-      position: [-4.321, 2.7, 20],
-      size: [5, 5.4, 14],
-    },
-
-    // {
-    //   id: 'ramp3-a-backing',
-    //   type: 'ramp',
-    //   position: [0.042, 5.0394, 15],
-    //   size: [4.138, 2.5, 4],
-    //   rotation: { axis: 'z', angle: 0.45 },
-    // },
-    {
-      id: 'ramp3-a',
-      type: 'ramp',
-      position: [0.042, 6.3, 15],
-      size: [4.138, 0.3, 4],
-      rotation: { axis: 'z', angle: 0.45 },
-    },
-    // {
-    //   id: 'ramp3-b-backing',
-    //   type: 'ramp',
-    //   position: [0.042, 5.0394, 25],
-    //   size: [4.138, 2.5, 4],
-    //   rotation: { axis: 'z', angle: 0.45 },
-    // },
-    {
-      id: 'ramp3-b',
-      type: 'ramp',
-      position: [0.042, 6.3, 25],
-      size: [4.138, 0.3, 4],
-      rotation: { axis: 'z', angle: 0.45 },
-    },
-    {
-      id: 'spine3',
-      type: 'box',
-      position: [0.042, 4, 20],
-      size: [3.726, 8, 6],
-    },
-    // Topo da trilha (4º terraço).
-    {
-      id: 'tier4',
-      type: 'floor',
-      position: [4.405, 3.6, 20],
-      size: [5, 7.2, 14],
-    },
-  ],
-
-  wildCreatures: generateWildCreatures(WILD_CREATURE_COUNT),
-
-  trainingObjects: TRAINING_OBJECTS,
+  ...initialLevel,
+  wildCreatures: generateWildCreatures(
+    initialLevel.terrain,
+    WILD_CREATURE_COUNT,
+  ),
 }
 
-TEST_LEVEL.obstacles.push(...TRAINING_OBSTACLES)
+// Ajuste do relevo em tempo real (debug — `regenerarTerreno`,
+// core/actions/terrain.js): quem desenha o nível assina as mudanças.
+let levelRevision = 0
+const levelListeners = new Set()
+
+/** Número que muda a cada vez que o relevo do nível é refeito. */
+export function getLevelRevision() {
+  return levelRevision
+}
+
+/** Avisa `listener` quando o relevo do nível é refeito; devolve o cancelar. */
+export function subscribeLevelChanges(listener) {
+  levelListeners.add(listener)
+  return () => levelListeners.delete(listener)
+}
+
+/**
+ * Refaz, com a config atual (`GAME_CONFIG.TERRAIN`/`WORLD.SEED`), tudo do
+ * nível que sai do relevo: o terreno, os limites, os muros e os objetos de
+ * treino. Os selvagens já nascidos ficam (quem os sobe para a superfície é
+ * `regenerarTerreno`). Só a ferramenta de debug chama isto.
+ */
+export function rebuildTerrainDependentLevel() {
+  Object.assign(TEST_LEVEL, buildTerrainDependentLevel())
+  levelRevision += 1
+  for (const listener of levelListeners) listener()
+}

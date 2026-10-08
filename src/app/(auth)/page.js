@@ -12,6 +12,8 @@ import { GameScene } from '@/view/scene/GameScene'
 import { PhysicsDebugView } from '@/tools/debug/PhysicsDebugView'
 import { PathfindingDebugView } from '@/tools/debug/PathfindingDebugView'
 import { ScanRangeDebugView } from '@/tools/debug/ScanRangeDebugView'
+import { WaterLevelDebugView } from '@/tools/debug/WaterLevelDebugView'
+import { TerrainTuningPanel } from '@/tools/debug/TerrainTuningPanel'
 import { WildBehaviorDebugView } from '@/tools/debug/WildBehaviorDebugView'
 import { PartyBehaviorDebugView } from '@/tools/debug/PartyBehaviorDebugView'
 import { DebugPanel } from '@/tools/debug/DebugPanel'
@@ -382,6 +384,7 @@ function GameScreen({ saveError, onDeleteSave, onSceneReady }) {
                 <PhysicsDebugView />
                 <PathfindingDebugView />
                 <ScanRangeDebugView />
+                <WaterLevelDebugView />
                 <WildBehaviorDebugView />
                 <PartyBehaviorDebugView />
               </>
@@ -409,6 +412,7 @@ function GameScreen({ saveError, onDeleteSave, onSceneReady }) {
           />
 
           {showDebug && <DebugPanel onDeleteSave={onDeleteSave} />}
+          {showDebug && <TerrainTuningPanel />}
 
           {/* Save automático falhando (docs/features/044-*.md): some no
               próximo envio que der certo. */}

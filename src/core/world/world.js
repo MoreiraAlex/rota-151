@@ -1,6 +1,8 @@
 import { createWorld } from 'koota'
 import { GAME_CONFIG } from '../gameConfig'
 import { getSpecies, PLAYER_SPECIES_ID } from '../data/species'
+import { TEST_LEVEL } from '../data/testLevel'
+import { verticalClearance } from '../physics/capsule'
 import {
   Position,
   Rotation,
@@ -43,7 +45,16 @@ const PLAYER_SPECIES = getSpecies(PLAYER_SPECIES_ID)
 const vitals = vitalsFromSpecies(PLAYER_SPECIES)
 
 export const playerEntity = world.spawn(
-  Position({ x: 0, y: 2, z: 0 }),
+  // Nasce com os pés acima do relevo na origem e cai até pousar
+  // (docs/features/045-terreno-de-um-chunk.md).
+  Position({
+    x: 0,
+    y:
+      TEST_LEVEL.terrain.heightAt(0, 0) +
+      verticalClearance(PLAYER_SPECIES.body) +
+      GAME_CONFIG.TERRAIN.SPAWN_HEIGHT,
+    z: 0,
+  }),
   Rotation,
   Velocity,
   InputState,

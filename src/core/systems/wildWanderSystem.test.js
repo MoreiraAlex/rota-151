@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from 'vitest'
+import { describe, it, expect, afterEach, vi } from 'vitest'
 import { createWorld } from 'koota'
 import { getSpecies } from '@/core/data/species'
 import {
@@ -16,6 +16,13 @@ import {
 } from '@/core/traits'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import { wildWanderSystem } from './wildWanderSystem'
+
+// Física e navegação no nível plano de antes do relevo (as peças que estes
+// testes usam) — ver `src/test/flatTestLevel.js`.
+vi.mock('@/core/data/testLevel', async (importOriginal) => {
+  const { withFlatTestLevel } = await import('@/test/flatTestLevel')
+  return withFlatTestLevel(await importOriginal())
+})
 
 const { walkSpeed: WALK_SPEED } = getSpecies('charmander').movement
 const { RADIUS, ARRIVAL_DISTANCE, MAX_CHASE_TIME } = GAME_CONFIG.WILD_WANDER
@@ -96,9 +103,9 @@ describe('wildWanderSystem', () => {
 
   it('persegue o destino atual quando não está pausada nem chegou', () => {
     const world = spawnWorld()
-    // z=-65 fica longe de todo obstáculo declarado em TEST_LEVEL (trilha,
-    // corredor, pedras, muro) — sem nada no meio, a rota é reta de verdade,
-    // sem desvio de A* atrapalhando a convergência esperada abaixo. Destino
+    // z=-65 fica longe de todo obstáculo do nível plano de teste (`vi.mock`
+    // acima) — sem nada no meio, a rota é reta de verdade, sem desvio de A*
+    // atrapalhando a convergência esperada abaixo. Destino
     // longe o bastante pra nunca ser alcançado nas 120 ticks do teste
     // (WALK_SPEED*2s ainda fica bem aquém) — senão a criatura chega e troca
     // de destino no meio do teste, antes de convergir de vez.

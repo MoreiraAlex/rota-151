@@ -3,9 +3,14 @@ import { disposePhysics, initPhysics, stepPhysics } from './physicsWorld'
 import {
   characterClearance,
   createCharacterBody,
+  createTerrainChunkCollider,
+  destroyTerrainChunkCollider,
   resolveFreeTurn,
 } from './colliders'
+import { castRay } from './raycast'
 import { GAME_CONFIG } from '../gameConfig'
+import { createHeightSampler } from '../terrain/terrainHeight'
+import { chunkHeightAt, generateTerrainChunk } from '../terrain/terrainChunk'
 
 const OFFSET = GAME_CONFIG.PHYSICS.CHARACTER.CONTROLLER_OFFSET
 // Bulbasaur: deitada ao longo da frente (+Z local), 1 m de ponta a ponta.
@@ -81,5 +86,53 @@ describe('resolveFreeTurn — girar sem enfiar a cápsula noutro personagem', ()
     expect(resolveFreeTurn(handle, at, inside, 0, 'z')).toBe(0)
     const deeper = resolveFreeTurn(handle, at, inside, Math.PI / 2, 'z')
     expect(deeper).toBeCloseTo(inside, 2)
+  })
+})
+
+describe('createTerrainChunkCollider — o colisor bate com o relevo do chunk', () => {
+  beforeEach(async () => {
+    await initPhysics()
+  })
+  afterEach(() => {
+    disposePhysics()
+  })
+
+  const DOWN = { x: 0, y: -1, z: 0 }
+  const RAY_START = 100
+
+  function groundByRay(x, z) {
+    const hit = castRay({ x, y: RAY_START, z }, DOWN, RAY_START * 2)
+    return hit ? RAY_START - hit.distance : null
+  }
+
+  it('o raio para baixo acerta na altura de chunkHeightAt, em qualquer ponto', () => {
+    const chunk = generateTerrainChunk(createHeightSampler(5), 1, -1)
+    createTerrainChunkCollider(chunk)
+    stepPhysics()
+
+    const step = chunk.size / chunk.resolution
+    // Pontos fora da grade de vértices (os dois triângulos de cada célula).
+    for (const [fx, fz] of [
+      [0.13, 0.21],
+      [0.77, 0.64],
+      [0.5, 0.05],
+      [0.31, 0.92],
+      [0.95, 0.4],
+    ]) {
+      const x = chunk.minX + fx * chunk.size + step * 0.37
+      const z = chunk.minZ + fz * chunk.size + step * 0.71
+      expect(groundByRay(x, z)).toBeCloseTo(chunkHeightAt(chunk, x, z), 3)
+    }
+  })
+
+  it('destroyTerrainChunkCollider tira o chão', () => {
+    const chunk = generateTerrainChunk(createHeightSampler(5), 0, 0)
+    const handle = createTerrainChunkCollider(chunk)
+    stepPhysics()
+    expect(groundByRay(0, 0)).not.toBeNull()
+
+    destroyTerrainChunkCollider(handle)
+    stepPhysics()
+    expect(groundByRay(0, 0)).toBeNull()
   })
 })

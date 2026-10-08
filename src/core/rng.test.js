@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { createRng, randomInt } from './rng'
+import { createRng, deriveSeed, randomInt } from './rng'
 
 describe('createRng', () => {
   it('mesmo seed produz a mesma sequência', () => {
@@ -51,5 +51,23 @@ describe('randomInt', () => {
   it('min === max sempre retorna o mesmo valor', () => {
     const rng = createRng(3)
     expect(randomInt(rng, 10, 10)).toBe(10)
+  })
+})
+
+describe('deriveSeed', () => {
+  it('mesma seed e mesmo nome dão a mesma seed', () => {
+    expect(deriveSeed(151, 'terrain')).toBe(deriveSeed(151, 'terrain'))
+  })
+
+  it('nomes diferentes ou seeds diferentes dão seeds diferentes', () => {
+    expect(deriveSeed(151, 'terrain')).not.toBe(deriveSeed(151, 'spawn'))
+    expect(deriveSeed(151, 'terrain')).not.toBe(deriveSeed(152, 'terrain'))
+  })
+
+  it('devolve um inteiro sem sinal de 32 bits', () => {
+    const seed = deriveSeed(151, 'terrain')
+    expect(Number.isInteger(seed)).toBe(true)
+    expect(seed).toBeGreaterThanOrEqual(0)
+    expect(seed).toBeLessThan(2 ** 32)
   })
 })

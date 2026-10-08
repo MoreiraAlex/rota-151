@@ -22,6 +22,7 @@ import { PokedexPage } from './pages/PokedexPage'
 import { CreatureDetailPage, CreatureListPage } from './pages/CatalogCreatures'
 import { MoveDetailPage, MoveListPage } from './pages/CatalogMoves'
 import { CalculatorPage } from './pages/CalculatorPage'
+import { WorldPage } from './pages/WorldPage'
 
 /**
  * Páginas da wiki 0.0.x, pelo endereço (o mesmo `slug` do menu em
@@ -40,6 +41,11 @@ const PAGES = {
     title: 'Inventário',
     summary: 'Itens e criaturas fora do time, arrumação e como montar o time.',
     Component: InventoryPage,
+  },
+  mundo: {
+    title: 'O mundo',
+    summary: 'Relevo, tamanho do mundo e o que ainda vai chegar.',
+    Component: WorldPage,
   },
   'criaturas/status': {
     title: 'Status',

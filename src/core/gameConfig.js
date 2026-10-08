@@ -20,12 +20,39 @@ export const GAME_CONFIG = {
     // Teto de passos fixos por frame. Backlog além disso é descartado.
     MAX_STEPS_PER_FRAME: 5,
   },
+  // Ver docs/rules/README.md, 3.5 — sem `Math.random()` em lógica de
+  // jogo, PRNG seedado e nomeado. `core/rng.js` (`gameplayRng`) usa
+  // `WORLD.SEED` como seed.
   WORLD: {
     SEED: 151,
   },
-  // Ver docs/rules/README.md, 3.5 — sem `Math.random()` em lógica de
-  // jogo, PRNG seedado e nomeado. `core/rng.js` (`gameplayRng`) usa
-  // `WORLD.SEED` acima como seed.
+  // Relevo procedural (docs/features/045-terreno-de-um-chunk.md). Mudar
+  // qualquer valor da geração muda o relevo da seed — subir
+  // GENERATION_VERSION junto.
+  TERRAIN: {
+    // Identifica a receita do relevo; subir quando a geração mudar.
+    GENERATION_VERSION: 1,
+    // Largura (m) dos morros grandes — a distância de um topo ao próximo.
+    HILL_SIZE: 128,
+    // Altura máxima (m) dos morros acima da origem; os vales descem o mesmo.
+    HILL_HEIGHT: 16,
+    // Detalhe miúdo sobre os morros (0 a 1): 0 = morros lisos; perto de 1 =
+    // chão todo ondulado.
+    ROUGHNESS: 0.24,
+    // 1 = relevo natural; acima disso, mais campo plano entre morros e vales
+    // mais marcados.
+    FLATNESS: 1.3,
+    // Altura (m) da superfície da água: o que fica abaixo vira lago na 048.
+    WATER_LEVEL: -2,
+    // Lado (m) de um chunk — sempre um vértice por metro.
+    CHUNK_SIZE: 64,
+    // Área fixa do nível: chunks de -AREA_RADIUS a AREA_RADIUS em volta da
+    // origem, nos dois eixos (o carregar/descarregar é a 046).
+    AREA_RADIUS: 1,
+    // Folga (m) entre os pés e o chão de quem entra no mundo (treinador,
+    // selvagens) — cai até pousar.
+    SPAWN_HEIGHT: 1,
+  },
   BATTLE: {
     // Velocidade dos golpes pelo status `speed` (ver
     // `calculateAttackDurationFactor`, core/data/species/stats.js): a
@@ -548,11 +575,11 @@ export const GAME_CONFIG = {
     },
   },
   // Grade de navegação usada por `core/pathfinding.js` pra contornar
-  // obstáculos do `TEST_LEVEL` em vez de andar em linha reta — ver
-  // `creatureFollowSystem.js`.
+  // obstáculos e encostas do `TEST_LEVEL` em vez de andar em linha reta —
+  // ver `creatureFollowSystem.js`.
   PATHFINDING: {
-    // Tamanho (m) de cada célula da grade — grade cobre
-    // `TEST_LEVEL.ground.size / CELL_SIZE` células por eixo.
+    // Tamanho (m) de cada célula da grade — a grade cobre
+    // `TEST_LEVEL.bounds` (lado / CELL_SIZE células por eixo).
     CELL_SIZE: 1,
     // Margem (m) somada ao contorno de cada obstáculo antes de marcar
     // células como não-andáveis — evita a cápsula da criatura raspar
@@ -565,9 +592,10 @@ export const GAME_CONFIG = {
     // Distância (m) até um waypoint pra considerá-lo alcançado e avançar
     // pro próximo.
     WAYPOINT_ARRIVAL_DISTANCE: 0.5,
-    // Diferença de elevação (m) entre células vizinhas (incluindo
-    // diagonais) acima da qual vira "penhasco" intransponível sem rampa —
-    // ver "Elevação (heightmap)" em core/pathfinding.js. Precisa ficar
+    // Diferença de elevação (m) entre células vizinhas acima da qual vira
+    // "penhasco" intransponível sem rampa (na diagonal, vezes √2) — ver
+    // "Elevação (heightmap)" em core/pathfinding.js. Também é a encosta mais
+    // íngreme do relevo que as criaturas tentam subir. Precisa ficar
     // entre o degrau por célula das rampas do nível e o salto de um terraço
     // sem rampa — senão ou bloqueia rampas de verdade, ou deixa passar de um
     // andar pro outro sem rampa nenhuma.

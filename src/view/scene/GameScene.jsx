@@ -2,6 +2,8 @@ import { PerspectiveCamera, Sky } from '@react-three/drei'
 import { TEST_LEVEL } from '@/core/data/testLevel'
 import { AmbientAudio } from '@/view/audio/AmbientAudio'
 import { PlayerView } from './PlayerView'
+import { TerrainView } from './TerrainView'
+import { useLevelRevision } from '../hooks/useLevelRevision'
 import { ProjectilesView } from './ProjectileView'
 import { SummonBallOpensView, SummonBallsView } from './SummonBallView'
 import { CaptureBallsView, GroundBallsView } from './CaptureBallView'
@@ -55,18 +57,17 @@ const TRAINING_OBJECT_COLOR = {
 
 /**
  * Desenha o nível de teste a partir de TEST_LEVEL — o mesmo dado que gera os
- * colliders em core/physics, então o visível bate com o colidível.
+ * colliders em core/physics, então o visível bate com o colidível. O relevo
+ * é o `TerrainView`; aqui ficam os obstáculos.
  */
 function TestLevelView() {
-  const { ground, obstacles } = TEST_LEVEL
+  // Relevo ajustado em tempo real (debug) refaz os obstáculos e o terreno.
+  useLevelRevision()
+  const { obstacles } = TEST_LEVEL
 
   return (
     <>
-      <mesh position={[0, -ground.thickness / 2, 0]} receiveShadow>
-        <boxGeometry args={[ground.size, ground.thickness, ground.size]} />
-        <meshStandardMaterial color="#35271f" />
-      </mesh>
-      <gridHelper args={[ground.size, ground.size]} />
+      <TerrainView />
 
       {obstacles.map((obstacle) => (
         <mesh
