@@ -21,6 +21,7 @@ model User {
 
   sessions Session[]
   accounts Account[]
+  trainer  Trainer?
 
   @@map("user")
 }
@@ -71,4 +72,45 @@ model Verification {
 
   @@index([identifier])
   @@map("verification")
+}
+
+// Save do jogo (docs/features/044-salvar-o-jogo.md). Formato e validação em
+// src/core/save/; quem grava é src/app/api/save/route.js.
+
+model Trainer {
+  id          String    @id @default(uuid())
+  userId      String    @unique
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  saveVersion Int
+  position    Json?
+  heldItemId  String?
+  inventory   Json
+  pokedex     Json
+  pokemon     Pokemon[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("trainer")
+}
+
+model Pokemon {
+  // `Pokemon.uid` do jogo — o mesmo id entre sessões e numa troca.
+  id            String   @id
+  trainerId     String
+  trainer       Trainer  @relation(fields: [trainerId], references: [id], onDelete: Cascade)
+  speciesId     String
+  ballId        String?
+  level         Int
+  xp            Int
+  ivs           Json
+  moves         Json
+  storedVitals  Json?
+  faintTimeLeft Float?
+  conditions    Json?
+  location      Json
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([trainerId])
+  @@map("pokemon")
 }

@@ -37,9 +37,10 @@ de puxar ela pra frente.
       distância quando bate em parede/obstáculo, em vez de atravessar.
 - [ ] **HUD real (não-debug)** — camada de UI sempre ligada pro jogador,
       separada do `DebugPanel` (que é ferramenta interna, atrás do toggle).
-- [ ] **Persistência do jogador** — salvar/restaurar posição (e depois outros
-      dados) via Prisma, reaproveitando o Better Auth já no projeto (redirect
-      ainda comentado em `(auth)/layout.js`).
+- [X] **Persistência do jogador** — entregue em
+      `docs/features/044-salvar-o-jogo.md` (v0.0.44): treinador (posição,
+      item na mão, inventário, Pokédex) e Pokémon salvos no banco (Prisma),
+      por conta (Better Auth), com save automático e formato versionado.
 - [X] **Inventario** — entregue em
       `docs/features/041-inventario-de-itens-e-pokemon.md` (v0.0.41): itens
       com quantidade e os Pokémon fora do time numa grade de posição livre

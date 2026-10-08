@@ -39,7 +39,11 @@ export {
 export { Training, TrainingObject } from './components/training'
 export { PartyActionMenu, SlotHold } from './components/partyActionMenu'
 export { PokedexEntries } from './components/pokedexEntries'
-export { ScanHistory, pushScanHistoryEntry } from './components/scanHistory'
+export {
+  ScanHistory,
+  pushScanHistoryEntry,
+  restoreScanHistoryEntries,
+} from './components/scanHistory'
 export { HeldItem } from './components/heldItem'
 export { ScanMode } from './components/scanMode'
 export { Targeting, Scanned } from './components/targeting'
@@ -92,3 +96,4 @@ export { TrainerBehavior } from './components/trainerBehavior'
 export { resolveCreatureSpeciesId } from './resolveCreatureSpeciesId'
 export { PathState } from './components/pathfinding'
 export { WanderState } from './components/wander'
+export { SaveClock, SaveRequested, TrainerReady } from './components/save'

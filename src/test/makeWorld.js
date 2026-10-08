@@ -28,6 +28,7 @@ import {
   CaptureAimStatus,
   PokedexEntries,
   ScanHistory,
+  SaveClock,
   OwnedBy,
 } from '@/core/traits'
 
@@ -79,6 +80,7 @@ export function spawnTrainer(
     CaptureAimStatus,
     PokedexEntries,
     ScanHistory,
+    SaveClock,
   )
 }
 

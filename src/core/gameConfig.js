@@ -823,6 +823,23 @@ export const GAME_CONFIG = {
     PARTY_RECALL_DELAY: 2,
   },
 
+  // Salvar o jogo (docs/features/044-salvar-o-jogo.md): `autosaveSystem.js`
+  // pede, `platform/persistence/autosave.js` grava (só se mudou).
+  SAVE: {
+    // Segundos entre um pedido de save automático e o próximo.
+    AUTOSAVE_INTERVAL: 30,
+  },
+
+  // Tela de "Carregando…" (docs/features/044-salvar-o-jogo.md):
+  // `view/preload/preloadGameAssets.js`.
+  LOADING: {
+    // Segundos no máximo esperando os sprites (inventário, Pokédex, golpes);
+    // passou disso, entra assim mesmo e o resto carrega no jogo.
+    SPRITE_TIMEOUT: 8,
+    // Segundos de cada fundo antes de trocar pro próximo (espera longa).
+    WALLPAPER_INTERVAL: 6,
+  },
+
   // Experiência e nível (docs/features/037-experiencia-e-nivel.md):
   // `core/data/species/experience.js` e `core/actions/experience.js`.
   EXPERIENCE: {

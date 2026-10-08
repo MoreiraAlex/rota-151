@@ -1,11 +1,11 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { Stats } from '@react-three/drei'
 import { useHas, useTrait } from 'koota/react'
 import { WorldProvider } from '@/core/world/WorldProvider'
-import { playerEntity } from '@/core/world/world'
+import { playerEntity, world } from '@/core/world/world'
 import { InputControlled, ScanHistory, ScanMode } from '@/core/traits'
 import { GameLoop } from '@/view/loop/GameLoop'
 import { GameScene } from '@/view/scene/GameScene'
@@ -17,7 +17,19 @@ import { PartyBehaviorDebugView } from '@/tools/debug/PartyBehaviorDebugView'
 import { DebugPanel } from '@/tools/debug/DebugPanel'
 import { PauseMenu } from '@/tools/menu/PauseMenu'
 import { PartyMenus } from '@/tools/menu/PartyMenus'
-import { isPartyMenuOpen } from '@/core/actions'
+import {
+  definirGeradorDeUid,
+  isPartyMenuOpen,
+  prepararTreinador,
+} from '@/core/actions'
+import { createSaveClient } from '@/platform/persistence/saveClient'
+import { createAutosave } from '@/platform/persistence/autosave'
+import { createPokemonUid } from '@/platform/persistence/pokemonUid'
+import { initPhysics } from '@/core/physics/physicsWorld'
+import { preloadGameAssets } from '@/view/preload/preloadGameAssets'
+import { SceneReady } from '@/view/scene/SceneReady'
+import { LoadingScreen } from '@/view/loading/LoadingScreen'
+import { loadingProgress } from '@/view/loading/loadingProgress'
 import { ActionSlotHud } from '@/tools/hud/ActionSlotHud'
 import { PartyHud } from '@/tools/hud/PartyHud'
 import { SkillsHud } from '@/tools/hud/SkillsHud'
@@ -59,8 +71,12 @@ function GameHud({ onScanned, onMenuOpenRequested, onTrainerControlChange }) {
   const scanMode = useTrait(playerEntity, ScanMode)
   const scanning = !!scanMode?.active
   const history = useTrait(playerEntity, ScanHistory)
+  // O histórico que já veio do save (docs/features/044-salvar-o-jogo.md) não
+  // é um scan novo: só reage quando a lista muda depois de montar.
+  const initialHistory = useRef(history?.entries)
 
   useEffect(() => {
+    if (history?.entries === initialHistory.current) return
     if (history?.entries?.length) onScanned(history.entries[0].id)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [history?.entries])
@@ -92,7 +108,118 @@ function GameHud({ onScanned, onMenuOpenRequested, onTrainerControlChange }) {
   )
 }
 
+/**
+ * Entrada do jogo (docs/features/044-salvar-o-jogo.md): carrega o save da
+ * conta antes de montar o mundo na tela — junto, a física (o WASM do Rapier:
+ * sem ela, ninguém cai) e os sprites dos menus, e começa a baixar os modelos
+ * (`preloadGameAssets`). Com save, volta tudo como estava;
+ * sem save (primeira entrada), o kit inicial (`prepararTreinador`). Falhou
+ * ao carregar: mostra o erro e NÃO começa com o kit — o save automático
+ * gravaria o kit por cima do progresso de verdade.
+ *
+ * A tela de carregamento (`LoadingScreen`) fica por cima de tudo até a cena
+ * 3D montar (`SceneReady`), com o progresso de cada etapa
+ * (`loadingProgress`).
+ *
+ * Pronto, liga o save automático (`createAutosave`); se ele falhar, um aviso
+ * discreto fica na tela até um envio dar certo.
+ */
 export default function GamePage() {
+  const saveClient = useMemo(() => createSaveClient(), [])
+  const [load, setLoad] = useState({ status: 'loading', error: null })
+  const [saveError, setSaveError] = useState(null)
+  const autosaveRef = useRef(null)
+  const [sceneReady, setSceneReady] = useState(false)
+  const markSceneReady = useCallback(() => setSceneReady(true), [])
+
+  const loadGame = useCallback(() => {
+    let cancelled = false
+    setLoad({ status: 'loading', error: null })
+    definirGeradorDeUid(() => createPokemonUid())
+    loadingProgress.reset()
+    Promise.all([
+      loadingProgress.track('Carregando o save…', saveClient.load()),
+      loadingProgress.track(
+        'Preparando a física…',
+        initPhysics().then(
+          () => true,
+          () => false,
+        ),
+      ),
+      preloadGameAssets(loadingProgress),
+    ]).then(([result, physicsLoaded]) => {
+      if (cancelled) return
+      if (!physicsLoaded) {
+        setLoad({ status: 'error', error: 'A física do jogo não carregou.' })
+        return
+      }
+      if (!result.ok) {
+        setLoad({ status: 'error', error: result.error })
+        return
+      }
+      prepararTreinador(world, playerEntity, result.save)
+      setLoad({ status: 'ready', error: null })
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [saveClient])
+
+  useEffect(() => loadGame(), [loadGame])
+
+  useEffect(() => {
+    if (load.status !== 'ready') return
+    const autosave = createAutosave({
+      world,
+      trainer: playerEntity,
+      client: saveClient,
+      onStatusChange: (status) => setSaveError(status.ok ? null : status.error),
+    })
+    autosave.start()
+    autosaveRef.current = autosave
+    return () => {
+      autosave.stop()
+      autosaveRef.current = null
+    }
+  }, [load.status, saveClient])
+
+  // Debug: para o save automático (senão o fechar da página gravaria de
+  // novo), apaga e recarrega — sem save, entra com o kit.
+  const deleteSave = useCallback(async () => {
+    autosaveRef.current?.stop()
+    const result = await saveClient.remove()
+    if (!result.ok) {
+      setSaveError(result.error)
+      autosaveRef.current?.start()
+      return
+    }
+    window.location.reload()
+  }, [saveClient])
+
+  const showLoading = load.status !== 'ready' || !sceneReady
+
+  return (
+    <>
+      {load.status === 'ready' && (
+        <GameScreen
+          saveError={saveError}
+          onDeleteSave={deleteSave}
+          onSceneReady={markSceneReady}
+        />
+      )}
+      {showLoading && (
+        <div className="fixed inset-0 z-50">
+          <LoadingScreen
+            error={load.status === 'error' ? load.error : null}
+            onRetry={loadGame}
+          />
+        </div>
+      )}
+    </>
+  )
+}
+
+function GameScreen({ saveError, onDeleteSave, onSceneReady }) {
   const [showDebug, setShowDebug] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [menuView, setMenuView] = useState('main')
@@ -260,6 +387,8 @@ export default function GamePage() {
               </>
             )}
           </GameScene>
+          {/* A cena só monta com os modelos prontos: tira o carregamento. */}
+          <SceneReady onReady={onSceneReady} />
         </Canvas>
 
         {/* z-10 — bug relatado: "o Nameplate está ficando sobre o menu e
@@ -279,7 +408,15 @@ export default function GamePage() {
             onTrainerControlChange={setTrainerControlled}
           />
 
-          {showDebug && <DebugPanel />}
+          {showDebug && <DebugPanel onDeleteSave={onDeleteSave} />}
+
+          {/* Save automático falhando (docs/features/044-*.md): some no
+              próximo envio que der certo. */}
+          {saveError && (
+            <p className="absolute right-4 top-4 rounded bg-black/70 px-3 py-1 text-xs text-yellow-300">
+              Não foi possível salvar: {saveError}
+            </p>
+          )}
 
           {/* Menu de ações (segurar Q/E/R) e "esquecer qual golpe?" —
               docs/features/038-aprendizado-treino-e-dominio-de-golpes.md. */}

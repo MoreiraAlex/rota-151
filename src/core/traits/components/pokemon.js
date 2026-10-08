@@ -13,10 +13,16 @@ import { relation, trait } from 'koota'
  * comum (`DEFAULT_POKEBALL_ID`, caso dos iniciais) — ver
  * `resolvePokemonBallId`. A captura (043) grava a bola usada.
  *
+ * `uid` — id estável do registro, o mesmo da linha no banco (docs/features/
+ * 044-salvar-o-jogo.md): continua o mesmo entre sessões e numa troca.
+ * Gerado em `criarPokemon` (gerador injetado pela plataforma) ou vindo do
+ * save.
+ *
  * Dono de escrita: `criarPokemon` (`core/actions/pokemon.js`), que monta o
  * registro inteiro.
  */
 export const Pokemon = trait({
+  uid: null,
   speciesId: null,
   ballId: null,
 })

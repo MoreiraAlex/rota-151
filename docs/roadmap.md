@@ -2,7 +2,7 @@
 
 ---
 
-# ✅ Já feito (0.0.1 – 0.0.43)
+# ✅ Já feito (0.0.1 – 0.0.44)
 
 O que já foi entregue, por tema. Detalhes de cada uma em `docs/features/`.
 
@@ -39,6 +39,7 @@ O que já foi entregue, por tema. Detalhes de cada uma em `docs/features/`.
 - [x] **041 — Inventário de itens e Pokémon**
 - [x] **042 — Itens da beta**
 - [x] **043 — Captura**
+- [x] **044 — Salvar o jogo**
 
 ### Pokémon e mundo
 - [x] **020 — Selvagens, cena maior e textura por espécie**
@@ -85,7 +86,7 @@ as revisões e pendências identificadas no caminho.
 **Objetivo:** jogar sozinho, capturar Pokémon, organizar o time e o inventário e,
 ao fechar e abrir o jogo, encontrar tudo como deixou.
 
-- [ ] **044 — Salvar o jogo** — treinador, Pokémon do time e do inventário (espécie, nível, XP, IV, golpes, domínio, a Pokébola em que foi capturado e as condições guardadas na bola, como a queimadura) e inventário no banco (Prisma). Salva automático, carrega ao entrar. Formato salvo com número de versão.
+Concluído: a 044 (salvar o jogo) fechou o ciclo offline.
 
 ---
 
@@ -162,6 +163,8 @@ item entra aqui quando for identificado e vira feature quando chegar a vez.
 - [ ] **071 — Revisão das ações das poções** — rever como as poções são usadas *(detalhar quando chegar)*.
 - [ ] **072 — Revisão da batalha e da IA** — rever o combate e as decisões da IA dos selvagens (partir para a ofensiva ou fugir) *(detalhar quando chegar)*.
 - [ ] **073 — Revisão da wiki** — rever a wiki inteira *(detalhar quando chegar)*.
+- [ ] **074 — Limpeza de código sem uso** — achar e remover código que ficou de testes ou de ideias descartadas (systems, traits, componentes, dados, assets e configs que nada mais usa) *(detalhar quando chegar)*.
+- [ ] **075 — Revisão do diagrama ER** — com todos os requisitos da beta conhecidos (save, mundo, multiplayer, troca, duelo), rever as tabelas do banco desenhadas na 044 e montar um diagrama ER melhor *(detalhar quando chegar)*.
 
 ---
 

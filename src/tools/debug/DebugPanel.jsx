@@ -65,7 +65,7 @@ const DEBUG_DAMAGE_AMOUNT = 20
  * PRÓPRIOS dele (`Party`/item de arremesso equipado), fazem sentido editar
  * não importa quem está sendo pilotado no momento.
  */
-export function DebugPanel() {
+export function DebugPanel({ onDeleteSave = null }) {
   const controlled = useQueryFirst(InputControlled, Position)
   const position = useTrait(controlled, Position)
   const velocity = useTrait(controlled, Velocity)
@@ -194,6 +194,21 @@ export function DebugPanel() {
       >
         tomar {DEBUG_DAMAGE_AMOUNT} de dano (debug)
       </button>
+      {/* Apaga o save da conta e recarrega com o kit de teste
+          (docs/features/044-salvar-o-jogo.md) — quem apaga é a página. */}
+      {onDeleteSave && (
+        <button
+          type="button"
+          className="pointer-events-auto mt-1 block rounded bg-red-900 px-2 py-1 text-[10px] hover:bg-red-800"
+          onClick={() => {
+            if (window.confirm('Apagar o save e voltar ao kit de teste?')) {
+              onDeleteSave()
+            }
+          }}
+        >
+          apagar o save (debug)
+        </button>
+      )}
       <hr className="border-white/20" />
       <p>item em mãos: {item ? `${item.id} (${item.category})` : 'nenhum'}</p>
       {/* Alcance de scan (docs/features/033-*.md) — pedido do usuário:

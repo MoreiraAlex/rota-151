@@ -34,6 +34,19 @@ import {
  * da grade (`InventoryCell`).
  */
 
+// Ids de teste (sem plataforma): contador do módulo. O jogo de verdade troca
+// por ids únicos de verdade (`definirGeradorDeUid`, docs/features/044-*.md).
+let nextLocalUid = 1
+let gerarUid = () => `local-${nextLocalUid++}`
+
+/**
+ * Troca o gerador do `uid` dos Pokémon novos (`Pokemon.uid`). O core não
+ * sabe gerar id único global (sem `crypto`): a plataforma injeta.
+ */
+export function definirGeradorDeUid(gerador) {
+  gerarUid = gerador
+}
+
 /**
  * Cria um Pokémon de `speciesId` para o `trainer`: IV sorteado, nível inicial
  * da espécie, kit de golpes da espécie, vida cheia. Nasce no inventário, na
@@ -42,7 +55,8 @@ import {
  *
  * Um Pokémon que já existia (o selvagem capturado, docs/features/043-
  * captura.md) passa o próprio estado em vez de sortear: `individualValues`,
- * `levelState` (`{ level, xp }`) e `moves` (copiado aqui).
+ * `levelState` (`{ level, xp }`) e `moves` (copiado aqui). O que vem do save
+ * (docs/features/044-salvar-o-jogo.md) passa também o `uid`.
  * Devolve o registro, ou `null` pra espécie desconhecida.
  */
 export function criarPokemon(
@@ -55,6 +69,7 @@ export function criarPokemon(
     individualValues = null,
     levelState = null,
     moves = null,
+    uid = null,
   } = {},
 ) {
   const species = getSpecies(speciesId)
@@ -70,7 +85,7 @@ export function criarPokemon(
       : {})
 
   return world.spawn(
-    Pokemon({ speciesId, ballId }),
+    Pokemon({ uid: uid ?? gerarUid(), speciesId, ballId }),
     IndividualValues({ ...ivs }),
     CreatureLevel(
       levelState

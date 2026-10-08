@@ -38,6 +38,7 @@ import { consumeEffectSystem } from '@/core/systems/consumeEffectSystem'
 import { eatingSystem } from '@/core/systems/eatingSystem'
 import { eatingInterruptSystem } from '@/core/systems/eatingInterruptSystem'
 import { droppedFoodSystem } from '@/core/systems/droppedFoodSystem'
+import { autosaveSystem } from '@/core/systems/autosaveSystem'
 import { summonEffectsSystem } from '@/core/systems/summonEffectsSystem'
 import { characterPhysicsSystem } from '@/core/systems/characterPhysicsSystem'
 import { physicsStepSystem } from '@/core/systems/physicsStepSystem'
@@ -248,6 +249,9 @@ export function registerGameSystems() {
   registerSystem(GAME_PHASES.EVENTS, partyReactionSystem)
   // Tomar dano comendo derruba a fruta.
   registerSystem(GAME_PHASES.EVENTS, eatingInterruptSystem)
+  // Pede o save automático (por tempo e depois de uma captura) — por último:
+  // o passo já terminou de mudar o estado (docs/features/044-*.md).
+  registerSystem(GAME_PHASES.EVENTS, autosaveSystem)
 
   registerSystem(GAME_PHASES.PRESENTATION, syncTransformSystem)
   registerSystem(GAME_PHASES.PRESENTATION, cameraFollowSystem)

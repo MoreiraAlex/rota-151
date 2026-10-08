@@ -53,3 +53,19 @@ export function pushScanHistoryEntry(
   const entry = { id: nextEntryId++, speciesId, individualValues, level }
   return [entry, ...withoutDuplicate].slice(0, MAX_ENTRIES)
 }
+
+/**
+ * Remonta o histórico a partir do save (docs/features/044-salvar-o-jogo.md):
+ * mesma ordem, cada entrada com um `id` novo desta sessão (o `id` não é
+ * salvo — só desempata dentro de uma sessão).
+ */
+export function restoreScanHistoryEntries(saved) {
+  return saved
+    .slice(0, MAX_ENTRIES)
+    .map(({ speciesId, individualValues, level }) => ({
+      id: nextEntryId++,
+      speciesId,
+      individualValues: { ...individualValues },
+      level,
+    }))
+}

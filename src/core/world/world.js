@@ -1,13 +1,6 @@
 import { createWorld } from 'koota'
 import { GAME_CONFIG } from '../gameConfig'
-import {
-  getSpecies,
-  listSpecies,
-  resolveSpeciesKind,
-  PLAYER_SPECIES_ID,
-} from '../data/species'
-import { criarPokemon, colocarNoTime } from '../actions/pokemon'
-import { adicionarItem } from '../actions/inventory'
+import { getSpecies, PLAYER_SPECIES_ID } from '../data/species'
 import {
   Position,
   Rotation,
@@ -35,6 +28,7 @@ import {
   CaptureAimStatus,
   PokedexEntries,
   ScanHistory,
+  SaveClock,
 } from '../traits'
 
 export const world = createWorld()
@@ -47,29 +41,6 @@ export const world = createWorld()
 const PLAYER_SPECIES = getSpecies(PLAYER_SPECIES_ID)
 
 const vitals = vitalsFromSpecies(PLAYER_SPECIES)
-
-// Kit de TESTE (docs/features/042-itens-da-beta.md): a Pokédex e todos os
-// itens da beta. O kit de verdade é definido na 060.
-const STARTING_ITEMS = {
-  pokedex: 1,
-  'poke-ball': 10,
-  'great-ball': 5,
-  'ultra-ball': 3,
-  potion: 5,
-  'super-potion': 3,
-  'hyper-potion': 2,
-  'razz-berry': 5,
-  'nanab-berry': 3,
-  'pinap-berry': 2,
-}
-
-// Quem começa no time, por slot. Os outros Pokémon iniciais (um de cada
-// espécie `kind: 'pokemon'`) começam no inventário.
-const STARTER_PARTY = {
-  slot1: 'bulbasaur',
-  slot2: 'charmander',
-  slot3: 'squirtle',
-}
 
 export const playerEntity = world.spawn(
   Position({ x: 0, y: 2, z: 0 }),
@@ -84,9 +55,10 @@ export const playerEntity = world.spawn(
   AnimationState,
   ActionState,
   vitals,
-  // Começa com a Pokédex na mão; o kit e os Pokémon entram logo abaixo
-  // (`giveStartingKit`).
-  HeldItem({ itemId: 'pokedex' }),
+  // Mão vazia e sem itens nem Pokémon: o que ele tem vem do save, ou do kit
+  // inicial na primeira entrada (`prepararTreinador`, docs/features/044-
+  // salvar-o-jogo.md), antes do jogo começar.
+  HeldItem,
   Inventory,
   Party,
   // Treinador numa luta fora do controle (`trainerBattleSystem.js`).
@@ -103,6 +75,8 @@ export const playerEntity = world.spawn(
   // de fato escaneia (ver core/actions/scanning.js). Default vazio.
   PokedexEntries,
   ScanHistory,
+  // Relógio do save automático (`autosaveSystem.js`).
+  SaveClock,
   // Default vazio — só passa a ter uso se o treinador virar "o bot",
   // seguindo uma criatura sob controle do jogador (ver
   // creatureFollowSystem.js e docs/features/018-troca-de-controle-
@@ -115,30 +89,6 @@ export const playerEntity = world.spawn(
   // humor-e-piscar-de-olhos.md.
   Mood,
 )
-
-giveStartingKit(world, playerEntity)
-
-/**
- * Kit inicial do treinador: os itens de `STARTING_ITEMS` e um Pokémon de cada
- * espécie `kind: 'pokemon'` (IV sorteado, nível inicial da espécie), com os
- * de `STARTER_PARTY` já no time.
- */
-function giveStartingKit(world, trainer) {
-  for (const [itemId, amount] of Object.entries(STARTING_ITEMS)) {
-    adicionarItem(world, trainer, itemId, amount)
-  }
-  const pokemonSpecies = listSpecies().filter(
-    (species) => resolveSpeciesKind(species) === 'pokemon',
-  )
-  const created = new Map()
-  for (const species of pokemonSpecies) {
-    created.set(species.id, criarPokemon(world, trainer, species.id))
-  }
-  for (const [slot, speciesId] of Object.entries(STARTER_PARTY)) {
-    const pokemon = created.get(speciesId)
-    if (pokemon) colocarNoTime(trainer, pokemon, slot)
-  }
-}
 
 export const cameraEntity = world.spawn(
   OrbitCamera({

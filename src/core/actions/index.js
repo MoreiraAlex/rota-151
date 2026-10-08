@@ -1,5 +1,6 @@
 export {
   criarPokemon,
+  definirGeradorDeUid,
   findPartyPokemon,
   resolvePartySlot,
   listOwnedPokemon,
@@ -91,3 +92,5 @@ export {
   resolveGroupLeader,
   resolveLocalTrainer,
 } from './owner'
+export { prepararTreinador, aplicarSave, pedirSave } from './save'
+export { darKitInicial } from './startingKit'

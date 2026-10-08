@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { beforeAll, describe, it, expect } from 'vitest'
 import { world, playerEntity, cameraEntity } from './world'
 import {
   getSpecies,
@@ -9,6 +9,7 @@ import {
 import { getItem } from '@/core/data/items'
 import { countItem } from '@/core/actions/inventory'
 import { findPartyPokemon, listOwnedPokemon } from '@/core/actions/pokemon'
+import { prepararTreinador } from '@/core/actions/save'
 import {
   Position,
   Rotation,
@@ -35,6 +36,11 @@ import {
 const PLAYER_SPECIES = getSpecies(PLAYER_SPECIES_ID)
 
 describe('world (singleton)', () => {
+  // Primeira entrada (sem save): o kit inicial (docs/features/044-*.md).
+  beforeAll(() => {
+    prepararTreinador(world, playerEntity, null)
+  })
+
   it('o player compõe os traits esperados', () => {
     for (const t of [
       Position,
