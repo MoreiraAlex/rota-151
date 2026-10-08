@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { clone as cloneSkeleton } from 'three/examples/jsm/utils/SkeletonUtils.js'
@@ -28,7 +28,11 @@ import {
 import { getAudioListener } from '../audio/audioListener'
 import { loadAudioBuffer } from '../audio/audioBufferCache'
 import { loadTexture } from '../textures/textureCache'
-import { registerView, unregisterView } from '../registry/viewRegistry'
+import {
+  placeAtEntity,
+  registerView,
+  unregisterView,
+} from '../registry/viewRegistry'
 import {
   registerAnimatedBones,
   unregisterAnimatedBones,
@@ -487,6 +491,15 @@ export function useAnimatedModel(entity, species) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cloned, entity, species])
+
+  // Antes do primeiro quadro, só o grupo no lugar da entidade (senão ele
+  // aparecia um instante na origem — `viewRegistry.js`). O registro e o
+  // esqueleto/animações continuam no `useEffect` abaixo: eles dependem da
+  // ordem com os outros efeitos do modelo (toon, textura), e adiantar eles
+  // misturava as animações.
+  useLayoutEffect(() => {
+    placeAtEntity(groupRef.current, entity)
+  }, [cloned, entity])
 
   useEffect(() => {
     registerView(entity, groupRef.current)

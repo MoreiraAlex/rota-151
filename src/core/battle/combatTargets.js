@@ -4,6 +4,7 @@ import { ATTACK_SLOTS } from './attackCasting'
 import { isSelfAttack } from './channelAttack'
 import { resolveOwner } from '../actions/owner'
 import {
+  BeingCaptured,
   CharacterController,
   Fainted,
   Party,
@@ -16,14 +17,15 @@ import {
 } from '../traits'
 
 /**
- * Quem ainda está na luta: entidade viva, com posição, fora do desmaio e
+ * Quem ainda está na luta: entidade viva, com posição, fora do desmaio,
+ * fora de uma Pokébola (`BeingCaptured`, docs/features/043-captura.md) e
  * com HP (o treinador não desmaia — a 0 de HP só deixa de ser alvo).
  */
 export function isActiveCombatant(entity) {
   if (entity == null || !entity.isAlive() || !entity.has(Position)) {
     return false
   }
-  if (entity.has(Fainted)) return false
+  if (entity.has(Fainted) || entity.has(BeingCaptured)) return false
   const vitals = entity.get(Vitals)
   return !vitals || vitals.hp > 0
 }

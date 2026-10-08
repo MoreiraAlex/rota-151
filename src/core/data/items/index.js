@@ -71,3 +71,16 @@ export function getItem(id, registry = ITEM_REGISTRY) {
 export function listItems(registry = ITEM_REGISTRY) {
   return Object.values(registry)
 }
+
+/**
+ * O mapa de clipes do `.glb` do item por momento da captura
+ * (`model.animations`), ou o do item de onde ele herda os clipes
+ * (`model.clipsFrom`, docs/features/043-captura.md). `null` sem nenhum.
+ */
+export function resolveItemAnimations(item, registry = ITEM_REGISTRY) {
+  const model = item?.model
+  if (!model) return null
+  if (model.animations) return model.animations
+  if (!model.clipsFrom) return null
+  return getItem(model.clipsFrom, registry)?.model?.animations ?? null
+}

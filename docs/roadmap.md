@@ -2,7 +2,7 @@
 
 ---
 
-# ✅ Já feito (0.0.1 – 0.0.42)
+# ✅ Já feito (0.0.1 – 0.0.43)
 
 O que já foi entregue, por tema. Detalhes de cada uma em `docs/features/`.
 
@@ -38,6 +38,7 @@ O que já foi entregue, por tema. Detalhes de cada uma em `docs/features/`.
 - [x] **040 — Dono da criatura**
 - [x] **041 — Inventário de itens e Pokémon**
 - [x] **042 — Itens da beta**
+- [x] **043 — Captura**
 
 ### Pokémon e mundo
 - [x] **020 — Selvagens, cena maior e textura por espécie**
@@ -84,8 +85,7 @@ as revisões e pendências identificadas no caminho.
 **Objetivo:** jogar sozinho, capturar Pokémon, organizar o time e o inventário e,
 ao fechar e abrir o jogo, encontrar tudo como deixou.
 
-- [ ] **043 — Captura** — arremessar uma Pokébola (gasta do inventário) num selvagem; chance pelo HP restante e pelo tipo de bola; a bola balança, captura ou escapa. Mantém nível, IV e golpes; vai para o inventário. Capturar dá XP. Retorno visual e sonoro de "Capturado!" / "Escapou!".
-- [ ] **044 — Salvar o jogo** — treinador, Pokémon do time e do inventário (espécie, nível, XP, IV, golpes, domínio e a Pokébola em que foi capturado) e inventário no banco (Prisma). Salva automático, carrega ao entrar. Formato salvo com número de versão.
+- [ ] **044 — Salvar o jogo** — treinador, Pokémon do time e do inventário (espécie, nível, XP, IV, golpes, domínio, a Pokébola em que foi capturado e as condições guardadas na bola, como a queimadura) e inventário no banco (Prisma). Salva automático, carrega ao entrar. Formato salvo com número de versão.
 
 ---
 
@@ -160,6 +160,8 @@ aparecendo ao longo da beta, pra não interromper a feature em andamento. Cada
 item entra aqui quando for identificado e vira feature quando chegar a vez.
 
 - [ ] **071 — Revisão das ações das poções** — rever como as poções são usadas *(detalhar quando chegar)*.
+- [ ] **072 — Revisão da batalha e da IA** — rever o combate e as decisões da IA dos selvagens (partir para a ofensiva ou fugir) *(detalhar quando chegar)*.
+- [ ] **073 — Revisão da wiki** — rever a wiki inteira *(detalhar quando chegar)*.
 
 ---
 

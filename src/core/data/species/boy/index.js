@@ -235,18 +235,9 @@ export const BOY = {
       handForwardOffset: 0.1,
       handSideOffset: 0.05,
       handHeightOffset: -0.02,
-      // Quanto tempo o feixe vermelho (`RecallBeam`) fica na cena depois
-      // de disparado.
+      // Quanto tempo o feixe de luz (`RecallBeam`) fica na cena depois de
+      // disparado. A aparência dele é `GAME_CONFIG.FEEDBACK.PHASE_BEAM`.
       beamDuration: 0.35,
-      // Espessura do feixe (m, raio do tubo — ver `RecallBeamView.jsx`).
-      beamThickness: 0.025,
-      // Deformidade do feixe — fração (0-1+) do comprimento de CADA
-      // segmento que ele pode desviar lateralmente da linha reta
-      // treinador→criatura, dando o aspecto de relâmpago em vez de um
-      // cilindro liso (`normalizedJitter` em `RecallBeamView.jsx`, pra o
-      // desvio parecer proporcional não importa a distância do recall).
-      // 0 desativa (linha reta).
-      beamJitter: 0.05,
     },
   },
   // Comportamento de "seguir o treinador" de toda criatura de time — ver

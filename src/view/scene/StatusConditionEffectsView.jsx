@@ -4,6 +4,7 @@ import { useTexture } from '@react-three/drei'
 import { world } from '@/core/world/world'
 import { verticalClearance } from '@/core/physics/colliders'
 import {
+  BeingCaptured,
   Burn,
   CharacterController,
   Fainted,
@@ -63,7 +64,8 @@ export function StatusConditionEffectsView() {
         const clearance = verticalClearance(body)
         followers.push({
           key: `${entity}:burn`,
-          active: !entity.has(Fainted),
+          // Dentro de uma Pokébola (043) o fogo não aparece: ele está na bola.
+          active: !entity.has(Fainted) && !entity.has(BeingCaptured),
           radius: body.capsuleRadius,
           // nos pés; o corpo se estende `2 * clearance` pra cima
           origin: [pos.x, pos.y - clearance, pos.z],

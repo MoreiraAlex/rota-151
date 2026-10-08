@@ -19,9 +19,31 @@ export const POKE_BALL = {
     },
     // Maior dimensão do modelo (m).
     size: 0.15,
+    // Ajuste na mão do treinador (no espaço do osso da mão): posição (m),
+    // giro (graus) e escala — ver `_template/`.
+    hand: {
+      position: { x: 0, y: 0, z: 0 },
+      rotation: { x: 0, y: 0, z: 0 },
+      scale: 1,
+    },
+    // Clipes do `.glb` por momento da captura (docs/features/043-captura.md)
+    // — ver `_template/`.
+    animations: {
+      flying: 'spin',
+      absorb: 'capture_absorb',
+      close: 'close',
+      shake: 'capture_wobble',
+      caught: 'capture_success',
+      escaped: 'capture_fail',
+      // Invocar: abrindo depois de pousar; recolher: na mão do treinador.
+      summon: 'summon',
+      recall: 'recall',
+    },
   },
   pokeball: {
     // Multiplica a chance de captura (043).
     captureMultiplier: 1,
+    // Cor do feixe de luz da bola (invocar/recolher/captura).
+    beamColor: '#ff3b3b',
   },
 }

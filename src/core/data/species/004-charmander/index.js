@@ -22,6 +22,8 @@ export const CHARMANDER = {
   level: LEVEL,
   baseXp: 62,
   growthRate: 'medium-slow',
+  // Taxa de captura (0-255, escala da série) — docs/features/043-captura.md.
+  capture: { rate: 45 },
   kind: 'pokemon',
   types: ['fire'],
   sprite: {

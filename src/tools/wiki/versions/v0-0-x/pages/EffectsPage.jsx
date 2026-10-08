@@ -93,7 +93,21 @@ export function EffectsPage({ data, version }) {
             <li>
               A criatura queimada solta fogo e ganha o selo{' '}
               <strong>Queimado</strong>; a queimadura acaba se ela desmaiar.
+              Recolhida ou capturada, ela continua queimando dentro da bola.
             </li>
+            {burn.captureBonus ? (
+              <li>
+                Queimada, ela fica mais fácil de capturar:{' '}
+                {formatMultiplier(burn.captureBonus)} na chance (
+                <WikiLink
+                  version={version}
+                  to="selvagens/captura#modificadores"
+                >
+                  Captura
+                </WikiLink>
+                ).
+              </li>
+            ) : null}
           </ul>
         </Section>
       ) : null}

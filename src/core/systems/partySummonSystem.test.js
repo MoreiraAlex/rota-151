@@ -377,7 +377,11 @@ describe('partySummonSystem', () => {
     // (ponta de chegada) e carrega a posição da MÃO do treinador (ponta
     // de saída, `resolveHandOrigin` — não a `Position` crua, centro do
     // corpo) — o feixe vai de um até o outro, não é um ponto único.
-    const [beam] = world.query(RecallBeam, Position)
+    // O invocar também deixa um feixe (o de saída, `'sendOut'` — 043): este
+    // é o de recolher.
+    const beam = world
+      .query(RecallBeam, Position)
+      .find((entity) => entity.get(RecallBeam).mode === 'recall')
     expect(beam).toBeDefined()
     expect(beam.get(Position).x).toBeCloseTo(creaturePos.x)
     expect(beam.get(Position).z).toBeCloseTo(creaturePos.z)

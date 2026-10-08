@@ -1,4 +1,4 @@
-import { SummonFlash, RecallBeam } from '../traits'
+import { SummonFlash, RecallBeam, SummonBallOpen } from '../traits'
 
 /**
  * Conta o `lifetime` de todo `SummonFlash`/`RecallBeam` ativo pra baixo,
@@ -25,5 +25,11 @@ export function summonEffectsSystem(context) {
   world.query(RecallBeam).updateEach(([beam], entity) => {
     beam.lifetime -= delta
     if (beam.lifetime <= 0) entity.destroy()
+  })
+
+  // A bola abrindo depois de pousar (docs/features/043-captura.md).
+  world.query(SummonBallOpen).updateEach(([open], entity) => {
+    open.elapsed += delta
+    if (open.elapsed >= open.duration) entity.destroy()
   })
 }

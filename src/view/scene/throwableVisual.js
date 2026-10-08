@@ -1,7 +1,7 @@
 /**
  * Aparência compartilhada de "um throwable genérico" — nenhum item hoje
  * tem modelo 3D próprio (ver core/data/items/_template/index.js), então tanto o projétil em voo (`ProjectileView.jsx`)
- * quanto o item na mão antes de arremessar (`heldItemViewSystem.js`) usam
+ * quanto o item na mão antes de arremessar (`HeldItemView.jsx`) usam
  * a mesma esfera cinza simples — um lugar só pra não divergir o visual
  * entre "na mão" e "voando" do mesmo objeto.
  */

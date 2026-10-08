@@ -210,6 +210,9 @@ de puxar ela pra frente.
       Depende da persistência (salvar golpes/treino do time) e, pro treino
       andar sem a aba, do jogo rodar num servidor (decisão do usuário).
       Alternativa barata discutida: creditar o tempo fora com teto.
+- [ ] **XP do treinador** — o treinador também ganha experiência. Ex.: na
+      captura (docs/features/043-captura.md) só ganha XP quem lutou; se
+      ninguém lutou, o XP iria só para o treinador.
 - [ ] **Tutor/dojo de golpes** — NPC ou lugar que acelera o treino de um
       golpe (ou relembra um esquecido). Saiu da
       `docs/features/038-aprendizado-treino-e-dominio-de-golpes.md`.

@@ -71,3 +71,48 @@ export function castRay(origin, direction, maxDistance, options = {}) {
     colliderHandle: hit.collider.handle,
   }
 }
+
+/**
+ * Como `castRay`, mas devolve também a normal da superfície atingida
+ * (`normal`, unitária, apontando pra fora dela) — pra quicar de verdade
+ * (a Pokébola que errou, docs/features/043-captura.md). Sem física: `null`.
+ */
+export function castRayWithNormal(
+  origin,
+  direction,
+  maxDistance,
+  options = {},
+) {
+  const RAPIER = getRapier()
+  const world = getRapierWorld()
+  if (!RAPIER || !world || maxDistance <= 0) return null
+
+  const { excludeColliderHandle, terrainOnly = false } = options
+  const excludeCollider =
+    excludeColliderHandle != null && excludeColliderHandle >= 0
+      ? world.getCollider(excludeColliderHandle)
+      : undefined
+  const filterFlags = terrainOnly ? terrainOnlyFilterFlags() : undefined
+
+  const ray = new RAPIER.Ray(origin, direction)
+  const hit = world.castRayAndGetNormal(
+    ray,
+    maxDistance,
+    true,
+    filterFlags,
+    undefined,
+    excludeCollider,
+  )
+  if (!hit) return null
+
+  return {
+    distance: hit.timeOfImpact,
+    point: {
+      x: origin.x + direction.x * hit.timeOfImpact,
+      y: origin.y + direction.y * hit.timeOfImpact,
+      z: origin.z + direction.z * hit.timeOfImpact,
+    },
+    normal: { x: hit.normal.x, y: hit.normal.y, z: hit.normal.z },
+    colliderHandle: hit.collider.handle,
+  }
+}

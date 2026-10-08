@@ -11,6 +11,7 @@ import { comecarAComer, podeComer } from '../actions/eating'
 import { getItem } from '../data/items'
 import { getPlayerSpecies } from '../data/species'
 import { resolveAimPoint, resolveHandOrigin } from '../aim'
+import { isAimingCapture } from '../actions/capture'
 import {
   ActionState,
   Position,
@@ -25,6 +26,10 @@ import {
   Projectile,
   ConsumeEffect,
   PhysicsBody,
+  CaptureAim,
+  CaptureBall,
+  OwnedBy,
+  Party,
   applyHeal,
 } from '../traits'
 
@@ -59,6 +64,21 @@ function resolveThrowLaunch(aimPoint, throwOrigin, throwConfig) {
     y: (dy / distance) * speed,
     z: (dz / distance) * speed,
   }
+}
+
+/**
+ * Se o clique primário arremessa o `item`: `throwable` (reto) ou Pokébola
+ * (em arco, captura — docs/features/043-captura.md). Pokébola só o
+ * treinador arremessa (`Party`), nunca a criatura pilotada.
+ */
+function isThrownItem(item, entity) {
+  if (item?.category === 'throwable') return true
+  // Pokébola: só mirando (`captureAimSystem`) — o arremesso usa a mira.
+  return (
+    item?.category === 'pokeball' &&
+    entity.has(Party) &&
+    isAimingCapture(entity)
+  )
 }
 
 /**
@@ -108,9 +128,10 @@ function resolveDashExitSpeed(entity) {
  * stamina suficiente, a ação simplesmente não dispara (mesma forma que a
  * precondição de `Grounded` já bloqueia o dash). Uso de consumível não
  * custa stamina. Quem decide se `primary` dispara algo é a categoria do
- * item em `HeldItem` (`throwable` → arremesso, `consumable` → uso, só com
+ * item em `HeldItem` (`throwable` → arremesso reto; `pokeball` → arremesso
+ * em arco da bola de captura, só o treinador; `consumable` → uso, só com
  * a vida abaixo do máximo; `berry` → começa a comer, ver
- * `core/actions/eating.js`; `pokeball`, sem item ou outra → nada). `primary` (clique esquerdo) dispara sozinho —
+ * `core/actions/eating.js`; sem item ou outra → nada). `primary` (clique esquerdo) dispara sozinho —
  * não precisa mais segurar o botão direito antes (mira removida, ver
  * docs/features/029-*.md).
  *
@@ -178,7 +199,7 @@ export function playerActionSystem(context) {
           const item = heldItem.itemId ? getItem(heldItem.itemId) : null
 
           if (
-            item?.category === 'throwable' &&
+            isThrownItem(item, entity) &&
             vitals.stamina >= THROW.staminaCost
           ) {
             action.current = 'throw'
@@ -189,7 +210,12 @@ export function playerActionSystem(context) {
             action.animationSpeed = THROW.duration > 0 ? 1 / THROW.duration : 1
             const throwOrigin = resolveHandOrigin(pos, rot.y, THROW)
             const aimPoint = resolveAimPoint(world, pos, body.colliderHandle)
-            const velocity = resolveThrowLaunch(aimPoint, throwOrigin, THROW)
+            // Pokébola: o arco da mira (043, a mesma velocidade que a mira
+            // mostrou); o resto, reto.
+            const velocity =
+              item.category === 'pokeball'
+                ? { ...entity.get(CaptureAim).velocity }
+                : resolveThrowLaunch(aimPoint, throwOrigin, THROW)
             action.dirX = velocity.x
             action.dirY = velocity.y
             action.dirZ = velocity.z
@@ -219,7 +245,7 @@ export function playerActionSystem(context) {
             spendHeldItem(entity, heldItem)
             return
           } else {
-            // Pokébola (a captura é a 043) ou nada na mão: nada acontece.
+            // Nada na mão (ou item sem uso direto): nada acontece.
             return
           }
         } else {
@@ -257,16 +283,29 @@ export function playerActionSystem(context) {
           previousElapsed < THROW.effectAt &&
           action.elapsed >= THROW.effectAt
         ) {
-          world.spawn(
-            Position(resolveHandOrigin(pos, rot.y, THROW)),
-            Rotation, // exigido por syncTransformSystem — sem uso real (esfera)
-            // dirX/dirY/dirZ já são a velocidade de lançamento resolvida
-            // no disparo (ver resolveThrowLaunch) — não uma direção
-            // unitária pra multiplicar por `speed` aqui (`speed` já
-            // entrou no cálculo lá).
-            Velocity({ x: action.dirX, y: action.dirY, z: action.dirZ }),
-            Projectile({ lifetime: THROW.lifetime }),
-          )
+          const item = heldItem.itemId ? getItem(heldItem.itemId) : null
+          const origin = resolveHandOrigin(pos, rot.y, THROW)
+          // dirX/dirY/dirZ já são a velocidade de lançamento resolvida
+          // no disparo (ver resolveThrowLaunch/resolveArcLaunch) — não uma
+          // direção unitária pra multiplicar por `speed` aqui.
+          const launch = { x: action.dirX, y: action.dirY, z: action.dirZ }
+          if (item?.category === 'pokeball') {
+            // A bola de captura (`captureBallSystem.js`), de quem arremessou.
+            world.spawn(
+              Position(origin),
+              Rotation, // exigido por syncTransformSystem
+              Velocity(launch),
+              CaptureBall({ itemId: item.id }),
+              OwnedBy(entity),
+            )
+          } else {
+            world.spawn(
+              Position(origin),
+              Rotation, // exigido por syncTransformSystem — sem uso real (esfera)
+              Velocity(launch),
+              Projectile({ lifetime: THROW.lifetime }),
+            )
+          }
           spendHeldItem(entity, heldItem)
         }
 

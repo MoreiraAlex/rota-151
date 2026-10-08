@@ -16,6 +16,10 @@ import {
   InputState,
   MovementStats,
   DashCooldown,
+  CaptureAim,
+  CaptureBall,
+  OwnedBy,
+  Party,
   resolveMovementCosts,
 } from '@/core/traits'
 import { GAME_CONFIG } from '@/core/gameConfig'
@@ -57,9 +61,9 @@ function resolveHandOrigin(pos, rotY) {
   }
 }
 
-// Nenhum item da beta é `throwable` (a Pokébola só ganha função na 043,
-// docs/features/042-itens-da-beta.md): o arremesso é testado com um item de
-// teste injetado no registro.
+// Nenhum item da beta é `throwable` (a Pokébola arremessa em arco, pra
+// captura — docs/features/043-captura.md): o arremesso reto é testado com um
+// item de teste injetado no registro.
 const TEST_THROWABLE = {
   id: 'test-throwable',
   name: 'Item de teste',
@@ -764,8 +768,52 @@ describe('playerActionSystem — itens da beta (042)', () => {
 
     expect(player.get(ActionState).current).toBe('eat')
   })
+})
 
-  it('Pokébola na mão não faz nada', () => {
+describe('playerActionSystem — Pokébola (043)', () => {
+  // A mira (`captureAimSystem`) já resolvida: mirando, com este lançamento.
+  const AIM_VELOCITY = { x: 0, y: 4, z: 9 }
+  function aim(player) {
+    player.set(CaptureAim, { active: true, velocity: { ...AIM_VELOCITY } })
+  }
+
+  function throwBall(world) {
+    tick(world, { primary: true })
+    for (let t = 0; t < THROW.effectAt + 0.1; t += 1 / 60) tick(world)
+  }
+
+  it('o treinador arremessa a Pokébola: nasce uma bola de captura dele e a bola é gasta', () => {
+    const { world, player } = spawnWorld()
+    player.set(HeldItem, { itemId: POKEBALL })
+    player.set(Inventory, { counts: { [POKEBALL]: 2 } })
+    aim(player)
+
+    throwBall(world)
+
+    const balls = world.query(CaptureBall)
+    expect(balls.length).toBe(1)
+    expect(balls[0].get(CaptureBall).itemId).toBe(POKEBALL)
+    expect(balls[0].targetFor(OwnedBy)).toBe(player)
+    expect(world.query(Projectile).length).toBe(0)
+    expect(player.get(Inventory).counts[POKEBALL]).toBe(1)
+  })
+
+  it('a bola sai com o lançamento da mira', () => {
+    const { world, player } = spawnWorld()
+    player.set(HeldItem, { itemId: POKEBALL })
+    player.set(Inventory, { counts: { [POKEBALL]: 1 } })
+    aim(player)
+
+    tick(world, { primary: true })
+    const action = player.get(ActionState)
+
+    expect(action.current).toBe('throw')
+    expect({ x: action.dirX, y: action.dirY, z: action.dirZ }).toEqual(
+      AIM_VELOCITY,
+    )
+  })
+
+  it('sem mirar, o clique não arremessa a Pokébola', () => {
     const { world, player } = spawnWorld()
     player.set(HeldItem, { itemId: POKEBALL })
     player.set(Inventory, { counts: { [POKEBALL]: 1 } })
@@ -773,7 +821,19 @@ describe('playerActionSystem — itens da beta (042)', () => {
     tick(world, { primary: true })
 
     expect(player.get(ActionState).current).toBe(null)
-    expect(world.query(Projectile).length).toBe(0)
+    expect(player.get(Inventory).counts).toEqual({ [POKEBALL]: 1 })
+  })
+
+  it('quem não é treinador (sem time) não arremessa Pokébola', () => {
+    const { world, player } = spawnWorld()
+    player.remove(Party)
+    aim(player)
+    player.set(HeldItem, { itemId: POKEBALL })
+    player.set(Inventory, { counts: { [POKEBALL]: 1 } })
+
+    tick(world, { primary: true })
+
+    expect(player.get(ActionState).current).toBe(null)
     expect(player.get(Inventory).counts).toEqual({ [POKEBALL]: 1 })
   })
 })

@@ -116,6 +116,7 @@ export function damageNumberSystem(context) {
       })
       continue
     }
+    if (spawnCaptureText(event, cameraRight)) continue
     if (event.type === EVENT_TYPES.EXPERIENCE_GAINED) {
       spawnNotice(
         event.creature,
@@ -291,6 +292,52 @@ function spawnInterruptText(event, right) {
     GAME_CONFIG.FEEDBACK.INTERRUPT_COLOR,
     right,
   )
+}
+
+/**
+ * Textos da captura (docs/features/043-captura.md): "Pelas costas!" na bola
+ * que acertou pelas costas, "Capturado!" no ponto da bola e "Escapou!" em
+ * cima de quem escapou. Devolve se o evento era da captura.
+ */
+function spawnCaptureText(event, right) {
+  const { FEEDBACK } = GAME_CONFIG
+  if (event.type === EVENT_TYPES.CAPTURE_STARTED) {
+    if (event.backStrike && event.ball?.isAlive()) {
+      spawnNoticeAt(
+        event.ball.get(Position),
+        'Pelas costas!',
+        FEEDBACK.BACK_STRIKE_COLOR,
+        right,
+      )
+    }
+    return true
+  }
+  if (event.type === EVENT_TYPES.POKEMON_CAPTURED) {
+    spawnNoticeAt(event.position, 'Capturado!', FEEDBACK.CAPTURED_COLOR, right)
+    return true
+  }
+  if (event.type === EVENT_TYPES.CAPTURE_ESCAPED) {
+    spawnNotice(event.wild, 'Escapou!', FEEDBACK.ESCAPED_COLOR, right)
+    return true
+  }
+  return false
+}
+
+// Aviso em texto num ponto do mundo (sem cabeça pra se apoiar — a bola),
+// `HEAD_MARGIN` acima dele.
+function spawnNoticeAt(position, text, color, right) {
+  if (!position) return
+  const slot = damageNumberPool.spawn({
+    position: { x: position.x, y: position.y + HEAD_MARGIN, z: position.z },
+    text,
+    critical: false,
+    lifetime: LIFETIME,
+    kind: 'miss',
+    color,
+  })
+  const side = SPREAD_PATTERN[slot.serial % SPREAD_PATTERN.length] * SPREAD
+  slot.x += right.x * side
+  slot.z += right.z * side
 }
 
 // Aviso em texto acima da cabeça (não é número de dano nem atributo) —

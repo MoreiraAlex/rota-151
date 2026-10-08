@@ -390,4 +390,8 @@ export const SPECIES_TEMPLATE = {
   // senão nasce pacífico (só vaga; apanhando, revida ou foge). Ausente =
   // `GAME_CONFIG.WILD_BEHAVIOR.DEFAULT_HOSTILE_CHANCE`.
   // wild: { hostileChance: 0.5 },
+  // Opcional — taxa de captura (0-255, escala da série; maior = mais fácil),
+  // usada na chance da Pokébola (`core/battle/capture.js`,
+  // docs/features/043-captura.md). Ausente = `GAME_CONFIG.CAPTURE.DEFAULT_RATE`.
+  // capture: { rate: 45 },
 }

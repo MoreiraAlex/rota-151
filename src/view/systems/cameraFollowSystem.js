@@ -8,7 +8,9 @@ import {
   computeOrbitForward,
   resolveCameraCollision,
 } from '@/core/camera/orbitCamera'
+import { resolveCaptureAimFraming } from '@/core/aim'
 import {
+  CaptureAim,
   Position,
   OrbitCamera,
   CameraTarget,
@@ -135,6 +137,10 @@ export function resolveControlledSpecies(entity) {
  * Fase: presentation (passo variável), depois do syncTransformSystem.
  * A câmera chega em context.camera (câmera default do R3F, via useThree).
  */
+// Quanto a câmera já entrou no enquadramento da mira da Pokébola (0–1) —
+// estado de tela, suavizado aqui.
+let captureAimBlend = 0
+
 export function cameraFollowSystem(context) {
   const { world, delta, camera } = context
   if (!camera) return
@@ -190,15 +196,31 @@ export function cameraFollowSystem(context) {
     return
   }
 
-  const pivot = { x: pos.x, y: pos.y + TARGET_HEIGHT, z: pos.z }
-  let uncollided = computeCameraPosition(pos, orbit, TARGET_HEIGHT)
+  // Mirando a Pokébola (docs/features/043-captura.md): a câmera chega mais
+  // perto e mais pro ombro, com transição (`captureAimBlend`, estado de tela).
+  const aiming = !!target.get(CaptureAim)?.active
+  const blendTarget = aiming ? 1 : 0
+  const blendStep = Math.min(1, GAME_CONFIG.CAPTURE.AIM.BLEND_SPEED * delta)
+  captureAimBlend += (blendTarget - captureAimBlend) * blendStep
+  if (Math.abs(captureAimBlend - blendTarget) < 1e-3) {
+    captureAimBlend = blendTarget
+  }
+  const framing =
+    captureAimBlend > 0
+      ? resolveCaptureAimFraming(orbit, SHOULDER_OFFSET, captureAimBlend)
+      : { orbit, shoulderOffset: SHOULDER_OFFSET }
+  const framedOrbit = framing.orbit
+  const framedShoulder = framing.shoulderOffset
 
-  if (SHOULDER_OFFSET) {
+  const pivot = { x: pos.x, y: pos.y + TARGET_HEIGHT, z: pos.z }
+  let uncollided = computeCameraPosition(pos, framedOrbit, TARGET_HEIGHT)
+
+  if (framedShoulder) {
     const right = computeCameraRight(orbit.yaw)
     uncollided = {
-      x: uncollided.x + right.x * SHOULDER_OFFSET,
+      x: uncollided.x + right.x * framedShoulder,
       y: uncollided.y,
-      z: uncollided.z + right.z * SHOULDER_OFFSET,
+      z: uncollided.z + right.z * framedShoulder,
     }
   }
 
@@ -211,10 +233,10 @@ export function cameraFollowSystem(context) {
 
   const lookAt = computeLookAtPoint(
     pos,
-    orbit,
+    framedOrbit,
     1,
     TARGET_HEIGHT,
-    SHOULDER_OFFSET,
+    framedShoulder,
   )
 
   const t = Math.min(1, SMOOTHING * delta)

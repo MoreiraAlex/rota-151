@@ -31,6 +31,7 @@ import { steerTowards } from '../steering'
 import {
   ActionState,
   CharacterController,
+  BeingCaptured,
   Fainted,
   MovementBlocked,
   MovementStats,
@@ -162,7 +163,9 @@ export function wildBehaviorSystem(context) {
   world
     .query(WildCreature, WildBehavior, Position)
     .readEach(([, behavior, pos], entity) => {
-      if (entity.has(Fainted)) return
+      // Desmaiada ou dentro de uma Pokébola (docs/features/043-captura.md):
+      // não decide nada.
+      if (entity.has(Fainted) || entity.has(BeingCaptured)) return
       const morale = resolveMorale(behavior, entity.get(Vitals))
       let decision = morale.fleeNow
         ? { target: findNearest(pos, candidates), next: 'flee' }
@@ -206,7 +209,7 @@ export function wildBehaviorSystem(context) {
     .updateEach(
       ([creature, behavior, pos, rot, vel, stats, body, vitals], entity) => {
         if (behavior.state === 'wander') return
-        if (entity.has(Fainted)) return
+        if (entity.has(Fainted) || entity.has(BeingCaptured)) return
         const target = behavior.target
         if (!target) return
 

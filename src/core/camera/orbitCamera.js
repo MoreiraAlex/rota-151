@@ -219,11 +219,17 @@ export function computeAimRay(
     y: targetPosition.y + targetHeight,
     z: targetPosition.z,
   }
-  const uncollidedOrigin = computeCameraPosition(
-    targetPosition,
-    orbit,
-    targetHeight,
-  )
+  // A mesma posição da câmera renderizada (`cameraFollowSystem.js`): a órbita
+  // deslocada pro ombro. Sem esse deslocamento, o raio saía de outro ponto
+  // e, apontando pro `lookAt` deslocado, cruzava o centro da tela em
+  // ângulo — a bola ia pro lado do retículo (docs/features/043-captura.md).
+  const right = computeCameraRight(orbit.yaw)
+  const unshifted = computeCameraPosition(targetPosition, orbit, targetHeight)
+  const uncollidedOrigin = {
+    x: unshifted.x + right.x * shoulderOffset,
+    y: unshifted.y,
+    z: unshifted.z + right.z * shoulderOffset,
+  }
   const origin = resolveCameraCollision(
     pivot,
     uncollidedOrigin,

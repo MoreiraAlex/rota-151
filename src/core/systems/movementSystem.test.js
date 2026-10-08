@@ -10,6 +10,7 @@ import {
   Vitals,
   OrbitCamera,
   ActionState,
+  CaptureAim,
 } from '@/core/traits'
 import { movementSystem } from './movementSystem'
 
@@ -184,5 +185,23 @@ describe('movementSystem', () => {
     tick({ x: 0, z: -1 })
 
     expect(player.get(Velocity).z).toBeCloseTo(-WALK_SPEED)
+  })
+})
+
+describe('movementSystem — mirando a Pokébola (043)', () => {
+  it('não corre e vira pra onde a câmera mostra, mesmo andando de lado', () => {
+    const { player, tick } = setup(0, 1)
+    player.set(CaptureAim, { active: true })
+    player.set(Rotation, { y: 0 })
+
+    tick({ x: 1, z: 0, run: true })
+
+    const vel = player.get(Velocity)
+    expect(Math.hypot(vel.x, vel.z)).toBeCloseTo(
+      WALK_SPEED * resolveSpeedMultiplier(player.get(Vitals)),
+    )
+    // yaw 0 da órbita = câmera olhando pra -Z (`resolveCameraYaw`): yaw + π.
+    expect(Math.abs(Math.cos(player.get(Rotation).y))).toBeCloseTo(1)
+    expect(Math.cos(player.get(Rotation).y)).toBeLessThan(0)
   })
 })

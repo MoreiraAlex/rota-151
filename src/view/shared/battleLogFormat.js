@@ -51,6 +51,23 @@ export function formatMoveName(attackId) {
   return getSkill(attackId) ? formatSpeciesName(attackId) : 'Ataque'
 }
 
+// Pra onde foi o Pokémon capturado (docs/features/043-captura.md).
+const CAPTURE_DESTINATIONS = {
+  party: 'entrou no time',
+  inventory: 'foi para o inventário',
+  ground: 'ficou na bola, no chão (sem espaço no inventário)',
+}
+
+/** "Pegou! Charmander foi capturado!" e pra onde ele foi. */
+function formatCaptured(event) {
+  const { FEEDBACK } = GAME_CONFIG
+  const name = formatSpeciesName(event.speciesId)
+  const lines = [line(`Pegou! ${name} foi capturado!`, FEEDBACK.CAPTURED_COLOR)]
+  const where = CAPTURE_DESTINATIONS[event.destination]
+  if (where) lines.push(line(`${name} ${where}.`, FEEDBACK.CAPTURED_COLOR))
+  return lines
+}
+
 /** Se o evento entra no log: as repetições do treino no objeto nunca. */
 function isLoggedSlot(slot) {
   return slot !== 'training'
@@ -181,10 +198,34 @@ export function formatBattleLogEvent(event) {
       ]
     }
     case EVENT_TYPES.CREATURE_FAINTED:
+      // Registro (`Pokemon`): desmaiou queimando dentro da bola (043).
+      if (event.entity?.has?.(Pokemon)) {
+        return [
+          line(
+            `${formatSpeciesName(event.speciesId)} desmaiou dentro da Pokébola!`,
+            FEEDBACK.MISS_COLOR,
+          ),
+        ]
+      }
       return [
         line(
           `${formatCombatantName(event.entity)} desmaiou!`,
           FEEDBACK.MISS_COLOR,
+        ),
+      ]
+    case EVENT_TYPES.CAPTURE_STARTED:
+      return event.backStrike
+        ? [line('Pelas costas!', FEEDBACK.BACK_STRIKE_COLOR)]
+        : []
+    case EVENT_TYPES.POKEMON_CAPTURED:
+      return formatCaptured(event)
+    case EVENT_TYPES.CAPTURE_ESCAPED:
+      return [
+        line(
+          `${formatSpeciesName(event.speciesId)} selvagem escapou da Pokébola${
+            event.reaction === 'fight' ? ' e partiu pra cima!' : ' e fugiu!'
+          }`,
+          FEEDBACK.ESCAPED_COLOR,
         ),
       ]
     case EVENT_TYPES.EXPERIENCE_GAINED:

@@ -95,6 +95,28 @@ export const ITEM_TEMPLATE = {
   //   ele gira (sem o campo, o primeiro de `eatStages`, ou o modelo
   //   inteiro). O centro da caixa do modelo todo não serve: as folhas da
   //   fruta puxam ele pra fora do corpo.
+  // - `hand` — opcional: ajuste do item na mão do treinador
+  //   (`view/scene/HeldItemView.jsx`), no espaço do osso da mão:
+  //   `position` (m), `rotation` (graus, em volta dos eixos do osso) e
+  //   `scale`. Sem o campo, o centro do item no osso, sem giro.
+  // - `animations` — opcional, só Pokébola: o nome do clipe do `.glb` pra
+  //   cada momento da captura (`view/systems/captureBallViewSystem.js`):
+  //   `flying` (em voo, repete), `absorb` (puxando o selvagem; encaixado na
+  //   `CAPTURE.ABSORB_DURATION`), `close` (fechando enquanto cai até o
+  //   chão), `shake` (cada balançada; encaixado no
+  //   `CAPTURE.SHAKE_INTERVAL` se for maior), `caught`, `escaped`, `summon`
+  //   (a bola do invocar abrindo depois de pousar; encaixado em
+  //   `SUMMON_BALL.OPEN_DURATION`) e `recall` (a bola na mão ao recolher;
+  //   encaixado na duração do gesto). Momento
+  //   sem clipe usa o movimento procedural de sempre.
+  // - `clipsFrom` — opcional, só Pokébola: usar os clipes (e o mapa
+  //   `animations`) de outro item, sem animar este (`view/itemRig.js`). O
+  //   esqueleto de nós da origem é montado em volta das peças deste modelo
+  //   que têm o MESMO nome (`top`, `bottom`) e os clipes são reescalados pro
+  //   tamanho dele.
+  // - `rig.rotation` — com `clipsFrom`: giro (graus) que endireita este
+  //   modelo igual à origem (Y pra cima, tampa abrindo pra trás, -Z). Se a
+  //   tampa abrir pra frente, some 180 em `y`.
   model: {
     path: '/assets/models/items/nome-do-arquivo.glb',
     texture: {

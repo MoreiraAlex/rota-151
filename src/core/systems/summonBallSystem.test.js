@@ -21,6 +21,7 @@ import {
   SummonBall,
   SummonedCreature,
   SummonFlash,
+  SummonBallOpen,
   SummonPulse,
   Position,
   Velocity,
@@ -35,6 +36,7 @@ import {
   createStaticLevel,
   createCharacterBody,
 } from '@/core/physics/colliders'
+import { resolvePokemonBallId } from '@/core/actions/pokemon'
 import { summonBallSystem } from './summonBallSystem'
 
 const spawnedWorlds = []
@@ -159,6 +161,16 @@ describe('summonBallSystem', () => {
     const [flash] = world.query(SummonFlash, Position)
     expect(flash).toBeDefined()
     expect(flash.get(Position).x).toBeCloseTo(expected.x)
+
+    // A Pokébola do Pokémon abrindo em cima da cabeça dele (043).
+    const [open] = world.query(SummonBallOpen, Position)
+    expect(open.get(SummonBallOpen).itemId).toBe(resolvePokemonBallId(pokemon))
+    expect(open.get(Position).x).toBeCloseTo(expected.x)
+    expect(open.get(Position).y).toBeGreaterThan(creature.get(Position).y)
+    const { OPEN_DURATION, VANISH_DURATION } = GAME_CONFIG.SUMMON_BALL
+    expect(open.get(SummonBallOpen).duration).toBeCloseTo(
+      OPEN_DURATION + VANISH_DURATION,
+    )
   })
 
   it('criatura com actions.appeal (charmander) nasce fazendo a apresentação', () => {

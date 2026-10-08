@@ -58,9 +58,10 @@ export function registrarParticipante(world, attacker, target) {
  * A selvagem `defeated` desmaiou: os Pokémon que lutaram contra ela
  * (`FoughtBy`) ganham XP — só os que não estão desmaiados. O XP é dividido
  * igualmente entre eles (`participants` na fórmula), e cada um escala pelo
- * próprio nível.
+ * próprio nível. `fraction` escala o ganho (a captura dá uma fração do de
+ * derrotar — `CAPTURE.XP_FRACTION`, docs/features/043-captura.md).
  */
-export function distribuirExperiencia(world, events, defeated) {
+export function distribuirExperiencia(world, events, defeated, fraction = 1) {
   const defeatedSpecies = getSpecies(defeated.get(WildCreature)?.speciesId)
   const defeatedLevel = resolveEntityLevel(defeated, defeatedSpecies)
   const baseXp = resolveBaseXp(defeatedSpecies)
@@ -75,7 +76,7 @@ export function distribuirExperiencia(world, events, defeated) {
       winnerLevel: pokemon.get(CreatureLevel).level,
       participants: winners.length,
     })
-    ganharExperiencia(world, events, pokemon, amount)
+    ganharExperiencia(world, events, pokemon, Math.floor(amount * fraction))
   }
   defeated.remove(FoughtBy('*'))
 }

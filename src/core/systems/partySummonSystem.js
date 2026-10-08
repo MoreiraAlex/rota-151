@@ -4,9 +4,11 @@ import { GAME_CONFIG } from '../gameConfig'
 import { destroyCharacterBody } from '../physics/colliders'
 import { findOwnedCreature, hasOwnedBallInFlight } from '../actions/owner'
 import { derrubarComida } from '../actions/eating'
+import { guardarCondicoes } from '../actions/conditions'
 import {
   findPartyPokemon,
   isPokemonFainted,
+  resolvePokemonBallId,
   resolvePokemonOf,
   resolvePokemonSpeciesId,
 } from '../actions/pokemon'
@@ -162,8 +164,9 @@ function beginSummon(world, action, pos, rot, body, slot) {
 
 /**
  * Guarda no registro do Pokémon (`SummonedFrom`) como a criatura estava ao
- * ser recolhida: a vida (`StoredVitals`) e, se desmaiada, o que falta pra
- * reanimar (`StoredFaint`) — a entidade some, o registro continua.
+ * ser recolhida: a vida (`StoredVitals`), as condições (`StoredConditions`)
+ * e, se desmaiada, o que falta pra reanimar (`StoredFaint`) — a entidade
+ * some, o registro continua.
  */
 function storeOutOfField(creature) {
   const pokemon = resolvePokemonOf(creature)
@@ -171,6 +174,9 @@ function storeOutOfField(creature) {
 
   const vitals = creature.get(Vitals)
   if (vitals) pokemon.set(StoredVitals, { vitals: { ...vitals } })
+  // As condições continuam correndo dentro da bola (docs/features/043-
+  // captura.md, `storedConditionSystem`).
+  guardarCondicoes(creature, pokemon)
 
   const fainted = creature.get(Fainted)
   if (!fainted) return
@@ -221,6 +227,8 @@ function applyRecall(world, trainer, pos, rot, slot) {
       fromY: handOrigin.y,
       fromZ: handOrigin.z,
       speciesId,
+      mode: 'recall',
+      itemId: resolvePokemonBallId(resolvePokemonOf(creature)),
     }),
   )
 

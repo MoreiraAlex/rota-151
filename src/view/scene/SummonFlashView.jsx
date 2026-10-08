@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useRef, useLayoutEffect } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { useQuery } from 'koota/react'
 import { SummonFlash, Position, Rotation } from '@/core/traits'
@@ -33,7 +33,7 @@ export function SummonFlashView({ entity }) {
   const lightRef = useRef()
   const elapsedRef = useRef(0)
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     registerView(entity, groupRef.current)
     return () => unregisterView(entity)
   }, [entity])

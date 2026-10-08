@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { givePokemon, makeWorld, spawnTrainer } from '@/test/makeWorld'
 import { DEFAULT_POKEBALL_ID, listItems } from '../data/items'
+import { GAME_CONFIG } from '../gameConfig'
+import { moverNoInventario, resolveInventoryCapacity } from './inventory'
 import { getSpecies } from '../data/species'
 import { createLevelState } from '../data/species/experience'
 import { createMovesState } from '../data/species/moves'
@@ -166,5 +168,38 @@ describe('time e inventário', () => {
 
     expect(findPartyPokemon(player, 'slot1')).toBe(pokemon)
     expect(pokemon.get(CreatureLevel)).toEqual(progress)
+  })
+})
+
+describe('limite do inventário (o tamanho da grade)', () => {
+  it('a capacidade é colunas × linhas da grade', () => {
+    const { COLUMNS, ROWS } = GAME_CONFIG.INVENTORY
+    expect(resolveInventoryCapacity()).toBe(COLUMNS * ROWS)
+  })
+
+  it('não move nada pra fora da grade', () => {
+    const { world, player } = setup()
+    const pokemon = givePokemon(world, player, SPECIES_ID)
+    const entry = { kind: 'creature', pokemon }
+    expect(
+      moverNoInventario(world, player, entry, resolveInventoryCapacity()),
+    ).toBe(false)
+    expect(
+      moverNoInventario(world, player, entry, resolveInventoryCapacity() - 1),
+    ).toBe(true)
+  })
+
+  it('com o inventário cheio, não dá pra tirar do time (sem troca)', () => {
+    const { world, player } = setup()
+    const member = givePokemon(world, player, SPECIES_ID)
+    colocarNoTime(player, member, 'slot1')
+    const previous = GAME_CONFIG.INVENTORY.ROWS
+    GAME_CONFIG.INVENTORY.ROWS = 0
+    try {
+      expect(tirarDoTime(world, player, member)).toBe(false)
+      expect(findPartyPokemon(player, 'slot1')).toBe(member)
+    } finally {
+      GAME_CONFIG.INVENTORY.ROWS = previous
+    }
   })
 })

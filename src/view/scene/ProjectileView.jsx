@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useRef, useLayoutEffect } from 'react'
 import { useQuery } from 'koota/react'
 import { Projectile, Position, Rotation } from '@/core/traits'
 import { registerView, unregisterView } from '../registry/viewRegistry'
@@ -13,7 +13,7 @@ import { THROWABLE_RADIUS, THROWABLE_COLOR } from './throwableVisual'
 export function ProjectileView({ entity }) {
   const groupRef = useRef()
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     registerView(entity, groupRef.current)
     return () => unregisterView(entity)
   }, [entity])

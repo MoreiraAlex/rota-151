@@ -2,15 +2,24 @@ import { Section } from '@/tools/wiki/components/Article'
 import { Notice } from '@/tools/wiki/components/Notice'
 import { WikiLink } from '@/tools/wiki/components/WikiLink'
 
-export function InventoryPage({ version }) {
+export function InventoryPage({ data, version }) {
+  const { columns, rows } = data.inventory
+
   return (
     <>
       <Section id="o-que-tem" title="O que fica no inventário">
         <p>
           O inventário guarda tudo o que o treinador carrega: os{' '}
           <strong>itens</strong>, com a quantidade de cada um, e as{' '}
-          <strong>criaturas que não estão no time</strong>. Não há limite de
-          espaço nem de quantidade.
+          <strong>criaturas que não estão no time</strong>. São{' '}
+          <strong>{columns * rows} espaços</strong> ({columns} × {rows}); cada
+          item ocupa um só, não importa a quantidade. Uma criatura capturada com
+          o time cheio vem pra cá — com o inventário cheio também, ela fica na
+          bola, no chão (
+          <WikiLink version={version} to="selvagens/captura">
+            Captura
+          </WikiLink>
+          ).
         </p>
         <p>
           Ele só abre enquanto você controla o treinador — controlando uma

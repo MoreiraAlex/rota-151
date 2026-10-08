@@ -1,5 +1,7 @@
 'use client'
 
+import { useState } from 'react'
+
 import { useTrait, useTag, useQuery, useQueryFirst } from 'koota/react'
 import { playerEntity, cameraEntity, world } from '@/core/world/world'
 import { getItem, listItems } from '@/core/data/items'
@@ -223,6 +225,9 @@ export function DebugPanel() {
           </option>
         ))}
       </select>
+      {/* Variante da mira da Pokébola (docs/features/043-captura.md) — pro
+          usuário comparar as duas jogando. */}
+      <CaptureAimModeSelect />
       <hr className="border-white/20" />
       {/* O time se monta pelo Inventário (docs/features/041-inventario-de-
           itens-e-pokemon.md); aqui só os botões de teste por slot. */}
@@ -286,6 +291,31 @@ export function DebugPanel() {
 /** Uma linha de status de caminho (waypoints restantes + recálculo) — usada
  * tanto pro treinador virando bot quanto pra cada criatura invocada que
  * não seja quem está sendo controlado agora (ver DebugPanel acima). */
+const CAPTURE_AIM_MODES = [
+  { value: 'arc', label: 'arco + círculo' },
+  { value: 'reticle', label: 'só retículo (Arceus)' },
+]
+
+function CaptureAimModeSelect() {
+  const [mode, setMode] = useState(GAME_CONFIG.CAPTURE.AIM.MODE)
+  return (
+    <select
+      className="pointer-events-auto rounded bg-black/60 px-1 py-0.5 text-[10px] text-white"
+      value={mode}
+      onChange={(event) => {
+        GAME_CONFIG.CAPTURE.AIM.MODE = event.target.value
+        setMode(event.target.value)
+      }}
+    >
+      {CAPTURE_AIM_MODES.map((option) => (
+        <option key={option.value} value={option.value}>
+          mira da Pokébola: {option.label}
+        </option>
+      ))}
+    </select>
+  )
+}
+
 function PathStatusRow({ label, pathState }) {
   const { waypoints, waypointIndex, repathTimer } = pathState
   const remaining = waypoints.length - waypointIndex

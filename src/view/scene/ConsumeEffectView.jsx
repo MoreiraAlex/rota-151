@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useRef, useLayoutEffect } from 'react'
 import { useQuery } from 'koota/react'
 import { Sparkles } from '@react-three/drei'
 import { ConsumeEffect, Position, Rotation } from '@/core/traits'
@@ -14,7 +14,7 @@ import { registerView, unregisterView } from '../registry/viewRegistry'
 export function ConsumeEffectView({ entity }) {
   const groupRef = useRef()
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     registerView(entity, groupRef.current)
     return () => unregisterView(entity)
   }, [entity])

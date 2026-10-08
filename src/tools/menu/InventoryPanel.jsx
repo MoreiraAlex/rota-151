@@ -23,6 +23,7 @@ import {
   resolveInventoryCells,
   tirarDoTime,
 } from '@/core/actions'
+import { GAME_CONFIG } from '@/core/gameConfig'
 import { formatSpeciesName } from '@/view/shared/formatName'
 import { useOwnedPokemon, usePartyPokemon } from '@/view/hooks/usePartyPokemon'
 import { useTraitVersion } from '@/view/hooks/useTraitVersion'
@@ -30,10 +31,8 @@ import { DRAG_IMAGE_ATTRIBUTE, SlotPreview } from '../shared/SlotPreview'
 import { InventoryDetails, formatItemName } from './inventory/InventoryDetails'
 
 // Grade de posição livre (docs/features/041-inventario-de-itens-e-
-// pokemon.md): no mínimo `MIN_ROWS` linhas, e sempre uma célula livre
-// depois da última ocupada, pra dar onde soltar.
-const GRID_COLUMNS = 5
-const MIN_ROWS = 5
+// pokemon.md), de tamanho fixo: `GAME_CONFIG.INVENTORY` (colunas × linhas) —
+// o limite do inventário (docs/features/043-captura.md).
 
 const PARTY_SLOTS = ['slot1', 'slot2', 'slot3']
 
@@ -150,8 +149,7 @@ export function InventoryPanel() {
   if (!inventory || !heldItem) return null
 
   const cells = resolveInventoryCells(world, playerEntity)
-  const lastIndex = Math.max(-1, ...cells.keys())
-  const rows = Math.max(MIN_ROWS, Math.ceil((lastIndex + 2) / GRID_COLUMNS))
+  const { COLUMNS: GRID_COLUMNS, ROWS: rows } = GAME_CONFIG.INVENTORY
 
   const drag = {
     key: dragKey,
@@ -227,7 +225,10 @@ export function InventoryPanel() {
           onDragOver={handleGridDragOver}
           onDragLeave={() => setGridHover(false)}
           onDrop={handleGridDrop}
-          className={`grid max-h-80 grid-cols-5 content-start gap-1 overflow-y-auto rounded p-1 transition-colors ${
+          style={{
+            gridTemplateColumns: `repeat(${GRID_COLUMNS}, minmax(0, 1fr))`,
+          }}
+          className={`grid max-h-80 content-start gap-1 overflow-y-auto rounded p-1 transition-colors ${
             gridHover ? 'bg-emerald-900/30' : ''
           }`}
         >

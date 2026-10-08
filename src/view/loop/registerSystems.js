@@ -19,6 +19,9 @@ import { creatureAppealSystem } from '@/core/systems/creatureAppealSystem'
 import { creatureHitStunSystem } from '@/core/systems/creatureHitStunSystem'
 import { leechSeedSystem } from '@/core/systems/leechSeedSystem'
 import { burnSystem } from '@/core/systems/burnSystem'
+import { storedConditionSystem } from '@/core/systems/storedConditionSystem'
+import { captureBallSystem } from '@/core/systems/captureBallSystem'
+import { captureAimSystem } from '@/core/systems/captureAimSystem'
 import { creatureFollowSystem } from '@/core/systems/creatureFollowSystem'
 import { wildCreatureSpawnSystem } from '@/core/systems/wildCreatureSpawnSystem'
 import { trainingObjectSpawnSystem } from '@/core/systems/trainingObjectSpawnSystem'
@@ -47,6 +50,11 @@ import { hitStopSystem } from '@/view/systems/hitStopSystem'
 import { heldItemViewSystem } from '@/view/systems/heldItemViewSystem'
 import { eatingFoodViewSystem } from '@/view/systems/eatingFoodViewSystem'
 import { droppedFoodViewSystem } from '@/view/systems/droppedFoodViewSystem'
+import { captureBallViewSystem } from '@/view/systems/captureBallViewSystem'
+import { captureAimViewSystem } from '@/view/systems/captureAimViewSystem'
+import { summonBallViewSystem } from '@/view/systems/summonBallViewSystem'
+import { handBallViewSystem } from '@/view/systems/handBallViewSystem'
+import { pokeballFeedbackSystem } from '@/view/systems/pokeballFeedbackSystem'
 import { tailFireSystem } from '@/view/systems/tailFireSystem'
 import { audioListenerSystem } from '@/view/systems/audioListenerSystem'
 import { footstepAudioSystem } from '@/view/systems/footstepAudioSystem'
@@ -172,6 +180,9 @@ export function registerGameSystems() {
   registerSystem(GAME_PHASES.SIMULATION, physicsBootstrapSystem)
   registerSystem(GAME_PHASES.SIMULATION, controlSwitchSystem)
   registerSystem(GAME_PHASES.SIMULATION, cameraControlSystem)
+  // Mira da Pokébola (043): com a órbita deste tick, antes do movimento
+  // (que vira o corpo pra mira) e do arremesso (que usa a mira).
+  registerSystem(GAME_PHASES.SIMULATION, captureAimSystem)
   registerSystem(GAME_PHASES.SIMULATION, vitalsRegenSystem)
   registerSystem(GAME_PHASES.SIMULATION, movementSystem)
   registerSystem(GAME_PHASES.SIMULATION, dashCooldownSystem)
@@ -189,6 +200,9 @@ export function registerGameSystems() {
   registerSystem(GAME_PHASES.SIMULATION, leechSeedSystem)
   // Idem pra queimadura.
   registerSystem(GAME_PHASES.SIMULATION, burnSystem)
+  // A queimadura de quem está na bola (recolhido/capturado) continua —
+  // docs/features/043-captura.md.
+  registerSystem(GAME_PHASES.SIMULATION, storedConditionSystem)
   // Quem come uma fruta cura aos poucos (docs/features/042-itens-da-beta.md)
   // — depois do dano do tick, antes do desmaio.
   registerSystem(GAME_PHASES.SIMULATION, eatingSystem)
@@ -198,6 +212,9 @@ export function registerGameSystems() {
   // Depois do ataque: um golpe neste tick renova o combate antes de contar.
   registerSystem(GAME_PHASES.SIMULATION, combatModeSystem)
   registerSystem(GAME_PHASES.SIMULATION, projectileSystem)
+  // A Pokébola de captura (docs/features/043-captura.md) — depois do
+  // desmaio (quem desmaiou na bola já está desmaiado ao resolver).
+  registerSystem(GAME_PHASES.SIMULATION, captureBallSystem)
   registerSystem(GAME_PHASES.SIMULATION, consumeEffectSystem)
   registerSystem(GAME_PHASES.SIMULATION, droppedFoodSystem)
   registerSystem(GAME_PHASES.SIMULATION, attackEffectSystem)
@@ -243,6 +260,15 @@ export function registerGameSystems() {
   registerSystem(GAME_PHASES.PRESENTATION, eatingFoodViewSystem)
   // A fruta caída rolando e respingando ao quicar.
   registerSystem(GAME_PHASES.PRESENTATION, droppedFoodViewSystem)
+  // A Pokébola de captura girando, balançando e quebrando (043) — depois
+  // do sync (o grupo de fora já está no lugar).
+  registerSystem(GAME_PHASES.PRESENTATION, captureBallViewSystem)
+  // O arco e o círculo da mira da Pokébola (043, modo 'arc').
+  registerSystem(GAME_PHASES.PRESENTATION, captureAimViewSystem)
+  // A Pokébola do invocar em voo e abrindo, e a da mão no invocar/recolher
+  // (043) — a da mão depois da animação (osso na pose deste frame).
+  registerSystem(GAME_PHASES.PRESENTATION, summonBallViewSystem)
+  registerSystem(GAME_PHASES.PRESENTATION, handBallViewSystem)
   registerSystem(GAME_PHASES.PRESENTATION, tailFireSystem)
   registerSystem(GAME_PHASES.PRESENTATION, audioListenerSystem)
   registerSystem(GAME_PHASES.PRESENTATION, footstepAudioSystem)
@@ -253,6 +279,8 @@ export function registerGameSystems() {
   registerSystem(GAME_PHASES.PRESENTATION, summonAudioSystem)
   registerSystem(GAME_PHASES.PRESENTATION, recallAudioSystem)
   registerSystem(GAME_PHASES.PRESENTATION, attackAudioSystem)
+  // Sons e partículas da Pokébola (043): captura, invocar e recolher.
+  registerSystem(GAME_PHASES.PRESENTATION, pokeballFeedbackSystem)
   // Brilho em quem tomou dano — consome `attackResolved` de
   // `context.frameEvents` (ver `GameLoop.jsx`).
   registerSystem(GAME_PHASES.PRESENTATION, hitFlashSystem)

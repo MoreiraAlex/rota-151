@@ -1,5 +1,6 @@
 import { ITEM_CATEGORY_ORDER, getItem } from '../data/items'
 import { getSpecies } from '../data/species'
+import { GAME_CONFIG } from '../gameConfig'
 import {
   CreatureLevel,
   HeldItem,
@@ -73,6 +74,20 @@ export function findFreeCell(world, trainer, itemPositions = null) {
   let index = 0
   while (taken.has(index)) index++
   return index
+}
+
+/**
+ * Quantas células a grade do inventário tem — o tamanho visual dela
+ * (`GAME_CONFIG.INVENTORY`, colunas × linhas). É o limite do inventário.
+ */
+export function resolveInventoryCapacity() {
+  const { COLUMNS, ROWS } = GAME_CONFIG.INVENTORY
+  return COLUMNS * ROWS
+}
+
+/** Se ainda cabe mais uma coisa na grade do `trainer`. */
+export function hasFreeCell(world, trainer) {
+  return findFreeCell(world, trainer) < resolveInventoryCapacity()
 }
 
 /**
@@ -187,6 +202,8 @@ export function moverNoInventario(world, trainer, entry, toIndex) {
   if (fromIndex == null || fromIndex === toIndex || !(toIndex >= 0)) {
     return false
   }
+  // Fora da grade, não (o limite do inventário).
+  if (toIndex >= resolveInventoryCapacity()) return false
   const occupant = resolveInventoryCells(world, trainer).get(toIndex)
   writeEntryCell(trainer, entry, toIndex)
   if (occupant) writeEntryCell(trainer, occupant, fromIndex)

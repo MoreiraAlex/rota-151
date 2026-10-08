@@ -11,6 +11,8 @@ import {
   computeCameraPosition,
   computeLookAtPoint,
   computeAimRay,
+  computeCameraRight,
+  computeOrbitForward,
   resolveCameraCollision,
 } from './orbitCamera'
 
@@ -129,24 +131,42 @@ describe('computeLookAtPoint', () => {
 describe('computeAimRay', () => {
   const target = { x: 1, y: 2, z: -3 }
 
-  it('origem é o alvo + altura de mira + deslocamento da órbita', () => {
+  it('origem é a câmera renderizada: alvo + altura de mira + órbita + desvio de ombro', () => {
     const orbit = { yaw: 0, pitch: 0, distance: 10 }
-    const { origin } = computeAimRay(target, orbit)
+    const shoulder = 0.4
+    const { origin } = computeAimRay(
+      target,
+      orbit,
+      undefined,
+      undefined,
+      shoulder,
+    )
+    const right = computeCameraRight(orbit.yaw)
 
-    expect(origin.x).toBeCloseTo(target.x)
+    expect(origin.x).toBeCloseTo(target.x + right.x * shoulder)
     expect(origin.y).toBeCloseTo(target.y + GAME_CONFIG.CAMERA.TARGET_HEIGHT)
-    expect(origin.z).toBeCloseTo(target.z + 10)
+    expect(origin.z).toBeCloseTo(target.z + 10 + right.z * shoulder)
   })
 
-  it('direção aponta pro ponto de mira, não pro alvo em si — o desvio de ombro puxa a mira pra fora do personagem', () => {
-    const orbit = { yaw: 0, pitch: 0, distance: 10 }
-    const { direction } = computeAimRay(target, orbit)
-    const { SHOULDER_OFFSET } = GAME_CONFIG.CAMERA
-    const length = Math.hypot(SHOULDER_OFFSET, 10)
-
-    expect(direction.x).toBeCloseTo(SHOULDER_OFFSET / length)
-    expect(direction.y).toBeCloseTo(0)
-    expect(direction.z).toBeCloseTo(-10 / length)
+  it('a direção é a da câmera (o centro da tela), com ou sem desvio de ombro', () => {
+    // Bug da 043: o raio saía sem o desvio e cruzava o centro da tela em
+    // ângulo — a bola ia pro lado do retículo.
+    for (const shoulder of [0, 0.4, 0.75]) {
+      for (const distance of [3, 10, 30]) {
+        const orbit = { yaw: 0.6, pitch: 0.2, distance }
+        const { direction } = computeAimRay(
+          target,
+          orbit,
+          undefined,
+          undefined,
+          shoulder,
+        )
+        const forward = computeOrbitForward(orbit)
+        expect(direction.x).toBeCloseTo(forward.x)
+        expect(direction.y).toBeCloseTo(forward.y)
+        expect(direction.z).toBeCloseTo(forward.z)
+      }
+    }
   })
 
   it('pitch positivo (olhando pra baixo) dá direção com Y negativo', () => {
@@ -183,37 +203,6 @@ describe('computeAimRay', () => {
     // shoulderOffset 0 — sem desvio, mira reto pro alvo (direção puramente
     // no eixo Z, sem componente X).
     expect(direction.x).toBeCloseTo(0)
-  })
-
-  it('quanto maior a distância da câmera, menor o efeito do desvio de ombro (converge pro paralelo à câmera)', () => {
-    // SHOULDER_OFFSET é fixo, mas a origem se afasta com a distância — o
-    // desvio (em ângulo) que ele causa na direção encolhe conforme a
-    // câmera se afasta, ao contrário de antes (v0.0.16 original, sem
-    // ombro), quando a direção não dependia da distância nenhuma.
-    // Fixado aqui (em vez de usar o valor ao vivo de GAME_CONFIG) porque
-    // o teste só faz sentido com um desvio de ombro não-nulo — o valor
-    // "de produção" é ajustável ao vivo pelo painel de configurações e já
-    // chegou a ficar em 0 (sem desvio nenhum), o que quebraria esta
-    // asserção por motivo nenhum ligado à própria fórmula testada.
-    const original = GAME_CONFIG.CAMERA.SHOULDER_OFFSET
-    GAME_CONFIG.CAMERA.SHOULDER_OFFSET = 0.4
-
-    try {
-      const near = computeAimRay(target, {
-        yaw: 0,
-        pitch: 0,
-        distance: 5,
-      }).direction
-      const far = computeAimRay(target, {
-        yaw: 0,
-        pitch: 0,
-        distance: 50,
-      }).direction
-
-      expect(Math.abs(far.x)).toBeLessThan(Math.abs(near.x))
-    } finally {
-      GAME_CONFIG.CAMERA.SHOULDER_OFFSET = original
-    }
   })
 })
 

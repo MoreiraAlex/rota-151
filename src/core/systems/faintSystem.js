@@ -2,6 +2,7 @@ import { acordar, desmaiar, resolveReviveHp } from '../actions/faint'
 import { distribuirExperiencia } from '../actions/experience'
 import { creatureFainted } from '../events'
 import {
+  BeingCaptured,
   Fainted,
   StoredFaint,
   StoredVitals,
@@ -52,6 +53,9 @@ export function faintSystem(context) {
 
   const waking = []
   world.query(Fainted).updateEach(([fainted], entity) => {
+    // Dentro de uma Pokébola (docs/features/043-captura.md) não acorda: o
+    // escape acorda ele (`selvagemEscapou`).
+    if (entity.has(BeingCaptured)) return
     fainted.timeLeft -= delta
     fainted.elapsed += delta
     if (fainted.timeLeft <= 0) waking.push(entity)

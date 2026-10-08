@@ -2,10 +2,11 @@ import { DEFAULT_POKEBALL_ID } from '../data/items'
 import { getSpecies } from '../data/species'
 import { rollIndividualValues } from '../data/species/stats'
 import { createLevelState } from '../data/species/experience'
-import { createMovesState } from '../data/species/moves'
+import { cloneMovesState, createMovesState } from '../data/species/moves'
 import { GAME_CONFIG } from '../gameConfig'
 import { gameplayRng } from '../rng'
 import {
+  BallOnGround,
   CreatureLevel,
   CreatureMoves,
   IndividualValues,
@@ -19,7 +20,11 @@ import {
   SummonedCreature,
   SummonedFrom,
 } from '../traits'
-import { findFreeCell, resolveInventoryCells } from './inventory'
+import {
+  findFreeCell,
+  resolveInventoryCapacity,
+  resolveInventoryCells,
+} from './inventory'
 
 /**
  * Registro de cada Pokémon e o time (docs/features/041-inventario-de-itens-e-
@@ -34,30 +39,45 @@ import { findFreeCell, resolveInventoryCells } from './inventory'
  * da espécie, kit de golpes da espécie, vida cheia. Nasce no inventário, na
  * primeira célula livre. `ballId` é a Pokébola em que foi capturado (sem
  * ela, a comum — ver `Pokemon.ballId`); `rng` sorteia o IV.
+ *
+ * Um Pokémon que já existia (o selvagem capturado, docs/features/043-
+ * captura.md) passa o próprio estado em vez de sortear: `individualValues`,
+ * `levelState` (`{ level, xp }`) e `moves` (copiado aqui).
  * Devolve o registro, ou `null` pra espécie desconhecida.
  */
 export function criarPokemon(
   world,
   trainer,
   speciesId,
-  { ballId = null, rng = gameplayRng } = {},
+  {
+    ballId = null,
+    rng = gameplayRng,
+    individualValues = null,
+    levelState = null,
+    moves = null,
+  } = {},
 ) {
   const species = getSpecies(speciesId)
   if (!species) return null
 
-  const individualValues =
-    species.stats?.hp?.base != null
+  const ivs =
+    individualValues ??
+    (species.stats?.hp?.base != null
       ? rollIndividualValues(rng, {
           min: GAME_CONFIG.BATTLE.IV_MIN,
           max: GAME_CONFIG.BATTLE.IV_MAX,
         })
-      : {}
+      : {})
 
   return world.spawn(
     Pokemon({ speciesId, ballId }),
-    IndividualValues(individualValues),
-    CreatureLevel(createLevelState(species, species.level ?? 1)),
-    CreatureMoves(createMovesState(species)),
+    IndividualValues({ ...ivs }),
+    CreatureLevel(
+      levelState
+        ? { ...levelState }
+        : createLevelState(species, species.level ?? 1),
+    ),
+    CreatureMoves(moves ? cloneMovesState(moves) : createMovesState(species)),
     StoredVitals,
     OwnedBy(trainer),
     InventoryCell({ index: findFreeCell(world, trainer) }),
@@ -88,11 +108,21 @@ export function listOwnedPokemon(world, trainer) {
   return world.query(Pokemon, OwnedBy(trainer)).filter((e) => e.isAlive())
 }
 
-/** Os Pokémon do `trainer` que estão no inventário (fora do time). */
+/**
+ * Os Pokémon do `trainer` que estão no inventário (fora do time). A bola
+ * caída no chão (`BallOnGround`, inventário cheio na captura) não conta.
+ */
 export function listInventoryPokemon(world, trainer) {
   return listOwnedPokemon(world, trainer).filter(
-    (pokemon) => resolvePartySlot(trainer, pokemon) == null,
+    (pokemon) =>
+      !pokemon.has(BallOnGround) && resolvePartySlot(trainer, pokemon) == null,
   )
+}
+
+/** O primeiro slot vazio do time do `trainer`, ou `null`. */
+export function findFreePartySlot(trainer) {
+  if (!trainer?.isAlive?.()) return null
+  return PARTY_SLOT_IDS.find((slot) => !findPartyPokemon(trainer, slot)) ?? null
 }
 
 /**
@@ -128,7 +158,9 @@ export function colocarNoTime(trainer, pokemon, slot) {
 /**
  * Tira o `pokemon` do time e põe no inventário — na célula `index`, se
  * dada e livre, ou na primeira livre. Se na `index` tem outro Pokémon, os
- * dois trocam de lugar (o outro entra no slot). Devolve se mudou.
+ * dois trocam de lugar (o outro entra no slot). Com o inventário cheio (o
+ * tamanho da grade, `resolveInventoryCapacity`), só a troca vale. Devolve se
+ * mudou.
  */
 export function tirarDoTime(world, trainer, pokemon, index = null) {
   const slot = resolvePartySlot(trainer, pokemon)
@@ -140,8 +172,9 @@ export function tirarDoTime(world, trainer, pokemon, index = null) {
     return colocarNoTime(trainer, occupant.pokemon, slot)
   }
 
-  trainer.remove(PartySlots[slot](pokemon))
   const cell = index != null && !occupant ? index : findFreeCell(world, trainer)
+  if (cell >= resolveInventoryCapacity()) return false
+  trainer.remove(PartySlots[slot](pokemon))
   pokemon.add(InventoryCell({ index: cell }))
   return true
 }

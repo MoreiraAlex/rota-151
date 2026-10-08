@@ -2,6 +2,7 @@ import { computeAimRay } from './camera/orbitCamera'
 import { castRay } from './physics/raycast'
 import { wrapAngle } from './math'
 import { getPlayerSpecies } from './data/species'
+import { GAME_CONFIG } from './gameConfig'
 import { OrbitCamera } from './traits'
 
 /**
@@ -100,15 +101,28 @@ export function resolveAimDirection(
   ).direction
 }
 
-export function resolveAimPoint(world, playerPos, excludeColliderHandle) {
+export function resolveAimPoint(
+  world,
+  playerPos,
+  excludeColliderHandle,
+  { captureAim = false, range } = {},
+) {
   const cameraRig = world.queryFirst(OrbitCamera)
   const playerSpecies = getPlayerSpecies()
-  const { aimRange } = playerSpecies.actions.throw
+  const aimRange = range ?? playerSpecies.actions.throw.aimRange
   if (!cameraRig) {
     return { x: playerPos.x, y: playerPos.y, z: playerPos.z + aimRange }
   }
 
-  const orbit = cameraRig.get(OrbitCamera)
+  // Mirando a Pokébola, a câmera está no enquadramento da mira
+  // (`resolveCaptureAimFraming`) — o raio tem que sair dele.
+  const framing = captureAim
+    ? resolveCaptureAimFraming(
+        cameraRig.get(OrbitCamera),
+        playerSpecies.camera?.shoulderOffset,
+      )
+    : null
+  const orbit = framing?.orbit ?? cameraRig.get(OrbitCamera)
   // Mira é exclusiva do treinador (ver docstring acima) — resolve a
   // ALTURA/desvio de ombro pela espécie FIXA do jogador
   // (`playerSpecies.camera`, com fallback pro default global em
@@ -118,7 +132,7 @@ export function resolveAimPoint(world, playerPos, excludeColliderHandle) {
     orbit,
     excludeColliderHandle,
     playerSpecies.camera?.targetHeight,
-    playerSpecies.camera?.shoulderOffset,
+    framing?.shoulderOffset ?? playerSpecies.camera?.shoulderOffset,
   )
 
   const hit = castRay(origin, direction, aimRange, { excludeColliderHandle })
@@ -166,5 +180,68 @@ export function resolveHandOrigin(pos, rotY, config) {
     x: pos.x + forwardX * handForwardOffset + rightX * handSideOffset,
     y: pos.y + handHeightOffset,
     z: pos.z + forwardZ * handForwardOffset + rightZ * handSideOffset,
+  }
+}
+
+/**
+ * Velocidade de lançamento em ARCO (com gravidade) pra sair de `origin` e
+ * passar por `target` com módulo `speed` — o arremesso da Pokébola, como no
+ * Legends Arceus (docs/features/043-captura.md). Escolhe o ângulo mais baixo
+ * dos dois que acertam (trajetória mais direta). `gravity` é negativa
+ * (m/s², eixo Y).
+ *
+ * Fora do alcance (nenhum ângulo chega), sai no ângulo de alcance máximo na
+ * direção do alvo. Alvo bem em cima/embaixo (sem distância no plano): reto
+ * na direção dele.
+ */
+export function resolveArcLaunch(origin, target, speed, gravity) {
+  const dx = target.x - origin.x
+  const dy = target.y - origin.y
+  const dz = target.z - origin.z
+  const horizontal = Math.hypot(dx, dz)
+  const g = -gravity
+
+  if (horizontal < 1e-6 || g <= 0) {
+    const distance = Math.hypot(dx, dy, dz)
+    if (distance === 0) return { x: 0, y: 0, z: speed }
+    return {
+      x: (dx / distance) * speed,
+      y: (dy / distance) * speed,
+      z: (dz / distance) * speed,
+    }
+  }
+
+  const v2 = speed * speed
+  const discriminant = v2 * v2 - g * (g * horizontal * horizontal + 2 * dy * v2)
+  const angle =
+    discriminant >= 0
+      ? Math.atan((v2 - Math.sqrt(discriminant)) / (g * horizontal))
+      : Math.PI / 4
+
+  const horizontalSpeed = Math.cos(angle) * speed
+  return {
+    x: (dx / horizontal) * horizontalSpeed,
+    y: Math.sin(angle) * speed,
+    z: (dz / horizontal) * horizontalSpeed,
+  }
+}
+
+/**
+ * Enquadramento da câmera mirando a Pokébola (docs/features/043-captura.md):
+ * a órbita chega até `CAPTURE.AIM.CAMERA_DISTANCE` (se já estiver mais perto,
+ * fica) e o desvio de ombro vira `CAPTURE.AIM.SHOULDER_OFFSET`. `blend` (0–1)
+ * mistura com o enquadramento normal — a view suaviza a entrada/saída; a
+ * mira (`resolveAimPoint`) usa o enquadramento cheio.
+ */
+export function resolveCaptureAimFraming(orbit, shoulderOffset, blend = 1) {
+  const { CAMERA_DISTANCE, SHOULDER_OFFSET } = GAME_CONFIG.CAPTURE.AIM
+  const normalShoulder = shoulderOffset ?? GAME_CONFIG.CAMERA.SHOULDER_OFFSET
+  const aimDistance = Math.min(orbit.distance, CAMERA_DISTANCE)
+  return {
+    orbit: {
+      ...orbit,
+      distance: orbit.distance + (aimDistance - orbit.distance) * blend,
+    },
+    shoulderOffset: normalShoulder + (SHOULDER_OFFSET - normalShoulder) * blend,
   }
 }

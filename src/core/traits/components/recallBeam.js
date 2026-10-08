@@ -21,6 +21,10 @@ import { trait } from 'koota'
  * instante em que o feixe chega nela (não dá pra usar o formato de
  * verdade da criatura — genérico, mas do TAMANHO dela, ver a view).
  *
+ * `mode` (docs/features/043-captura.md): `'recall'` — a luz entrando na bola
+ * (recolher); `'capture'` — o mesmo, puxando o selvagem pra Pokébola de
+ * captura; `'sendOut'` — saindo dela (invocar). `itemId`: a Pokébola, pra cor do feixe (`pokeball.beamColor`).
+ *
  * Dono de escrita: `partySummonSystem` (spawna, no `effectAt` da ação
  * `'recall'` — bem onde a `SummonedCreature` estava, um instante antes de
  * `applyRecall` destruí-la); `summonEffectsSystem` (conta `lifetime` pra
@@ -32,4 +36,6 @@ export const RecallBeam = trait({
   fromY: 0,
   fromZ: 0,
   speciesId: null,
+  mode: 'recall',
+  itemId: null,
 })

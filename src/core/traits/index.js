@@ -71,9 +71,19 @@ export {
   InventoryCell,
 } from './components/pokemon'
 export { SummonBall } from './components/summonBall'
-export { SummonFlash } from './components/summonFlash'
+export { SummonFlash, SummonBallOpen } from './components/summonFlash'
 export { RecallBeam } from './components/recallBeam'
 export { WildCreature } from './components/wildCreature'
+export {
+  CaptureBall,
+  CaptureTarget,
+  BeingCaptured,
+  StoredConditions,
+  BallOnGround,
+  CaptureAim,
+  CaptureAimStatus,
+  CaptureAimTarget,
+} from './components/capture'
 export { WildBehavior, WantsToAttack, Threat } from './components/wildBehavior'
 export { PartyBehavior } from './components/partyBehavior'
 export { AiMovement } from './components/aiMovement'

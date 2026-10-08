@@ -2,9 +2,10 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { createWorld } from 'koota'
 import { registrarAmeaca } from '../actions/wildBehavior'
 import { GAME_CONFIG } from '../gameConfig'
-import { Position, Vitals } from '../traits'
+import { BeingCaptured, Position, Vitals } from '../traits'
 import {
   findWeakest,
+  isActiveCombatant,
   resolveFinishWeight,
   resolveWildTarget,
 } from './combatTargets'
@@ -27,6 +28,16 @@ function setup() {
   const candidate = (entity) => ({ entity, pos: entity.get(Position) })
   return { world, spawn, candidate }
 }
+
+describe('isActiveCombatant — dentro da Pokébola (043)', () => {
+  it('quem está sendo capturado sai da luta', () => {
+    const { spawn } = setup()
+    const wild = spawn(0)
+    expect(isActiveCombatant(wild)).toBe(true)
+    wild.add(BeingCaptured)
+    expect(isActiveCombatant(wild)).toBe(false)
+  })
+})
 
 describe('resolveFinishWeight — alvo quase desmaiando', () => {
   it('bônus com a vida no limite ou abaixo; 1 acima ou sem vida', () => {

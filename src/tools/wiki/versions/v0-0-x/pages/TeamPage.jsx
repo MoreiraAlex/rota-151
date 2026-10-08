@@ -31,14 +31,15 @@ export function TeamPage({ data, version }) {
       <Section id="invocar" title="Invocar e recolher">
         <ul>
           <li>
-            <strong>Invocar</strong>: o treinador arremessa a bola pra onde está
-            olhando. A criatura sai onde a bola cair — ao bater em algo no
-            caminho, ou no ponto mais longe que ela alcança. Ao sair, a criatura
-            faz uma pose de apresentação e só depois se mexe.
+            <strong>Invocar</strong>: o treinador arremessa a bola da criatura
+            (a mesma em que ela foi capturada) pra onde está olhando. A bola
+            abre e um feixe de luz solta a criatura onde ela cair — ao bater em
+            algo no caminho, ou no ponto mais longe que ela alcança. Ao sair, a
+            criatura faz uma pose de apresentação e só depois se mexe.
           </li>
           <li>
-            <strong>Recolher</strong>: um feixe de luz puxa a criatura de volta
-            pra bola.
+            <strong>Recolher</strong>: o treinador abre a bola na mão e um feixe
+            de luz puxa a criatura de volta pra ela.
           </li>
           <li>
             Uma criatura que sai do time, ou é trocada por outra, enquanto está
@@ -94,7 +95,9 @@ export function TeamPage({ data, version }) {
             Vida e energia
           </WikiLink>
           ). Desmaiada, não se recupera, mas o tempo pra acordar continua
-          correndo.
+          correndo. As <strong>condições de status</strong> também continuam
+          dentro da bola, pelo tempo que faltava — e podem fazê-la desmaiar lá
+          dentro.
         </p>
         <p>
           O nível e a experiência também ficam guardados: a criatura sai da bola

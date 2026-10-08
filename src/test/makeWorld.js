@@ -24,6 +24,8 @@ import {
   SlotHold,
   PathState,
   ScanMode,
+  CaptureAim,
+  CaptureAimStatus,
   PokedexEntries,
   ScanHistory,
   OwnedBy,
@@ -73,6 +75,8 @@ export function spawnTrainer(
     TrainerBehavior,
     PathState,
     ScanMode,
+    CaptureAim,
+    CaptureAimStatus,
     PokedexEntries,
     ScanHistory,
   )

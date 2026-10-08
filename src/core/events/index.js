@@ -15,6 +15,11 @@ export const EVENT_TYPES = {
   MOVE_UNLOCKED: 'moveUnlocked',
   MOVE_READY_TO_LEARN: 'moveReadyToLearn',
   MOVE_LEARNED: 'moveLearned',
+  CAPTURE_STARTED: 'captureStarted',
+  CAPTURE_SHOOK: 'captureShook',
+  POKEMON_CAPTURED: 'pokemonCaptured',
+  CAPTURE_ESCAPED: 'captureEscaped',
+  CAPTURE_BALL_BROKE: 'captureBallBroke',
 }
 
 /**
@@ -417,5 +422,98 @@ export function burnDamaged({ target, source, damage }) {
     target,
     source: source ?? null,
     damage,
+  }
+}
+
+/**
+ * A Pokébola acertou um selvagem e ele entrou nela (o estado — `BeingCaptured`
+ * nele, `CaptureTarget` na bola — já foi aplicado).
+ *
+ * - Quem emite: `comecarCaptura` (`core/actions/capture.js`).
+ * - Quem consome: `view/systems/damageNumberSystem.js` ("Pelas costas!") e a
+ *   view da bola (luz). Drenado uma vez por frame; sem consumidor, some.
+ *
+ * @returns {{ type: 'captureStarted', ball: import('koota').Entity, wild: import('koota').Entity, trainer: import('koota').Entity | null, backStrike: boolean }}
+ */
+export function captureStarted({ ball, wild, trainer, backStrike }) {
+  return {
+    type: EVENT_TYPES.CAPTURE_STARTED,
+    ball,
+    wild,
+    trainer: trainer ?? null,
+    backStrike: !!backStrike,
+  }
+}
+
+/**
+ * A bola balançou (uma balançada que passou no teste).
+ *
+ * - Quem emite: `captureBallSystem.js`.
+ * - Quem consome: a view/som da bola. Sem consumidor, some.
+ *
+ * @returns {{ type: 'captureShook', ball: import('koota').Entity, shake: number }}
+ */
+export function captureShook({ ball, shake }) {
+  return { type: EVENT_TYPES.CAPTURE_SHOOK, ball, shake }
+}
+
+/**
+ * Um selvagem foi capturado (o registro já existe e está no destino; o
+ * selvagem já foi destruído).
+ *
+ * - Quem emite: `capturarSelvagem` (`core/actions/capture.js`).
+ * - Quem consome: `view/systems/battleLogSystem.js` e
+ *   `view/systems/damageNumberSystem.js` ("Capturado!" no ponto da bola).
+ *
+ * @returns {{ type: 'pokemonCaptured', trainer: import('koota').Entity | null, pokemon: import('koota').Entity, speciesId: string, destination: 'party' | 'inventory' | 'ground', position: {x:number,y:number,z:number} }}
+ */
+export function pokemonCaptured({
+  trainer,
+  pokemon,
+  speciesId,
+  destination,
+  position,
+}) {
+  return {
+    type: EVENT_TYPES.POKEMON_CAPTURED,
+    trainer: trainer ?? null,
+    pokemon,
+    speciesId,
+    destination,
+    position,
+  }
+}
+
+/**
+ * O selvagem escapou da bola (já está de volta na cena, brigando ou fugindo).
+ *
+ * - Quem emite: `selvagemEscapou` (`core/actions/capture.js`).
+ * - Quem consome: `view/systems/battleLogSystem.js` e
+ *   `view/systems/damageNumberSystem.js` ("Escapou!").
+ *
+ * @returns {{ type: 'captureEscaped', wild: import('koota').Entity, speciesId: string | null, reaction: 'fight' | 'flee' }}
+ */
+export function captureEscaped({ wild, speciesId, reaction }) {
+  return {
+    type: EVENT_TYPES.CAPTURE_ESCAPED,
+    wild,
+    speciesId: speciesId ?? null,
+    reaction,
+  }
+}
+
+/**
+ * Uma bola que errou quebrou e sumiu (só visual).
+ *
+ * - Quem emite: `captureBallSystem.js`.
+ * - Quem consome: a view (pedaços, som). Sem consumidor, some.
+ *
+ * @returns {{ type: 'captureBallBroke', itemId: string | null, position: {x:number,y:number,z:number} }}
+ */
+export function captureBallBroke({ itemId, position }) {
+  return {
+    type: EVENT_TYPES.CAPTURE_BALL_BROKE,
+    itemId: itemId ?? null,
+    position,
   }
 }

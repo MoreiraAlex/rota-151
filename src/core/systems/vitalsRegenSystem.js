@@ -1,4 +1,10 @@
-import { Fainted, StoredFaint, StoredVitals, Vitals } from '../traits'
+import {
+  BeingCaptured,
+  Fainted,
+  StoredFaint,
+  StoredVitals,
+  Vitals,
+} from '../traits'
 
 /**
  * Um tick de regeneração num objeto com os campos de `Vitals` (muta ele):
@@ -57,8 +63,9 @@ export function vitalsRegenSystem(context) {
   const { world, delta } = context
 
   world.query(Vitals).updateEach(([vitals], entity) => {
-    // Desmaiada não regenera nada (acorda com HP fixo, ver `acordar`).
-    if (entity.has(Fainted)) return
+    // Desmaiada não regenera nada (acorda com HP fixo, ver `acordar`); dentro
+    // de uma Pokébola sendo capturada também não (docs/features/043-captura.md).
+    if (entity.has(Fainted) || entity.has(BeingCaptured)) return
     regenerateVitals(vitals, delta)
   })
 

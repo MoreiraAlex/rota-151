@@ -3,7 +3,11 @@ import { castRay } from '../physics/raycast'
 import { getSpecies, getPlayerSpecies } from '../data/species'
 import { createLevelState } from '../data/species/experience'
 import { cloneMovesState, createMovesState } from '../data/species/moves'
-import { findPartyPokemon, resolvePokemonOf } from '../actions/pokemon'
+import {
+  findPartyPokemon,
+  resolvePokemonBallId,
+  resolvePokemonOf,
+} from '../actions/pokemon'
 import { isPhysicsReady } from '../physics/physicsWorld'
 import { createCharacterBody, verticalClearance } from '../physics/colliders'
 import {
@@ -32,6 +36,8 @@ import {
   SummonedCreature,
   SummonedFrom,
   SummonFlash,
+  SummonBallOpen,
+  RecallBeam,
   SummonPulse,
   Velocity,
   Vitals,
@@ -39,6 +45,7 @@ import {
 } from '../traits'
 import { resolveAppealActionState } from './creatureAppealSystem'
 import { resolveOwner } from '../actions/owner'
+import { devolverCondicoes } from '../actions/conditions'
 
 /**
  * Spawna a `SummonedCreature` de verdade (mesma composição de traits que
@@ -143,6 +150,9 @@ function spawnCreature(
     })
     pokemon.set(StoredVitals, { vitals: null })
   }
+  // As condições que continuaram na bola voltam com o tempo que falta
+  // (docs/features/043-captura.md).
+  devolverCondicoes(pokemon, creature)
 }
 
 /**
@@ -195,6 +205,36 @@ function resolveBall(world, trainer, ballEntity, ball, pos, touchedSurface) {
     Position(spawnPosition),
     Rotation,
     SummonFlash({ lifetime: flashDuration }),
+  )
+  // A bola do Pokémon abrindo em cima de onde ele nasceu (docs/features/
+  // 043-captura.md) — só visual.
+  const { ABOVE_HEAD, OPEN_DURATION, VANISH_DURATION } = GAME_CONFIG.SUMMON_BALL
+  // `spawnPosition` é o centro da criatura (pousando ou parada no ar).
+  const headY = spawnPosition.y + verticalClearance(species.body)
+  const ballId = resolvePokemonBallId(pokemon)
+  const ballY = headY + ABOVE_HEAD
+  world.spawn(
+    Position({ x: spawnPosition.x, y: ballY, z: spawnPosition.z }),
+    Rotation,
+    SummonBallOpen({
+      itemId: ballId,
+      duration: OPEN_DURATION + VANISH_DURATION,
+    }),
+  )
+  // O feixe saindo da bola até a criatura (o mesmo do recolher, ao
+  // contrário — docs/features/043-captura.md).
+  world.spawn(
+    Position(spawnPosition),
+    Rotation,
+    RecallBeam({
+      lifetime: GAME_CONFIG.SUMMON_BALL.BEAM_DURATION,
+      fromX: spawnPosition.x,
+      fromY: ballY,
+      fromZ: spawnPosition.z,
+      speciesId: ball.speciesId,
+      mode: 'sendOut',
+      itemId: ballId,
+    }),
   )
   trainer?.add(SummonPulse)
 }

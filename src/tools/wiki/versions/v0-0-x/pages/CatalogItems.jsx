@@ -1,6 +1,5 @@
 import { Section } from '@/tools/wiki/components/Article'
 import { DataTable } from '@/tools/wiki/components/DataTable'
-import { Notice } from '@/tools/wiki/components/Notice'
 import { SpeciesSprite } from '@/tools/wiki/components/SpeciesSprite'
 import { WikiLink } from '@/tools/wiki/components/WikiLink'
 import { formatNumber, formatSeconds } from '@/tools/wiki/wikiFormat'
@@ -56,13 +55,14 @@ export function ItemsPage({ data, version }) {
           As Pokébolas servem pra capturar criaturas selvagens. Quanto maior a
           chance de captura, mais fácil a criatura fica na bola.
         </p>
-        <Notice tone="soon">
-          <p>
-            A captura ainda não está no jogo: por enquanto as Pokébolas só
-            aparecem no inventário. Cada criatura do time aparece no inventário
-            com a Pokébola em que foi capturada — as iniciais, com a Poké Bola.
-          </p>
-        </Notice>
+        <p>
+          Como mirar, arremessar e a chance de cada bola:{' '}
+          <WikiLink version={version} to="selvagens/captura">
+            Captura
+          </WikiLink>
+          . Cada criatura aparece no inventário e no time com a Pokébola em que
+          foi capturada — as iniciais, com a Poké Bola — e sai e volta nela.
+        </p>
         <DataTable
           head={['Pokébola', 'Chance de captura', 'Descrição']}
           align={[null, 'right', null]}

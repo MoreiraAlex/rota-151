@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { setEatStage } from './itemEatStages'
+import { rigLikeSource } from './itemRig'
 
 /**
  * Monta a instância do modelo de um item a partir da cena do `.glb` (ver
@@ -9,11 +10,23 @@ import { setEatStage } from './itemEatStages'
  * (`eatStages[0]`), ou o modelo inteiro. `align: 'bottom'` levanta o pivô
  * pra base do modelo ficar na origem.
  *
- * Devolve `{ root, pivot, materials, stages }`: `root` vai na cena; `pivot`
- * é onde girar/apertar (o centro do corpo); `stages`, os pedaços da fruta.
+ * Com `rigSource` (a cena do `.glb` de `config.clipsFrom`), monta antes o
+ * esqueleto de nós da origem em volta das peças (`rigLikeSource`,
+ * `itemRig.js`) pra tocar os clipes dela.
+ *
+ * Devolve `{ root, pivot, materials, stages, rigScale }`: `root` vai na
+ * cena; `pivot` é onde girar/apertar (o centro do corpo); `stages`, os
+ * pedaços da fruta; `rigScale`, a razão de tamanho pros clipes da origem
+ * (1 sem ela).
  */
-export function buildItemModel(scene, config, align) {
-  const clone = scene.clone(true)
+export function buildItemModel(scene, config, align, rigSource = null) {
+  let clone = scene.clone(true)
+  let rigScale = 1
+  if (rigSource) {
+    const rigged = rigLikeSource(clone, rigSource, config.rig)
+    clone = rigged.object
+    rigScale = rigged.scale
+  }
   const materials = []
   clone.traverse((child) => {
     if (!child.isMesh) return
@@ -50,5 +63,5 @@ export function buildItemModel(scene, config, align) {
 
   setEatStage(stages, 0)
 
-  return { root, pivot, materials, stages }
+  return { root, pivot, materials, stages, rigScale }
 }

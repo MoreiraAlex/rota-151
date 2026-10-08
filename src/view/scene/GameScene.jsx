@@ -3,7 +3,13 @@ import { TEST_LEVEL } from '@/core/data/testLevel'
 import { AmbientAudio } from '@/view/audio/AmbientAudio'
 import { PlayerView } from './PlayerView'
 import { ProjectilesView } from './ProjectileView'
-import { SummonBallsView } from './SummonBallView'
+import { SummonBallOpensView, SummonBallsView } from './SummonBallView'
+import { CaptureBallsView, GroundBallsView } from './CaptureBallView'
+import { CaptureAimView } from './CaptureAimView'
+import { HeldItemView } from './HeldItemView'
+import { HandBallView } from './HandBallView'
+import { WorldSoundsView } from '../audio/WorldSoundsView'
+import { PokeballVfxView } from './PokeballVfxView'
 import { SummonFlashesView } from './SummonFlashView'
 import { RecallBeamsView } from './RecallBeamView'
 import { ConsumeEffectsView } from './ConsumeEffectView'
@@ -113,6 +119,14 @@ export function GameScene({ children }) {
       <PlayerView />
       <ProjectilesView />
       <SummonBallsView />
+      <SummonBallOpensView />
+      <CaptureBallsView />
+      <CaptureAimView />
+      <HeldItemView />
+      <HandBallView />
+      <WorldSoundsView />
+      <PokeballVfxView />
+      <GroundBallsView />
       <SummonFlashesView />
       <RecallBeamsView />
       <ConsumeEffectsView />

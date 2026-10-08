@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useRef, useLayoutEffect } from 'react'
 import { useQuery } from 'koota/react'
 import { AttackEffect, Position, Rotation } from '@/core/traits'
 import { registerView, unregisterView } from '../registry/viewRegistry'
@@ -40,7 +40,7 @@ export function AttackEffectView({
 }) {
   const groupRef = useRef()
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     registerView(entity, groupRef.current)
     return () => unregisterView(entity)
   }, [entity])

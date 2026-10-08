@@ -20,6 +20,13 @@ import {
   stageMultiplier,
 } from '@/core/battle/statStages'
 import { DEFAULT_ACCURACY } from '@/core/battle/accuracy'
+import {
+  resolveBallMultiplier,
+  resolveCaptureChance,
+  resolveCaptureValue,
+  resolveShakeChance,
+  resolveSpeciesCaptureRate,
+} from '@/core/battle/capture'
 import { resolveLevelCost } from '@/core/battle/levelCost'
 import { resolveTrainingHours } from '@/core/battle/actionCost'
 import { resolveRetaliateChance } from '@/core/battle/wildBehavior'
@@ -71,7 +78,11 @@ import {
   resolveAttackCategory,
   resolveSkillSummary,
 } from './skillEntry'
-import { describeEffect, formatName } from './wikiFormat'
+import {
+  describeEffect,
+  formatName,
+  resolveConditionCaptureBonus,
+} from './wikiFormat'
 
 /**
  * O "retrato" de números da wiki: TUDO que as páginas mostram, num objeto
@@ -400,6 +411,7 @@ function buildBurn() {
       duration: burn.duration ?? 0,
       attackMultiplier: burn.attackMultiplier ?? 1,
       immuneTypes: burn.immuneTypes ?? [],
+      captureBonus: resolveConditionCaptureBonus('burn'),
     }
   }
   return null
@@ -436,6 +448,98 @@ function buildDamageExamples(speciesList) {
     }
   }
   return { defenderName: formatName(defender.id), iv: middleIv(), rows }
+}
+
+// Vida (fração) das linhas da tabela de chance de captura; 0 = desmaiada.
+const CAPTURE_EXAMPLE_HP = [1, 0.5, 0.2, 0]
+
+/**
+ * Captura (docs/features/043-captura.md): as regras e uma tabela de chance
+ * por vida e por bola, pela mesma conta do jogo (`core/battle/capture.js`),
+ * pra uma espécie de taxa comum (`CAPTURE.DEFAULT_RATE`); e a taxa de cada
+ * espécie.
+ */
+function buildCapture() {
+  const { CAPTURE } = GAME_CONFIG
+  const balls = listItems().filter((item) => item.category === 'pokeball')
+  const chance = (hp, ballMultiplier, rate) =>
+    resolveCaptureChance(
+      resolveShakeChance(
+        resolveCaptureValue({ hp, maxHp: 1, rate, ballMultiplier }),
+      ),
+      CAPTURE.SHAKE_COUNT,
+    )
+  return {
+    shakeCount: CAPTURE.SHAKE_COUNT,
+    defaultRate: CAPTURE.DEFAULT_RATE,
+    maxRate: CAPTURE.MAX_CAPTURE_VALUE,
+    backStrikeBonus: CAPTURE.BACK_STRIKE_BONUS,
+    xpFraction: CAPTURE.XP_FRACTION,
+    escapeWakeFraction: CAPTURE.ESCAPE_WAKE_HP_FRACTION,
+    escapeFightHostile: CAPTURE.ESCAPE_FIGHT_CHANCE.hostile ?? 0,
+    escapeFightPeaceful: CAPTURE.ESCAPE_FIGHT_CHANCE.peaceful ?? 0,
+    balls: balls.map((item) => ({
+      id: item.id,
+      name: item.name ?? formatName(item.id),
+    })),
+    rows: CAPTURE_EXAMPLE_HP.map((hp) => ({
+      hp,
+      chances: balls.map((item) =>
+        chance(hp, resolveBallMultiplier(item), CAPTURE.DEFAULT_RATE),
+      ),
+    })),
+    speciesRates: listWikiSpecies().map((species) => ({
+      id: species.id,
+      name: formatName(species.id),
+      rate: resolveSpeciesCaptureRate(species),
+    })),
+    example: buildCaptureExample(balls),
+  }
+}
+
+/**
+ * O exemplo resolvido da página de captura: a primeira espécie da Pokédex,
+ * com a vida máxima dela no nível inicial (IV do meio), de vida cheia e com a
+ * bola mais fraca; e, pra comparar, a mesma de vida pela metade com a bola
+ * mais forte. Cada passo da conta (valor → chance por balançada → total).
+ */
+function buildCaptureExample(balls) {
+  const species = listWikiSpecies()[0]
+  if (!species || balls.length === 0) return null
+  const { SHAKE_COUNT } = GAME_CONFIG.CAPTURE
+  const maxHp =
+    resolveCreatureStats(species, uniformIndividualValues(middleIv()))?.hp
+      ?.stat ?? 0
+  const rate = resolveSpeciesCaptureRate(species)
+  const sorted = [...balls].sort(
+    (a, b) => resolveBallMultiplier(a) - resolveBallMultiplier(b),
+  )
+  const scenario = (hp, ball) => {
+    const multiplier = resolveBallMultiplier(ball)
+    const value = resolveCaptureValue({
+      hp,
+      maxHp,
+      rate,
+      ballMultiplier: multiplier,
+    })
+    const shakeChance = resolveShakeChance(value)
+    return {
+      hp,
+      ballName: ball.name ?? formatName(ball.id),
+      multiplier,
+      value,
+      shakeChance,
+      total: resolveCaptureChance(shakeChance, SHAKE_COUNT),
+    }
+  }
+  return {
+    speciesName: formatName(species.id),
+    level: species.level ?? 1,
+    maxHp,
+    rate,
+    base: scenario(maxHp, sorted[0]),
+    better: scenario(Math.round(maxHp / 2), sorted[sorted.length - 1]),
+  }
 }
 
 export function buildWikiData() {
@@ -516,6 +620,11 @@ export function buildWikiData() {
       minutes: FAINT.DURATION_MINUTES,
       reviveFraction: FAINT.REVIVE_HP_FRACTION,
       recallDelay: FAINT.PARTY_RECALL_DELAY,
+    },
+    capture: buildCapture(),
+    inventory: {
+      columns: GAME_CONFIG.INVENTORY.COLUMNS,
+      rows: GAME_CONFIG.INVENTORY.ROWS,
     },
     wild: {
       hostileChance: WILD_BEHAVIOR.DEFAULT_HOSTILE_CHANCE,

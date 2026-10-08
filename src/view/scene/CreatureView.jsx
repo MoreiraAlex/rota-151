@@ -1,7 +1,9 @@
 import { useEffect } from 'react'
+import { Not } from 'koota'
 import { useQuery } from 'koota/react'
 import { getSpecies } from '@/core/data/species'
 import {
+  BeingCaptured,
   SummonedCreature,
   WildCreature,
   Position,
@@ -78,7 +80,13 @@ export function CreaturesView() {
  * mesmo jeito se isso mudar no futuro.
  */
 export function WildCreaturesView() {
-  const creatures = useQuery(WildCreature, Position, Rotation)
+  // Dentro de uma Pokébola (docs/features/043-captura.md) some da cena.
+  const creatures = useQuery(
+    WildCreature,
+    Position,
+    Rotation,
+    Not(BeingCaptured),
+  )
 
   return (
     <>

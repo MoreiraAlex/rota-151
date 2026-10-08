@@ -123,6 +123,68 @@ export const GAME_CONFIG = {
     // Cor do texto "Interrompido!" (golpe de status cortado na carga por
     // dano): amarelo, igual pros dois lados — não é dano nem status.
     INTERRUPT_COLOR: '#ffd54f',
+    // Visual da Pokébola de captura (docs/features/043-captura.md,
+    // `view/captureBallMotion.js`):
+    // - SPIN_SPEED: giro (voltas/s) da bola em voo.
+    // - WOBBLE_*: cada balançada inclina a bola de lado e volta, WOBBLE_CYCLES
+    //   vezes em WOBBLE_DURATION (s), até WOBBLE_ANGLE (graus), amortecendo.
+    // - GLOW_*: o brilho que puxa o selvagem pra dentro (cresce e some
+    //   durante a absorção), até GLOW_MAX_SCALE × o tamanho da bola.
+    // - STAR_*: estrelinhas do "Capturado!" — STAR_COUNT saindo até
+    //   STAR_DISTANCE (m) em volta da bola.
+    // - CLICK_*: o "clique" no fim — a bola encolhe CLICK_SQUASH e volta.
+    // - POP_DURATION: o selvagem estourando a bola no escape (s).
+    // - BREAK_*: a bola que errou quebra nos últimos BREAK_DURATION (s),
+    //   em BREAK_PIECES pedaços.
+    CAPTURE_BALL: {
+      SPIN_SPEED: 2.5,
+      WOBBLE_ANGLE: 45,
+      WOBBLE_CYCLES: 3,
+      WOBBLE_DURATION: 0.9,
+      GLOW_COLOR: '#ff4d4d',
+      GLOW_MAX_SCALE: 6,
+      STAR_COUNT: 6,
+      STAR_DISTANCE: 0.45,
+      STAR_COLOR: '#ffe066',
+      CLICK_SQUASH: 0.15,
+      POP_DURATION: 0.2,
+      BREAK_DURATION: 0.3,
+      BREAK_PIECES: 6,
+      BREAK_COLOR: '#d9d9d9',
+    },
+    // Partículas da Pokébola do Cobblemon (`view/vfx/pokeballVfx.js`): a bola
+    // abrindo (invocar, escape) e o "Capturado!". ENABLED liga/desliga;
+    // SCALE multiplica o tamanho e as distâncias do efeito inteiro.
+    POKEBALL_VFX: {
+      ENABLED: true,
+      SCALE: 1,
+    },
+    // O feixe da Pokébola (recolher, invocar, captura puxando o selvagem —
+    // `view/scene/RecallBeamView.jsx`), no estilo do Cobblemon: a textura
+    // `phase_beam.png` correndo ao longo dele (SCROLL_SPEED, repetições
+    // por segundo), tingida com a cor da bola (`pokeball.beamColor`, ou
+    // DEFAULT_COLOR). Miolo de raio RADIUS (m) e opacidade OPACITY; brilho
+    // em volta de raio GLOW_RADIUS e opacidade GLOW_OPACITY. O "envelope" da
+    // criatura entrando/saindo usa ENVELOPE_OPACITY.
+    PHASE_BEAM: {
+      DEFAULT_COLOR: '#ff3b3b',
+      RADIUS: 0.035,
+      GLOW_RADIUS: 0.09,
+      OPACITY: 0.95,
+      GLOW_OPACITY: 0.35,
+      SCROLL_SPEED: 3,
+      ENVELOPE_OPACITY: 0.75,
+    },
+    // Cores dos textos da captura (docs/features/043-captura.md):
+    // "Capturado!", "Escapou!" e "Pelas costas!".
+    CAPTURED_COLOR: '#7cf29c',
+    ESCAPED_COLOR: '#ff9e80',
+    BACK_STRIKE_COLOR: '#ffe066',
+    // Cores da mira da Pokébola: o arco/retículo normal, pegando um
+    // selvagem e fora do alcance.
+    AIM_COLOR: '#ffffff',
+    AIM_TARGET_COLOR: '#ff4d4d',
+    AIM_OUT_OF_RANGE_COLOR: '#8a8a8a',
     // Cor do texto "+N XP" em cima da criatura do time que ganhou XP
     // (docs/features/037-experiencia-e-nivel.md).
     XP_COLOR: '#9fd8ff',
@@ -371,6 +433,118 @@ export const GAME_CONFIG = {
       // "quicou" (`DroppedFood.landings`, pro respingo da view); abaixo,
       // ela só assenta.
       LANDING_MIN_SPEED: 1,
+    },
+  },
+  // Grade do inventário (docs/features/041-inventario-de-itens-e-pokemon.md).
+  INVENTORY: {
+    // Tamanho da grade (colunas × linhas) — é também o limite do inventário
+    // (`resolveInventoryCapacity`): cheio, o Pokémon capturado fica numa bola
+    // no chão (docs/features/043-captura.md).
+    COLUMNS: 5,
+    ROWS: 5,
+  },
+  // A Pokébola do invocar/recolher (docs/features/043-captura.md): depois de
+  // pousar, a bola fica em cima de onde a criatura nasce, ABOVE_HEAD (m)
+  // acima da cabeça dela, dá um pulinho de HOP_HEIGHT (m) em HOP_TIME (s),
+  // abre e fecha em OPEN_DURATION (s — o clipe `summon` encaixa aqui) e
+  // some encolhendo em VANISH_DURATION (s).
+  SUMMON_BALL: {
+    // Quanto dura (s) o feixe da bola até a criatura ao invocar.
+    BEAM_DURATION: 0.45,
+    ABOVE_HEAD: 0.15,
+    HOP_HEIGHT: 0.2,
+    HOP_TIME: 0.2,
+    OPEN_DURATION: 0.8,
+    VANISH_DURATION: 0.2,
+  },
+  // Captura (docs/features/043-captura.md): arremesso da Pokébola em arco,
+  // chance, balançadas e o que acontece depois.
+  CAPTURE: {
+    // Velocidade (m/s) com que a bola sai da mão. O ângulo é resolvido pro
+    // arco passar pelo ponto de mira (`resolveArcLaunch`); fora do alcance,
+    // sai no ângulo de alcance máximo.
+    THROW_SPEED: 16,
+    // Gravidade da bola em voo (m/s², negativa) — própria, pra afinar o
+    // arco sem mexer na do resto do jogo.
+    GRAVITY: -18,
+    // Tempo máximo (s) da bola em voo antes de ser dada como perdida.
+    MAX_FLIGHT_TIME: 4,
+    // Raio (m) da bola: o acerto num selvagem soma isto ao raio da cápsula.
+    BALL_RADIUS: 0.12,
+    // A bola para no ar e o selvagem vira luz e entra (s).
+    ABSORB_DURATION: 0.8,
+    // Logo depois do acerto, a bola dá um pulinho: sobe ABSORB_HOP_HEIGHT (m)
+    // em ABSORB_HOP_TIME (s), desacelerando, e flutua ali até cair.
+    ABSORB_HOP_HEIGHT: 0.3,
+    ABSORB_HOP_TIME: 0.25,
+    // Depois de absorver, a bola cai até o chão — com esta gravidade (m/s²).
+    FALL_GRAVITY: -12,
+    // Balançadas: quantas, o intervalo (s) entre uma e outra (a primeira
+    // espera o intervalo depois de pousar) e a pausa (s) depois da última
+    // antes do resultado.
+    SHAKE_COUNT: 3,
+    SHAKE_INTERVAL: 1,
+    RESULT_DELAY: 0.6,
+    // Quanto tempo (s) a bola fica na tela depois do "Capturado!" e do
+    // escape, pros efeitos da view.
+    CAUGHT_LINGER: 1.2,
+    // Bola que errou: rola com a física da comida caída
+    // (`ITEMS.DROPPED_FOOD_PHYSICS`, mesmas chaves) e quebra depois de
+    // MISS_LIFETIME (s).
+    MISS_LIFETIME: 1.6,
+    MISS_PHYSICS: {
+      RESTITUTION: 0.45,
+      FRICTION: 2.5,
+      REST_SPEED: 0.15,
+      LANDING_MIN_SPEED: 1,
+    },
+    // Mira (segurar o botão direito com a Pokébola na mão; o clique só
+    // arremessa mirando):
+    // - MODE: 'arc' mostra a linha do arco e o círculo onde a bola cai;
+    //   'reticle' (como no Legends Arceus) só o retículo, que muda quando
+    //   pega um selvagem e fica apagado fora do alcance.
+    // - CAMERA_DISTANCE: a câmera chega até esta distância (m) mirando (se
+    //   já estiver mais perto, fica); SHOULDER_OFFSET: o desvio de ombro
+    //   mirando; BLEND_SPEED: rapidez da transição da câmera.
+    // - RANGE: até onde (m) o raio do retículo procura o ponto de mira.
+    // - TRACE_STEP: passo (s) da previsão do voo.
+    // - ARC_POINTS: pontos da linha do arco; RING_RADIUS: raio (m) do
+    //   círculo no chão (no selvagem, o do corpo dele).
+    AIM: {
+      MODE: 'reticle',
+      CAMERA_DISTANCE: 3.2,
+      SHOULDER_OFFSET: 0.75,
+      BLEND_SPEED: 10,
+      RANGE: 30,
+      TRACE_STEP: 1 / 30,
+      ARC_POINTS: 40,
+      RING_RADIUS: 0.25,
+    },
+    // Taxa de captura (0-255, escala da série) de uma espécie sem
+    // `capture.rate`.
+    DEFAULT_RATE: 45,
+    // Teto do valor `a` da fórmula (Gen 3): daí pra cima captura direto.
+    MAX_CAPTURE_VALUE: 255,
+    // Bônus de condição na fórmula (multiplica `a`), por condição; sem
+    // condição, × 1. Hoje só existe a queimadura.
+    CONDITION_BONUS: {
+      burn: 1.5,
+    },
+    // Pelas costas (Legends Arceus): acertar um selvagem que não percebeu o
+    // treinador (vagando) vindo de trás multiplica `a` por BACK_STRIKE_BONUS.
+    // "De trás" = o ângulo entre a frente dele e a direção de onde a bola
+    // veio passa de BACK_STRIKE_ANGLE (graus).
+    BACK_STRIKE_BONUS: 2,
+    BACK_STRIKE_ANGLE: 110,
+    // Fração do XP de derrotar que a captura dá (só pra quem lutou).
+    XP_FRACTION: 0.5,
+    // Desmaiado que escapa acorda com esta fração (0-1) da vida máxima.
+    ESCAPE_WAKE_HP_FRACTION: 0.3,
+    // Chance (0-1) de partir pra briga ao escapar, por temperamento; senão
+    // foge.
+    ESCAPE_FIGHT_CHANCE: {
+      hostile: 0.8,
+      peaceful: 0.25,
     },
   },
   // Grade de navegação usada por `core/pathfinding.js` pra contornar

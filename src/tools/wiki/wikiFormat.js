@@ -1,7 +1,20 @@
+import { GAME_CONFIG } from '@/core/gameConfig'
+
 /**
  * Formatação de exibição da wiki (`/wiki`, docs/features/036-wiki-do-jogo.md)
  * — só texto pra jogador ler, nunca regra de jogo. Números em pt-BR.
  */
+
+/**
+ * Bônus de captura de uma condição de status (`CAPTURE.CONDITION_BONUS`,
+ * docs/features/043-captura.md): o multiplicador da chance, ou `null` se ela
+ * não ajuda. Cada condição descreve o próprio bônus — a página de captura só
+ * fala de "condições" em geral.
+ */
+export function resolveConditionCaptureBonus(condition) {
+  const bonus = GAME_CONFIG.CAPTURE.CONDITION_BONUS[condition]
+  return bonus && bonus !== 1 ? bonus : null
+}
 
 const formatters = new Map()
 
@@ -120,7 +133,11 @@ export function describeEffect(effect) {
     return `Rouba ${formatPercent(effect.fraction ?? 0, 2)} da vida máxima do alvo a cada ${formatSeconds(effect.interval ?? 0, 1)}, por ${formatSeconds(effect.duration ?? 0, 1)}`
   }
   if (effect?.type === 'burn') {
-    return `${formatPercent(effect.chance ?? 1, 0)} de chance de queimar: tira ${formatPercent(effect.fraction ?? 0, 2)} da vida máxima a cada ${formatSeconds(effect.interval ?? 0, 1)}, por ${formatSeconds(effect.duration ?? 0, 1)}, e o ataque físico de quem queima cai pra ${formatPercent(effect.attackMultiplier ?? 1, 0)}`
+    const capture = resolveConditionCaptureBonus('burn')
+    const captureText = capture
+      ? `; queimado, fica mais fácil de capturar (${formatMultiplier(capture)} na chance)`
+      : ''
+    return `${formatPercent(effect.chance ?? 1, 0)} de chance de queimar: tira ${formatPercent(effect.fraction ?? 0, 2)} da vida máxima a cada ${formatSeconds(effect.interval ?? 0, 1)}, por ${formatSeconds(effect.duration ?? 0, 1)}, e o ataque físico de quem queima cai pra ${formatPercent(effect.attackMultiplier ?? 1, 0)}${captureText}`
   }
   return 'Efeito especial'
 }

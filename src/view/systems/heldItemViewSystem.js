@@ -1,101 +1,67 @@
-import * as THREE from 'three'
 import { getItem } from '@/core/data/items'
 import { PLAYER_SPECIES_ID, getPlayerSpecies } from '@/core/data/species'
 import { getAnimatedBonesEntry } from '@/view/registry/animationRegistry'
-import { THROWABLE_RADIUS, THROWABLE_COLOR } from '@/view/scene/throwableVisual'
 import { HAND_BONE_BY_SPECIES } from '@/view/handBoneBySpecies'
-import { InputControlled, HeldItem, ActionState } from '@/core/traits'
-
-// Estado do módulo (não trait) — só existe um item-na-mão renderizado por
-// vez (só o jogador arremessa hoje): é estado de TELA, recriado só quando
-// o osso muda (ex.: hot-reload do modelo), não a cada frame.
-let mesh = null
-let attachedBone = null
-// Vetor reaproveitado pra não alocar um THREE.Vector3 novo a cada tick só
-// pra ler a escala (ver correção de escala, abaixo).
-const worldScale = new THREE.Vector3()
+import { getHeldItemView } from '@/view/registry/heldItemRegistry'
+import {
+  ActionState,
+  CaptureAim,
+  HeldItem,
+  InputControlled,
+} from '@/core/traits'
 
 /**
- * Mostra o item equipado (`HeldItem`) encaixado na mão do jogador sempre
- * que for `throwable` — sem modelo 3D próprio por item ainda (ver
- * core/data/items/_template/index.js), então é a mesma esfera cinza do
- * projétil em voo (`throwableVisual.js`) — muda de "na mão" pra "voando"
- * sem trocar de aparência.
+ * Põe o item na mão do jogador (`HeldItemView.jsx` — o modelo do próprio
+ * item) no osso da mão, a cada frame: copia a posição e o giro do osso no
+ * mundo (sem a escala dele — o modelo já vem no tamanho do item, em metros).
  *
- * A esfera é filha de verdade do osso (`bone.add(mesh)`, Three.js puro) —
- * uma vez encaixada, acompanha a mão sozinha em qualquer pose (inclusive
- * durante o próprio gesto de arremesso), sem esse system precisar
- * recalcular posição nenhuma quadro a quadro; só liga/desliga
- * `mesh.visible`.
+ * Quando aparece:
+ * - `throwable`: sempre que equipado;
+ * - Pokébola: só mirando (docs/features/043-captura.md) — e no gesto de
+ *   arremesso, até soltar.
+ * Nos dois, some no instante em que solta (`throw.effectAt`, quando o
+ * objeto de verdade nasce voando).
  *
- * Visível enquanto: item equipado é `throwable` E ainda não passou do
- * instante de liberação (`PLAYER_ACTIONS.throw.EFFECT_AT` — o mesmo
- * instante em que `playerActionSystem.js` spawna o `Projectile` de
- * verdade). Depois da liberação, some daqui — o objeto "virou" o
- * projétil voando. Antes só aparecia com a mira travada (`AimAnchor`,
- * removida — ver docs/features/029-*.md); sem ela, o item throwable fica
- * visível na mão sempre que equipado.
- *
- * Fase: presentation, sem ordem específica com `animationSystem`/
- * `cameraFollowSystem` (o encaixe no osso é responsabilidade do próprio
- * Three.js ao atualizar as matrizes da cena no render, não deste system).
+ * Fase: presentation, depois do `animationSystem` (a pose deste frame).
  */
 export function heldItemViewSystem(context) {
   const { world } = context
+  const view = getHeldItemView()
+  if (!view?.group) return
+  const { group } = view
+
   const handBoneName = HAND_BONE_BY_SPECIES[PLAYER_SPECIES_ID]
-  if (!handBoneName) return hide()
-
   const entity = world.queryFirst(InputControlled, HeldItem, ActionState)
-  if (!entity) return hide()
+  const item = entity?.get(HeldItem).itemId
+    ? getItem(entity.get(HeldItem).itemId)
+    : null
+  const bone = handBoneName
+    ? getAnimatedBonesEntry(entity)?.bones[handBoneName]?.bone
+    : null
 
-  const heldItem = entity.get(HeldItem)
-  const item = heldItem.itemId ? getItem(heldItem.itemId) : null
-  const action = entity.get(ActionState)
-
-  const alreadyReleased =
-    action.current === 'throw' &&
-    action.elapsed >= getPlayerSpecies().actions.throw.effectAt
-
-  const shouldShow = item?.category === 'throwable' && !alreadyReleased
-  if (!shouldShow) return hide()
-
-  const bone = getAnimatedBonesEntry(entity)?.bones[handBoneName]?.bone
-  if (!bone) return hide() // modelo ainda não carregou — tenta de novo no próximo frame
-
-  if (bone !== attachedBone) {
-    detach()
-    mesh = new THREE.Mesh(
-      new THREE.SphereGeometry(THROWABLE_RADIUS, 12, 12),
-      new THREE.MeshStandardMaterial({ color: THROWABLE_COLOR }),
-    )
-    mesh.castShadow = true
-    bone.add(mesh)
-    attachedBone = bone
+  if (!entity || !item || !bone || !shouldShow(entity, item)) {
+    group.visible = false
+    return
   }
 
-  // O osso vive dentro da hierarquia do modelo inteiro, que é renderizado
-  // bem menor que 1:1 (`PLAYER_SPECIES.model.scale`, além
-  // de qualquer escala já embutida no próprio rig/armature do .glb) — um
-  // filho comum herdaria essa escala composta e ficaria minúsculo demais
-  // pra aparecer (foi o que estava acontecendo: a esfera existia, só
-  // renderizava com um raio efetivo perto de zero). `getWorldScale` lê a
-  // escala composta de verdade, direto da matriz do osso — sem precisar
-  // saber o número exato nem se ele muda entre espécies/versões do
-  // modelo —, e a escala LOCAL da esfera vira o inverso disso, cancelando
-  // a composição e deixando o raio configurado (`THROWABLE_RADIUS`) valer
-  // em unidades de mundo de verdade.
-  bone.getWorldScale(worldScale)
-  mesh.scale.set(1 / worldScale.x, 1 / worldScale.y, 1 / worldScale.z)
-
-  mesh.visible = true
+  bone.updateWorldMatrix(true, false)
+  bone.getWorldPosition(group.position)
+  bone.getWorldQuaternion(group.quaternion)
+  group.visible = true
 }
 
-function hide() {
-  if (mesh) mesh.visible = false
-}
-
-function detach() {
-  if (attachedBone && mesh) attachedBone.remove(mesh)
-  mesh = null
-  attachedBone = null
+function shouldShow(entity, item) {
+  const action = entity.get(ActionState)
+  // Invocando/recolhendo, a mão está com a Pokébola do Pokémon
+  // (`handBallViewSystem.js`).
+  if (action.current === 'summon' || action.current === 'recall') return false
+  const throwing = action.current === 'throw'
+  const released =
+    throwing && action.elapsed >= getPlayerSpecies().actions.throw.effectAt
+  if (released) return false
+  if (item.category === 'throwable') return true
+  if (item.category === 'pokeball') {
+    return !!entity.get(CaptureAim)?.active || throwing
+  }
+  return false
 }

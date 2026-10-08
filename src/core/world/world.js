@@ -31,6 +31,8 @@ import {
   PathState,
   Mood,
   ScanMode,
+  CaptureAim,
+  CaptureAimStatus,
   PokedexEntries,
   ScanHistory,
 } from '../traits'
@@ -93,6 +95,9 @@ export const playerEntity = world.spawn(
   PartyActionMenu,
   SlotHold,
   ScanMode,
+  // Mira da Pokébola (docs/features/043-captura.md), desligada.
+  CaptureAim,
+  CaptureAimStatus,
   // Coleção de espécies já escaneadas (aba "Pokémons") e histórico dos
   // últimos scans (aba "Histórico") — ambas vivem só no treinador, quem
   // de fato escaneia (ver core/actions/scanning.js). Default vazio.

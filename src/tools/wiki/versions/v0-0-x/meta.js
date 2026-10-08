@@ -55,6 +55,7 @@ export const WIKI_V0_0_X = {
       links: [
         { slug: 'selvagens/comportamento', label: 'Comportamento' },
         { slug: 'selvagens/como-lutam', label: 'Como as criaturas lutam' },
+        { slug: 'selvagens/captura', label: 'Captura' },
       ],
     },
     {

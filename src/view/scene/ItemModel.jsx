@@ -4,6 +4,8 @@ import { getItem } from '@/core/data/items'
 import { loadTexture } from '../textures/textureCache'
 import { setEatStage } from '../itemEatStages'
 import { buildItemModel } from '../itemModelBuild'
+import { stripRootMotion, trimDeadTail } from '../itemClipCleanup'
+import { scalePositionTracks } from '../itemRig'
 
 /**
  * Modelo 3D de um item (`item.model`, ver `core/data/items/_template/`):
@@ -30,10 +32,28 @@ import { buildItemModel } from '../itemModelBuild'
 export function ItemModel({ itemId, align = 'center', eaten = 0, onModel }) {
   const config = getItem(itemId)?.model
   const { scene } = useGLTF(config.path)
+  // Clipes de outro item (`clipsFrom`, ex.: as Pokébolas usam os da Poké
+  // Bola — `view/itemRig.js`); sem ele, os do próprio `.glb`.
+  const clipSource = config.clipsFrom ? getItem(config.clipsFrom)?.model : null
+  const source = useGLTF(clipSource?.path ?? config.path)
+  const rigSource = clipSource ? source.scene : null
   const model = useMemo(
-    () => buildItemModel(scene, config, align),
-    [scene, config, align],
+    () => buildItemModel(scene, config, align, rigSource),
+    [scene, config, align, rigSource],
   )
+  // Cópias, com o fim corrompido cortado (`trimDeadTail`) — o cache do
+  // `useGLTF` é compartilhado, não mexe nos originais. Sem o movimento da
+  // raiz (`stripRootMotion`): a posição é do jogo. Clipes de outro item vêm
+  // reescalados pro tamanho deste (`scalePositionTracks`).
+  const animations = useMemo(() => {
+    const rootNames = source.scene.children.map((child) => child.name)
+    return source.animations.map((clip) =>
+      scalePositionTracks(
+        stripRootMotion(trimDeadTail(clip.clone()), rootNames),
+        model.rigScale,
+      ),
+    )
+  }, [source, model])
 
   useEffect(() => {
     let cancelled = false
@@ -60,9 +80,16 @@ export function ItemModel({ itemId, align = 'center', eaten = 0, onModel }) {
   }, [model, eaten])
 
   useEffect(() => {
-    onModel?.({ stages: model.stages, pivot: model.pivot })
+    onModel?.({
+      stages: model.stages,
+      pivot: model.pivot,
+      // Pra tocar os clipes do `.glb` nesta instância (`AnimationMixer` no
+      // `root` — os nós do clone têm os mesmos nomes do original).
+      root: model.root,
+      animations,
+    })
     return () => onModel?.(null)
-  }, [model, onModel])
+  }, [model, onModel, animations])
 
   return <primitive object={model.root} />
 }

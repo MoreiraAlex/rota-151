@@ -2,6 +2,7 @@
 
 import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
+import { Not } from 'koota'
 import { useQuery, useQueryFirst, useTrait } from 'koota/react'
 import { Html } from '@react-three/drei'
 import { getSpecies, getPlayerSpecies } from '@/core/data/species'
@@ -10,6 +11,7 @@ import { clamp } from '@/core/math/clamp'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import { resolveRenderPosition } from '@/view/registry/renderInterpolation'
 import {
+  BeingCaptured,
   CreatureLevel,
   InputControlled,
   Position,
@@ -279,7 +281,8 @@ function NameplateView({ entity, species }) {
  * o valor fresco.
  */
 export function NameplatesView() {
-  const entities = useQuery(Vitals, Position)
+  // Dentro de uma Pokébola (043) não tem etiqueta.
+  const entities = useQuery(Vitals, Position, Not(BeingCaptured))
   const controlled = useQueryFirst(InputControlled)
 
   return (

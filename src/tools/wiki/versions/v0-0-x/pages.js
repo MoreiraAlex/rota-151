@@ -17,6 +17,7 @@ import { ReachPage } from './pages/ReachPage'
 import { FaintPage } from './pages/FaintPage'
 import { WildBehaviorPage } from './pages/WildBehaviorPage'
 import { HowTheyFightPage } from './pages/HowTheyFightPage'
+import { CapturePage } from './pages/CapturePage'
 import { PokedexPage } from './pages/PokedexPage'
 import { CreatureDetailPage, CreatureListPage } from './pages/CatalogCreatures'
 import { MoveDetailPage, MoveListPage } from './pages/CatalogMoves'
@@ -117,6 +118,12 @@ const PAGES = {
     summary:
       'Como selvagens e criaturas do time escolhem golpes, alvos e se movem.',
     Component: HowTheyFightPage,
+  },
+  'selvagens/captura': {
+    title: 'Captura',
+    summary:
+      'Mirar, arremessar a Pokébola, a chance de capturar e o que acontece depois.',
+    Component: CapturePage,
   },
   pokedex: {
     title: 'Pokédex',

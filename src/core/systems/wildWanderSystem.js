@@ -3,6 +3,7 @@ import { GAME_CONFIG } from '../gameConfig'
 import { steerTowards } from '../steering'
 import {
   CharacterController,
+  BeingCaptured,
   Fainted,
   MovementStats,
   Position,
@@ -56,8 +57,9 @@ export function wildWanderSystem(context) {
     .updateEach(([, behavior, wander, , stats, vel, rot, pos], entity) => {
       // Perseguindo/fugindo, o movimento é do `wildBehaviorSystem.js`.
       if (behavior.state !== 'wander') return
-      // Desmaiada: largada no chão (`desmaiar` já zerou a velocidade).
-      if (entity.has(Fainted)) return
+      // Desmaiada: largada no chão (`desmaiar` já zerou a velocidade). Dentro
+      // de uma Pokébola (docs/features/043-captura.md): parada.
+      if (entity.has(Fainted) || entity.has(BeingCaptured)) return
 
       if (wander.pauseTimer > 0) {
         wander.pauseTimer -= delta

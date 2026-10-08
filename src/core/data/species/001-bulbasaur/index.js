@@ -22,6 +22,8 @@ export const BULBASAUR = {
   level: LEVEL,
   baseXp: 64,
   growthRate: 'medium-slow',
+  // Taxa de captura (0-255, escala da série) — docs/features/043-captura.md.
+  capture: { rate: 45 },
   kind: 'pokemon',
   types: ['grass', 'poison'],
   sprite: {

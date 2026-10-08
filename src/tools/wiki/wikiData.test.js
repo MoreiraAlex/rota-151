@@ -79,4 +79,23 @@ describe('buildWikiData', () => {
       expect(row.speed).toBeLessThanOrEqual(1)
     }
   })
+
+  it('captura: regras da config; menos vida e bola melhor dão mais chance', () => {
+    const { capture } = data
+    expect(capture.shakeCount).toBe(GAME_CONFIG.CAPTURE.SHAKE_COUNT)
+    expect(capture.xpFraction).toBe(GAME_CONFIG.CAPTURE.XP_FRACTION)
+    for (let i = 1; i < capture.rows.length; i++) {
+      capture.rows[i].chances.forEach((chance, ball) => {
+        expect(chance).toBeGreaterThanOrEqual(capture.rows[i - 1].chances[ball])
+      })
+    }
+    for (const row of capture.rows) {
+      expect(row.chances).toHaveLength(capture.balls.length)
+      for (const chance of row.chances) {
+        expect(chance).toBeGreaterThanOrEqual(0)
+        expect(chance).toBeLessThanOrEqual(1)
+      }
+    }
+    expect(capture.speciesRates.length).toBe(listWikiSpecies().length)
+  })
 })

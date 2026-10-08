@@ -153,6 +153,20 @@ export function setCharacterColliderEnabled(colliderHandle, enabled) {
   collider.setEnabled(enabled)
 }
 
+/**
+ * Põe o corpo de um personagem direto em `position` (sem varrer o caminho)
+ * — o selvagem que escapa da Pokébola reaparece onde a bola estava
+ * (docs/features/043-captura.md). Handle inválido ou que já não existe: não
+ * faz nada.
+ */
+export function teleportCharacterBody(bodyHandle, position) {
+  if (bodyHandle == null || bodyHandle < 0) return
+  const body = getRapierWorld()?.getRigidBody(bodyHandle)
+  if (!body) return
+  body.setTranslation(position, true)
+  body.setNextKinematicTranslation(position)
+}
+
 // Resto numérico (m) tolerado ao comparar distâncias.
 const CLEARANCE_EPSILON = 1e-4
 // Passos da busca binária pelo maior giro livre — N passos = precisão de

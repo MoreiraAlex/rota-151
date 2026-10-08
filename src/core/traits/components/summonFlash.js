@@ -14,3 +14,19 @@ import { trait } from 'koota'
 export const SummonFlash = trait({
   lifetime: 0,
 })
+
+/**
+ * A Pokébola abrindo depois de pousar, ao invocar (docs/features/043-
+ * captura.md): só visual — fica parada em cima do ponto onde a criatura
+ * nasceu (`Position`, o centro da bola), toca o clipe `summon` do `.glb` e
+ * some. `itemId` é a bola do Pokémon (`Pokemon.ballId`); `elapsed`/
+ * `duration` em segundos.
+ *
+ * Dono de escrita: `summonBallSystem` (spawna, junto da criatura);
+ * `summonEffectsSystem` (conta e destrói).
+ */
+export const SummonBallOpen = trait({
+  itemId: null,
+  elapsed: 0,
+  duration: 0,
+})

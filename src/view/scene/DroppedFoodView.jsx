@@ -1,4 +1,4 @@
-import { Suspense, useCallback, useEffect, useRef } from 'react'
+import { Suspense, useCallback, useRef, useLayoutEffect } from 'react'
 import { useQuery } from 'koota/react'
 import { DroppedFood, Position, Rotation } from '@/core/traits'
 import { registerView, unregisterView } from '../registry/viewRegistry'
@@ -27,7 +27,7 @@ export function DroppedFoodView({ entity }) {
     [entity],
   )
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     registerView(entity, groupRef.current)
     registerDroppedFood(entity, spherePivotRef, landings)
     return () => {

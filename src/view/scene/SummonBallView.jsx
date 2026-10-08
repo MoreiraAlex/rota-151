@@ -1,46 +1,95 @@
-import { useEffect, useRef } from 'react'
+import { Suspense, useCallback, useRef, useLayoutEffect } from 'react'
 import { useQuery } from 'koota/react'
-import { SummonBall, Position, Rotation } from '@/core/traits'
+import { resolvePokemonBallId } from '@/core/actions/pokemon'
+import {
+  Position,
+  Rotation,
+  SummonBall,
+  SummonBallOpen,
+  SummonedFrom,
+} from '@/core/traits'
 import { registerView, unregisterView } from '../registry/viewRegistry'
-import { SUMMON_BALL_RADIUS, SUMMON_BALL_COLOR } from './summonBallVisual'
+import {
+  registerBallView,
+  setBallViewModel,
+  unregisterBallView,
+} from '../registry/ballViewRegistry'
+import { ItemModel, hasItemModel } from './ItemModel'
+import { SUMMON_BALL_COLOR, SUMMON_BALL_RADIUS } from './summonBallVisual'
 
 /**
- * Visual de uma `SummonBall` em voo (ver docs/features/024-esfera-de-
- * invocar.md) — sem esqueleto, então não usa `useAnimatedModel`, mesmo
- * padrão de `ProjectileView.jsx`: uma esfera simples que só existe na
- * cena e se move com `syncTransformSystem`. Some sozinha quando a esfera
- * resolve (`summonBallSystem` destrói a entidade) — `useQuery` reativo
- * desmonta este componente junto, sem cleanup manual extra.
+ * Uma Pokébola do invocar (docs/features/024-esfera-de-invocar.md,
+ * docs/features/043-captura.md): o modelo da bola `itemId` num grupo que o
+ * `summonBallViewSystem.js` anima (clipes do `.glb`). Sem modelo, a esfera
+ * de antes. Some quando a entidade some (`useQuery` reativo).
  */
-export function SummonBallView({ entity }) {
+function BallView({ entity, itemId }) {
   const groupRef = useRef()
+  const spinRef = useRef()
+  const onModel = useCallback(
+    (model) => setBallViewModel(entity, model),
+    [entity],
+  )
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     registerView(entity, groupRef.current)
-    return () => unregisterView(entity)
-  }, [entity])
+    registerBallView(entity, spinRef, itemId)
+    return () => {
+      unregisterView(entity)
+      unregisterBallView(entity)
+    }
+  }, [entity, itemId])
 
+  const sphere = (
+    <mesh castShadow>
+      <sphereGeometry args={[SUMMON_BALL_RADIUS, 16, 16]} />
+      <meshStandardMaterial color={SUMMON_BALL_COLOR} />
+    </mesh>
+  )
   return (
     <group ref={groupRef}>
-      <mesh castShadow>
-        <sphereGeometry args={[SUMMON_BALL_RADIUS, 16, 16]} />
-        <meshStandardMaterial color={SUMMON_BALL_COLOR} />
-      </mesh>
+      <group ref={spinRef}>
+        {hasItemModel(itemId) ? (
+          <Suspense fallback={sphere}>
+            <ItemModel itemId={itemId} onModel={onModel} />
+          </Suspense>
+        ) : (
+          sphere
+        )}
+      </group>
     </group>
   )
 }
 
-/**
- * Renderiza uma `SummonBallView` por `SummonBall` ativa — mesmo padrão de
- * `ProjectilesView`.
- */
+/** A bola em voo: a Pokébola em que o Pokémon foi capturado. */
 export function SummonBallsView() {
   const balls = useQuery(SummonBall, Position, Rotation)
 
   return (
     <>
       {balls.map((entity) => (
-        <SummonBallView key={entity} entity={entity} />
+        <BallView
+          key={entity}
+          entity={entity}
+          itemId={resolvePokemonBallId(entity.targetFor(SummonedFrom))}
+        />
+      ))}
+    </>
+  )
+}
+
+/** A bola abrindo em cima de onde a criatura nasceu (`SummonBallOpen`). */
+export function SummonBallOpensView() {
+  const opens = useQuery(SummonBallOpen, Position, Rotation)
+
+  return (
+    <>
+      {opens.map((entity) => (
+        <BallView
+          key={entity}
+          entity={entity}
+          itemId={entity.get(SummonBallOpen).itemId}
+        />
       ))}
     </>
   )

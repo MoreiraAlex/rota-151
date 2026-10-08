@@ -10,6 +10,7 @@ import {
 } from './attackGeometry'
 import { resolveAttackImpactPoint } from './attackTrajectory'
 import {
+  BeingCaptured,
   CharacterController,
   Fainted,
   IndividualValues,
@@ -37,9 +38,11 @@ function forEachTargetCandidate(world, targetSide, visit) {
       // O lado por último: `Party` é tag (sem dados) e não entra no array
       // do `readEach` — no fim, não desalinha os outros.
       .query(Position, Rotation, CharacterController, Vitals, side)
-      .readEach(([pos, rot, controller, vitals], entity) =>
-        visit(entity, pos, rot, controller, vitals),
-      )
+      .readEach(([pos, rot, controller, vitals], entity) => {
+        // Dentro de uma Pokébola ninguém acerta (docs/features/043-captura.md).
+        if (entity.has(BeingCaptured)) return
+        visit(entity, pos, rot, controller, vitals)
+      })
   }
 }
 

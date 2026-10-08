@@ -1,5 +1,6 @@
 import { resolveMoveSpeed } from '../actions/movementSpeed'
 import { tentarCorrer } from '../actions/stamina'
+import { isAimingCapture } from '../actions/capture'
 import { lerpAngle } from '../math'
 import {
   Velocity,
@@ -58,7 +59,7 @@ export function movementSystem(context) {
       Position,
       ActionState,
     )
-    .updateEach(([input, stats, vitals, vel, rot, , action]) => {
+    .updateEach(([input, stats, vitals, vel, rot, , action], entity) => {
       if (action.current !== null) {
         vel.x = 0
         vel.z = 0
@@ -75,15 +76,20 @@ export function movementSystem(context) {
       const worldZ = -input.x * sinYaw + input.z * cosYaw
 
       const hasMoveIntent = worldX !== 0 || worldZ !== 0
+      // Mirando a Pokébola (docs/features/043-captura.md): não corre e fica
+      // de frente pra onde a câmera mostra, andando de lado se precisar.
+      const aiming = isAimingCapture(entity)
       const isRunning =
-        input.run && hasMoveIntent && tentarCorrer(vitals, delta)
+        !aiming && input.run && hasMoveIntent && tentarCorrer(vitals, delta)
       // Ferido anda/corre mais devagar (`resolveMoveSpeed`).
       const speed = resolveMoveSpeed(stats, vitals, isRunning)
 
       vel.x = worldX * speed
       vel.z = worldZ * speed
 
-      if (hasMoveIntent) {
+      if (aiming) {
+        rot.y = lerpAngle(rot.y, cameraYaw + Math.PI, stats.turnSpeed * delta)
+      } else if (hasMoveIntent) {
         const facing = Math.atan2(worldX, worldZ)
         rot.y = lerpAngle(rot.y, facing, stats.turnSpeed * delta)
       }

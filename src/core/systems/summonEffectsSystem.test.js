@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach } from 'vitest'
 import { createWorld } from 'koota'
-import { SummonFlash, RecallBeam } from '@/core/traits'
+import { SummonFlash, RecallBeam, SummonBallOpen } from '@/core/traits'
 import { summonEffectsSystem } from './summonEffectsSystem'
 
 const spawnedWorlds = []
@@ -54,5 +54,14 @@ describe('summonEffectsSystem', () => {
 
     expect(world.query(SummonFlash).length).toBe(1) // ainda não zerou
     expect(world.query(RecallBeam).length).toBe(0) // já zerou
+  })
+
+  it('a Pokébola abrindo (043) some ao passar da duração', () => {
+    const world = spawnWorld()
+    const open = world.spawn(SummonBallOpen({ itemId: 'x', duration: 0.5 }))
+    summonEffectsSystem({ world, delta: 0.4 })
+    expect(open.isAlive()).toBe(true)
+    summonEffectsSystem({ world, delta: 0.2 })
+    expect(open.isAlive()).toBe(false)
   })
 })
