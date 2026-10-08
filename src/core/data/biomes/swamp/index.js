@@ -42,4 +42,5 @@ export const SWAMP = {
     { kind: 'mushroom', density: 0.2 },
   ],
   tags: ['swamp', 'humid', 'water'],
+  weather: { clear: 3, sun: 0.5, rain: 5, storm: 2, snow: 0 },
 }

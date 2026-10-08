@@ -1,7 +1,7 @@
-import { useEffect, useMemo } from 'react'
 import * as THREE from 'three'
 import { TEST_LEVEL } from '@/core/data/testLevel'
 import { GAME_CONFIG } from '@/core/gameConfig'
+import { lightingAt } from '@/core/time/dayCycle'
 import { useTerrainChunks } from '@/view/hooks/useTerrainChunks'
 import { fogRange } from '@/view/terrain/fogRange'
 
@@ -15,38 +15,20 @@ THREE.ShaderChunk.fog_vertex = `#ifdef USE_FOG
 	vFogDepth = length( mvPosition.xyz );
 #endif`
 
-// Altura (px) da textura do céu — só um degradê vertical.
-const SKY_TEXTURE_HEIGHT = 256
+// Cor de antes do primeiro frame: o horizonte do horário inicial.
+const INITIAL_COLOR = new THREE.Color().setRGB(
+  ...lightingAt(GAME_CONFIG.DAY_CYCLE.START_TIME).horizon,
+  THREE.SRGBColorSpace,
+)
 
 /**
- * Céu como fundo da cena: degradê do alto (`SKY_TOP_COLOR`) até o horizonte
- * na cor da névoa, e a cor da névoa abaixo dele — o relevo enevoado some no
- * céu sem recorte.
- */
-function createSkyTexture() {
-  const canvas = document.createElement('canvas')
-  canvas.width = 1
-  canvas.height = SKY_TEXTURE_HEIGHT
-  const context = canvas.getContext('2d')
-  const gradient = context.createLinearGradient(0, 0, 0, SKY_TEXTURE_HEIGHT)
-  gradient.addColorStop(0, GAME_CONFIG.FOG.SKY_TOP_COLOR)
-  gradient.addColorStop(0.5, GAME_CONFIG.FOG.COLOR)
-  gradient.addColorStop(1, GAME_CONFIG.FOG.COLOR)
-  context.fillStyle = gradient
-  context.fillRect(0, 0, 1, SKY_TEXTURE_HEIGHT)
-
-  const texture = new THREE.CanvasTexture(canvas)
-  texture.mapping = THREE.EquirectangularReflectionMapping
-  texture.colorSpace = THREE.SRGBColorSpace
-  return texture
-}
-
-/**
- * Névoa e céu (docs/features/046-sistema-de-chunks.md): esconde o chunk
- * nascendo ou sumindo na borda do mundo carregado. A distância acompanha o
- * raio de carregar e o lado do chunk (`fogRange`) — recalculada quando o
- * conjunto de chunks muda (que é o que acontece quando o raio ou o chunk
- * mudam no painel de ajuste).
+ * Névoa (docs/features/046-sistema-de-chunks.md): esconde o chunk nascendo
+ * ou sumindo na borda do mundo carregado. A distância acompanha o raio de
+ * carregar e o lado do chunk (`fogRange`) — recalculada quando o conjunto
+ * de chunks muda (que é o que acontece quando o raio ou o chunk mudam no
+ * painel de ajuste). A cor é a do horizonte da hora, e quem a muda a cada
+ * frame é o `DayNightView` (docs/features/048-dia-noite-e-clima.md), junto
+ * com o céu.
  */
 export function FogView() {
   useTerrainChunks()
@@ -58,13 +40,5 @@ export function FogView() {
     minDistance: GAME_CONFIG.FOG.MIN_DISTANCE,
   })
 
-  const sky = useMemo(createSkyTexture, [])
-  useEffect(() => () => sky.dispose(), [sky])
-
-  return (
-    <>
-      <fog attach="fog" args={[GAME_CONFIG.FOG.COLOR, near, far]} />
-      <primitive attach="background" object={sky} />
-    </>
-  )
+  return <fog attach="fog" args={[INITIAL_COLOR, near, far]} />
 }

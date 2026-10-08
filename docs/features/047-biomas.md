@@ -5,8 +5,8 @@
 Terceira feature do Marco 2 (mundo procedural). O relevo único da 045 passa a
 variar por **bioma**: um mapa de clima por ruído (temperatura, umidade e
 distância do mar) escolhe o bioma de cada ponto, e cada bioma define o relevo,
-as cores do chão, a vegetação que vai ter (colocada na 051) e as tags que o
-spawn usa (055).
+as cores do chão, a vegetação que vai ter (colocada na 049) e as tags que o
+spawn usa (053).
 
 - **Todos os biomas que os 151 precisam**, já nesta beta — o objetivo é fechar
   o terreno agora, para as próximas betas não mexerem no mapa.
@@ -40,7 +40,7 @@ Versão: `0.0.47` (`package.json`). Branch: `feature/047-biomas`.
   vértice pela altura acima da água e pela inclinação — paleta provisória
   "até os biomas (047)".
 - **Água**: só o nível (`WATER_LEVEL`) e o plano de debug; visual e bloqueio
-  são da 048.
+  são da 054.
 - **Painel de ajuste (F2)** (`tools/debug/TerrainTuningPanel.jsx`) e
   `regenerarTerreno`, que refaz os chunks carregados com a config nova.
 - **Save**: posição salva dentro do relevo sobe para a superfície (044/045).
@@ -61,15 +61,15 @@ Versão: `0.0.47` (`package.json`). Branch: `feature/047-biomas`.
    cidades/estruturas, isso é revisto. A origem é garantida em terra firme
    (ver "Origem em terra").
 5. **Vegetação**: a 047 só **declara** o que cada bioma tem (tipos e
-   densidade); a 051 coloca os objetos.
-6. **Tags de spawn** definidas por bioma agora; quem consome é a 055.
+   densidade); a 049 coloca os objetos.
+6. **Tags de spawn** definidas por bioma agora; quem consome é a 053.
 7. **Água não bloqueia**: como hoje, dá para entrar no oceano e nos lagos
    e andar pelo fundo, sem animação nenhuma (a água nem aparece fora do
-   plano de debug). Visual e regra da água seguem para a 048 e são revistos
+   plano de debug). Visual e regra da água seguem para a 054 e são revistos
    no caminho.
 8. **Cavernas pela seed, sem ser estrutura** (opção "híbrida"): a
    superfície continua mapa de alturas e as cavernas viram uma camada
-   subterrânea gerada pela seed, na 049 — não mexe na
+   subterrânea gerada pela seed, na 055 — não mexe na
    superfície fechada aqui. A 047 só prevê onde as bocas aparecem
    (montanha).
 9. **Debug (F2)**: nome do bioma onde o jogador está, chão colorido por
@@ -79,7 +79,7 @@ Versão: `0.0.47` (`package.json`). Branch: `feature/047-biomas`.
 
 ## Biomas
 
-Espécies só como referência de habitat (quem decide o spawn é a 055).
+Espécies só como referência de habitat (quem decide o spawn é a 053).
 
 | Bioma | Clima | Relevo | Exemplos de espécie |
 |---|---|---|---|
@@ -96,9 +96,9 @@ Espécies só como referência de habitat (quem decide o spawn é a 055).
 | **Tundra** | gelado | colinas suaves com neve | Jynx, Seel, Dewgong, Cloyster |
 
 - **Pico nevado** não é bioma: é a cor do alto da montanha pela altura.
-- **Lagos e rios** (048) cortam qualquer bioma de terra; a tag "perto de
+- **Lagos e rios** (054) cortam qualquer bioma de terra; a tag "perto de
   água" vem de lá.
-- O clima de cada bioma (chuva, neve, tempestade) é da 050.
+- O clima de cada bioma (chuva, neve, tempestade) é da 048.
 
 ---
 
@@ -118,9 +118,9 @@ Uma pasta por bioma, mesma forma de `species/` (`biomes/<id>/index.js` +
 - `palette`: cores do chão (baixo, alto, encosta, margem) — substitui
   `TERRAIN_PALETTE`.
 - `vegetation`: tipos e densidade (ex.: `{ kind: 'pinheiro', density }`),
-  só declaração (051).
+  só declaração (049).
 - `tags`: tags de spawn (ex.: `campo`, `floresta`, `montanha`, `frio`,
-  `quente`, `costa`) — consumidas na 055.
+  `quente`, `costa`) — consumidas na 053.
 
 ### Mapa de clima (`core/terrain/`, headless e determinístico)
 
@@ -160,7 +160,7 @@ Uma pasta por bioma, mesma forma de `species/` (`biomes/<id>/index.js` +
 ### Bioma no chunk
 
 - `generateTerrainChunk` guarda também o **bioma dominante e os pesos por
-  vértice** (para a cor) e o **bioma dominante do chunk** (debug, 055).
+  vértice** (para a cor) e o **bioma dominante do chunk** (debug, 053).
 - `biomeAt(x, z)` no conjunto de chunks, igual com ou sem chunk carregado
   (como `heightAt`).
 
@@ -324,20 +324,20 @@ Uma pasta por bioma, mesma forma de `species/` (`biomes/<id>/index.js` +
 
 ## Fora de escopo
 
-- **Cavernas** (Zubat, Geodude, Onix, Diglett...) — 049:
+- **Cavernas** (Zubat, Geodude, Onix, Diglett...) — 055:
   camada subterrânea gerada pela seed (túneis e salões com malha, colisor e
   grade de navegação próprios, por chunk), boca numa encosta de montanha
   (célula removida do heightfield, se o Rapier JS permitir; senão uma peça
   com colisor próprio). Save e spawn passam a saber em que camada a
   entidade está (hoje sobem quem está "dentro" do relevo).
 - **Cidade/urbano** (Grimer, Koffing, Magnemite, Voltorb...) — estruturas
-  (053 em diante).
-- **Água** (visual, rasa/funda, rios) — 048. Até lá oceano e lagos ficam
+  (051 em diante).
+- **Água** (visual, rasa/funda, rios) — 054. Até lá oceano e lagos ficam
   sem água visível (só o plano de debug) e sem bloqueio: anda-se pelo fundo.
 - **Nado** — depois da beta.
-- **Clima e partículas** por bioma — 050.
-- **Colocar vegetação** (árvores, pedras, grama alta) — 051.
-- **Spawn por bioma** — 055.
+- **Clima e partículas** por bioma — 048.
+- **Colocar vegetação** (árvores, pedras, grama alta) — 049.
+- **Spawn por bioma** — 053.
 - **Célula plana do heightfield** — 077 (praia/pântano/deserto são planos,
   mas não perfeitamente planos — conferir na implementação se o problema
   aparece).

@@ -26,7 +26,7 @@ export function DamagePage({ data, version }) {
         <Formula>
           <p>
             <strong>Dano</strong> = ((nível × 2 ÷ 5 + 2) × poder × ataque ÷
-            defesa ÷ 50 + 2) × mesmo tipo × efetividade × variação
+            defesa ÷ 50 + 2) × clima × mesmo tipo × efetividade × variação
           </p>
         </Formula>
         <ul>
@@ -54,6 +54,14 @@ export function DamagePage({ data, version }) {
               Efeitos em batalha
             </WikiLink>
             ). Quem está queimado tem o Ataque cortado nos golpes físicos.
+          </li>
+          <li>
+            <strong>clima</strong> — o clima onde está quem ataca deixa alguns
+            tipos de golpe mais fortes ou mais fracos (
+            <WikiLink version={version} to="mundo#clima-na-batalha">
+              Clima na batalha
+            </WikiLink>
+            ); senão, ×1.
           </li>
           <li>
             <strong>mesmo tipo</strong> —{' '}

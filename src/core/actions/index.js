@@ -93,4 +93,9 @@ export {
   resolveLocalTrainer,
 } from './owner'
 export { prepararTreinador, aplicarSave, pedirSave } from './save'
+export {
+  definirHorario,
+  definirVelocidadeDoRelogio,
+  forcarClima,
+} from './environment'
 export { darKitInicial } from './startingKit'

@@ -40,4 +40,5 @@ export const TUNDRA = {
     { kind: 'ice-rock', density: 0.2 },
   ],
   tags: ['tundra', 'cold', 'snow'],
+  weather: { clear: 4, sun: 0, rain: 0, storm: 0, snow: 6 },
 }

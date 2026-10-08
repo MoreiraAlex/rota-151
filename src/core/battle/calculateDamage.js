@@ -3,6 +3,10 @@ import { resolveCreatureStats } from '../data/species/stats'
 import { resolveFormulaLevel } from '../data/species/formulaLevel'
 import { stageMultiplier } from './statStages'
 import {
+  resolveWeatherDefenseMultiplier,
+  resolveWeatherMoveMultiplier,
+} from '../weather/weatherModifiers'
+import {
   resolveSpeciesTypes,
   resolveTypeEffectiveness,
   resolveTypeMultiplier,
@@ -12,7 +16,9 @@ import {
  * Fórmula de dano de ataque — convenção clássica de Pokémon, pedido
  * EXATO do usuário, mantida sem ajuste silencioso:
  * `(((((2*level*critical)/5 + 2) * power * attack) / defense) / 50 + 2)
- * * modificadores`, `modificadores = stab * type1 * type2 * random`.
+ * * modificadores`, `modificadores = weather * stab * type1 * type2 *
+ * random` — `weather` é o do clima no lugar do golpe
+ * (docs/features/048-dia-noite-e-clima.md).
  *
  * Pura — não sabe nada de espécie/trait/ECS. Quem monta os parâmetros é
  * `resolveDamageAmount` (abaixo).
@@ -23,12 +29,13 @@ export function calculateDamage({
   defense,
   power = 1,
   critical = 1,
+  weather = 1,
   stab = 1,
   type1 = 1,
   type2 = 1,
   random = 1,
 }) {
-  const modificadores = stab * type1 * type2 * random
+  const modificadores = weather * stab * type1 * type2 * random
 
   return (
     ((((2 * level * critical) / 5 + 2) * power * attack) / defense / 50 + 2) *
@@ -145,6 +152,7 @@ export function resolveDamageAmount({
   attackerStages,
   defenderStages,
   attackerBurnMultiplier,
+  weather,
   rng,
 }) {
   const context = {
@@ -159,6 +167,7 @@ export function resolveDamageAmount({
     attackerStages,
     defenderStages,
     attackerBurnMultiplier,
+    weather,
   }
   // Sorteado antes do `random` — mesma ordem de consumo do `rng` de antes.
   const critical = rollCriticalMultiplier(rng)
@@ -200,6 +209,7 @@ export function resolveChannelTickDamage({
   attackerStages,
   defenderStages,
   attackerBurnMultiplier,
+  weather,
   weight,
   rng,
 }) {
@@ -216,6 +226,7 @@ export function resolveChannelTickDamage({
     attackerStages,
     defenderStages,
     attackerBurnMultiplier,
+    weather,
   }
   const budget = computeDamage(context, {
     critical: 1,
@@ -263,13 +274,22 @@ export function computeDamage(context, { critical, random }) {
   const { attackType } = context
   const attackerTypes = resolveSpeciesTypes(context.attackerSpecies)
   const defenderTypes = resolveSpeciesTypes(context.defenderSpecies)
+  // Clima no lugar do golpe (`context.weather`, tipo de clima; sem ele,
+  // neutro): o golpe de um tipo fica mais forte ou fraco, e a defesa de um
+  // tipo de defensor sobe.
+  const weatherDefense = resolveWeatherDefenseMultiplier(
+    context.weather,
+    defenderTypes,
+    defenseKey,
+  )
 
   return calculateDamage({
     level: attacker.level,
     attack: attacker[attackKey] * attackMultiplier,
-    defense: defender[defenseKey] * defenseMultiplier,
+    defense: defender[defenseKey] * defenseMultiplier * weatherDefense,
     power: damage?.power ?? 1,
     critical,
+    weather: resolveWeatherMoveMultiplier(context.weather, attackType),
     stab: resolveStab(attackType, attackerTypes),
     type1: resolveTypeEffectivenessMultiplier(
       attackType,

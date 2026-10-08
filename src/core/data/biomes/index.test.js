@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { CLIMATE_AXES } from '../../terrain/biomeMap'
+import { WEATHER_TYPES } from '../../weather/weatherMap'
 import { BIOME_REGISTRY, getBiome, listBiomes } from '.'
 
 const HEX_COLOR = /^#[0-9a-f]{6}$/i
@@ -69,6 +70,19 @@ describe('registro de biomas', () => {
       }
       expect(tags.length).toBeGreaterThan(0)
       for (const tag of tags) expect(tag).toEqual(expect.any(String))
+    },
+  )
+
+  it.each(listBiomes())(
+    '$id: chances de clima para cada tipo (docs/features/048-*.md)',
+    ({ weather }) => {
+      let total = 0
+      for (const type of WEATHER_TYPES) {
+        expect(weather[type]).toBeGreaterThanOrEqual(0)
+        total += weather[type]
+      }
+      expect(total).toBeGreaterThan(0)
+      expect(Object.keys(weather).sort()).toEqual([...WEATHER_TYPES].sort())
     },
   )
 })

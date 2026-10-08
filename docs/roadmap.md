@@ -2,7 +2,7 @@
 
 ---
 
-# ✅ Já feito (0.0.1 – 0.0.47)
+# ✅ Já feito (0.0.1 – 0.0.48)
 
 O que já foi entregue, por tema. Detalhes de cada uma em `docs/features/`.
 
@@ -49,6 +49,7 @@ O que já foi entregue, por tema. Detalhes de cada uma em `docs/features/`.
 - [x] **045 — Terreno de um chunk**
 - [x] **046 — Sistema de chunks**
 - [x] **047 — Biomas**
+- [x] **048 — Dia, noite e clima**
 
 ### Combate
 - [x] **025 — Ataque comum de criatura**
@@ -95,23 +96,22 @@ Concluído: a 044 (salvar o jogo) fechou o ciclo offline.
 
 ## Marco 2 — Mundo procedural
 
-**Objetivo:** um mundo infinito gerado por seed, em chunks, com biomas, água,
-dia e noite, clima e cavernas. Há itens para achar, as 10 espécies aparecem conforme
+**Objetivo:** um mundo infinito gerado por seed, em chunks, com biomas, dia e
+noite, clima, água e cavernas. Há itens para achar, as 10 espécies aparecem conforme
 bioma, horário e clima, e há um Pokécenter para curar o time.
 
-- [ ] **048 — Água** — lagos e rios; parte rasa andável (com respingo visual e sonoro), parte funda bloqueia treinador e criaturas; IA desvia da água funda; shader simples. Tag "perto de água" para o spawn.
-- [ ] **049 — Cavernas** — camada subterrânea gerada pela seed (túneis e salões com malha, colisor e grade de navegação próprios, por chunk), sem mexer na superfície; boca numa encosta de montanha. Save e spawn passam a saber em que camada a entidade está.
-- [ ] **050 — Dia, noite e clima** — relógio do jogo pelo `delta` do loop (ciclo de alguns minutos, no `gameConfig`); céu e luz acompanham o horário; clima por bioma (limpo, chuva, tempestade, neve) com partículas e som (chuva, trovão, vento). Horário e clima viram condições de spawn.
-- [ ] **051 — Vegetação, objetos e luz** — árvores, pedras e grama alta pela seed e pelo bioma, com instancing e colisão (a vegetação declarada por bioma na 047). Junto: revisar o visual de cada bioma (cores, desenho do chão) e a luz no estilo Zelda Breath of the Wild (sol quente, sombra azulada, névoa leve).
-- [ ] **052 — Itens no mundo** — itens espalhados pela seed conforme o bioma (no chão e em arbustos: Pokébolas, poções) e **árvores de frutas** que dá para colher e voltam a dar fruto com o tempo. É a forma de conseguir itens além do kit inicial.
-- [ ] **053 — Estruturas e Pokécenter** — sistema para colocar construções pré-modeladas no mundo procedural (posição pela seed, terreno aplainado). Primeiro: o Pokécenter, que cura o time (com o som de cura) e é o ponto de reaparecimento.
-- [ ] **054 — As 10 espécies** — Bulbasaur, Charmander, Squirtle, Caterpie, Weedle, Pidgey, Rattata, Spearow, Ekans e Pikachu (7 novas): modelo, status, golpes, sons e animações. Sons mapeados em `docs/reference/audio.md`.
-- [ ] **055 — Spawn estilo Cobblemon** — limite por jogador ativo, nascer fora da vista, despawn dos distantes; condições por espécie: bioma, tags, horário, clima, faixa de nível e raridade.
+- [ ] **049 — Vegetação, objetos e luz** — árvores, pedras e grama alta pela seed e pelo bioma, com instancing e colisão (a vegetação declarada por bioma na 047). Junto: revisar o visual de cada bioma (cores, desenho do chão) e a luz no estilo Zelda Breath of the Wild (sol quente, sombra azulada, névoa leve) — em cima das cores por hora do dia da 048.
+- [ ] **050 — Itens no mundo** — itens espalhados pela seed conforme o bioma (no chão e em arbustos: Pokébolas, poções) e **árvores de frutas** que dá para colher e voltam a dar fruto com o tempo. É a forma de conseguir itens além do kit inicial.
+- [ ] **051 — Estruturas e Pokécenter** — sistema para colocar construções pré-modeladas no mundo procedural (posição pela seed, terreno aplainado). Primeiro: o Pokécenter, que cura o time (com o som de cura) e é o ponto de reaparecimento.
+- [ ] **052 — As 10 espécies** — Bulbasaur, Charmander, Squirtle, Caterpie, Weedle, Pidgey, Rattata, Spearow, Ekans e Pikachu (7 novas): modelo, status, golpes, sons e animações. Sons mapeados em `docs/reference/audio.md`.
+- [ ] **053 — Spawn estilo Cobblemon** — limite por jogador ativo, nascer fora da vista, despawn dos distantes; condições por espécie: bioma, tags, horário, clima, faixa de nível e raridade.
+- [ ] **054 — Água** — lagos e rios; parte rasa andável (com respingo visual e sonoro), parte funda bloqueia treinador e criaturas; IA desvia da água funda; shader simples. Tag "perto de água" para o spawn.
+- [ ] **055 — Cavernas** — camada subterrânea gerada pela seed (túneis e salões com malha, colisor e grade de navegação próprios, por chunk), sem mexer na superfície; boca numa encosta de montanha. Save e spawn passam a saber em que camada a entidade está.
 - [ ] **056 — Design da HUD** — visual definitivo da interface (com horário e clima); menus saem de `src/tools/menu/` para `view/`.
 
-> **Modelos das espécies (054):** o Sword/Shield só tem Caterpie e Pikachu.
+> **Modelos das espécies (052):** o Sword/Shield só tem Caterpie e Pikachu.
 > Weedle, Pidgey, Rattata, Spearow e Ekans precisam vir do Let's Go (todos os
-> 151, com andar) ou do HOME (só animações de exibição). Resolver antes da 054.
+> 151, com andar) ou do HOME (só animações de exibição). Resolver antes da 052.
 
 ---
 
@@ -166,7 +166,7 @@ item entra aqui quando for identificado e vira feature quando chegar a vez.
 - [ ] **074 — Revisão da wiki** — rever a wiki inteira *(detalhar quando chegar)*.
 - [ ] **075 — Limpeza de código sem uso** — achar e remover código que ficou de testes ou de ideias descartadas (systems, traits, componentes, dados, assets e configs que nada mais usa) *(detalhar quando chegar)*.
 - [ ] **076 — Revisão do diagrama ER** — com todos os requisitos da beta conhecidos (save, mundo, multiplayer, troca, duelo), rever as tabelas do banco desenhadas na 044 e montar um diagrama ER melhor *(detalhar quando chegar)*.
-- [ ] **077 — Chão plano no relevo** — o Rapier erra parte dos raios (bola, comida, câmera, mira) em células PLANAS do heightfield do relevo (medido na 045; o relevo por ruído não tem célula plana, então hoje não aparece). Resolver antes de aplainar terreno (chão da água na 048, estruturas na 053) — ex.: colisor próprio pra área plana *(detalhar quando chegar)*.
+- [ ] **077 — Chão plano no relevo** — o Rapier erra parte dos raios (bola, comida, câmera, mira) em células PLANAS do heightfield do relevo (medido na 045; o relevo por ruído não tem célula plana, então hoje não aparece). Resolver antes de aplainar terreno (estruturas na 051, chão da água na 054) — ex.: colisor próprio pra área plana *(detalhar quando chegar)*.
 - [ ] **078 — Rotação das entidades no relevo** — rever como o corpo acompanha a inclinação do terreno: subindo um morro o corpo continua reto, e às vezes as skills saem da cabeça do personagem *(detalhar quando chegar)*.
 
 ---

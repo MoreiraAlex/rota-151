@@ -1,4 +1,5 @@
 import { listOwnedPokemon } from '../actions/pokemon'
+import { WorldClock } from '../traits'
 import { SAVE_VERSION } from './saveFormat'
 import { serializePokemon } from './pokemonSave'
 import { serializeTrainer } from './trainerSave'
@@ -19,7 +20,12 @@ export { serializeTrainer, restoreTrainer } from './trainerSave'
 export function snapshotSave(world, trainer) {
   return {
     version: SAVE_VERSION,
-    trainer: serializeTrainer(trainer),
+    trainer: {
+      ...serializeTrainer(trainer),
+      // O horário é do mundo, mas enquanto o jogo é offline ele vai no save
+      // do treinador (docs/features/048-dia-noite-e-clima.md).
+      worldTime: world.has(WorldClock) ? world.get(WorldClock).time : null,
+    },
     pokemon: listOwnedPokemon(world, trainer)
       .map((pokemon) => serializePokemon(world, trainer, pokemon))
       .filter(Boolean),

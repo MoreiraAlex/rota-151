@@ -302,7 +302,7 @@ Versão: `0.0.42` (`package.json`). Branch: `feature/042-itens-da-beta`.
 - Função da Pokébola (arremesso de captura) — 043.
 - Pokémon segurar item.
 - Pegar a comida do chão, condição/estrago de itens — depois da beta.
-- Itens no mundo e árvores de frutas — 052.
+- Itens no mundo e árvores de frutas — 050.
 - Kit inicial definitivo — 061.
 - Clipes de animação de comer (o estado fica preparado; Bulbasaur, Charmander
   e Squirtle já têm, o treinador ainda não).

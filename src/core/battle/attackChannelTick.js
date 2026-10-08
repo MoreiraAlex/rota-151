@@ -2,6 +2,7 @@ import { registrarParticipante } from '../actions/experience'
 import { readBurnAttackMultiplier } from '../actions/burn'
 import { applySecondaryEffects } from './attackStatusEffects'
 import { resolveChannelTickDamage } from './calculateDamage'
+import { combatWeatherAt } from '../weather/combatWeather'
 import { resolveSkillType } from '../data/types'
 import { isBeamAttack } from './channelAttack'
 import { resolveAttackOrigin, resolveFootElevation } from './attackGeometry'
@@ -87,6 +88,8 @@ export function applyChannelTick(world, events, context) {
   // uma vez por tick, não por alvo — todos os alvos do mesmo instante levam
   // a mesma fração (cada um sobre o PRÓPRIO orçamento, com a própria defesa).
   const channelTick = action.channelTick
+  // Clima onde está quem ataca (docs/features/048-dia-noite-e-clima.md).
+  const weather = combatWeatherAt(world, context.pos)
   const weight = action.channelWeights?.[channelTick] ?? 0
   action.channelTick += 1
   for (const target of targets) {
@@ -102,6 +105,7 @@ export function applyChannelTick(world, events, context) {
       attackerStages: readStatStages(entity),
       defenderStages: readStatStages(target.entity),
       attackerBurnMultiplier: readBurnAttackMultiplier(entity),
+      weather,
       weight,
       rng: gameplayRng,
     })

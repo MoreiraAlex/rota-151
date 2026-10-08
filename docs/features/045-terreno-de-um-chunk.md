@@ -10,7 +10,7 @@ dá lugar a um **relevo gerado pela seed**, em chunks:
 - **Malha e colisor** de cada chunk saem das mesmas alturas: o que se vê é o
   que se pisa.
 - **Nível da água já definido**: os vales mais fundos ficam abaixo dele e
-  viram lagos na 048, sem mudar o relevo da seed.
+  viram lagos na 054, sem mudar o relevo da seed.
 - Por enquanto uma **área fixa de chunks** em volta da origem, com muros na
   borda; carregar e descarregar conforme o jogador anda é a 046.
 - Treinador, selvagens e objetos de treino nascem **em cima do terreno**;
@@ -48,7 +48,7 @@ Versão: `0.0.45` (`package.json`). Branch: `feature/045-terreno-de-um-chunk`.
    plataforma, corredor, parede, degrau, pilar e pedras de teste saem (iam
    boiar ou afundar no relevo). Ficam os **muros de borda** (enquanto a área
    for fixa) e os **objetos de treino**, apoiados no terreno. Os tipos
-   `ramp`/`floor` continuam suportados no pathfinding (estruturas da 053).
+   `ramp`/`floor` continuam suportados no pathfinding (estruturas da 051).
 2. **Ruído pela lib `simplex-noise`** (v4), alimentada pelo nosso PRNG
    seedado (`createRng`) — sem `Math.random()`.
 3. **Tamanho do chunk e da área parametrizáveis** em `GAME_CONFIG.TERRAIN`
@@ -247,9 +247,9 @@ constantes locais em `testLevel.js`.
 
 - Carregar/descarregar chunks e pathfinding por chunk — 046.
 - Biomas e cores por bioma — 047.
-- A água em si (visual, rasa/funda, bloqueio) — 048.
-- Escolher um ponto de nascimento seco — junto da água (048) ou do
-  Pokécenter (053).
+- A água em si (visual, rasa/funda, bloqueio) — 054.
+- Escolher um ponto de nascimento seco — junto da água (054) ou do
+  Pokécenter (051).
 
 ---
 

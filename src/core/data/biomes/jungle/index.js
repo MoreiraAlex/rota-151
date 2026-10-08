@@ -43,4 +43,5 @@ export const JUNGLE = {
     { kind: 'tall-grass', density: 0.4 },
   ],
   tags: ['forest', 'jungle', 'hot', 'humid'],
+  weather: { clear: 2, sun: 1, rain: 5, storm: 2, snow: 0 },
 }

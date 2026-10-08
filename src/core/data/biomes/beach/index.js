@@ -38,4 +38,5 @@ export const BEACH = {
     { kind: 'shell', density: 0.2 },
   ],
   tags: ['coast', 'sand', 'water'],
+  weather: { clear: 4, sun: 2, rain: 3, storm: 1, snow: 0 },
 }

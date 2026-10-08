@@ -17,7 +17,6 @@ export const JUMP_SOUND_GROUPS = {
     clips: [
       '/assets/audio/jump/default/jump-01.wav',
       '/assets/audio/jump/default/jump-02.wav',
-      '/assets/audio/jump/default/jump-03.wav',
     ],
   },
 }

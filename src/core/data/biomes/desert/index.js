@@ -41,4 +41,5 @@ export const DESERT = {
     { kind: 'dead-tree', density: 0.03 },
   ],
   tags: ['desert', 'hot', 'dry', 'sand'],
+  weather: { clear: 8, sun: 11, rain: 0.5, storm: 0.5, snow: 0 },
 }

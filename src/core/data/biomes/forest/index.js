@@ -43,4 +43,5 @@ export const FOREST = {
     { kind: 'tall-grass', density: 0.3 },
   ],
   tags: ['forest', 'temperate', 'humid'],
+  weather: { clear: 4, sun: 1, rain: 4, storm: 1, snow: 0 },
 }

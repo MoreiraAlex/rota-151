@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { GAME_CONFIG } from '@/core/gameConfig'
+import { listBiomes } from '@/core/data/biomes'
 import { listSkills } from '@/core/data/skills'
 import { listItems } from '@/core/data/items'
 import { buildWikiData } from './wikiData'
@@ -60,6 +61,20 @@ describe('buildWikiData', () => {
     )
     expect(data.cost.divisor).toBe(GAME_CONFIG.ACTION_COST.COST_DIVISOR)
     expect(data.faint.minutes).toBe(GAME_CONFIG.FAINT.DURATION_MINUTES)
+  })
+
+  it('mundo: dia e clima saem da config e dos biomas (048)', () => {
+    const { DAY_CYCLE } = GAME_CONFIG
+    expect(data.world.dayMinutes).toBeCloseTo(DAY_CYCLE.DAY_LENGTH / 60)
+    expect(data.world.biomes).toHaveLength(listBiomes().length)
+    for (const { chances } of data.world.biomes) {
+      const total = Object.values(chances).reduce((sum, c) => sum + c, 0)
+      expect(total).toBeCloseTo(1)
+    }
+    const configured = Object.values(
+      GAME_CONFIG.WEATHER.MOVE_TYPE_MULTIPLIER,
+    ).reduce((sum, byType) => sum + Object.keys(byType).length, 0)
+    expect(data.world.moveEffects).toHaveLength(configured)
   })
 
   it('tabela de níveis de efeito vai de −limite a +limite, com o 0 neutro', () => {

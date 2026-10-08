@@ -53,6 +53,9 @@ export const trainerSaveSchema = z.object({
     .nullable()
     .optional(),
   heldItemId: z.string().nullable(),
+  // Horário do mundo em dias de jogo (docs/features/048-dia-noite-e-
+  // clima.md). Opcional: saves de antes dele começam no horário inicial.
+  worldTime: z.number().min(0).nullable().optional(),
   inventory: z.object({
     counts: z.record(z.string(), z.number().int().min(0)),
     positions: z.record(z.string(), z.number().int().min(0)),

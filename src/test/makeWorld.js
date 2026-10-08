@@ -30,6 +30,8 @@ import {
   ScanHistory,
   SaveClock,
   OwnedBy,
+  WorldClock,
+  LocalWeather,
 } from '@/core/traits'
 
 // Fixado em 'boy' de propósito, não em PLAYER_SPECIES_ID — os testes usam
@@ -89,10 +91,22 @@ export function spawnTrainer(
  * como em `core/world/world.js` — mas sem o singleton, para os testes não
  * vazarem estado entre si.
  *
+ * `weather`: clima fixo do mundo (`LocalWeather.forced`); `null` segue o
+ * mapa de clima.
+ *
  * Retorna `{ world, player, camera }`.
  */
-export function makeWorld({ playerPosition = { x: 0, y: 2, z: 0 } } = {}) {
+export function makeWorld({
+  playerPosition = { x: 0, y: 2, z: 0 },
+  weather = 'clear',
+} = {}) {
   const world = createWorld()
+  // Relógio e clima do mundo (traits do mundo, docs/features/048-dia-noite-
+  // e-clima.md), como no singleton. O clima nasce FIXO (`weather`, padrão
+  // limpo): o do mapa muda com o lugar, e um teste de combate perto da origem
+  // pegaria chuva (que mexe no dano de Água e Fogo). `weather: null` = o do
+  // mapa.
+  world.add(WorldClock, LocalWeather({ forced: weather }))
 
   const player = spawnTrainer(world, {
     position: playerPosition,

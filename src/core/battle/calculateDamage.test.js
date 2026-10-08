@@ -406,3 +406,58 @@ describe('resolveDamageAmount — estágios de atributo (golpes de status)', () 
     expect(tick({ attackerStages: { attack: -2 } })).toBeLessThan(tick())
   })
 })
+
+describe('resolveDamageAmount — clima (docs/features/048-*.md)', () => {
+  // charmander: espécie de teste estável; rng fixo (sem crítico)
+  const species = getSpecies('charmander')
+  const rng = () => 0.99
+  const dano = ({ weather, attackType = 'normal', defender = species }) =>
+    resolveDamageAmount({
+      attackerSpecies: species,
+      attackerIndividualValues: null,
+      defenderSpecies: defender,
+      defenderIndividualValues: null,
+      damage: { power: 40, category: 'physical' },
+      attackType,
+      weather,
+      rng,
+    }).amount
+
+  it('sem clima (ou limpo), o dano é o de sempre', () => {
+    expect(dano({ weather: 'clear' })).toBe(dano({ weather: undefined }))
+  })
+
+  it('cada golpe afetado pelo clima leva o multiplicador da config', () => {
+    const { MOVE_TYPE_MULTIPLIER } = GAME_CONFIG.WEATHER
+    for (const [weather, byType] of Object.entries(MOVE_TYPE_MULTIPLIER)) {
+      for (const [attackType, multiplier] of Object.entries(byType)) {
+        expect(
+          dano({ weather, attackType }) / dano({ attackType }),
+        ).toBeCloseTo(multiplier)
+      }
+    }
+  })
+
+  it('golpe de um tipo que o clima não afeta não muda', () => {
+    const { MOVE_TYPE_MULTIPLIER } = GAME_CONFIG.WEATHER
+    for (const [weather, byType] of Object.entries(MOVE_TYPE_MULTIPLIER)) {
+      const untouched = Object.keys(TYPE_CHART).find(
+        (type) => !(type in byType),
+      )
+      expect(dano({ weather, attackType: untouched })).toBe(
+        dano({ attackType: untouched }),
+      )
+    }
+  })
+
+  it('defesa subida pelo clima: o defensor do tipo leva menos dano', () => {
+    const { DEFENSE_MULTIPLIER } = GAME_CONFIG.WEATHER
+    for (const [weather, byType] of Object.entries(DEFENSE_MULTIPLIER)) {
+      for (const [type, stats] of Object.entries(byType)) {
+        if (!(stats.defense > 1)) continue
+        const defender = { ...species, types: [type] }
+        expect(dano({ weather, defender })).toBeLessThan(dano({ defender }))
+      }
+    }
+  })
+})

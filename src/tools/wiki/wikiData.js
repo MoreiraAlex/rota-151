@@ -1,4 +1,6 @@
 import { GAME_CONFIG } from '@/core/gameConfig'
+import { listBiomes } from '@/core/data/biomes'
+import { WEATHER_TYPES } from '@/core/weather/weatherMap'
 import {
   TYPE_CHART,
   listTypes,
@@ -542,6 +544,53 @@ function buildCaptureExample(balls) {
   }
 }
 
+// Dia, noite e clima (docs/features/048-dia-noite-e-clima.md): quanto dura
+// o dia, a chance de cada clima por bioma (fração do total de pesos) e o que
+// o clima muda no combate.
+function buildWorld() {
+  const { DAY_CYCLE, WEATHER } = GAME_CONFIG
+  const weatherTypes = WEATHER_TYPES
+  const biomes = listBiomes().map((biome) => {
+    const total = weatherTypes.reduce(
+      (sum, type) => sum + (biome.weather[type] ?? 0),
+      0,
+    )
+    return {
+      name: biome.name,
+      chances: Object.fromEntries(
+        weatherTypes.map((type) => [type, (biome.weather[type] ?? 0) / total]),
+      ),
+    }
+  })
+  const moveEffects = Object.entries(WEATHER.MOVE_TYPE_MULTIPLIER).flatMap(
+    ([weather, byType]) =>
+      Object.entries(byType).map(([type, multiplier]) => ({
+        weather,
+        type,
+        multiplier,
+      })),
+  )
+  const defenseEffects = Object.entries(WEATHER.DEFENSE_MULTIPLIER).flatMap(
+    ([weather, byType]) =>
+      Object.entries(byType).flatMap(([type, stats]) =>
+        Object.entries(stats).map(([stat, multiplier]) => ({
+          weather,
+          type,
+          stat,
+          multiplier,
+        })),
+      ),
+  )
+  return {
+    dayMinutes: DAY_CYCLE.DAY_LENGTH / 60,
+    weatherMinutes: (WEATHER.PERIOD * DAY_CYCLE.DAY_LENGTH) / 60,
+    weatherTypes,
+    biomes,
+    moveEffects,
+    defenseEffects,
+  }
+}
+
 export function buildWikiData() {
   const {
     BATTLE,
@@ -689,5 +738,6 @@ export function buildWikiData() {
     skills: listWikiSkills().map(buildSkill),
     ivExample: buildIvExample(speciesList[0]),
     damageExamples: buildDamageExamples(speciesList),
+    world: buildWorld(),
   }
 }

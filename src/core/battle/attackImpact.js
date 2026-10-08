@@ -2,6 +2,7 @@ import { verticalClearance } from '../physics/colliders'
 import { registrarParticipante } from '../actions/experience'
 import { readBurnAttackMultiplier } from '../actions/burn'
 import { resolveDamageAmount } from './calculateDamage'
+import { combatWeatherAt } from '../weather/combatWeather'
 import { resolveSkillType } from '../data/types'
 import { isChannelAttack, isSelfAttack } from './channelAttack'
 import { resolveAttackOrigin, resolveFootElevation } from './attackGeometry'
@@ -33,7 +34,7 @@ import {
  * Fórmula de dano + `applyDamage` num alvo resolvido. Alvo imune ao tipo do
  * golpe (docs/features/039-tipos-e-combate-classico.md): nada é aplicado.
  */
-function damageTarget(attack, attacker, target, attackerStages) {
+function damageTarget(attack, attacker, target, attackerStages, weather) {
   const { amount, critical, effectiveness } = resolveDamageAmount({
     attackerSpecies: attacker.species,
     attackerIndividualValues: attacker.individualValues,
@@ -47,6 +48,7 @@ function damageTarget(attack, attacker, target, attackerStages) {
     attackerStages,
     defenderStages: readStatStages(target.entity),
     attackerBurnMultiplier: readBurnAttackMultiplier(attacker.entity),
+    weather,
     rng: gameplayRng,
   })
   if (effectiveness === 'immune') return { amount: 0, critical, effectiveness }
@@ -149,7 +151,14 @@ export function resolveAttackImpact(world, events, context) {
       !!target && !rollHit(attack, attackerStages.accuracy, gameplayRng)
     const { amount, critical, effectiveness } =
       target && !missed
-        ? damageTarget(attack, context, target, attackerStages)
+        ? damageTarget(
+            attack,
+            context,
+            target,
+            attackerStages,
+            // Clima onde está quem ataca (docs/features/048-*.md).
+            combatWeatherAt(world, pos),
+          )
         : { amount: 0, critical: false, effectiveness: 'neutral' }
     // imune: acertou, mas não pegou — sem dano, efeito nem participação
     const landed = target && !missed && effectiveness !== 'immune'

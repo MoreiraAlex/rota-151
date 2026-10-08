@@ -59,7 +59,7 @@ Versão: `0.0.41` (`package.json`). Branch:
    slot ↔ slot para reordenar.
 8. **Pokémon em campo que sai do slot é recolhido**, como já acontece hoje.
 9. **Sair do time não cura**: vida e desmaio ficam como estão. A cura é do
-   Pokécenter (053).
+   Pokécenter (051).
 10. **No inventário, o Pokémon regenera vida e o desmaio continua contando**,
     igual a quem está no time dentro da bola. A regra vale para todo
     registro que não está em campo, esteja no time ou não.

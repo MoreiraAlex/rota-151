@@ -62,7 +62,7 @@ Versão: `0.0.46` (`package.json`). Branch: `feature/046-sistema-de-chunks`.
 3. **Entidade em chunk descarregado congela**: selvagens, objetos de treino
    e criatura do time que ficou longe param (sem física e sem IA) e voltam
    de onde estavam quando o chunk carrega de novo. Despawn de verdade é da
-   055.
+   053.
 4. **Pathfinding por chunk (opção A)**: uma grade por chunk, assada quando
    o chunk carrega e liberada quando descarrega; o A* atravessa os chunks
    carregados.
@@ -216,7 +216,7 @@ Versão: `0.0.46` (`package.json`). Branch: `feature/046-sistema-de-chunks`.
   da área inteira a cada chamada.
 - **Nível** (`core/data/testLevel.js`): saem `bounds` e os muros de borda;
   selvagens nascem num quadrado fixo em volta da origem (provisório até a
-  055).
+  053).
 - **Painel de ajuste (F2)**: `regenerarTerreno` descarrega tudo, refaz a
   receita e põe quem ficou enterrado em cima do chão; o streaming carrega
   de novo no tick seguinte. Os raios de carregar/descarregar entram no
@@ -290,8 +290,8 @@ ver uma chunk sendo gerada ou removida, respeitando os parâmetros da chunk".
 ## Fora de escopo
 
 - Biomas e cores por bioma — 047.
-- Água (visual, rasa/funda, bloqueio) — 048.
-- Spawn e despawn de selvagens por chunk — 055.
+- Água (visual, rasa/funda, bloqueio) — 054.
+- Spawn e despawn de selvagens por chunk — 053.
 - Servidor dono da seed e geração compartilhada — 065.
 - Célula plana do heightfield — 077.
 

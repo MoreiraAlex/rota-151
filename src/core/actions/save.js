@@ -1,6 +1,7 @@
 import { restorePokemon, restoreTrainer } from '../save'
 import { SaveRequested, TrainerReady } from '../traits'
 import { darKitInicial } from './startingKit'
+import { definirHorario } from './environment'
 
 /**
  * Salvar e carregar (docs/features/044-salvar-o-jogo.md). O core monta e
@@ -32,6 +33,10 @@ export function prepararTreinador(world, trainer, save) {
  */
 export function aplicarSave(world, trainer, save) {
   restoreTrainer(trainer, save.trainer)
+  // Sem horário salvo (save antigo), fica o inicial.
+  if (save.trainer.worldTime != null) {
+    definirHorario(world, save.trainer.worldTime)
+  }
   // Time primeiro; o inventário por célula, pra cada um nascer (na primeira
   // célula livre) antes da célula salva de quem vem depois.
   const party = save.pokemon.filter((saved) => saved.location.kind === 'party')

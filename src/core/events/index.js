@@ -20,6 +20,7 @@ export const EVENT_TYPES = {
   POKEMON_CAPTURED: 'pokemonCaptured',
   CAPTURE_ESCAPED: 'captureEscaped',
   CAPTURE_BALL_BROKE: 'captureBallBroke',
+  LIGHTNING_STRUCK: 'lightningStruck',
 }
 
 /**
@@ -516,4 +517,18 @@ export function captureBallBroke({ itemId, position }) {
     itemId: itemId ?? null,
     position,
   }
+}
+
+/**
+ * Um relâmpago na tempestade onde o jogador está (só visual e som,
+ * docs/features/048-dia-noite-e-clima.md). `thunderDelay`: segundos até o
+ * trovão; `strength`: força da tempestade agora (0 a 1).
+ *
+ * - Quem emite: `weatherSystem.js`.
+ * - Quem consome: `view/systems/lightningSystem.js` (clarão e trovão).
+ *
+ * @returns {{ type: 'lightningStruck', thunderDelay: number, strength: number }}
+ */
+export function lightningStruck({ thunderDelay, strength }) {
+  return { type: EVENT_TYPES.LIGHTNING_STRUCK, thunderDelay, strength }
 }

@@ -31,9 +31,16 @@ import {
   PokedexEntries,
   ScanHistory,
   SaveClock,
+  WorldClock,
+  LocalWeather,
 } from '../traits'
 
 export const world = createWorld()
+
+// Relógio e clima do mundo (docs/features/048-dia-noite-e-clima.md): traits
+// do MUNDO, não de uma entidade. O horário salvo volta no
+// `prepararTreinador`.
+world.add(WorldClock, LocalWeather)
 
 // Jogador é só mais uma entrada do registro de espécies — corpo (cápsula) e
 // movimento (velocidades) vêm de lá, não são constante global. PLAYER_SPECIES_ID

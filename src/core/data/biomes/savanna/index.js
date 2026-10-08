@@ -42,4 +42,5 @@ export const SAVANNA = {
     { kind: 'rock', density: 0.05 },
   ],
   tags: ['grassland', 'hot', 'dry'],
+  weather: { clear: 4, sun: 4, rain: 1.5, storm: 0.5, snow: 0 },
 }

@@ -60,4 +60,16 @@ describe('saveRepository', () => {
       pokemon: [],
     })
   })
+
+  it('o horário do mundo vai e volta pela coluna (docs/features/048-*.md)', () => {
+    const save = rowsToSave({
+      saveVersion: 1,
+      heldItemId: null,
+      worldTime: 2.25,
+      inventory: { counts: {} },
+      pokedex: { speciesIds: [] },
+      pokemon: [],
+    })
+    expect(save.trainer.worldTime).toBe(2.25)
+  })
 })

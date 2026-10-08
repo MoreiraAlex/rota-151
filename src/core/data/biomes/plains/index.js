@@ -43,4 +43,5 @@ export const PLAINS = {
     { kind: 'rock', density: 0.05 },
   ],
   tags: ['grassland', 'temperate'],
+  weather: { clear: 4, sun: 2, rain: 3, storm: 1, snow: 0 },
 }

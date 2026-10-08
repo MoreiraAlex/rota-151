@@ -334,7 +334,7 @@ estouro de escape e bola quebrando. Sem os arquivos, o som fica pendente
   no chão (`BallOnGround`, `GroundBallsView`); mover pra fora da grade e
   tirar do time sem lugar são recusados. Item novo com a grade cheia ainda
   ganha posição fora dela (não aparece) — revisar quando houver itens no
-  mundo (052).
+  mundo (050).
 - **Condições**: `StoredConditions` no registro, escrito no recolher e na
   captura; `storedConditionSystem` queima a vida guardada com a mesma conta
   do `burnSystem` (`avancarQueimaduraGuardada`) e, zerando, desmaia na bola

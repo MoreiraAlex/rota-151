@@ -40,9 +40,17 @@ import {
   SummonBall,
   SummonedCreature,
   applyDamage,
+  WorldClock,
+  LocalWeather,
 } from '@/core/traits'
+import { dayPhaseOf, hourOf } from '@/core/time/dayCycle'
 import { usePartyPokemon } from '@/view/hooks/usePartyPokemon'
 import { ChunkDebugCounter } from './ChunkDebugView'
+import {
+  DAY_PHASE_LABELS,
+  WEATHER_LABELS,
+  formatHour,
+} from './dayWeatherLabels'
 
 const MOOD_OPTIONS = ['awake', 'sleeping', 'angry', 'faint']
 
@@ -85,6 +93,8 @@ export function DebugPanel({ onDeleteSave = null }) {
   const projectiles = useQuery(Projectile, Position)
   const summonBalls = useQuery(SummonBall, Position)
   const summoned = useQuery(SummonedCreature, Position)
+  const clock = useTrait(world, WorldClock)
+  const weather = useTrait(world, LocalWeather)
 
   if (
     !controlled ||
@@ -141,6 +151,16 @@ export function DebugPanel({ onDeleteSave = null }) {
       <ChunkDebugCounter />
       {/* Bioma onde está quem é controlado (docs/features/047-biomas.md). */}
       <p>bioma: {TEST_LEVEL.terrain.biomeAt(position.x, position.z).name}</p>
+      {/* Relógio e clima (docs/features/048-dia-noite-e-clima.md). */}
+      {clock && weather && (
+        <p>
+          hora: {formatHour(hourOf(clock.time))} (
+          {DAY_PHASE_LABELS[dayPhaseOf(clock.time)]}) · clima:{' '}
+          {WEATHER_LABELS[weather.type]}{' '}
+          {weather.type === 'clear' ? '' : weather[weather.type].toFixed(2)}
+          {weather.forced ? ' (forçado)' : ''}
+        </p>
+      )}
       <p>
         speed: {speed.toFixed(2)} u/s · {grounded ? 'no chão' : 'no ar'}
       </p>

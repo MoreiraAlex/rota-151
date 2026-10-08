@@ -42,4 +42,5 @@ export const VOLCANIC = {
     { kind: 'dead-tree', density: 0.05 },
   ],
   tags: ['volcanic', 'hot', 'rocky'],
+  weather: { clear: 4, sun: 3, rain: 1, storm: 2, snow: 0 },
 }

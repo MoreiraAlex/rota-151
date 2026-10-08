@@ -37,4 +37,5 @@ export const OCEAN = {
     { kind: 'seaweed', density: 0.4 },
   ],
   tags: ['ocean', 'water', 'deep-water'],
+  weather: { clear: 4, sun: 1, rain: 3, storm: 2, snow: 0 },
 }

@@ -34,7 +34,7 @@ export const GAME_CONFIG = {
   TERRAIN: {
     // Identifica a receita do relevo; subir quando a geração mudar.
     GENERATION_VERSION: 2,
-    // Altura (m) da superfície da água: o que fica abaixo vira lago na 048.
+    // Altura (m) da superfície da água: o que fica abaixo vira lago na 054.
     // O relevo dos biomas é medido a partir dela (`relief.baseHeight`).
     WATER_LEVEL: -2,
     // Lado (m) de um chunk — sempre um vértice por metro.
@@ -1162,16 +1162,200 @@ export const GAME_CONFIG = {
   // Névoa que esconde a borda do mundo carregado — o chunk nascendo ou
   // sumindo (docs/features/046-sistema-de-chunks.md). A distância sai do
   // raio de carregar e do lado do chunk (`view/terrain/fogRange.js`).
+  // A cor da névoa é a do horizonte da hora (`DAY_CYCLE.KEYFRAMES`), pra o
+  // relevo enevoado não aparecer recortado contra o céu.
   FOG: {
-    // Cor da névoa — também a do horizonte do céu, pra o relevo enevoado
-    // não aparecer recortado contra ele.
-    COLOR: '#cfe0ee',
-    // Cor do alto do céu.
-    SKY_TOP_COLOR: '#5d9ad8',
     // Onde a névoa começa, como fração da distância em que ela fecha.
     START_FRACTION: 0.55,
     // Menor distância (m) em que ela fecha, mesmo com raio e chunk pequenos.
     MIN_DISTANCE: 24,
+  },
+  // Dia e noite (docs/features/048-dia-noite-e-clima.md, core/time/
+  // dayCycle.js). O horário é medido em dias de jogo: 0 a 1 é um dia, e a
+  // parte inteira conta quantos dias já passaram.
+  DAY_CYCLE: {
+    // Segundos de jogo (aberto e sem pausa) que dura um dia inteiro.
+    DAY_LENGTH: 3600,
+    // Horário (fração do dia) de quem entra sem horário salvo.
+    START_TIME: 0.3,
+    // Hora (0–24) em que começa cada fase do dia — o spawn usa a fase.
+    PHASES: { dawn: 5, day: 7.5, dusk: 17, night: 19.5 },
+    // Hora em que o sol nasce e se põe; a lua faz o caminho oposto.
+    SUNRISE: 6,
+    SUNSET: 18,
+    // Inclinação (rad) do caminho do sol em relação ao alto do céu — o sol
+    // passa de lado, e a sombra nunca fica bem debaixo de ninguém.
+    SUN_TILT: 0.5,
+    // Altura do sol (ou da lua) acima do horizonte, de 0 a 1, em que a luz
+    // direta chega ao máximo — perto do horizonte ela some, e a troca de
+    // sol para lua não dá salto na sombra.
+    LIGHT_FADE_HEIGHT: 0.15,
+    // Cores e intensidades em horas marcadas do dia; entre uma e outra o
+    // jogo mistura aos poucos (e da última volta para a primeira, virando a
+    // meia-noite). `light`: sol de dia, lua à noite. `ambient`: a luz de
+    // todo lado. `skyTop`/`horizon`: o céu (a névoa usa o horizonte).
+    // `stars`: quanto aparecem as estrelas (0 a 1).
+    KEYFRAMES: [
+      {
+        hour: 0,
+        light: '#8fa6d9',
+        lightIntensity: 0.35,
+        ambient: '#5a6c9e',
+        ambientIntensity: 0.32,
+        skyTop: '#0a1430',
+        horizon: '#1d2b4d',
+        stars: 1,
+      },
+      {
+        hour: 4.5,
+        light: '#8fa6d9',
+        lightIntensity: 0.35,
+        ambient: '#5a6c9e',
+        ambientIntensity: 0.32,
+        skyTop: '#0a1430',
+        horizon: '#1d2b4d',
+        stars: 1,
+      },
+      {
+        hour: 6,
+        light: '#ffb27a',
+        lightIntensity: 0.6,
+        ambient: '#c9a7a0',
+        ambientIntensity: 0.45,
+        skyTop: '#3d5a8a',
+        horizon: '#f2a477',
+        stars: 0.2,
+      },
+      {
+        hour: 8,
+        light: '#ffffff',
+        lightIntensity: 1.2,
+        ambient: '#ffffff',
+        ambientIntensity: 0.6,
+        skyTop: '#5d9ad8',
+        horizon: '#cfe0ee',
+        stars: 0,
+      },
+      {
+        hour: 16.5,
+        light: '#ffffff',
+        lightIntensity: 1.2,
+        ambient: '#ffffff',
+        ambientIntensity: 0.6,
+        skyTop: '#5d9ad8',
+        horizon: '#cfe0ee',
+        stars: 0,
+      },
+      {
+        hour: 18,
+        light: '#ff9a5c',
+        lightIntensity: 0.6,
+        ambient: '#c08e8a',
+        ambientIntensity: 0.45,
+        skyTop: '#3a4f85',
+        horizon: '#f08a5d',
+        stars: 0.2,
+      },
+      {
+        hour: 19.5,
+        light: '#8fa6d9',
+        lightIntensity: 0.35,
+        ambient: '#5a6c9e',
+        ambientIntensity: 0.32,
+        skyTop: '#0a1430',
+        horizon: '#1d2b4d',
+        stars: 1,
+      },
+    ],
+    // Céu (view/scene/SkyView.jsx): tamanho do disco do sol e da lua (rad).
+    SUN_SIZE: 0.045,
+    MOON_SIZE: 0.035,
+    SUN_COLOR: '#fff3c4',
+    MOON_COLOR: '#e8eefc',
+    // Sombra do sol e da lua (view/scene/DayLightView.jsx): ela acompanha
+    // quem está no controle. Lado (m) da área com sombra e distância (m) da
+    // luz até o centro dela.
+    SHADOW_AREA: 60,
+    SHADOW_DISTANCE: 80,
+    SHADOW_MAP_SIZE: 2048,
+  },
+  // Nuvens no céu (view/scene/DayNightView.jsx, docs/features/048-dia-
+  // noite-e-clima.md): desenhadas no próprio céu, sem objeto 3D. A cor vem
+  // da luz da hora; com chuva, tempestade ou neve, o céu fecha.
+  CLOUDS: {
+    // Fração do céu coberta num dia limpo (0 a 1)...
+    COVER: 0.4,
+    // ...e com o céu todo fechado (`WEATHER.OVERCAST` cheio).
+    OVERCAST_COVER: 0.95,
+    // Tamanho das nuvens: maior = nuvens maiores e mais espaçadas.
+    SIZE: 1,
+    // Quanto a borda de uma nuvem esfuma (0 a 1).
+    SOFTNESS: 0.25,
+    // Opacidade máxima (0 a 1).
+    OPACITY: 0.9,
+    // Velocidade com que andam pelo céu e direção (rad, no chão).
+    SPEED: 0.006,
+    DIRECTION: 0.6,
+  },
+  // Clima (docs/features/048-dia-noite-e-clima.md, core/weather/). As
+  // chances de cada tipo são do bioma (`weather`, core/data/biomes/).
+  WEATHER: {
+    // Lado (m) de uma região: todo ponto dela tem o mesmo clima.
+    REGION_SIZE: 400,
+    // Quanto dura (em dias de jogo) o clima de uma região antes de um novo
+    // sorteio.
+    PERIOD: 0.25,
+    // Força (0 a 1) mínima de um clima sorteado; a máxima é 1.
+    MIN_INTENSITY: 0.4,
+    // Segundos para um clima chegar à força cheia (ou sumir) quando muda.
+    TRANSITION: 8,
+    // Quanto cada tipo fecha o céu (0 = limpo, 1 = todo cinza) e apaga as
+    // estrelas, o sol e a lua, na força cheia.
+    OVERCAST: { clear: 0, sun: 0, rain: 0.65, storm: 0.9, snow: 0.55 },
+    // Sol forte, na força cheia: quanto a luz do sol fica mais forte, a cor
+    // para onde ela puxa (e quanto) e a cobertura de nuvens (0 a 1).
+    SUN_LIGHT_BOOST: 0.3,
+    SUN_TINT: '#ffd9a0',
+    SUN_TINT_AMOUNT: 0.35,
+    SUN_CLOUD_COVER: 0.08,
+    // Quanto o céu fechado escurece a luz (0 a 1).
+    OVERCAST_DIM: 0.45,
+    // Relâmpagos (só na tempestade): intervalo (s) entre um e outro na força
+    // cheia (mais fraca, mais espaçados) e atraso (s) do trovão.
+    LIGHTNING_INTERVAL: [5, 14],
+    THUNDER_DELAY: [0.3, 2.5],
+    // Duração (s) e força (vezes a luz ambiente) do clarão.
+    FLASH_DURATION: 0.35,
+    FLASH_STRENGTH: 2.5,
+    // Partículas em volta da câmera (view/scene/WeatherView.jsx): lado (m)
+    // da caixa, altura (m) e quantidade na força cheia.
+    PARTICLE_AREA: 40,
+    PARTICLE_HEIGHT: 18,
+    RAIN_DROPS: 3000,
+    SNOW_FLAKES: 2500,
+    // Queda (m/s), comprimento da gota (m) e vento (inclinação da chuva).
+    RAIN_SPEED: 22,
+    RAIN_LENGTH: 0.7,
+    STORM_WIND: 0.35,
+    SNOW_SPEED: 1.6,
+    // Balanço (m) dos flocos de neve.
+    SNOW_SWAY: 0.6,
+    // Volume, na força cheia, dos sons do clima (view/audio/
+    // WeatherAudio.jsx).
+    RAIN_VOLUME: 0.35,
+    WIND_VOLUME: 0.3,
+    THUNDER_VOLUME: 0.6,
+    // Clima no combate (core/weather/combatWeather.js), como nos jogos:
+    // multiplicador do dano por tipo do GOLPE em cada clima...
+    MOVE_TYPE_MULTIPLIER: {
+      sun: { fire: 1.5, water: 0.5 },
+      rain: { water: 1.5, fire: 0.5 },
+      storm: { water: 1.5, fire: 0.5 },
+    },
+    // ...e de um atributo de defesa por tipo do DEFENSOR em cada clima.
+    DEFENSE_MULTIPLIER: {
+      snow: { ice: { defense: 1.5 } },
+    },
   },
   RENDER: {
     // Visual toon (estilo Zelda) — ver src/view/materials/toonMaterial.js

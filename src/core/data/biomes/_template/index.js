@@ -76,9 +76,14 @@ export const BIOME_TEMPLATE = {
     // Força do desenho (0 a 1): 0 = só a cor da paleta.
     detail: 0.6,
   },
-  // O que nasce aqui (colocado pela 051 — vegetação e objetos). `kind` é o
+  // O que nasce aqui (colocado pela 049 — vegetação e objetos). `kind` é o
   // tipo do objeto; `density` (0 a 1) é relativa entre os biomas.
   vegetation: [{ kind: 'tall-grass', density: 0.5 }],
-  // Tags que o spawn (055) usa nas condições de cada espécie.
+  // Tags que o spawn (053) usa nas condições de cada espécie.
   tags: ['grassland'],
+  // Chances relativas de cada clima (docs/features/048-dia-noite-e-
+  // clima.md): a cada período, cada região sorteia um tipo por estes pesos.
+  // Peso 0 = nunca acontece aqui. `sun` é o sol forte (só de dia — à noite
+  // vale como limpo).
+  weather: { clear: 4, sun: 2, rain: 3, storm: 1, snow: 0 },
 }

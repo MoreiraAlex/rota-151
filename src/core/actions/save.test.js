@@ -8,9 +8,12 @@ import {
   Pokemon,
   SaveRequested,
   TrainerReady,
+  WorldClock,
 } from '../traits'
 import { aplicarSave, pedirSave, prepararTreinador } from './save'
 import { TEST_LEVEL } from '../data/testLevel'
+import { GAME_CONFIG } from '../gameConfig'
+import { definirHorario } from './environment'
 
 // Salvar e carregar (docs/features/044-salvar-o-jogo.md). Espécies só como
 // dado de teste.
@@ -64,6 +67,31 @@ describe('prepararTreinador', () => {
 
     expect(prepararTreinador(world, player, null)).toBe(false)
     expect(listOwnedPokemon(world, player).length).toBe(count)
+  })
+})
+
+describe('horário do mundo no save (docs/features/048-*.md)', () => {
+  it('o horário vai no save e volta ao carregar', () => {
+    const source = setup()
+    prepararTreinador(source.world, source.player, null)
+    definirHorario(source.world, 3.6)
+    const save = snapshotSave(source.world, source.player)
+    expect(save.trainer.worldTime).toBe(3.6)
+
+    const { world, player } = setup()
+    prepararTreinador(world, player, save)
+    expect(world.get(WorldClock).time).toBe(3.6)
+  })
+
+  it('save sem horário (antigo) começa no horário inicial', () => {
+    const source = setup()
+    prepararTreinador(source.world, source.player, null)
+    const save = snapshotSave(source.world, source.player)
+    delete save.trainer.worldTime
+
+    const { world, player } = setup()
+    prepararTreinador(world, player, save)
+    expect(world.get(WorldClock).time).toBe(GAME_CONFIG.DAY_CYCLE.START_TIME)
   })
 })
 

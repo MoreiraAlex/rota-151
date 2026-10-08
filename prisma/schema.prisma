@@ -84,6 +84,7 @@ model Trainer {
   saveVersion Int
   position    Json?
   heldItemId  String?
+  worldTime   Float?
   inventory   Json
   pokedex     Json
   pokemon     Pokemon[]

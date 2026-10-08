@@ -4,6 +4,9 @@ import { AmbientAudio } from '@/view/audio/AmbientAudio'
 import { PlayerView } from './PlayerView'
 import { TerrainView } from './TerrainView'
 import { FogView } from './FogView'
+import { DayNightView } from './DayNightView'
+import { WeatherView } from './WeatherView'
+import { WeatherAudio } from '@/view/audio/WeatherAudio'
 import { useLevelRevision } from '../hooks/useLevelRevision'
 import { ProjectilesView } from './ProjectileView'
 import { SummonBallOpensView, SummonBallsView } from './SummonBallView'
@@ -104,13 +107,15 @@ export function GameScene({ children }) {
       {/* Posição inicial aproximada da órbita padrão; a suavização ajusta o resto. */}
       <PerspectiveCamera makeDefault position={[0, 5.6, 11.3]} fov={60} />
 
-      {/* Céu e névoa que esconde a borda do mundo carregado (046). */}
+      {/* Névoa que esconde a borda do mundo carregado (046). */}
       <FogView />
 
-      <ambientLight intensity={0.6} />
-      <directionalLight position={[10, 20, 10]} intensity={1.2} castShadow />
+      {/* Céu, sol, lua e luz pela hora e pelo clima; chuva e neve (048). */}
+      <DayNightView />
+      <WeatherView />
 
       <AmbientAudio />
+      <WeatherAudio />
 
       <TestLevelView />
 

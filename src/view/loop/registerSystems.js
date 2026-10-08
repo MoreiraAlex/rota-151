@@ -3,6 +3,10 @@ import { inputSystem } from '@/core/systems/inputSystem'
 import { physicsBootstrapSystem } from '@/core/systems/physicsBootstrapSystem'
 import { controlSwitchSystem } from '@/core/systems/controlSwitchSystem'
 import { chunkStreamingSystem } from '@/core/systems/chunkStreamingSystem'
+import { worldClockSystem } from '@/core/systems/worldClockSystem'
+import { weatherSystem } from '@/core/systems/weatherSystem'
+import { lightningSystem } from '@/view/systems/lightningSystem'
+import { weatherAudioSystem } from '@/view/systems/weatherAudioSystem'
 import { chunkFreezeSystem } from '@/core/systems/chunkFreezeSystem'
 import { chunkObjectCleanupSystem } from '@/core/systems/chunkObjectCleanupSystem'
 import { cameraControlSystem } from '@/core/systems/cameraControlSystem'
@@ -190,6 +194,11 @@ export function registerGameSystems() {
   registerSystem(GAME_PHASES.SIMULATION, chunkStreamingSystem)
   registerSystem(GAME_PHASES.SIMULATION, chunkFreezeSystem)
   registerSystem(GAME_PHASES.SIMULATION, chunkObjectCleanupSystem)
+  // Relógio e clima do mundo (docs/features/048-dia-noite-e-clima.md): o
+  // clima usa a hora e o lugar de quem está no controle (já trocado neste
+  // tick); ninguém da simulação depende deles ainda.
+  registerSystem(GAME_PHASES.SIMULATION, worldClockSystem)
+  registerSystem(GAME_PHASES.SIMULATION, weatherSystem)
   registerSystem(GAME_PHASES.SIMULATION, cameraControlSystem)
   // Mira da Pokébola (043): com a órbita deste tick, antes do movimento
   // (que vira o corpo pra mira) e do arremesso (que usa a mira).
@@ -288,6 +297,10 @@ export function registerGameSystems() {
   registerSystem(GAME_PHASES.PRESENTATION, footstepAudioSystem)
   registerSystem(GAME_PHASES.PRESENTATION, voiceAudioSystem)
   registerSystem(GAME_PHASES.PRESENTATION, ambientAudioSystem)
+  // Clima (048): clarão e trovão dos relâmpagos do frame, e o volume dos
+  // sons de chuva e vento pela força do clima.
+  registerSystem(GAME_PHASES.PRESENTATION, lightningSystem)
+  registerSystem(GAME_PHASES.PRESENTATION, weatherAudioSystem)
   registerSystem(GAME_PHASES.PRESENTATION, dashAudioSystem)
   registerSystem(GAME_PHASES.PRESENTATION, jumpAudioSystem)
   registerSystem(GAME_PHASES.PRESENTATION, summonAudioSystem)

@@ -14,6 +14,7 @@ export function rowsToSave(trainer) {
     trainer: {
       position: trainer.position,
       heldItemId: trainer.heldItemId,
+      worldTime: trainer.worldTime,
       inventory: trainer.inventory,
       pokedex: trainer.pokedex,
     },
@@ -72,6 +73,7 @@ export async function writeSaveRows(prisma, userId, save) {
     saveVersion: save.version,
     position: save.trainer.position ?? Prisma.DbNull,
     heldItemId: save.trainer.heldItemId,
+    worldTime: save.trainer.worldTime ?? null,
     inventory: save.trainer.inventory,
     pokedex: save.trainer.pokedex,
   }

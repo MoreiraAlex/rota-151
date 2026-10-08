@@ -15,6 +15,7 @@ import { ScanRangeDebugView } from '@/tools/debug/ScanRangeDebugView'
 import { WaterLevelDebugView } from '@/tools/debug/WaterLevelDebugView'
 import { ChunkDebugView } from '@/tools/debug/ChunkDebugView'
 import { TerrainTuningPanel } from '@/tools/debug/TerrainTuningPanel'
+import { DayWeatherPanel } from '@/tools/debug/DayWeatherPanel'
 import { WildBehaviorDebugView } from '@/tools/debug/WildBehaviorDebugView'
 import { PartyBehaviorDebugView } from '@/tools/debug/PartyBehaviorDebugView'
 import { DebugPanel } from '@/tools/debug/DebugPanel'
@@ -415,6 +416,7 @@ function GameScreen({ saveError, onDeleteSave, onSceneReady }) {
 
           {showDebug && <DebugPanel onDeleteSave={onDeleteSave} />}
           {showDebug && <TerrainTuningPanel />}
+          {showDebug && <DayWeatherPanel />}
 
           {/* Save automático falhando (docs/features/044-*.md): some no
               próximo envio que der certo. */}
