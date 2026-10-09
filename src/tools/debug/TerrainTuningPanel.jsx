@@ -12,22 +12,24 @@ import {
   setTerrainColorMode,
 } from '@/view/terrain/terrainColorMode'
 import { notifyTerrainLookChanged } from '@/view/terrain/terrainLook'
+import { TERRAIN_LAYERS } from '@/view/terrain/terrainLayers'
+import { rebuildVegetation } from '@/view/vegetation/vegetationSettings'
 
 // Faixas dos controles: [mín, máx, passo]. Só a ferramenta usa.
 // `keepsTerrain`: só muda o carregar/descarregar (o `chunkStreamingSystem`
 // lê a config a cada tick) — não precisa refazer o relevo.
 const CONTROLS = {
   WATER_LEVEL: { label: 'Nível da água (m)', range: [-15, 15, 0.1] },
-  // Par: a borda do chunk cai em borda de célula do pathfinding.
-  CHUNK_SIZE: { label: 'Lado do chunk (m)', range: [16, 128, 2] },
+  // O lado do chunk é fixo (`TERRAIN.CHUNK_SIZE`). O raio é o controle
+  // de gráfico: máquina mais forte aguenta mais mundo na tela.
   LOAD_RADIUS: {
     label: 'Raio de carregar (chunks)',
-    range: [1, 6, 1],
+    range: [1, 32, 1],
     keepsTerrain: true,
   },
   UNLOAD_RADIUS: {
     label: 'Raio de descarregar (chunks)',
-    range: [1, 8, 1],
+    range: [1, 40, 1],
     keepsTerrain: true,
   },
 }
@@ -76,11 +78,48 @@ const LOOK_CONTROLS = {
   GRAIN_STRENGTH: { label: 'Granulado', range: [0, 0.5, 0.01] },
 }
 
+// Trilhas (`GAME_CONFIG.TRAILS`, core/terrain/trails.js): mudam o relevo,
+// refazem o terreno ao soltar.
+const TRAIL_CONTROLS = {
+  SIZE: { label: 'Distância entre trilhas (m)', range: [30, 500, 5] },
+  WARP: { label: 'Serpenteio (m)', range: [0, 80, 1] },
+  WARP_SIZE: { label: 'Tamanho das curvas (m)', range: [5, 200, 1] },
+  WIDTH: { label: 'Largura (m)', range: [0.5, 6, 0.1] },
+  EDGE: { label: 'Borda (m)', range: [0.1, 3, 0.05] },
+  DEPTH: { label: 'Afundado (m)', range: [0, 1, 0.01] },
+  BANK: { label: 'Beirada (m)', range: [0, 0.4, 0.01] },
+  DETAIL: { label: 'Desenho da textura', range: [0, 1.5, 0.01] },
+  SHORE_GAP: { label: 'Folga da água (m)', range: [0, 2, 0.05] },
+}
+
+// O que cada bioma tem de trilha (core/data/biomes/): se tem, a cor e a
+// textura dela e da margem da água (a mesma terra, de preferência).
+const trailTuning = ({ trails, palette, ground }) => ({
+  trails: trails === true,
+  trail: palette.trail ?? palette.slope,
+  trailTexture: ground.trailTexture ?? ground.texture,
+  shore: palette.shore,
+  shoreTexture: ground.shoreTexture ?? ground.texture,
+})
+
+function applyTrailTuning(biome, tuning) {
+  biome.trails = tuning.trails
+  biome.palette.trail = tuning.trail
+  biome.ground.trailTexture = tuning.trailTexture
+  biome.palette.shore = tuning.shore
+  biome.ground.shoreTexture = tuning.shoreTexture
+}
+
 // Valores de quando o jogo carregou — o "Voltar ao inicial".
 const INITIAL = {
   seed: GAME_CONFIG.WORLD.SEED,
   terrain: { ...GAME_CONFIG.TERRAIN },
   look: { ...GAME_CONFIG.TERRAIN_LOOK },
+  trails: { ...GAME_CONFIG.TRAILS },
+  pebbles: GAME_CONFIG.PEBBLES.PER_M2,
+  biomeTrails: Object.fromEntries(
+    listBiomes().map((biome) => [biome.id, trailTuning(biome)]),
+  ),
   biomeMap: {
     ...GAME_CONFIG.BIOMES,
     HIDDEN: [...GAME_CONFIG.BIOMES.HIDDEN],
@@ -101,6 +140,14 @@ const configAsText = () =>
     ...Object.keys(GAME_CONFIG.TERRAIN_LOOK).map(
       (key) => `  ${key}: ${JSON.stringify(GAME_CONFIG.TERRAIN_LOOK[key])},`,
     ),
+    `TRAILS: ${JSON.stringify(GAME_CONFIG.TRAILS, null, 2)}`,
+    `PEBBLES.PER_M2: ${GAME_CONFIG.PEBBLES.PER_M2}`,
+    ...listBiomes()
+      .filter(({ trails }) => trails)
+      .map(
+        (biome) =>
+          `${biome.id} (trilha e margem): ${JSON.stringify(trailTuning(biome))}`,
+      ),
     'BIOMES:',
     ...Object.keys(BIOME_MAP_CONTROLS).map(
       (key) => `  ${key}: ${GAME_CONFIG.BIOMES[key]},`,
@@ -119,7 +166,10 @@ const configAsText = () =>
  * números para colar no `gameConfig.js` e nos biomas
  * (`core/data/biomes/`) — é o caminho para o ajuste virar config de
  * verdade. "Chão por bioma" pinta cada bioma de uma cor chapada; "Biomas
- * no mundo" esconde biomas (`BIOMES.HIDDEN`) para olhar um só.
+ * no mundo" esconde biomas (`BIOMES.HIDDEN`) para olhar um só; "Trilhas"
+ * (docs/features/049-vegetacao-e-floresta.md) ajusta a forma e o relevo
+ * das trilhas, os seixos e a cor e textura da trilha e da margem de cada
+ * bioma.
  *
  * A seed aqui só muda o relevo e o que depende dele: o RNG de gameplay já
  * foi criado com a seed do início.
@@ -170,6 +220,53 @@ export function TerrainTuningPanel() {
         .name(label)
         .onChange(notifyTerrainLookChanged)
     }
+
+    const trailFolder = gui.addFolder('Trilhas (refaz ao soltar)')
+    for (const [key, { label, range }] of Object.entries(TRAIL_CONTROLS)) {
+      trailFolder
+        .add(GAME_CONFIG.TRAILS, key, ...range)
+        .name(label)
+        .onFinishChange(regenerate)
+    }
+    trailFolder
+      .add(GAME_CONFIG.PEBBLES, 'PER_M2', 0, 2, 0.01)
+      .name('Seixos por m²')
+      .onFinishChange(rebuildVegetation)
+    // Trilha e margem de um bioma por vez.
+    const trailChoice = {
+      id: listBiomes().find(({ trails }) => trails)?.id ?? listBiomes()[0].id,
+    }
+    let trailControllers = []
+    const showTrailBiome = () => {
+      trailControllers.forEach((controller) => controller.destroy())
+      const biome = BIOME_REGISTRY[trailChoice.id]
+      const tuning = trailTuning(biome)
+      const apply = () => {
+        applyTrailTuning(biome, tuning)
+        regenerate()
+      }
+      trailControllers = [
+        trailFolder.add(tuning, 'trails').name('Tem trilhas').onChange(apply),
+        trailFolder.addColor(tuning, 'trail').name('Cor da trilha'),
+        trailFolder
+          .add(tuning, 'trailTexture', TERRAIN_LAYERS)
+          .name('Textura da trilha'),
+        trailFolder.addColor(tuning, 'shore').name('Cor da margem'),
+        trailFolder
+          .add(tuning, 'shoreTexture', TERRAIN_LAYERS)
+          .name('Textura da margem'),
+      ]
+      trailControllers.slice(1).forEach((c) => c.onFinishChange(apply))
+    }
+    trailFolder
+      .add(
+        trailChoice,
+        'id',
+        Object.fromEntries(listBiomes().map(({ id, name }) => [name, id])),
+      )
+      .name('Bioma')
+      .onChange(showTrailBiome)
+    showTrailBiome()
 
     const mapFolder = gui.addFolder('Mapa de biomas')
     for (const [key, { label, range }] of Object.entries(BIOME_MAP_CONTROLS)) {
@@ -257,6 +354,13 @@ export function TerrainTuningPanel() {
             Object.assign(GAME_CONFIG.TERRAIN, INITIAL.terrain)
             Object.assign(GAME_CONFIG.BIOMES, INITIAL.biomeMap)
             Object.assign(GAME_CONFIG.TERRAIN_LOOK, INITIAL.look)
+            Object.assign(GAME_CONFIG.TRAILS, INITIAL.trails)
+            GAME_CONFIG.PEBBLES.PER_M2 = INITIAL.pebbles
+            for (const biome of listBiomes()) {
+              applyTrailTuning(biome, INITIAL.biomeTrails[biome.id])
+            }
+            showTrailBiome()
+            rebuildVegetation()
             notifyTerrainLookChanged()
             for (const id of Object.keys(visible)) {
               visible[id] = !INITIAL.biomeMap.HIDDEN.includes(id)

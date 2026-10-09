@@ -227,6 +227,27 @@ function bakeNavRegion(level, { minCol, minRow, cols, rows }) {
     }
   }
 
+  // Passada 2b: objetos sólidos da vegetação dos chunks carregados
+  // (docs/features/049-vegetacao-e-floresta.md) — o quadrado em volta de
+  // cada círculo da pegada deles, com a mesma margem das caixas.
+  const footprints =
+    level.terrain?.footprintsIn?.(
+      frameMinCol * CELL_SIZE,
+      (frameMinCol + frameCols) * CELL_SIZE,
+      frameMinRow * CELL_SIZE,
+      (frameMinRow + frameRows) * CELL_SIZE,
+    ) ?? []
+  for (const circle of footprints) {
+    const half = circle.radius + OBSTACLE_MARGIN
+    const range = cellRangeFor(circle.x, circle.z, half, half)
+    if (!range) continue
+    for (let col = range.minCol; col <= range.maxCol; col++) {
+      for (let row = range.minRow; row <= range.maxRow; row++) {
+        blocked[index(col, row)] = 1
+      }
+    }
+  }
+
   // Passada 3: penhasco, só nas células de dentro (a moldura dá as
   // vizinhas da borda) — célula livre com salto de elevação grande demais
   // pra qualquer vizinha (das 8) que também esteja livre vira bloqueada. O

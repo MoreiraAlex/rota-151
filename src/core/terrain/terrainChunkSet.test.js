@@ -102,6 +102,54 @@ describe('createTerrainChunkSet', () => {
     expect(listener).toHaveBeenCalledTimes(3)
   })
 
+  // docs/features/049-vegetacao-e-floresta.md
+  it('cada chunk traz os sólidos de centro nele; footprintsIn é dos blocos carregados', () => {
+    const set = createTerrainChunkSet({ seed: 3 })
+    const chunks = [set.load(2, 0), set.load(3, 0), set.load(2, 1)]
+    for (const chunk of chunks) {
+      expect(chunk.solids.footprints).toEqual(expect.any(Array))
+      expect(chunk.vegetationSeed).toEqual(expect.any(Number))
+      for (const { x, z } of [...chunk.solids.trees, ...chunk.solids.rocks]) {
+        expect(x).toBeGreaterThanOrEqual(chunk.minX)
+        expect(x).toBeLessThan(chunk.minX + chunk.size)
+        expect(z).toBeGreaterThanOrEqual(chunk.minZ)
+        expect(z).toBeLessThan(chunk.minZ + chunk.size)
+      }
+    }
+    const everything = () =>
+      set.footprintsIn(-Infinity, Infinity, -Infinity, Infinity)
+    const blocks = set.loadedBlocks()
+    expect(everything()).toEqual(
+      blocks.flatMap((block) => block.solids.footprints),
+    )
+    // A pegada de cada chunk está nas dos blocos.
+    for (const chunk of chunks) {
+      expect(everything()).toEqual(
+        expect.arrayContaining(chunk.solids.footprints),
+      )
+    }
+
+    // O bloco sai quando o último chunk dele sai.
+    for (const block of blocks) {
+      for (const key of [...block.chunkKeys]) {
+        const [chunkX, chunkZ] = key.split(',').map(Number)
+        set.unload(chunkX, chunkZ)
+      }
+    }
+    expect(set.loadedBlocks()).toEqual([])
+    expect(everything()).toEqual([])
+  })
+
+  it('o bloco dos sólidos não depende de qual chunk carregou primeiro', () => {
+    const a = createTerrainChunkSet({ seed: 3 })
+    const b = createTerrainChunkSet({ seed: 3 })
+    const first = a.load(1, 1)
+    b.load(-1, 0)
+    b.load(0, -1)
+    const second = b.load(1, 1)
+    expect(second.solids).toEqual(first.solids)
+  })
+
   it('reconfigure troca a receita, mas só sem chunk carregado', () => {
     const set = createTerrainChunkSet({ seed: 3 })
     set.load(0, 0)

@@ -284,6 +284,29 @@ describe('regiões (uma grade por chunk)', () => {
   })
 })
 
+// docs/features/049-vegetacao-e-floresta.md
+describe('objetos sólidos da vegetação (pegadas)', () => {
+  const tree = { x: 0.5, z: 0.5, radius: 0.5 }
+  const nav = createNavigation({
+    bounds: { minX: -10, maxX: 10, minZ: -10, maxZ: 10 },
+    obstacles: [],
+    terrain: { heightAt: () => 0, footprintsIn: () => [tree] },
+  })
+
+  it('a célula da pegada fica bloqueada; longe dela, andável', () => {
+    expect(nav.inspectCell(tree.x, tree.z).walkable).toBe(false)
+    expect(nav.inspectCell(tree.x + 5, tree.z).walkable).toBe(true)
+  })
+
+  it('o caminho contorna a pegada', () => {
+    const path = nav.findPath({ x: -6, z: 0.5 }, { x: 6, z: 0.5 })
+    expect(path.length).toBeGreaterThan(1)
+    for (const point of path) {
+      expect(nav.isWalkableAt(point.x, point.z)).toBe(true)
+    }
+  })
+})
+
 describe('nível do jogo (TEST_LEVEL)', () => {
   beforeAll(() => carregarChunk(0, 0))
   afterAll(() => descarregarTodosOsChunks())

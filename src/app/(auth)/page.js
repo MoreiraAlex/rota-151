@@ -1,13 +1,22 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react'
 import { Canvas } from '@react-three/fiber'
 import { Stats } from '@react-three/drei'
 import { useHas, useTrait } from 'koota/react'
 import { WorldProvider } from '@/core/world/WorldProvider'
+import { GAME_CONFIG } from '@/core/gameConfig'
 import { playerEntity, world } from '@/core/world/world'
 import { InputControlled, ScanHistory, ScanMode } from '@/core/traits'
 import { GameLoop } from '@/view/loop/GameLoop'
+import { FrameLimiter } from '@/view/scene/FrameLimiter'
 import { GameScene } from '@/view/scene/GameScene'
 import { PhysicsDebugView } from '@/tools/debug/PhysicsDebugView'
 import { PathfindingDebugView } from '@/tools/debug/PathfindingDebugView'
@@ -16,6 +25,12 @@ import { WaterLevelDebugView } from '@/tools/debug/WaterLevelDebugView'
 import { ChunkDebugView } from '@/tools/debug/ChunkDebugView'
 import { TerrainTuningPanel } from '@/tools/debug/TerrainTuningPanel'
 import { DayWeatherPanel } from '@/tools/debug/DayWeatherPanel'
+import { VegetationPanel } from '@/tools/debug/VegetationPanel'
+import { RenderStatsProbe } from '@/tools/debug/RenderStatsProbe'
+import {
+  isStatsVisible,
+  subscribeStatsVisible,
+} from '@/tools/debug/statsOverlay'
 import { WildBehaviorDebugView } from '@/tools/debug/WildBehaviorDebugView'
 import { PartyBehaviorDebugView } from '@/tools/debug/PartyBehaviorDebugView'
 import { DebugPanel } from '@/tools/debug/DebugPanel'
@@ -225,6 +240,13 @@ export default function GamePage() {
 
 function GameScreen({ saveError, onDeleteSave, onSceneReady }) {
   const [showDebug, setShowDebug] = useState(false)
+  // Monitor de desempenho: liga e desliga no F2 e, ligado, fica mesmo com o
+  // F2 fechado (tools/debug/statsOverlay.js).
+  const showStats = useSyncExternalStore(
+    subscribeStatsVisible,
+    isStatsVisible,
+    () => false,
+  )
   const [menuOpen, setMenuOpen] = useState(false)
   const [menuView, setMenuView] = useState('main')
   const [pokedexInitialTab, setPokedexInitialTab] = useState('pokemons')
@@ -233,10 +255,11 @@ function GameScreen({ saveError, onDeleteSave, onSceneReady }) {
 
   useEffect(() => {
     // F2 liga/desliga o modo debug inteiro — colliders/pathfinding/range de
-    // ataque (dentro do Canvas), o DebugPanel de texto e o monitor de
-    // desempenho (`<Stats/>` do drei, painel FPS/MS/MB do stats.js no canto
-    // superior esquerdo, clicável pra alternar entre os três). Mesmo toggle
-    // pros quatro, ferramenta de debug nunca ligada por padrão.
+    // ataque (dentro do Canvas) e os painéis. O monitor de desempenho
+    // (`<Stats/>` do drei, painel FPS/MS/MB do stats.js no canto superior
+    // esquerdo, clicável pra alternar entre os três) tem o próprio
+    // liga/desliga no F2 e fica na tela fora dele (`showStats`). Ferramenta
+    // de debug nunca ligada por padrão.
     const onKeyDown = (event) => {
       if (event.code !== 'F2') return
       event.preventDefault()
@@ -376,8 +399,14 @@ function GameScreen({ saveError, onDeleteSave, onSceneReady }) {
         ref={containerRef}
         className="relative h-screen w-screen overflow-hidden"
       >
-        <Canvas shadows>
-          {showDebug && <Stats />}
+        {/* Quem manda desenhar é o FrameLimiter (limite de FPS). */}
+        <Canvas
+          shadows
+          frameloop="never"
+          gl={{ antialias: GAME_CONFIG.RENDER.MSAA }}
+        >
+          <FrameLimiter />
+          {showStats && <Stats />}
           {/* Modo debug força o indicador antes de todo ataque. */}
           <GameLoop castModeOverride={showDebug ? 'confirm' : null} />
           <GameScene>
@@ -388,6 +417,7 @@ function GameScreen({ saveError, onDeleteSave, onSceneReady }) {
                 <ScanRangeDebugView />
                 <WaterLevelDebugView />
                 <ChunkDebugView />
+                <RenderStatsProbe />
                 <WildBehaviorDebugView />
                 <PartyBehaviorDebugView />
               </>
@@ -417,6 +447,7 @@ function GameScreen({ saveError, onDeleteSave, onSceneReady }) {
           {showDebug && <DebugPanel onDeleteSave={onDeleteSave} />}
           {showDebug && <TerrainTuningPanel />}
           {showDebug && <DayWeatherPanel />}
+          {showDebug && <VegetationPanel />}
 
           {/* Save automático falhando (docs/features/044-*.md): some no
               próximo envio que der certo. */}

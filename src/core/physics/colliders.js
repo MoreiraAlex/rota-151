@@ -6,6 +6,7 @@ import {
   wrapAngle,
 } from '../math'
 import { chunkKey } from '../terrain/terrainChunk'
+import { solidParams, trunkOf } from '../vegetation/solidPlacement'
 import { getRapier, getRapierWorld } from './physicsWorld'
 
 /**
@@ -36,7 +37,67 @@ export function createTerrainChunkCollider(chunk) {
     ),
     body,
   )
+  addSolidColliders(chunk, body)
   return body.handle
+}
+
+// Deita a cápsula do Rapier (em pé no Y) ao longo do X local.
+const LYING_ALONG_X = quaternionFromAxisAngle('z', -Math.PI / 2)
+
+/**
+ * Objetos sólidos do chunk (`chunk.solids`, docs/features/049-vegetacao-e-
+ * floresta.md), no corpo do relevo — nascem e saem com ele:
+ * - árvore (qualquer espécie): cilindro em pé no tronco, do tamanho da
+ *   espécie (`trunkOf`) — a copa não colide;
+ * - pedra: cilindro afundado um pouco no chão;
+ * - tronco caído: cápsula deitada ao longo dele (giro = `yaw`).
+ */
+function addSolidColliders(chunk, body) {
+  if (!chunk.solids) return
+  const RAPIER = getRapier()
+  const world = getRapierWorld()
+  const { ROCKS, LOGS } = GAME_CONFIG
+  const params = solidParams()
+  const center = body.translation()
+  const add = (desc, x, y, z) =>
+    world.createCollider(
+      desc.setTranslation(x - center.x, y, z - center.z),
+      body,
+    )
+
+  for (const tree of chunk.solids.trees) {
+    const { radius, height } = trunkOf(tree, params)
+    add(
+      RAPIER.ColliderDesc.cylinder(height / 2, radius),
+      tree.x,
+      tree.y + height / 2,
+      tree.z,
+    )
+  }
+  for (const rock of chunk.solids.rocks) {
+    const height = ROCKS.HEIGHT * rock.scale
+    add(
+      RAPIER.ColliderDesc.cylinder(height / 2, ROCKS.RADIUS * rock.scale),
+      rock.x,
+      rock.y + height * (0.5 - ROCKS.SINK),
+      rock.z,
+    )
+  }
+  for (const log of chunk.solids.logs) {
+    const halfLength = Math.max(0, log.scale / 2 - LOGS.RADIUS)
+    const rotation = multiplyQuaternions(
+      quaternionFromAxisAngle('y', log.yaw),
+      LYING_ALONG_X,
+    )
+    add(
+      RAPIER.ColliderDesc.capsule(halfLength, LOGS.RADIUS).setRotation(
+        rotation,
+      ),
+      log.x,
+      log.y + LOGS.RADIUS * 0.7,
+      log.z,
+    )
+  }
 }
 
 /** Desfaz `createTerrainChunkCollider`. Handle que já não existe: nada. */

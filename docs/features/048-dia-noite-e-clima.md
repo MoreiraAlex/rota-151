@@ -13,7 +13,7 @@ e um **clima**:
   seed, com as chances do bioma (o deserto quase nunca tem chuva e a tundra
   neva). Tipos: **limpo, sol forte, chuva, tempestade e neve**.
 - **Partículas e som**: chuva, neve, relâmpago com trovão e vento forte.
-- **Condições de spawn**: o horário e o clima ficam disponíveis para a 053
+- **Condições de spawn**: o horário e o clima ficam disponíveis para a 055
   (spawn) consultar.
 - **Debug (F2)**: mostra o horário e o clima, e deixa mudar a hora, a
   velocidade do relógio e forçar um clima.
@@ -50,7 +50,7 @@ Versão: `0.0.48` (`package.json`). Branch: `feature/048-dia-noite-e-clima`.
 
 1. **O horário corre só com o jogo aberto e vai no save.** Ao voltar, o jogo
    continua da hora em que parou. Pausado, o relógio para. No multiplayer
-   (065), o servidor passa a ser o dono do relógio.
+   (067), o servidor passa a ser o dono do relógio.
 2. **O clima é escolhido pela seed, por região e período.** É determinístico:
    com a mesma seed, região e período, o clima é o mesmo. Assim o multiplayer
    só precisa da seed e do horário. Cada bioma tem as próprias chances.
@@ -121,8 +121,8 @@ Versão: `0.0.48` (`package.json`). Branch: `feature/048-dia-noite-e-clima`.
     sobe, em `WEATHER.TRANSITION` segundos.
   - Na tempestade, sorteia relâmpagos com o RNG cosmético nomeado
     (`weatherFx`) e emite o evento `relampago`.
-- **Para o spawn (053)**: `dayPhaseOf(time)` e `weatherAt(x, z, time)` já
-  são a consulta. A 053 só lê.
+- **Para o spawn (055)**: `dayPhaseOf(time)` e `weatherAt(x, z, time)` já
+  são a consulta. A 055 só lê.
 
 ### Save
 
@@ -130,7 +130,7 @@ Versão: `0.0.48` (`package.json`). Branch: `feature/048-dia-noite-e-clima`.
   save sem o campo começa de manhã (`DAY_CYCLE.START_TIME`). Na carga,
   `definirHorario(world, worldTime)`. O save novo grava o `WorldClock.time`.
 - Por enquanto o horário mora no save do treinador porque o jogo é offline.
-  Na 065 ele passa para o servidor.
+  Na 067 ele passa para o servidor.
 
 ### View
 
@@ -255,7 +255,7 @@ Versão: `0.0.48` (`package.json`). Branch: `feature/048-dia-noite-e-clima`.
 - **Força por tipo**: o `LocalWeather` guarda a força de cada um dos quatro
   tipos (`clear`, `rain`, `storm`, `snow`); na troca, um desce enquanto o
   outro sobe (`core/weather/weatherLevels.js`). `type` é o mais forte agora.
-- **Consulta para o spawn (053)**: `weatherAt(x, z, time)` em
+- **Consulta para o spawn (055)**: `weatherAt(x, z, time)` em
   `core/weather/worldWeather.js` (seed do mundo + bioma do relevo) e
   `dayPhaseOf(time)` em `core/time/dayCycle.js`.
 - **Relâmpago**: o `weatherSystem` emite `lightningStruck` (RNG cosmético);
@@ -322,9 +322,9 @@ Versão: `0.0.48` (`package.json`). Branch: `feature/048-dia-noite-e-clima`.
 - Tempestade de areia e neblina como tipos de clima.
 - A luz no estilo BotW e o ajuste das cores por bioma: ficam para a 049.
 - Nuvens 3D e sombra de nuvem no chão.
-- Usar o horário e o clima no spawn: fica para a 053.
-- O relógio no servidor: fica para a 065.
-- Mostrar a hora e o clima na HUD: fica para a 056.
+- Usar o horário e o clima no spawn: fica para a 055.
+- O relógio no servidor: fica para a 067.
+- Mostrar a hora e o clima na HUD: fica para a 058.
 
 ---
 

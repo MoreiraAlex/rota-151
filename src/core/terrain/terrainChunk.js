@@ -27,6 +27,13 @@ import { clamp } from '../math'
  *   255; só para a cor): `biomeWeights[índice da altura × biomeIds.length +
  *   bioma]`
  * @property {string} biome - id do bioma com mais peso no chunk
+ * @property {import('../vegetation/solidPlacement').ChunkSolids} [solids] -
+ *   árvores, troncos caídos e pedras do chunk (postos pelo conjunto de
+ *   chunks ao carregar, `terrainChunkSet.js`)
+ * @property {number} [vegetationSeed] - seed da vegetação e das clareiras
+ * @property {Float32Array | null} [trails] - força da trilha por vértice
+ *   (na ordem de `heights`; `null` = sem trilha), posta pelo conjunto de
+ *   chunks ao carregar (`trails.js`)
  */
 
 /** Chunk que contém a coordenada de mundo `value` (num eixo). */
@@ -134,6 +141,26 @@ export function chunkHeightAt(chunk, x, z) {
     u,
     v,
   )
+}
+
+/**
+ * Um valor guardado por vértice no chunk (`field`, na ordem de `heights` —
+ * as trilhas, por exemplo) em `(x, z)`, interpolado entre os quatro
+ * vértices da célula. Fora do chunk, o da borda.
+ */
+export function chunkFieldAt(chunk, field, x, z) {
+  const { resolution } = chunk
+  const step = chunk.size / resolution
+  const fx = clamp((x - chunk.minX) / step, 0, resolution)
+  const fz = clamp((z - chunk.minZ) / step, 0, resolution)
+  const ix = Math.min(Math.floor(fx), resolution - 1)
+  const iz = Math.min(Math.floor(fz), resolution - 1)
+  const u = fx - ix
+  const v = fz - iz
+  const at = (dx, dz) => field[heightIndex(resolution, ix + dx, iz + dz)]
+  const near = at(0, 0) * (1 - u) + at(1, 0) * u
+  const far = at(0, 1) * (1 - u) + at(1, 1) * u
+  return near * (1 - v) + far * v
 }
 
 /**

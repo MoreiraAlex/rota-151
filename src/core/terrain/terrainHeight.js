@@ -2,6 +2,7 @@ import { createNoise2D } from 'simplex-noise'
 import { listBiomes } from '../data/biomes'
 import { GAME_CONFIG } from '../gameConfig'
 import { createRng, deriveSeed } from '../rng'
+import { solidParams } from '../vegetation/solidPlacement'
 import { createBiomeSampler } from './biomeMap'
 
 // Cada camada de ondulação tem metade do tamanho da anterior (o padrão da
@@ -24,13 +25,20 @@ export function countLayers(hillSize) {
 }
 
 /**
- * A receita do relevo agora: a config (`GAME_CONFIG.TERRAIN`/`BIOMES`) e
- * os biomas do registro, menos os escondidos (`BIOMES.HIDDEN`). Os chunks guardam uma CÓPIA (`copyTerrainRecipe`)
- * — o painel de ajuste (F2) mexe nos originais ao vivo.
+ * A receita do relevo agora: a config (`GAME_CONFIG.TERRAIN`/`BIOMES` e os
+ * números dos objetos sólidos) e os biomas do registro, menos os escondidos
+ * (`BIOMES.HIDDEN`).
+ * Os chunks guardam uma CÓPIA (`copyTerrainRecipe`) — o painel de ajuste
+ * (F2) mexe nos originais ao vivo.
  *
  * @typedef {object} TerrainRecipe
  * @property {object} terrain - forma de `GAME_CONFIG.TERRAIN`
  * @property {object} biomes - forma de `GAME_CONFIG.BIOMES`
+ * @property {object} solids - `{ trees, logs, rocks, clearings }`: os
+ *   números dos objetos sólidos do chunk (`solidParams`,
+ *   docs/features/049-vegetacao-e-floresta.md)
+ * @property {object} trails - forma de `GAME_CONFIG.TRAILS` (core/terrain/
+ *   trails.js)
  * @property {object[]} biomeList - biomas (`core/data/biomes/`), na ordem
  *   do registro
  */
@@ -38,6 +46,8 @@ export function currentTerrainRecipe() {
   return {
     terrain: GAME_CONFIG.TERRAIN,
     biomes: GAME_CONFIG.BIOMES,
+    solids: solidParams(),
+    trails: GAME_CONFIG.TRAILS,
     biomeList: listBiomes().filter(
       ({ id }) => !GAME_CONFIG.BIOMES.HIDDEN.includes(id),
     ),

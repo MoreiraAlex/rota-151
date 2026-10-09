@@ -1,4 +1,5 @@
 import { GAME_CONFIG } from '../gameConfig'
+import { smoothstep } from '../math'
 
 /**
  * Dia e noite (docs/features/048-dia-noite-e-clima.md): só contas, sem
@@ -84,10 +85,6 @@ export function hexToRgb(hex) {
 
 const mix = (a, b, t) => a + (b - a) * t
 const mixRgb = (a, b, t) => a.map((value, i) => mix(value, b[i], t))
-const smoothstep = (edge0, edge1, x) => {
-  const t = Math.min(Math.max((x - edge0) / (edge1 - edge0), 0), 1)
-  return t * t * (3 - 2 * t)
-}
 
 const COLOR_FIELDS = ['light', 'ambient', 'skyTop', 'horizon']
 const NUMBER_FIELDS = ['lightIntensity', 'ambientIntensity', 'stars']

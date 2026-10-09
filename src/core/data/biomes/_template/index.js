@@ -54,6 +54,8 @@ export const BIOME_TEMPLATE = {
     highHeight: 8,
     // Encosta íngreme.
     slope: '#7d6a52',
+    // Opcional (com `trails`): a cor da trilha.
+    // trail: '#8a7552',
     // Opcional: cor do alto (neve, cratera) a partir de `peakHeight` (m)
     // acima da água.
     // peak: '#f2f4f7',
@@ -71,15 +73,59 @@ export const BIOME_TEMPLATE = {
     slopeTexture: 'rock',
     // Opcional: margem e fundo da água (sem ele, `texture`).
     shoreTexture: 'sand',
+    // Opcional (com `trails`): a trilha (sem ele, `texture`).
+    // trailTexture: 'dry-ground',
     // Opcional: o alto (com `palette.peak`; sem ele, `texture`).
     // peakTexture: 'snow',
     // Força do desenho (0 a 1): 0 = só a cor da paleta.
     detail: 0.6,
   },
-  // O que nasce aqui (colocado pela 049 — vegetação e objetos). `kind` é o
-  // tipo do objeto; `density` (0 a 1) é relativa entre os biomas.
-  vegetation: [{ kind: 'tall-grass', density: 0.5 }],
-  // Tags que o spawn (053) usa nas condições de cada espécie.
+  // Opcional: clareiras (docs/features/049-vegetacao-e-floresta.md) —
+  // manchas abertas pela seed; `amount` (0 a 1) é mais ou menos a fração do
+  // bioma que fica aberta. Sem `clearings`, `place` não muda nada.
+  // clearings: { amount: 0.3 },
+  // Opcional: trilhas pela seed (core/terrain/trails.js,
+  // `GAME_CONFIG.TRAILS`) — o chão pinta com `palette.trail` e
+  // `ground.trailTexture`, e a vegetação não nasce nelas.
+  // trails: true,
+  // O que nasce aqui (docs/features/049-vegetacao-e-floresta.md). `kind` é
+  // o tipo do objeto; `density` (0 a 1) é relativa entre os biomas. Já
+  // aparecem no mundo: `tall-grass` (grama), `flower`, `bush`, `fern`,
+  // `leafy-plant`, `mushroom` e `pebble` (atravessáveis); `broadleaf-tree`,
+  // `ancient-tree`, `pine-tree`, `dead-tree`, `rock` e `fallen-log` (com
+  // colisão). Os outros tipos só estão declarados.
+  // - `place` (opcional, com `clearings`): 'shade' = rareia nas clareiras;
+  //   'clearing' = nas clareiras (com `shade`, 0 a 1, a fração que ainda
+  //   fica na mata). Sem ele, em qualquer lugar. 'trail' (com `trails`) =
+  //   só nas trilhas (os seixos); o resto nunca nasce no meio delas.
+  // - `patches` (opcional): `{ amount, size }` — o tipo só nasce em
+  //   manchas, mais ou menos `amount` (0 a 1) do chão, de `size` m de
+  //   largura (bosque, tapete, roda). Sem ele, espalhado por igual.
+  // - `moss` (opcional, `rock`): quanto do topo da pedra é musgo (0 a 1).
+  vegetation: [
+    {
+      kind: 'tall-grass',
+      density: 0.5,
+      // Opcional: grama em conjuntos, como o mato alto dos jogos de
+      // Pokémon (core/vegetation/grassClusters.js — lá cada campo está
+      // explicado). Sem ele, a grama espalha por igual.
+      // clusters: {
+      //   density: 1, size: 14, sizeVariation: 0.6, roughness: 0.5,
+      //   edge: 0.05, height: 1.15, holes: 0.25, coverage: 0.45,
+      //   grouping: 0.5, variety: 0.35, background: 0.12,
+      //   backgroundHeight: 0.55, clearingPreference: 0.5,
+      // },
+      // Cor da grama: da raiz (`root`) à ponta (`tip`), em dois pares —
+      // manchas puxam do par A para o B (`GRASS.COLOR_VARIATION`).
+      colors: {
+        root: '#6aa14f',
+        tip: '#a1cc33',
+        rootB: '#74a022',
+        tipB: '#e8e84f',
+      },
+    },
+  ],
+  // Tags que o spawn (055) usa nas condições de cada espécie.
   tags: ['grassland'],
   // Chances relativas de cada clima (docs/features/048-dia-noite-e-
   // clima.md): a cada período, cada região sorteia um tipo por estes pesos.

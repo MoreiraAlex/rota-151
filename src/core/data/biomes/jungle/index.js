@@ -40,7 +40,16 @@ export const JUNGLE = {
     { kind: 'jungle-tree', density: 0.7 },
     { kind: 'bush', density: 0.5 },
     { kind: 'flower', density: 0.2 },
-    { kind: 'tall-grass', density: 0.4 },
+    {
+      kind: 'tall-grass',
+      density: 0.4,
+      colors: {
+        root: '#2f6b34',
+        tip: '#6fae3a',
+        rootB: '#3d7a2a',
+        tipB: '#9cc94a',
+      },
+    },
   ],
   tags: ['forest', 'jungle', 'hot', 'humid'],
   weather: { clear: 2, sun: 1, rain: 5, storm: 2, snow: 0 },

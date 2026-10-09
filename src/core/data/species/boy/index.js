@@ -99,7 +99,7 @@ export const BOY = {
   },
   movement: {
     walkSpeed: 2.25,
-    runSpeed: 50,
+    runSpeed: 6,
     turnSpeed: 10,
     jumpSpeed: 9,
   },

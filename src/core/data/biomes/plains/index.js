@@ -37,7 +37,16 @@ export const PLAINS = {
     detail: 0.6,
   },
   vegetation: [
-    { kind: 'tall-grass', density: 0.6 },
+    {
+      kind: 'tall-grass',
+      density: 0.6,
+      colors: {
+        root: '#6aa14f',
+        tip: '#a1cc33',
+        rootB: '#74a022',
+        tipB: '#e8e84f',
+      },
+    },
     { kind: 'flower', density: 0.3 },
     { kind: 'broadleaf-tree', density: 0.05 },
     { kind: 'rock', density: 0.05 },

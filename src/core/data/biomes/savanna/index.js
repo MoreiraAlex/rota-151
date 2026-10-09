@@ -37,7 +37,16 @@ export const SAVANNA = {
     detail: 0.6,
   },
   vegetation: [
-    { kind: 'tall-grass', density: 0.5 },
+    {
+      kind: 'tall-grass',
+      density: 0.5,
+      colors: {
+        root: '#8a8a3c',
+        tip: '#d8c46a',
+        rootB: '#9a7f3a',
+        tipB: '#e6d48a',
+      },
+    },
     { kind: 'acacia-tree', density: 0.08 },
     { kind: 'rock', density: 0.05 },
   ],

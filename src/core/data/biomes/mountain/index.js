@@ -1,6 +1,6 @@
 /**
  * Montanha (docs/features/047-biomas.md) — Morros altos e íngremes de rocha,
- * com neve no alto. É onde ficarão as bocas das cavernas (055).
+ * com neve no alto. É onde ficarão as bocas das cavernas (057).
  * Campos: ver `../_template/`.
  */
 export const MOUNTAIN = {

@@ -12,6 +12,11 @@ import { castRay } from './raycast'
 import { GAME_CONFIG } from '../gameConfig'
 import { createTerrainSampler } from '../terrain/terrainHeight'
 import { chunkHeightAt, generateTerrainChunk } from '../terrain/terrainChunk'
+import {
+  STANDING_TREE_KINDS,
+  solidParams,
+  trunkOf,
+} from '../vegetation/solidPlacement'
 
 const OFFSET = GAME_CONFIG.PHYSICS.CHARACTER.CONTROLLER_OFFSET
 // Bulbasaur: deitada ao longo da frente (+Z local), 1 m de ponta a ponta.
@@ -135,6 +140,53 @@ describe('createTerrainChunkCollider — o colisor bate com o relevo do chunk', 
     destroyTerrainChunkCollider(handle)
     stepPhysics()
     expect(groundByRay(0, 0)).toBeNull()
+  })
+
+  // docs/features/049-vegetacao-e-floresta.md
+  it('árvore, pedra e tronco caído bloqueiam e saem junto com o chunk', () => {
+    // Chão plano: o raio de lado só pode acertar os objetos.
+    const chunk = generateTerrainChunk(createTerrainSampler(5), 0, 0)
+    chunk.heights.fill(0)
+    const at = (fx, fz) => {
+      const x = chunk.minX + chunk.size * fx
+      const z = chunk.minZ + chunk.size * fz
+      return { x, y: chunkHeightAt(chunk, x, z), z, yaw: 0, variant: 0 }
+    }
+    // Uma árvore de cada espécie, cada uma com o tronco dela.
+    const trees = STANDING_TREE_KINDS.map((kind, index) => ({
+      ...at(0.15 + index * 0.1, 0.6),
+      kind,
+      scale: 1,
+    }))
+    const rock = { ...at(0.7, 0.3), scale: 0.5 }
+    // Deitado ao longo do X (giro 0): o raio de lado (em Z) acerta.
+    const log = { ...at(0.5, 0.8), scale: 4 }
+    chunk.solids = { trees, rocks: [rock], logs: [log], footprints: [] }
+    const handle = createTerrainChunkCollider(chunk)
+    stepPhysics()
+
+    const reach = 10
+    const fromSide =
+      ({ x, y, z }, height) =>
+      () =>
+        castRay({ x, y: y + height, z: z - reach }, { x: 0, y: 0, z: 1 }, reach)
+    const probes = [
+      ...trees.map((tree) => [
+        fromSide(tree, 1),
+        trunkOf(tree, solidParams()).radius,
+      ]),
+      [fromSide(rock, 0.3), GAME_CONFIG.ROCKS.RADIUS * rock.scale],
+      [fromSide(log, GAME_CONFIG.LOGS.RADIUS * 0.7), GAME_CONFIG.LOGS.RADIUS],
+    ]
+    for (const [probe, radius] of probes) {
+      const hit = probe()
+      expect(hit).not.toBeNull()
+      expect(hit.distance).toBeCloseTo(reach - radius, 1)
+    }
+
+    destroyTerrainChunkCollider(handle)
+    stepPhysics()
+    for (const [probe] of probes) expect(probe()).toBeNull()
   })
 })
 

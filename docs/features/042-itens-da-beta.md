@@ -169,7 +169,7 @@ Versão: `0.0.42` (`package.json`). Branch: `feature/042-itens-da-beta`.
 ### Kit de teste (`core/world/world.js`)
 
 - `STARTING_ITEMS`: a Pokédex na mão e todos os itens novos no inventário,
-  com quantidades de teste. O kit de verdade é da 061.
+  com quantidades de teste. O kit de verdade é da 063.
 - Debug: o seletor de item da mão lista o catálogo novo.
 
 ### Testes
@@ -302,8 +302,8 @@ Versão: `0.0.42` (`package.json`). Branch: `feature/042-itens-da-beta`.
 - Função da Pokébola (arremesso de captura) — 043.
 - Pokémon segurar item.
 - Pegar a comida do chão, condição/estrago de itens — depois da beta.
-- Itens no mundo e árvores de frutas — 050.
-- Kit inicial definitivo — 061.
+- Itens no mundo e árvores de frutas — 052.
+- Kit inicial definitivo — 063.
 - Clipes de animação de comer (o estado fica preparado; Bulbasaur, Charmander
   e Squirtle já têm, o treinador ainda não).
 - Salvar — 044.

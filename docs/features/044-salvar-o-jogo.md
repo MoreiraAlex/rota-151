@@ -51,13 +51,13 @@ Versão: `0.0.44` (`package.json`). Branch: `feature/044-salvar-o-jogo`.
 ## Decisões (com o usuário)
 
 1. **Banco normalizado**: uma tabela do treinador e **uma linha por Pokémon**
-   — prepara a troca da 069 (o Pokémon só muda de dono numa transação).
+   — prepara a troca da 071 (o Pokémon só muda de dono numa transação).
 2. **O que entra além do roadmap**: Pokédex (espécies e histórico), item na
    mão e a **posição e direção do treinador** — pedido depois do teste:
    "ficou estranho sempre aparecer no meio do mapa". Volta na posição salva
    exata (ela vem da física, não fica dentro do chão). Uma folga de meio
    metro acima foi tentada e saiu: o treinador aparecia flutuando e caía
-   ao entrar. Save sem posição (de antes dela) começa no ponto inicial. Reaparecer no Pokécenter ao ser derrotado continua na 058.
+   ao entrar. Save sem posição (de antes dela) começa no ponto inicial. Reaparecer no Pokécenter ao ser derrotado continua na 060.
 3. **Quando salva** — como nos jogos online:
    1. **de tempos em tempos** (`GAME_CONFIG.SAVE.AUTOSAVE_INTERVAL`), só se o
       estado mudou desde o último envio;
@@ -71,7 +71,7 @@ Versão: `0.0.44` (`package.json`). Branch: `feature/044-salvar-o-jogo`.
 6. **Debug**: botão no `DebugPanel` para apagar o save e recarregar com o kit
    de teste.
 7. **Id próprio por Pokémon**, gerado no jogo e igual ao da linha no banco —
-   continua o mesmo Pokémon na troca (069).
+   continua o mesmo Pokémon na troca (071).
 8. **Bola com Pokémon no chão não é salva** (captura com o inventário cheio):
    saiu do jogo, ela some, como qualquer item no chão.
 9. **Falha ao carregar não entrega o kit de teste**: mostra o erro com
@@ -326,7 +326,7 @@ carrega todas as imagens".
 
 - Tempo passando com o jogo fechado — servidor (Marco 4).
 - Duas abas abertas na mesma conta: vale o último que salvou.
-- Save no servidor e validação anti-trapaça — 068.
+- Save no servidor e validação anti-trapaça — 070.
 - Vários treinadores por conta.
 
 ---

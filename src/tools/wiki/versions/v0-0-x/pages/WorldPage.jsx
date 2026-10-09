@@ -37,7 +37,8 @@ export function WorldPage({ data, version }) {
             outro caminho em volta dela.
           </li>
           <li>
-            Os vales mais fundos vão virar lagos quando a água chegar ao jogo.
+            Os vales mais fundos ficam cheios de água. Por enquanto dá pra
+            atravessar os lagos andando pelo fundo.
           </li>
         </ul>
       </Section>
@@ -45,50 +46,49 @@ export function WorldPage({ data, version }) {
       <Section id="biomas" title="Biomas">
         <p>
           O mundo é dividido em <strong>biomas</strong>, cada um com o próprio
-          chão, cores e formato de terreno. Um bioma vira o outro aos poucos, e
-          biomas de clima parecido ficam perto uns dos outros: o deserto perto
-          da savana, a tundra perto das montanhas.
+          chão, cores, plantas e formato de terreno. Por enquanto o mundo é todo{' '}
+          <strong>floresta</strong>: mata de clima ameno, com colinas médias.
+        </p>
+        <p>Você sempre começa em terra firme.</p>
+      </Section>
+
+      <Section id="floresta" title="A floresta">
+        <p>
+          A floresta é uma mata fechada, com <strong>clareiras</strong> abertas
+          no meio dela.
         </p>
         <ul>
           <li>
-            <strong>Oceano</strong>: mar aberto, com o fundo bem abaixo da água.
+            <strong>Árvores</strong> de vários tipos: folhosas, pinheiros em
+            bosques, árvores antigas e enormes e, de vez em quando, uma árvore
+            morta.
           </li>
           <li>
-            <strong>Praia</strong>: a faixa de areia entre o mar e a terra.
+            Por baixo das árvores: arbustos, samambaias, plantas de folha larga
+            e rodas de cogumelos.
           </li>
           <li>
-            <strong>Planície</strong>: campo aberto de grama, com colinas
-            baixas.
+            <strong>Flores</strong> só nas clareiras.
           </li>
           <li>
-            <strong>Savana</strong>: campo seco e quente, de terra e grama
-            amarelada.
+            <strong>Mato alto</strong> em moitas, com chão de grama baixa entre
+            elas.
           </li>
           <li>
-            <strong>Floresta</strong>: mata de clima ameno, com colinas médias.
+            <strong>Trilhas</strong> de terra batida cortam a mata, com
+            pedrinhas no caminho. As trilhas que chegam num lago terminam na
+            margem.
           </li>
-          <li>
-            <strong>Selva</strong>: mata quente e úmida, de relevo irregular.
-          </li>
-          <li>
-            <strong>Pântano</strong>: terra encharcada e plana, cheia de poças.
-          </li>
-          <li>
-            <strong>Deserto</strong>: areia quente, em dunas largas.
-          </li>
-          <li>
-            <strong>Montanha</strong>: morros altos de rocha, com neve no alto.
-          </li>
-          <li>
-            <strong>Vulcânico</strong>: rocha escura e íngreme. Raro.
-          </li>
-          <li>
-            <strong>Tundra</strong>: campo gelado, coberto de neve.
-          </li>
+          <li>Troncos caídos e pedras com musgo pelo chão.</li>
         </ul>
         <p>
-          Você sempre começa em terra firme. Por enquanto dá pra entrar no mar e
-          nos lagos andando pelo fundo.
+          Árvores, troncos caídos e pedras bloqueiam a passagem, e as criaturas
+          desviam deles. Arbustos, plantas e mato dá pra atravessar.
+        </p>
+        <p>
+          O <strong>vento</strong> balança o mato, as plantas e as copas das
+          árvores. Ele fica mais forte com chuva e mais ainda com tempestade e
+          neve.
         </p>
       </Section>
 
@@ -163,10 +163,7 @@ export function WorldPage({ data, version }) {
               <strong>Neve</strong>: céu fechado, flocos caindo e vento.
             </li>
           </ul>
-          <p>
-            Cada bioma tem as próprias chances de clima: no deserto quase nunca
-            chove, na tundra o normal é nevar.
-          </p>
+          <p>Cada bioma tem as próprias chances de clima.</p>
           <DataTable
             head={['Bioma', ...world.weatherTypes.map((t) => WEATHER_NAMES[t])]}
             align={[null, ...world.weatherTypes.map(() => 'right')]}
@@ -211,10 +208,9 @@ export function WorldPage({ data, version }) {
 
       <Notice tone="soon">
         <p>
-          Ainda vão chegar ao mundo: água de verdade em lagos, rios e no mar,
-          cavernas, árvores, pedras e grama alta, itens pelo chão e o
-          Pokécenter. Os Pokémon de cada bioma, horário e clima também chegam
-          depois.
+          Ainda vão chegar ao mundo: a planície, a savana e a montanha, água de
+          verdade em lagos e rios, cavernas, itens pelo chão e o Pokécenter. Os
+          Pokémon de cada bioma, horário e clima também chegam depois.
         </p>
       </Notice>
     </>

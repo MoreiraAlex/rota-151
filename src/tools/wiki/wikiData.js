@@ -546,11 +546,15 @@ function buildCaptureExample(balls) {
 
 // Dia, noite e clima (docs/features/048-dia-noite-e-clima.md): quanto dura
 // o dia, a chance de cada clima por bioma (fração do total de pesos) e o que
-// o clima muda no combate.
+// o clima muda no combate. Só os biomas que aparecem no jogo (fora do
+// `BIOMES.HIDDEN`).
 function buildWorld() {
-  const { DAY_CYCLE, WEATHER } = GAME_CONFIG
+  const { DAY_CYCLE, WEATHER, BIOMES } = GAME_CONFIG
   const weatherTypes = WEATHER_TYPES
-  const biomes = listBiomes().map((biome) => {
+  const visibleBiomes = listBiomes().filter(
+    ({ id }) => !BIOMES.HIDDEN.includes(id),
+  )
+  const biomes = visibleBiomes.map((biome) => {
     const total = weatherTypes.reduce(
       (sum, type) => sum + (biome.weather[type] ?? 0),
       0,

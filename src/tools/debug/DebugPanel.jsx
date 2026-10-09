@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useSyncExternalStore } from 'react'
+import { getRenderStats, subscribeRenderStats } from './renderStats'
 
 import { useTrait, useTag, useQuery, useQueryFirst } from 'koota/react'
 import { playerEntity, cameraEntity, world } from '@/core/world/world'
@@ -151,6 +152,7 @@ export function DebugPanel({ onDeleteSave = null }) {
       <ChunkDebugCounter />
       {/* Bioma onde está quem é controlado (docs/features/047-biomas.md). */}
       <p>bioma: {TEST_LEVEL.terrain.biomeAt(position.x, position.z).name}</p>
+      <RenderStatsLine />
       {/* Relógio e clima (docs/features/048-dia-noite-e-clima.md). */}
       {clock && weather && (
         <p>
@@ -478,5 +480,20 @@ function VitalsBar({ label, value, max, color }) {
         <div className={`h-full ${color}`} style={{ width: `${percent}%` }} />
       </div>
     </div>
+  )
+}
+
+// Desenhos e triângulos do último quadro (`RenderStatsProbe`).
+function RenderStatsLine() {
+  const { calls, triangles, dpr } = useSyncExternalStore(
+    subscribeRenderStats,
+    getRenderStats,
+    getRenderStats,
+  )
+  return (
+    <p>
+      desenho: {calls} chamadas · {(triangles / 1e6).toFixed(2)} M triângulos ·
+      dpr {dpr.toFixed(2)}
+    </p>
   )
 }

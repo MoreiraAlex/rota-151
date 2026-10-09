@@ -73,6 +73,67 @@ describe('registro de biomas', () => {
     },
   )
 
+  it.each(listBiomes().filter(({ trails }) => trails))(
+    '$id: trilha com cor e textura (docs/features/049-*.md)',
+    ({ palette, ground }) => {
+      expect(palette.trail).toMatch(HEX_COLOR)
+      expect(ground.trailTexture ?? ground.texture).toEqual(expect.any(String))
+    },
+  )
+
+  it.each(listBiomes())(
+    '$id: manchas da vegetação válidas (docs/features/049-*.md)',
+    ({ vegetation }) => {
+      for (const { patches } of vegetation.filter((entry) => entry.patches)) {
+        expect(patches.amount).toBeGreaterThan(0)
+        expect(patches.amount).toBeLessThanOrEqual(1)
+        expect(patches.size).toBeGreaterThan(0)
+      }
+    },
+  )
+
+  it.each(listBiomes())(
+    '$id: conjuntos de grama completos (docs/features/049-*.md)',
+    ({ vegetation }) => {
+      const FIELDS = [
+        'density',
+        'size',
+        'sizeVariation',
+        'roughness',
+        'edge',
+        'height',
+        'holes',
+        'coverage',
+        'grouping',
+        'variety',
+        'background',
+        'backgroundHeight',
+        'clearingPreference',
+      ]
+      for (const { clusters } of vegetation.filter((e) => e.clusters)) {
+        expect(Object.keys(clusters).sort()).toEqual([...FIELDS].sort())
+        expect(clusters.size).toBeGreaterThan(0)
+        expect(clusters.height).toBeGreaterThan(0)
+        for (const field of ['coverage', 'background', 'density']) {
+          expect(clusters[field]).toBeGreaterThanOrEqual(0)
+          expect(clusters[field]).toBeLessThanOrEqual(1)
+        }
+      }
+    },
+  )
+
+  it.each(listBiomes())(
+    '$id: grama com as quatro cores (docs/features/049-*.md)',
+    ({ vegetation }) => {
+      const grass = vegetation.filter(({ kind }) => kind === 'tall-grass')
+      for (const { colors } of grass) {
+        for (const key of ['root', 'tip', 'rootB', 'tipB']) {
+          expect(colors[key]).toMatch(HEX_COLOR)
+        }
+      }
+    },
+  )
+
   it.each(listBiomes())(
     '$id: chances de clima para cada tipo (docs/features/048-*.md)',
     ({ weather }) => {

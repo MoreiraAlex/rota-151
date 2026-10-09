@@ -12,7 +12,8 @@
  */
 export const GAME_CONFIG = {
   LOOP: {
-    // Passo fixo da simulação (s).
+    // Passo fixo da simulação (s) — física, IA e systems. Não limita os
+    // quadros desenhados: isso é o `RENDER.MAX_FPS`.
     FIXED_TIMESTEP: 1 / 60,
     // Teto de tempo absorvido por frame. Protege contra "spiral of death"
     // quando a aba fica em background ou ocorre um stall de GC.
@@ -33,22 +34,29 @@ export const GAME_CONFIG = {
   // (docs/features/047-biomas.md).
   TERRAIN: {
     // Identifica a receita do relevo; subir quando a geração mudar.
-    GENERATION_VERSION: 2,
-    // Altura (m) da superfície da água: o que fica abaixo vira lago na 054.
+    GENERATION_VERSION: 7,
+    // Altura (m) da superfície da água: o que fica abaixo vira lago na 056.
     // O relevo dos biomas é medido a partir dela (`relief.baseHeight`).
     WATER_LEVEL: -2,
-    // Lado (m) de um chunk — sempre um vértice por metro.
-    CHUNK_SIZE: 64,
+    // Lado (m) de um chunk — sempre um vértice por metro (o do Minecraft).
+    CHUNK_SIZE: 16,
+    // Lado (m) do bloco em que saem os objetos sólidos (árvores, troncos
+    // caídos, pedras — core/terrain/terrainChunkSet.js): um número ÍMPAR de
+    // chunks (os chunks são centrados na origem; só assim a borda do bloco
+    // cai na borda de um chunk).
+    SOLIDS_BLOCK_SIZE: 80,
     // Raio (em chunks) carregado em volta do treinador e da criatura
-    // controlada — um quadrado de lado 2 × raio + 1.
-    LOAD_RADIUS: 2,
+    // controlada — um quadrado de lado 2 × raio + 1. É ele que define até
+    // onde se vê (a névoa fecha antes da borda): mais raio, mais mundo na
+    // tela e mais peso para a máquina.
+    LOAD_RADIUS: 8,
     // Raio (em chunks) a partir do qual um chunk descarrega. Maior que o de
     // carregar: a folga entre os dois evita carregar e descarregar o mesmo
     // chunk andando na borda.
-    UNLOAD_RADIUS: 3,
+    UNLOAD_RADIUS: 10,
     // Raio (em chunks) que carrega na hora, sem esperar a vez — o chão
     // debaixo e em volta de quem anda.
-    NEAR_RADIUS: 1,
+    NEAR_RADIUS: 2,
     // Quantos chunks carregam por tick fora do NEAR_RADIUS (cada um custa
     // alguns ms; muitos de uma vez travam o quadro).
     CHUNKS_PER_TICK: 1,
@@ -93,8 +101,22 @@ export const GAME_CONFIG = {
     SPAWN_LAND_RADIUS: 400,
     // Ids dos biomas que ficam fora do mundo (o resto disputa o lugar
     // deles). Ferramenta de teste: o painel do debug (F2) esconde biomas
-    // para olhar um só. Vazio no jogo.
-    HIDDEN: [],
+    // para olhar um só. Na beta só aparecem os biomas das espécies
+    // selvagens, cada um ao ser refinado (docs/roadmap.md, Marco 2): a
+    // floresta (049); planície, savana e montanha saem daqui nas features
+    // deles. Os outros ficam na seed, vistos só pelo F2.
+    HIDDEN: [
+      'ocean',
+      'beach',
+      'plains',
+      'savanna',
+      'jungle',
+      'swamp',
+      'desert',
+      'mountain',
+      'volcanic',
+      'tundra',
+    ],
   },
   // Desenho do chão (view/terrain/terrainMaterial.js,
   // docs/features/047-biomas.md): sobre a cor da paleta de cada bioma, o
@@ -119,11 +141,61 @@ export const GAME_CONFIG = {
   // bioma (`palette`, core/data/biomes/).
   TERRAIN_COLOR: {
     // Margem: da água até esta altura (m) acima dela.
-    SHORE_HEIGHT: 0.6,
+    SHORE_HEIGHT: 0.15,
     // Encosta: começa a misturar quando a inclinação passa de SLOPE_START
     // (normal.y abaixo dele) e chega cheia em SLOPE_FULL.
     SLOPE_START: 0.9,
     SLOPE_FULL: 0.75,
+  },
+  // Trilhas (docs/features/049-vegetacao-e-floresta.md, core/terrain/
+  // trails.js): linhas sinuosas pela seed nos biomas com `trails`. O chão
+  // pinta a trilha (`palette.trail`, `ground.trailTexture`) e a vegetação
+  // não nasce nela.
+  TRAILS: {
+    // Distância típica (m) entre duas trilhas.
+    SIZE: 150,
+    // Quanto a trilha serpenteia (m de desvio) e o tamanho (m) das curvas.
+    WARP: 22,
+    WARP_SIZE: 45,
+    // Largura (m) da trilha e da borda dela (onde a grama volta aos poucos).
+    WIDTH: 2.2,
+    EDGE: 0.9,
+    // Relevo: quanto (m) o meio da trilha afunda no chão (o pisado) e quanto
+    // a beirada sobe (a terra empurrada para o lado). O colisor acompanha.
+    DEPTH: 0.3,
+    BANK: 0.08,
+    // Força do desenho da textura na trilha (0 a 1, como o `ground.detail`
+    // dos biomas) — a terra batida tem mais marca que o chão em volta.
+    DETAIL: 1,
+    // Sem trilha abaixo da água + esta folga (m).
+    SHORE_GAP: 0.3,
+  },
+  // Água (view/water/, docs/features/049-vegetacao-e-floresta.md): só a
+  // superfície no `TERRAIN.WATER_LEVEL`, onde o chão fica abaixo dela — sem
+  // nadar nem colidir (a água de verdade é da 056).
+  WATER: {
+    // Cor na margem e no fundo; profundidade (m) em que a cor é a do fundo.
+    SHALLOW_COLOR: '#4fa7a0',
+    DEEP_COLOR: '#1d4f6b',
+    DEEP_DEPTH: 3,
+    // Opacidade na margem e no fundo; profundidade (m) em que fica a do
+    // fundo — na margem dá para ver o chão.
+    SHORE_OPACITY: 0.35,
+    DEEP_OPACITY: 0.9,
+    OPACITY_DEPTH: 1.5,
+    // Espuma na beira: cor e largura (m de profundidade).
+    FOAM_COLOR: '#e8f4ef',
+    FOAM_WIDTH: 0.18,
+    // Ondinhas: tamanho (m), velocidade e força no brilho.
+    WAVE_SIZE: 2.5,
+    WAVE_SPEED: 0.35,
+    WAVE_STRENGTH: 0.35,
+    // Quanto do céu a água reflete (mais vista de lado), quanto da cor
+    // refletida é a do alto do céu (o resto, a do horizonte) e a aspereza
+    // (brilho do sol).
+    REFLECTION: 0.35,
+    SKY_TOP_SHARE: 0.6,
+    ROUGHNESS: 0.18,
   },
   BATTLE: {
     // Velocidade dos golpes pelo status `speed` (ver
@@ -1357,7 +1429,281 @@ export const GAME_CONFIG = {
       snow: { ice: { defense: 1.5 } },
     },
   },
+  // Vegetação (docs/features/049-vegetacao-e-floresta.md): grama, flores
+  // e árvores no estilo do repositório stylized-scene. Quanto de cada uma
+  // nasce em cada bioma é a `density` do `vegetation` dele
+  // (core/data/biomes/).
+  GRASS: {
+    // Lado (m) de um bloco de grama — a grama nasce e some por bloco. O
+    // `TERRAIN.CHUNK_SIZE` tem que ser múltiplo dele.
+    TILE_SIZE: 16,
+    // Tufos por m² onde a `density` do bioma é 1.
+    CLUMPS_PER_M2: 10,
+    // Altura (m) de um tufo (o modelo é redimensionado para ela).
+    HEIGHT: 0.75,
+    // Quanto cada folha gira para ficar de frente para a câmera (0 = como
+    // no modelo, 1 = sempre de frente). Vista de lado, a folha é um risco.
+    FACE_CAMERA: 0.8,
+    // Quanto a altura varia em manchas (0 = toda igual).
+    HEIGHT_VARIATION: 0.45,
+    // Tamanho (m) das manchas de altura.
+    HEIGHT_PATCH_SIZE: 7,
+    // Tamanho (m) das manchas de cor (entre o par A e o par B do bioma)...
+    COLOR_PATCH_SIZE: 1.5,
+    // ...e quanto uma mancha pode puxar para o par B (0 a 1).
+    COLOR_VARIATION: 0.5,
+    // Variação grande de claro e escuro (0 a 1) e o tamanho (m) dela.
+    MACRO_VARIATION: 0.45,
+    MACRO_SIZE: 9,
+    // Escurecimento na base do tufo (0 a 1) — sombra de contato falsa.
+    BASE_SHADE: 0.75,
+    // Luz do sol passando pela folha (0 = desliga) e brilho de borda.
+    TRANSLUCENCY: 0.7,
+    RIM: 0.25,
+    // Sem grama: abaixo da água + esta folga (m) e em encosta mais
+    // íngreme que esta (rad).
+    SHORE_GAP: 0.4,
+    MAX_SLOPE: 0.6,
+  },
+  FLOWERS: {
+    // Moitas de flores por m² onde a `density` é 1.
+    CLUMPS_PER_M2: 0.25,
+    // Tamanho (multiplica o modelo) — sorteado entre os dois.
+    SCALE: [0.22, 0.38],
+  },
+  // Árvores (docs/features/049-vegetacao-e-floresta.md). `TREES` é a
+  // folhosa comum (`broadleaf-tree`) e o que vale para todas as espécies
+  // (vento, sombra, copa, LOD); cada espécie tem o próprio bloco com a
+  // colocação e a cor (`ANCIENT_TREES`, `PINES`, `DEAD_TREES`).
+  TREES: {
+    // Lado (m) da grade de candidatas: no máximo uma árvore por célula —
+    // é o espaço mínimo entre duas.
+    SPACING: 6.5,
+    // Chance de uma célula ganhar árvore onde a `density` do bioma é 1.
+    CHANCE: 0.9,
+    // Tamanho (multiplica o modelo) — sorteado entre os dois.
+    SCALE: [0.85, 1.4],
+    // Sem árvore em encosta mais íngreme que esta (rad), abaixo da água +
+    // `SHORE_GAP` (m), nem perto da origem (onde o treinador nasce — vale
+    // para todas as espécies, pedras e troncos caídos).
+    MAX_SLOPE: 0.45,
+    SHORE_GAP: 0.8,
+    SPAWN_CLEAR_RADIUS: 18,
+    // Colisão do tronco: raio e altura (m) no tamanho 1.
+    TRUNK_RADIUS: 0.4,
+    TRUNK_HEIGHT: 4,
+    // Raio (m, no tamanho 1) em volta do tronco onde não nasce o tronco de
+    // outra árvore — a copa não atravessa a da vizinha.
+    CROWN_RADIUS: 1.6,
+    // Cor das folhas (a textura é branca, para tingir). As cores da
+    // vegetação, do musgo e do chão seguem a da grama (o mesmo verde
+    // amarelado), cada uma mais clara ou mais escura.
+    LEAF_COLOR: '#73983e',
+    // Quanto a copa balança com o vento.
+    SWAY: 1.4,
+    // Quanto da cor das folhas a copa tem mesmo na sombra (0 a 1) — sem
+    // isso a copa fica quase preta (o jogo não tem luz de céu de imagem).
+    LEAF_FILL: 0.28,
+    // Volume da copa (todas as espécies e os arbustos): o miolo escurece
+    // (`INNER_SHADE`, 0 a 1), o alto clareia e esquenta (`TOP_LIGHT`) e o
+    // sol atravessa a borda das folhas vista contra ele (`TRANSLUCENCY`).
+    INNER_SHADE: 0.4,
+    TOP_LIGHT: 0.18,
+    TRANSLUCENCY: 0.5,
+    // O mesmo para o tronco (a textura dele clareada na sombra).
+    TRUNK_FILL: 0.3,
+    // Multiplica a cor da casca da folhosa, da árvore antiga e dos troncos
+    // caídos (a mesma textura, cinza-amarronzada).
+    BARK_COLOR: '#eadfd2',
+    // Quanto o tom da copa varia de uma árvore para outra (0 = todas
+    // iguais): mais clara ou mais escura, e um pouco mais amarelada.
+    TINT_VARIATION: 0.18,
+    // Árvore de longe (LOD): a partir desta distância (m) da câmera, a
+    // árvore perde os galhos (a casca fica só até `LOD_TRIM_MARGIN` m acima
+    // da base da copa) — de longe eles somem nas folhas.
+    LOD_DISTANCE: 30,
+    LOD_TRIM_MARGIN: 0.6,
+  },
+  // Árvore antiga (`ancient-tree`): a grande e retorcida, poucas e
+  // espalhadas — a copa alta que fecha a mata. Mesmos campos de `TREES`.
+  ANCIENT_TREES: {
+    SPACING: 24,
+    CHANCE: 0.8,
+    SCALE: [0.85, 1.15],
+    MAX_SLOPE: 0.35,
+    SHORE_GAP: 1,
+    TRUNK_RADIUS: 0.95,
+    TRUNK_HEIGHT: 6,
+    CROWN_RADIUS: 4.5,
+    LEAF_COLOR: '#66883a',
+  },
+  // Pinheiro (`pine-tree`): em bosques (`patches` no bioma), com a casca
+  // um pouco mais quente que a da folhosa.
+  PINES: {
+    SPACING: 6.5,
+    CHANCE: 0.9,
+    SCALE: [0.9, 1.35],
+    MAX_SLOPE: 0.5,
+    SHORE_GAP: 0.8,
+    TRUNK_RADIUS: 0.32,
+    TRUNK_HEIGHT: 4,
+    CROWN_RADIUS: 1.6,
+    LEAF_COLOR: '#4e6a39',
+    BARK_COLOR: '#f2dcc6',
+  },
+  // Árvore morta (`dead-tree`): só galhos, rara.
+  DEAD_TREES: {
+    SPACING: 28,
+    CHANCE: 0.8,
+    SCALE: [0.55, 0.75],
+    MAX_SLOPE: 0.45,
+    SHORE_GAP: 0.8,
+    TRUNK_RADIUS: 0.5,
+    TRUNK_HEIGHT: 5,
+    CROWN_RADIUS: 2,
+    BARK_COLOR: '#f2ece6',
+  },
+  // Manchas (`patches` no `vegetation` dos biomas): o tipo nasce em grupos
+  // — bosque de pinheiros, tapete de samambaias, roda de cogumelos — e não
+  // salpicado por igual. Largura da borda da mancha (0 a 1 do ruído).
+  VEGETATION_PATCHES: {
+    EDGE: 0.12,
+  },
+  // Clareiras (docs/features/049-vegetacao-e-floresta.md): manchas abertas
+  // pela seed nos biomas que têm `clearings`. A vegetação de sombra rareia
+  // nelas e a de clareira (flores) só nasce nelas — `place` no `vegetation`
+  // de cada bioma.
+  CLEARINGS: {
+    // Tamanho (m) das manchas.
+    SIZE: 40,
+    // Largura da borda da clareira (0 a 1 do ruído): maior = transição mais
+    // longa entre mata e clareira.
+    EDGE: 0.08,
+  },
+  // Pedras (`rock`) — colidem e entram no pathfinding.
+  ROCKS: {
+    SPACING: 9,
+    CHANCE: 0.8,
+    SCALE: [0.35, 0.7],
+    MAX_SLOPE: 0.6,
+    SHORE_GAP: 0.2,
+    // Raio (m) da colisão no tamanho 1 (o modelo é um pouco maior que ele:
+    // a pedra afunda no chão).
+    RADIUS: 1.5,
+    HEIGHT: 1.8,
+    // Quanto a pedra afunda no chão (fração da altura).
+    SINK: 0.12,
+    // Cor do musgo nas pedras de bioma com `moss` (o topo delas).
+    MOSS_COLOR: '#6e883a',
+  },
+  // Troncos caídos (`fallen-log`) — colidem e entram no pathfinding. O
+  // tamanho é o comprimento (m).
+  LOGS: {
+    SPACING: 14,
+    CHANCE: 0.7,
+    SCALE: [2.5, 4.5],
+    RADIUS: 0.32,
+    MAX_SLOPE: 0.3,
+    // Diferença máxima de altura (m) do chão entre as duas pontas — o
+    // tronco é reto e não pode ficar com uma ponta no ar.
+    MAX_END_DROP: 0.3,
+    SHORE_GAP: 0.4,
+    // Cor da madeira nas pontas cortadas.
+    WOOD_COLOR: '#c8a26a',
+  },
+  // Arbustos (`bush`) — atravessáveis.
+  BUSHES: {
+    // Arbustos por m² onde a `density` do bioma é 1.
+    PER_M2: 0.04,
+    SCALE: [0.15, 1],
+    // Cor das folhas do arbusto liso (a textura dele é branca, para tingir).
+    LEAF_COLOR: '#718f3d',
+  },
+  // Samambaias (`fern`) e cogumelos (`mushroom`) — decorativos.
+  FERNS: {
+    PER_M2: 0.08,
+    // Acima da grama: menor que ela, a samambaia some no meio dos tufos.
+    SCALE: [0.3, 0.45],
+  },
+  // Plantas de folha larga (`leafy-plant`) do chão da mata — decorativas.
+  LEAFY_PLANTS: {
+    PER_M2: 0.06,
+    SCALE: [0.6, 1],
+  },
+  // Seixos (`pebble`) — decorativos, na trilha (`place: 'trail'`).
+  PEBBLES: {
+    PER_M2: 0.35,
+    SCALE: [0.35, 0.8],
+  },
+  // Quanto da própria cor as plantas baixas (samambaia, flores) têm mesmo
+  // na sombra (como `TREES.LEAF_FILL`).
+  FOLIAGE_FILL: 0.3,
+  MUSHROOMS: {
+    PER_M2: 0.05,
+    SCALE: [0.6, 1.3],
+  },
+  // Vento da vegetação: a força vem do clima onde está quem joga (mistura
+  // pela força de cada tipo, `LocalWeather`).
+  WIND: {
+    STRENGTH: { clear: 0.22, sun: 0.15, rain: 0.4, storm: 0.75, snow: 0.45 },
+    // Direção (rad, no chão) e velocidade das rajadas.
+    DIRECTION: 0.8,
+    SPEED: 1.25,
+    // Largura das faixas de rajada (maior = faixas mais estreitas).
+    GUST_SCALE: 0.5,
+    // Quanto cada folha sai da direção do vento e treme na ponta (0 a 1).
+    TURBULENCE: 0.15,
+    FLUTTER: 0.15,
+  },
+  // Qualidade (`VEGETATION_QUALITY.CURRENT`, escolhida no F2):
+  // - density: quanto da densidade da vegetação só visual fica;
+  // - canopyShadow: se copas e arbustos fazem sombra;
+  // - detailRing: até quantos blocos de sólidos (`TERRAIN.SOLIDS_BLOCK_SIZE`)
+  //   da câmera o sub-bosque (arbustos, samambaias, cogumelos) é montado —
+  //   0 = só o bloco dela;
+  // - detailDistance: até onde (m da câmera) cada planta do sub-bosque é
+  //   desenhada;
+  // - shadowRing: até quantos blocos de sólidos da câmera os objetos fazem
+  //   sombra;
+  // - treeDistance: até onde (m, do centro do bloco da câmera ao centro do
+  //   bloco) aparecem árvores, pedras e troncos caídos;
+  // - maxDpr: densidade de pixels máxima da tela (telas de alta resolução
+  //   desenham até o dobro de pixels).
+  VEGETATION_QUALITY: {
+    CURRENT: 'high',
+    high: {
+      density: 1,
+      canopyShadow: true,
+      detailRing: 1,
+      detailDistance: 40,
+      shadowRing: 1,
+      treeDistance: 150,
+      maxDpr: 1.5,
+    },
+    low: {
+      density: 0.5,
+      canopyShadow: false,
+      detailRing: 1,
+      detailDistance: 25,
+      shadowRing: 0,
+      treeDistance: 100,
+      maxDpr: 1,
+    },
+  },
   RENDER: {
+    // Curva de cor da cena inteira (docs/features/049-*.md): 'aces' (a de
+    // sempre do R3F) ou 'neutral' (a do stylized-scene). Ver no F2.
+    TONE_MAPPING: 'aces',
+    // Antialiasing básico do WebGL (MSAA, no canvas): desligado porque é
+    // caro na GPU integrada — as folhas recortadas e a grama pesam em cada
+    // amostra (docs/features/049-*.md). Só vale ao recarregar a página.
+    MSAA: false,
+    // Limite de quadros por segundo (0 = o da tela). Não confundir com
+    // `LOOP.FIXED_TIMESTEP`, que é o passo da simulação — o desenho
+    // interpola entre os passos (view/scene/FrameLimiter.jsx).
+    MAX_FPS: 30,
+    // Antialiasing extra (SMAA) por cima do básico do WebGL.
+    SMAA: false,
     // Visual toon (estilo Zelda) — ver src/view/materials/toonMaterial.js
     TOON: true, // false = visual antigo (MeshStandardMaterial do .glb)
     TOON_RAMP: [120, 200, 255], // tons chapados da luz: sombra, meio-tom, luz (0–255)

@@ -48,7 +48,7 @@ Versão: `0.0.40` (`package.json`). Branch: `feature/040-dono-da-criatura`.
    dono. Transformar cada Pokémon num registro próprio fica pra 041 (caixa).
 3. **Criatura de outro treinador é neutra.** Nem ataca nem é atacada; cada
    time só luta contra selvagens e só defende o próprio treinador. Briga
-   entre treinadores é a 070 (PvP).
+   entre treinadores é a 072 (PvP).
 4. **Validação só por testes.** Mundo de teste com dois treinadores; nada de
    segundo treinador no jogo nem no debug.
 
@@ -114,7 +114,7 @@ Versão: `0.0.40` (`package.json`). Branch: `feature/040-dono-da-criatura`.
 
 - Cada Pokémon como registro próprio (id, dados fora do slot) — 041.
 - Segundo treinador no jogo/debug, ou qualquer coisa de rede — Marco 4.
-- Combate entre treinadores — 070.
+- Combate entre treinadores — 072.
 - A interface (HUD, menus, Pokédex) continua lendo o jogador local.
 
 ---

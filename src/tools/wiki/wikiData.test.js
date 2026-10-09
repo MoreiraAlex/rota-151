@@ -66,7 +66,12 @@ describe('buildWikiData', () => {
   it('mundo: dia e clima saem da config e dos biomas (048)', () => {
     const { DAY_CYCLE } = GAME_CONFIG
     expect(data.world.dayMinutes).toBeCloseTo(DAY_CYCLE.DAY_LENGTH / 60)
-    expect(data.world.biomes).toHaveLength(listBiomes().length)
+    const visible = listBiomes().filter(
+      ({ id }) => !GAME_CONFIG.BIOMES.HIDDEN.includes(id),
+    )
+    expect(data.world.biomes.map(({ name }) => name)).toEqual(
+      visible.map(({ name }) => name),
+    )
     for (const { chances } of data.world.biomes) {
       const total = Object.values(chances).reduce((sum, c) => sum + c, 0)
       expect(total).toBeCloseTo(1)

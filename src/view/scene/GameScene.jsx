@@ -3,6 +3,9 @@ import { TEST_LEVEL } from '@/core/data/testLevel'
 import { AmbientAudio } from '@/view/audio/AmbientAudio'
 import { PlayerView } from './PlayerView'
 import { TerrainView } from './TerrainView'
+import { VegetationView } from '../vegetation/VegetationView'
+import { WaterView } from '../water/WaterView'
+import { RenderSettingsView } from './RenderSettingsView'
 import { FogView } from './FogView'
 import { DayNightView } from './DayNightView'
 import { WeatherView } from './WeatherView'
@@ -72,6 +75,10 @@ function TestLevelView() {
   return (
     <>
       <TerrainView />
+      {/* Grama, flores e árvores (049). */}
+      <VegetationView />
+      {/* Superfície da água, só visual (049; a de verdade é da 056). */}
+      <WaterView />
 
       {obstacles.map((obstacle) => (
         <mesh
@@ -106,6 +113,9 @@ export function GameScene({ children }) {
     <>
       {/* Posição inicial aproximada da órbita padrão; a suavização ajusta o resto. */}
       <PerspectiveCamera makeDefault position={[0, 5.6, 11.3]} fov={60} />
+
+      {/* Curva de cor e SMAA (049). */}
+      <RenderSettingsView />
 
       {/* Névoa que esconde a borda do mundo carregado (046). */}
       <FogView />
