@@ -115,10 +115,12 @@ diffuseColor.rgb = mix(diffuseColor.rgb, uMossColor,
 
 /**
  * Cópia de `source` (o material das pedras do `.glb`) com musgo no topo,
- * pela força `aMoss` de cada instância (o `moss` do bioma).
+ * pela força `aMoss` de cada instância (o `moss` do bioma), e a própria
+ * textura clareando a sombra (`ROCKS.FILL`, `applyRockLook`).
  */
 export function createMossyRockMaterial(source) {
   const material = source.clone()
+  material.emissiveMap = material.map
   const uniforms = {
     uMossColor: { value: new THREE.Color(GAME_CONFIG.ROCKS.MOSS_COLOR) },
   }
@@ -137,9 +139,13 @@ export function createMossyRockMaterial(source) {
   return material
 }
 
-/** Passa a cor do musgo (`ROCKS.MOSS_COLOR`) para o material. */
-export function applyMossLook(material) {
-  material.userData.mossUniforms.uMossColor.value.set(
-    GAME_CONFIG.ROCKS.MOSS_COLOR,
-  )
+/**
+ * Passa a cor da pedra (`ROCKS.COLOR` × `BRIGHTNESS`), o preenchimento da
+ * sombra (`FILL`) e a cor do musgo (`MOSS_COLOR`) para o material.
+ */
+export function applyRockLook(material) {
+  const { COLOR, BRIGHTNESS, FILL, MOSS_COLOR } = GAME_CONFIG.ROCKS
+  material.color.set(COLOR).multiplyScalar(BRIGHTNESS)
+  material.emissive.copy(material.color).multiplyScalar(FILL)
+  material.userData.mossUniforms.uMossColor.value.set(MOSS_COLOR)
 }

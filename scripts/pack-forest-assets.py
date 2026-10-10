@@ -4,7 +4,8 @@ vindos do Stylized Nature MegaKit da Quaternius (CC0,
 https://opengameart.org/content/stylized-nature-megakit — versão Standard).
 
 Uso: python3 scripts/pack-forest-assets.py <pasta do MegaKit extraído>
-(a que tem `glTF/` e `Textures/`)
+[nomes de saída...] (a pasta é a que tem `glTF/` e `Textures/`; com nomes,
+grava só esses modelos — ex.: `acacia-1 acacia-2`)
 
 Para cada modelo (`MODELS`), lê o `.gltf` + `.bin` e grava um `.glb` em
 `public/assets/vegetation/megakit/`, com todas as partes (uma por material:
@@ -18,6 +19,10 @@ dois jeitos (`TEXTURES`, pelo nome do material):
   reduzido e embutido no `.glb` (o atlas `Leaves.png` tem 2048 px e serve
   dezenas de plantas).
 
+Alguns modelos saem de outro DEFORMADO (`SHAPED_MODELS`, docs/features/
+050-planicie-e-savana.md): a acácia é a TwistedTree com o tronco esticado e
+a copa achatada em guarda-chuva (`umbrella`).
+
 Textura sem alpha vai em JPEG; com alpha, em PNG. O `COLOR_0` do pacote fica
 de fora: é uma máscara cinza do shader do MegaKit (vento/sombra), não cor —
 no three ela multiplicaria a textura e escureceria a planta.
@@ -27,6 +32,7 @@ Precisa do Pillow (`pip install pillow`).
 
 import io
 import json
+import math
 import os
 import struct
 import sys
@@ -48,6 +54,7 @@ BROADLEAF = {'Bark_NormalTree': 'Bark_Broadleaf', 'Leaves_NormalTree': 'Leaves_B
 ANCIENT = {'Bark_TwistedTree': 'Bark_Ancient', 'Leaves_TwistedTree': 'Leaves_Ancient'}
 PINE = {'Bark_NormalTree': 'Bark_Pine', 'Leaves_Pine': 'Leaves_Pine'}
 DEAD = {'Bark_DeadTree': 'Bark_Dead'}
+ACACIA = {'Bark_TwistedTree': 'Bark_Acacia', 'Leaves_TwistedTree': 'Leaves_Acacia'}
 MODELS = {
     **{f'CommonTree_{i}': (f'tree-{i}', BROADLEAF) for i in range(1, 6)},
     **{f'TwistedTree_{i}': (f'ancient-{i}', ANCIENT) for i in range(1, 6)},
@@ -70,6 +77,17 @@ MODELS = {
     'Pebble_Square_5': 'pebble-4',
 }
 
+# Forma de guarda-chuva da acácia (`umbrella`), em unidades do modelo (o
+# jogo ainda escala a árvore inteira): altura do tronco sem folha, espessura
+# da copa, quanto a copa abre para os lados e quanto o tronco afina.
+ACACIA_SHAPE = {'trunk': 4.5, 'crown': 2.5, 'spread': 1.0, 'thin': 0.55}
+
+# nome de saída → (modelo do pacote, materiais, forma). Ficam fora do
+# `MODELS` porque saem de um modelo que já está lá (a TwistedTree).
+SHAPED_MODELS = {
+    f'acacia-{i}': (f'TwistedTree_{i}', ACACIA, ACACIA_SHAPE) for i in range(1, 6)
+}
+
 # material de saída → ('shared', arquivo, lado, opaco?, textura de Textures/)
 # ou ('crop', maior lado). As folhas das árvores e dos arbustos vêm na versão
 # BRANCA do pacote (a colorida é uma cor chapada só): o jogo tinge cada
@@ -78,10 +96,12 @@ TEXTURES = {
     'Bark_Broadleaf': ('shared', 'bark-twisted.jpg', 512, True, 'Bark_TwistedTree.png'),
     'Bark_Ancient': ('shared', 'bark-twisted.jpg', 512, True, 'Bark_TwistedTree.png'),
     'Bark_Pine': ('shared', 'bark-twisted.jpg', 512, True, 'Bark_TwistedTree.png'),
+    'Bark_Acacia': ('shared', 'bark-twisted.jpg', 512, True, 'Bark_TwistedTree.png'),
     'Bark_Dead': ('shared', 'bark-dead.jpg', 512, True, 'Bark_DeadTree.png'),
     'Leaves_Broadleaf': ('shared', 'leaves-broadleaf.png', 512, False, 'Leaves_NormalTree.png'),
     'Leaves_BushFlowers': ('shared', 'leaves-broadleaf.png', 512, False, 'Leaves_NormalTree.png'),
     'Leaves_Ancient': ('shared', 'leaves-round.png', 512, False, 'Leaves_TwistedTree.png'),
+    'Leaves_Acacia': ('shared', 'leaves-round.png', 512, False, 'Leaves_TwistedTree.png'),
     'Leaves_Bush': ('shared', 'leaves-round.png', 512, False, 'Leaves_TwistedTree.png'),
     'Leaves_Pine': ('shared', 'leaves-pine.png', 512, False, 'Leaf_Pine.png'),
     'Leaves': ('crop', 512),
@@ -254,12 +274,100 @@ class GlbWriter:
             out.write(self.binary)
 
 
+# Fração das folhas mais baixas que fica abaixo da base da copa na acácia
+# (um raminho solto lá embaixo não encurta o tronco).
+CROWN_BASE_QUANTILE = 0.02
+# Até que fração da copa (de baixo para cima) os galhos vão abrindo para os
+# lados, na acácia.
+SPREAD_RAMP = 0.3
+# Faixa de altura (unidades do modelo) que conta como "pé" e "pescoço" do
+# tronco, para achar o eixo dele.
+TRUNK_SLICE = 0.5
+
+
+def smoothstep(edge0, edge1, x):
+    t = min(1.0, max(0.0, (x - edge0) / (edge1 - edge0)))
+    return t * t * (3 - 2 * t)
+
+
+def centroid(points):
+    return (
+        sum(x for x, _, _ in points) / len(points),
+        sum(z for _, _, z in points) / len(points),
+    )
+
+
+def umbrella(parts, shape):
+    """
+    Deforma o modelo inteiro (casca e folhas juntas, para os galhos seguirem
+    ligados às folhas) em guarda-chuva: o que fica abaixo da base da copa (a
+    altura das folhas mais baixas) vira o tronco, esticado até
+    `shape['trunk']` e afinado (`thin`) em volta do eixo dele; o resto é
+    achatado na espessura `shape['crown']` e aberto para os lados (`spread`)
+    em volta do centro da copa. As normais seguem a deformação (inversa da
+    escala de cada eixo).
+    """
+    leaf_points = [
+        point for name, attributes in parts if name.startswith('Leaves')
+        for point in attributes['POSITION']
+    ]
+    bark_points = [
+        point for name, attributes in parts if not name.startswith('Leaves')
+        for point in attributes['POSITION']
+    ]
+    leaf_heights = sorted(y for _, y, _ in leaf_points)
+    base = leaf_heights[int((len(leaf_heights) - 1) * CROWN_BASE_QUANTILE)]
+    top = max(y for _, y, _ in leaf_points + bark_points)
+    ramp_top = base + (top - base) * SPREAD_RAMP
+    crown_center = centroid(leaf_points)
+    # O eixo do tronco: do meio do pé ao meio da casca na base da copa.
+    foot = centroid([p for p in bark_points if p[1] < TRUNK_SLICE])
+    neck = centroid([p for p in bark_points if abs(p[1] - base) < TRUNK_SLICE])
+    trunk_scale = shape['trunk'] / base
+    crown_scale = shape['crown'] / (top - base)
+
+    def warp(x, y, z):
+        opening = smoothstep(base, ramp_top, y)
+        thin = shape['thin'] + (1 - shape['thin']) * opening
+        spread = 1 + (shape['spread'] - 1) * opening
+        along = min(1.0, max(0.0, y / base))
+        axis_x = foot[0] + (neck[0] - foot[0]) * along
+        axis_z = foot[1] + (neck[1] - foot[1]) * along
+        x = axis_x + (x - axis_x) * thin
+        z = axis_z + (z - axis_z) * thin
+        if y <= base:
+            height, scale_y = y * trunk_scale, trunk_scale
+        else:
+            height = shape['trunk'] + (y - base) * crown_scale
+            scale_y = crown_scale
+        point = [
+            crown_center[0] + (x - crown_center[0]) * spread,
+            height,
+            crown_center[1] + (z - crown_center[1]) * spread,
+        ]
+        side = thin * spread
+        return point, (side, scale_y, side)
+
+    for _, attributes in parts:
+        positions, normals = [], []
+        for (x, y, z), (nx, ny, nz) in zip(attributes['POSITION'], attributes['NORMAL']):
+            point, (sx, sy, sz) = warp(x, y, z)
+            n = [nx / sx, ny / sy, nz / sz]
+            length = math.sqrt(sum(c * c for c in n)) or 1
+            positions.append(point)
+            normals.append([c / length for c in n])
+        attributes['POSITION'] = positions
+        attributes['NORMAL'] = normals
+
+
 def pack(source_dir, name, target, written):
-    out_name, renames = (target, {}) if isinstance(target, str) else target
+    out_name, renames, shape = (
+        (target, {}, None) if isinstance(target, str) else (*target, None)[:3]
+    )
     gltf = json.load(open(os.path.join(source_dir, name + '.gltf')))
     data = open(os.path.join(source_dir, gltf['buffers'][0]['uri']), 'rb').read()
     writer = GlbWriter()
-    primitives = []
+    parts = []
     for primitive in gltf['meshes'][0]['primitives']:
         source = gltf['materials'][primitive['material']]
         material_name = renames.get(source['name'], source['name'])
@@ -267,6 +375,14 @@ def pack(source_dir, name, target, written):
             key: read_accessor(gltf, data, index)
             for key, index in primitive['attributes'].items()
         }
+        parts.append((material_name, attributes))
+    if shape:
+        umbrella(parts, shape)
+    primitives = []
+    for primitive, (material_name, attributes) in zip(
+        gltf['meshes'][0]['primitives'], parts
+    ):
+        source = gltf['materials'][primitive['material']]
         spec = TEXTURES[material_name]
         uvs = attributes['TEXCOORD_0']
         if spec[0] == 'shared':
@@ -291,12 +407,17 @@ def pack(source_dir, name, target, written):
 
 
 def main():
-    if len(sys.argv) != 2:
+    if len(sys.argv) < 2:
         sys.exit(__doc__)
-    kit_dir = sys.argv[1]
+    kit_dir, only = sys.argv[1], set(sys.argv[2:])
     os.makedirs(OUT_DIR, exist_ok=True)
     written = set()
-    for name, target in MODELS.items():
+    jobs = [(name, target) for name, target in MODELS.items()]
+    jobs += [(source, (out, renames, shape)) for out, (source, renames, shape) in SHAPED_MODELS.items()]
+    for name, target in jobs:
+        out_name = target if isinstance(target, str) else target[0]
+        if only and out_name not in only:
+            continue
         pack(os.path.join(kit_dir, 'glTF'), name, target, written)
 
 

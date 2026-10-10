@@ -17,6 +17,7 @@ import {
   setInstance,
   tintAt,
 } from './instancing'
+import { createBiomeColorFactor } from './biomeColor'
 import { scatterArea } from './vegetationScatter'
 
 /**
@@ -36,13 +37,26 @@ const SALTS = {
   'leafy-plant': 501,
   pebble: 601,
 }
-// Quanto o tom do cogumelo varia de um para outro.
+// Quanto o tom do cogumelo e da pedra varia de um para outro.
 const MUSHROOM_TINT_VARIATION = 0.2
+const ROCK_TINT_VARIATION = 0.12
 
 const scratchColor = new THREE.Color()
 const scratchScale = new THREE.Vector3()
 
 const between = ([min, max], t) => min + (max - min) * t
+
+/**
+ * O tom de cada objeto de `kind` no chunk: o do lugar (`tintAt`) vezes a
+ * cor do bioma, quando ele muda a do tipo (`color`).
+ */
+function createTint(chunk, kind, variation) {
+  const biomeColor = createBiomeColorFactor(chunk, kind)
+  return (x, z) => {
+    const tint = tintAt(x, z, variation)
+    return biomeColor ? biomeColor(x, z, tint) : tint
+  }
+}
 
 /**
  * Árvores do chunk (as do core), cada uma nos modelos da espécie dela e com
@@ -52,18 +66,16 @@ const between = ([min, max], t) => min + (max - min) * t
 export function buildTreeMeshes(chunk, { kinds, castCanopyShadow }) {
   const trees = chunk.solids?.trees ?? []
   const { TINT_VARIATION } = GAME_CONFIG.TREES
-  const bySpecies = STANDING_TREE_KINDS.map((kind) =>
-    buildLodKindMeshes(
+  const bySpecies = STANDING_TREE_KINDS.map((kind) => {
+    const tintOf = createTint(chunk, kind, TINT_VARIATION)
+    return buildLodKindMeshes(
       kinds[kind],
       trees
         .filter((tree) => tree.kind === kind)
-        .map((tree) => ({
-          ...tree,
-          tint: tintAt(tree.x, tree.z, TINT_VARIATION),
-        })),
+        .map((tree) => ({ ...tree, tint: tintOf(tree.x, tree.z) })),
       { castShadow: castCanopyShadow },
-    ),
-  )
+    )
+  })
   return {
     meshes: bySpecies.flatMap(({ meshes }) => meshes),
     setNear: (isNear) => {
@@ -109,6 +121,7 @@ export function buildUndergrowthMeshes(
   })
   const variation =
     kind === 'mushroom' ? MUSHROOM_TINT_VARIATION : TREES.TINT_VARIATION
+  const tintOf = createTint(chunk, kind, variation)
   const instances = Array.from({ length: points.count }, (_, i) => {
     const [x, y, z] = points.positions.subarray(i * 3, i * 3 + 3)
     return {
@@ -118,7 +131,7 @@ export function buildUndergrowthMeshes(
       yaw: points.yaws[i],
       scale: between(spec.SCALE, points.sizes[i]),
       variant: points.variants[i],
-      tint: tintAt(x, z, variation),
+      tint: tintOf(x, z),
     }
   })
   // De longe, nada (`far` vazio): só desenha perto da câmera.
@@ -133,7 +146,7 @@ export function buildUndergrowthMeshes(
 
 /**
  * Pedras do chunk (as do core), afundadas um pouco, com o musgo do bioma
- * no topo (`moss` da entrada `rock`).
+ * no topo (`moss` da entrada `rock`) e a cor dele (`color`).
  */
 export function buildRockMeshes(chunk, { kinds }) {
   const rocks = chunk.solids?.rocks ?? []
@@ -143,10 +156,12 @@ export function buildRockMeshes(chunk, { kinds }) {
     const entry = biome?.vegetation.find(({ kind }) => kind === ROCK_KIND)
     return entry?.moss ?? 0
   })
+  const tintOf = createTint(chunk, ROCK_KIND, ROCK_TINT_VARIATION)
   const instances = rocks.map((rock) => ({
     ...rock,
     y: rock.y - ROCKS.SINK * ROCKS.HEIGHT * rock.scale,
     moss: densityAt(chunk, mossByBiome, rock.x, rock.z),
+    tint: tintOf(rock.x, rock.z),
   }))
   return buildKindMeshes(kinds[ROCK_KIND], instances)
 }

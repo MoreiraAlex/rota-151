@@ -179,12 +179,18 @@ describe('relevo do jogo (seed e parâmetros do jogo, em volta da origem)', () =
   })
 
   it('tem vales abaixo do nível da água e chão acima dele', () => {
-    expect(Math.min(...chunks.map((c) => c.minHeight))).toBeLessThan(
-      WATER_LEVEL,
-    )
-    expect(Math.max(...chunks.map((c) => c.maxHeight))).toBeGreaterThan(
-      WATER_LEVEL,
-    )
+    // Numa área bem maior que os chunks em volta da origem: o bioma da
+    // origem pode ser plano, sem lago por perto.
+    const reach = GAME_CONFIG.TERRAIN.CHUNK_SIZE * 40
+    const step = GAME_CONFIG.TERRAIN.CHUNK_SIZE
+    const heights = []
+    for (let x = -reach; x <= reach; x += step) {
+      for (let z = -reach; z <= reach; z += step) {
+        heights.push(latticeHeightAt(sampler, x, z))
+      }
+    }
+    expect(Math.min(...heights)).toBeLessThan(WATER_LEVEL)
+    expect(Math.max(...heights)).toBeGreaterThan(WATER_LEVEL)
   })
 
   it('nenhuma encosta passa do que o personagem consegue subir', () => {

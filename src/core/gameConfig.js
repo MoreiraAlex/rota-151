@@ -34,7 +34,7 @@ export const GAME_CONFIG = {
   // (docs/features/047-biomas.md).
   TERRAIN: {
     // Identifica a receita do relevo; subir quando a geração mudar.
-    GENERATION_VERSION: 7,
+    GENERATION_VERSION: 9,
     // Altura (m) da superfície da água: o que fica abaixo vira lago na 056.
     // O relevo dos biomas é medido a partir dela (`relief.baseHeight`).
     WATER_LEVEL: -2,
@@ -103,13 +103,11 @@ export const GAME_CONFIG = {
     // deles). Ferramenta de teste: o painel do debug (F2) esconde biomas
     // para olhar um só. Na beta só aparecem os biomas das espécies
     // selvagens, cada um ao ser refinado (docs/roadmap.md, Marco 2): a
-    // floresta (049); planície, savana e montanha saem daqui nas features
-    // deles. Os outros ficam na seed, vistos só pelo F2.
+    // floresta (049), a planície e a savana (050); a montanha sai daqui na
+    // feature dela. Os outros ficam na seed, vistos só pelo F2.
     HIDDEN: [
       'ocean',
       'beach',
-      'plains',
-      'savanna',
       'jungle',
       'swamp',
       'desert',
@@ -1551,6 +1549,23 @@ export const GAME_CONFIG = {
     LEAF_COLOR: '#4e6a39',
     BARK_COLOR: '#f2dcc6',
   },
+  // Acácia (`acacia-tree`, savana): tronco fino e copa achatada em
+  // guarda-chuva (a TwistedTree deformada, scripts/pack-forest-
+  // assets.py), isolada no campo. Mesmos campos de `TREES`.
+  ACACIAS: {
+    SPACING: 22,
+    CHANCE: 0.8,
+    SCALE: [0.8, 1.15],
+    MAX_SLOPE: 0.4,
+    SHORE_GAP: 1,
+    TRUNK_RADIUS: 0.5,
+    TRUNK_HEIGHT: 4,
+    CROWN_RADIUS: 3.5,
+    // Verde-oliva acinzentado, mais apagado que o da mata (como a acácia
+    // da savana de verdade).
+    LEAF_COLOR: '#8a9466',
+    BARK_COLOR: '#eadfd2',
+  },
   // Árvore morta (`dead-tree`): só galhos, rara.
   DEAD_TREES: {
     SPACING: 28,
@@ -1595,6 +1610,14 @@ export const GAME_CONFIG = {
     SINK: 0.12,
     // Cor do musgo nas pedras de bioma com `moss` (o topo delas).
     MOSS_COLOR: '#6e883a',
+    // Cor da pedra (multiplica a textura, que é escura e esverdeada) e
+    // quanto ela clareia (`BRIGHTNESS`, acima de 1 clareia a textura) — a
+    // de cada bioma vem do `color` da entrada `rock`.
+    COLOR: '#d8d4cc',
+    BRIGHTNESS: 2.6,
+    // Quanto da cor a pedra tem mesmo na sombra (0 a 1), como a casca
+    // (`TREES.TRUNK_FILL`) — sem isso o lado sem sol fica quase preto.
+    FILL: 0.3,
   },
   // Troncos caídos (`fallen-log`) — colidem e entram no pathfinding. O
   // tamanho é o comprimento (m).

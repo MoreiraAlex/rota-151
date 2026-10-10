@@ -27,6 +27,7 @@ export const VEGETATION_MODELS = {
   'broadleaf-tree': numbered('tree', [1, 2, 3, 4, 5]),
   'ancient-tree': numbered('ancient', [1, 2, 3, 4, 5]),
   'pine-tree': numbered('pine', [1, 2, 3, 4, 5]),
+  'acacia-tree': numbered('acacia', [1, 2, 3, 4, 5]),
   'dead-tree': numbered('dead', [1, 2, 4]),
   bush: ['bush-1', 'bush-2'],
   flower: ['flower-1', 'flower-2'],
@@ -44,24 +45,50 @@ export const VEGETATION_MODELS = {
  *   normal esférica, sombra recortada);
  * - `foliage`: planta baixa (vento da grama);
  * - `bark`: casca (sem vento, clareada na sombra);
- * - `rock`: pedra (musgo no topo);
- * - `solid`: como veio (cogumelo, seixo).
+ * - `rock`: pedra (musgo no topo, cor e preenchimento da sombra do
+ *   `ROCKS`);
+ * - `pebble`: seixo (o material da pedra, sem fazer sombra);
+ * - `solid`: como veio (cogumelo).
  */
 export const PART_KINDS = {
   Leaves_Broadleaf: 'canopy',
   Leaves_Ancient: 'canopy',
   Leaves_Pine: 'canopy',
+  Leaves_Acacia: 'canopy',
   Leaves_Bush: 'canopy',
   Leaves_BushFlowers: 'canopy',
   Bark_Broadleaf: 'bark',
   Bark_Ancient: 'bark',
   Bark_Pine: 'bark',
+  Bark_Acacia: 'bark',
   Bark_Dead: 'bark',
   Leaves: 'foliage',
   Flowers: 'foliage',
   Mushrooms: 'solid',
   Rocks: 'rock',
-  PathRocks: 'solid',
+  PathRocks: 'pebble',
+}
+
+/**
+ * As texturas que vários modelos dividem — um arquivo ao lado dos `.glb`
+ * (as `'shared'` de `TEXTURES` no script) —, pelo nome do material: os
+ * modelos com o mesmo arquivo usam uma textura só na placa de vídeo. As
+ * outras (flores, plantas, cogumelo, pedras, seixos) são recortadas do
+ * atlas e embutidas em cada `.glb`: cada modelo tem a dele, mesmo com o
+ * mesmo nome de material.
+ */
+export const SHARED_TEXTURES = {
+  Bark_Broadleaf: 'bark-twisted',
+  Bark_Ancient: 'bark-twisted',
+  Bark_Pine: 'bark-twisted',
+  Bark_Acacia: 'bark-twisted',
+  Bark_Dead: 'bark-dead',
+  Leaves_Broadleaf: 'leaves-broadleaf',
+  Leaves_BushFlowers: 'leaves-broadleaf',
+  Leaves_Ancient: 'leaves-round',
+  Leaves_Acacia: 'leaves-round',
+  Leaves_Bush: 'leaves-round',
+  Leaves_Pine: 'leaves-pine',
 }
 
 /**
@@ -73,10 +100,12 @@ export const PART_COLORS = {
   Leaves_Broadleaf: (config) => config.TREES.LEAF_COLOR,
   Leaves_Ancient: (config) => config.ANCIENT_TREES.LEAF_COLOR,
   Leaves_Pine: (config) => config.PINES.LEAF_COLOR,
+  Leaves_Acacia: (config) => config.ACACIAS.LEAF_COLOR,
   Leaves_Bush: (config) => config.BUSHES.LEAF_COLOR,
   Leaves_BushFlowers: (config) => config.BUSHES.LEAF_COLOR,
   Bark_Broadleaf: (config) => config.TREES.BARK_COLOR,
   Bark_Ancient: (config) => config.TREES.BARK_COLOR,
   Bark_Pine: (config) => config.PINES.BARK_COLOR,
+  Bark_Acacia: (config) => config.ACACIAS.BARK_COLOR,
   Bark_Dead: (config) => config.DEAD_TREES.BARK_COLOR,
 }

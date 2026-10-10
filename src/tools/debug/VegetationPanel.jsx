@@ -99,7 +99,8 @@ function copyValues() {
   const { GRASS, FLOWERS, TREES, WIND, VEGETATION_QUALITY, RENDER } =
     GAME_CONFIG
   const { CLEARINGS, ROCKS, LOGS, BUSHES, FERNS, MUSHROOMS } = GAME_CONFIG
-  const { ANCIENT_TREES, PINES, DEAD_TREES, LEAFY_PLANTS } = GAME_CONFIG
+  const { ANCIENT_TREES, PINES, ACACIAS, DEAD_TREES, LEAFY_PLANTS } =
+    GAME_CONFIG
   const { VEGETATION_PATCHES } = GAME_CONFIG
   const grassByBiome = Object.fromEntries(
     listBiomes()
@@ -116,6 +117,7 @@ function copyValues() {
     ...Object.entries({
       ANCIENT_TREES,
       PINES,
+      ACACIAS,
       DEAD_TREES,
       CLEARINGS,
       VEGETATION_PATCHES,
@@ -158,6 +160,7 @@ export function VegetationPanel() {
       ROCKS,
       ANCIENT_TREES,
       PINES,
+      ACACIAS,
       DEAD_TREES,
       LEAFY_PLANTS,
     } = GAME_CONFIG
@@ -351,6 +354,9 @@ export function VegetationPanel() {
       .add(GAME_CONFIG, 'FOLIAGE_FILL', 0, 1, 0.01)
       .name('Planta baixa na sombra')
     forestFolder.addColor(ROCKS, 'MOSS_COLOR').name('Cor do musgo')
+    forestFolder.addColor(ROCKS, 'COLOR').name('Cor das pedras')
+    forestFolder.add(ROCKS, 'BRIGHTNESS', 0.5, 3, 0.05).name('Pedras: brilho')
+    forestFolder.add(ROCKS, 'FILL', 0, 1, 0.01).name('Pedras na sombra')
     forestFolder
       .add(TREES, 'TINT_VARIATION', 0, 0.5, 0.01)
       .name('Variação do tom')
@@ -366,8 +372,10 @@ export function VegetationPanel() {
     treeFolder.addColor(TREES, 'LEAF_COLOR').name('Folha (folhosa)')
     treeFolder.addColor(ANCIENT_TREES, 'LEAF_COLOR').name('Folha (antiga)')
     treeFolder.addColor(PINES, 'LEAF_COLOR').name('Folha (pinheiro)')
+    treeFolder.addColor(ACACIAS, 'LEAF_COLOR').name('Folha (acácia)')
     treeFolder.addColor(TREES, 'BARK_COLOR').name('Casca (folhosa e antiga)')
     treeFolder.addColor(PINES, 'BARK_COLOR').name('Casca (pinheiro)')
+    treeFolder.addColor(ACACIAS, 'BARK_COLOR').name('Casca (acácia)')
     treeFolder.addColor(DEAD_TREES, 'BARK_COLOR').name('Casca (morta)')
     forestFolder.addColor(BUSHES, 'LEAF_COLOR').name('Cor dos arbustos')
 

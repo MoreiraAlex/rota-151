@@ -46,10 +46,24 @@ export function WorldPage({ data, version }) {
       <Section id="biomas" title="Biomas">
         <p>
           O mundo é dividido em <strong>biomas</strong>, cada um com o próprio
-          chão, cores, plantas e formato de terreno. Por enquanto o mundo é todo{' '}
-          <strong>floresta</strong>: mata de clima ameno, com colinas médias.
+          chão, cores, plantas e formato de terreno. Por enquanto existem três:
         </p>
-        <p>Você sempre começa em terra firme.</p>
+        <ul>
+          <li>
+            <strong>Floresta</strong>: mata de clima ameno, com colinas médias.
+          </li>
+          <li>
+            <strong>Planície</strong>: campo aberto e quase plano, de clima
+            ameno.
+          </li>
+          <li>
+            <strong>Savana</strong>: campo seco e quente, com ondulações largas.
+          </li>
+        </ul>
+        <p>
+          Entre um bioma e outro a passagem é aos poucos: a mata vai rareando
+          até virar campo. Você sempre começa em terra firme.
+        </p>
       </Section>
 
       <Section id="floresta" title="A floresta">
@@ -89,6 +103,44 @@ export function WorldPage({ data, version }) {
           O <strong>vento</strong> balança o mato, as plantas e as copas das
           árvores. Ele fica mais forte com chuva e mais ainda com tempestade e
           neve.
+        </p>
+      </Section>
+
+      <Section id="planicie" title="A planície">
+        <p>Um campo aberto de grama verde, bom de atravessar.</p>
+        <ul>
+          <li>
+            <strong>Mato alto</strong> em moitas, com chão de grama baixa entre
+            elas.
+          </li>
+          <li>
+            Manchas de <strong>flores</strong> vermelhas, rosas, amarelas e
+            laranjas.
+          </li>
+          <li>Árvores em pequenos bosques, arbustos e pedras soltas.</li>
+          <li>
+            <strong>Trilhas</strong> de terra batida, com pedrinhas no caminho.
+          </li>
+        </ul>
+      </Section>
+
+      <Section id="savana" title="A savana">
+        <p>Um campo seco, de capim alto e amarelado.</p>
+        <ul>
+          <li>
+            <strong>Acácias</strong>: árvores de tronco fino e copa larga e
+            achatada, como um guarda-chuva, espalhadas pelo campo.
+          </li>
+          <li>De vez em quando, uma árvore morta.</li>
+          <li>Arbustos secos e pedras grandes, cor de areia.</li>
+          <li>
+            <strong>Trilhas</strong> de terra batida, com pedrinhas no caminho.
+          </li>
+        </ul>
+        <p>
+          Como na floresta, árvores e pedras bloqueiam a passagem e as criaturas
+          desviam delas; arbustos e mato dá pra atravessar. O vento balança o
+          capim e as copas do mesmo jeito.
         </p>
       </Section>
 
@@ -208,9 +260,9 @@ export function WorldPage({ data, version }) {
 
       <Notice tone="soon">
         <p>
-          Ainda vão chegar ao mundo: a planície, a savana e a montanha, água de
-          verdade em lagos e rios, cavernas, itens pelo chão e o Pokécenter. Os
-          Pokémon de cada bioma, horário e clima também chegam depois.
+          Ainda vão chegar ao mundo: a montanha, água de verdade em lagos e
+          rios, cavernas, itens pelo chão e o Pokécenter. Os Pokémon de cada
+          bioma, horário e clima também chegam depois.
         </p>
       </Notice>
     </>

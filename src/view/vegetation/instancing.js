@@ -30,6 +30,10 @@ export function setInstance(mesh, index, x, y, z, yaw, scale) {
 
 /** Fecha a malha: matrizes enviadas e limites (o corte pela câmera). */
 export function finishMesh(mesh) {
+  // A malha fica na origem (as instâncias já estão no mundo) e nunca
+  // mexe: sem recalcular a matriz dela a cada quadro (são centenas).
+  mesh.updateMatrix()
+  mesh.matrixAutoUpdate = false
   mesh.instanceMatrix.needsUpdate = true
   if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true
   mesh.computeBoundingBox()
@@ -104,13 +108,22 @@ export function tintAt(x, z, variation, out = new THREE.Color()) {
 }
 
 const WHITE = new THREE.Color(1, 1, 1)
-// Partes que recebem o tom de cada planta (a casca e a pedra, não).
-const TINTED_PARTS = new Set(['canopy', 'foliage', 'solid'])
+// Partes que recebem o tom de cada objeto (a casca, não).
+const TINTED_PARTS = new Set(['canopy', 'foliage', 'solid', 'rock', 'pebble'])
 // Partes que balançam (precisam da origem e do giro de cada instância).
 const SWAYING_PARTS = new Set(['canopy', 'foliage'])
 // Sombra fixa por parte; a copa segue a qualidade (`castShadow`). Planta
-// baixa e cogumelo não fazem (pequenos, e a sombra desenha tudo de novo).
-const SHADOW_BY_PART = { foliage: false, bark: true, rock: true, solid: false }
+// baixa, cogumelo e seixo não fazem (pequenos, e a sombra desenha tudo de
+// novo).
+const SHADOW_BY_PART = {
+  foliage: false,
+  bark: true,
+  rock: true,
+  pebble: false,
+  solid: false,
+}
+// Partes com o material da pedra (musgo por instância, `aMoss`).
+const ROCK_PARTS = new Set(['rock', 'pebble'])
 
 /**
  * @typedef {object} ModelInstance
@@ -120,7 +133,7 @@ const SHADOW_BY_PART = { foliage: false, bark: true, rock: true, solid: false }
  * @property {number} yaw
  * @property {number} scale
  * @property {number} variant - 0 a 1: qual dos modelos do tipo
- * @property {THREE.Color} [tint] - tom (folhas, plantas)
+ * @property {THREE.Color} [tint] - tom (folhas, plantas, pedras)
  * @property {number} [moss] - musgo (pedras), 0 a 1
  */
 
@@ -178,7 +191,7 @@ export function buildModelMeshes(model, instances, { castShadow = true } = {}) {
       )
       mesh.customDepthMaterial = part.depth
     }
-    if (part.kind === 'rock') {
+    if (ROCK_PARTS.has(part.kind)) {
       geometry.setAttribute(
         'aMoss',
         new THREE.InstancedBufferAttribute(moss, 1),

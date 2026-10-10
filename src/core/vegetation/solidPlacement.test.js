@@ -211,6 +211,90 @@ describe.runIf(withAllSolids)('placeChunkSolids', () => {
   })
 })
 
+describe('placeChunkSolids — cada espécie de árvore', () => {
+  // Um bioma do registro que declara a espécie.
+  const biomeWith = (kind) =>
+    listBiomes().find(({ vegetation }) =>
+      vegetation.some((entry) => entry.kind === kind),
+    )
+
+  it.each(STANDING_TREE_KINDS)('%s tem números no config', (kind) => {
+    const spec = specOf(kind, currentTerrainRecipe().solids)
+    for (const key of ['SPACING', 'CHANCE', 'TRUNK_RADIUS', 'CROWN_RADIUS']) {
+      expect(spec[key]).toBeGreaterThan(0)
+    }
+    expect(spec.SCALE[1]).toBeGreaterThanOrEqual(spec.SCALE[0])
+  })
+
+  it.each(STANDING_TREE_KINDS.filter(biomeWith))(
+    '%s nasce no bioma que a declara',
+    (kind) => {
+      // Só a espécie, em todo lugar do bioma: sem as outras árvores
+      // disputando o chão, nem manchas ou sombra limitando.
+      const world = worldOf([biomeWith(kind).id], (recipe) => {
+        const biome = recipe.biomeList[0]
+        biome.vegetation = biome.vegetation
+          .filter((entry) => entry.kind === kind)
+          .map(({ kind: only }) => ({ kind: only, density: 1 }))
+      })
+      // Uma área maior que `CHUNKS`: as árvores grandes têm células de
+      // mais de um chunk.
+      const area = Array.from({ length: 36 }, (_, i) => [
+        i % 6,
+        Math.floor(i / 6),
+      ])
+      const trees = area.flatMap(
+        ([chunkX, chunkZ]) => solidsOf(world, 21, chunkX, chunkZ).solids.trees,
+      )
+      expect(trees.length).toBeGreaterThan(0)
+      expect(trees.every((tree) => tree.kind === kind)).toBe(true)
+    },
+  )
+})
+
+describe('placeChunkSolids — tamanho por bioma', () => {
+  // Um bioma do registro com pedra; o mesmo mundo com e sem `scale`.
+  const biome = listBiomes().find(({ vegetation }) =>
+    vegetation.some(({ kind }) => kind === ROCK_KIND),
+  )
+  const withScale = (scale) =>
+    worldOf([biome.id], (recipe) => {
+      const entry = recipe.biomeList[0].vegetation.find(
+        ({ kind }) => kind === ROCK_KIND,
+      )
+      entry.scale = scale
+    })
+  const area = Array.from({ length: 16 }, (_, i) => [i % 4, Math.floor(i / 4)])
+  const rocksOf = (recipe) =>
+    area.flatMap(([chunkX, chunkZ]) => {
+      const { chunk, solids } = solidsOf(recipe, 17, chunkX, chunkZ)
+      return solids.rocks.map((rock) => ({ rock, chunk, solids }))
+    })
+
+  it('o `scale` do bioma multiplica o tamanho sorteado', () => {
+    const { SCALE } = GAME_CONFIG.ROCKS
+    const bigger = rocksOf(withScale(2))
+    expect(bigger.length).toBeGreaterThan(0)
+    for (const { rock } of bigger) {
+      expect(rock.scale).toBeGreaterThanOrEqual(SCALE[0] * 2 - 1e-6)
+      expect(rock.scale).toBeLessThanOrEqual(SCALE[1] * 2 + 1e-6)
+    }
+  })
+
+  it('a pegada maior continua dentro do chunk e guardada', () => {
+    const params = currentTerrainRecipe().solids
+    for (const { rock, chunk, solids } of rocksOf(withScale(2))) {
+      const [circle] = footprintOf(ROCK_KIND, rock, params)
+      expect(circle.radius).toBeCloseTo(params.rocks.RADIUS * rock.scale)
+      expect(circle.x - circle.radius).toBeGreaterThan(chunk.minX)
+      expect(circle.x + circle.radius).toBeLessThan(chunk.minX + chunk.size)
+      expect(circle.z - circle.radius).toBeGreaterThan(chunk.minZ)
+      expect(circle.z + circle.radius).toBeLessThan(chunk.minZ + chunk.size)
+      expect(solids.footprints).toContainEqual(circle)
+    }
+  })
+})
+
 describe('footprintOf', () => {
   const params = currentTerrainRecipe().solids
 

@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import { describe, expect, it } from 'vitest'
-import { buildLodKindMeshes } from './instancing'
+import { buildLodKindMeshes, finishMesh } from './instancing'
 
 // Um modelo de uma parte, com a versão de longe.
 function makeModel() {
@@ -62,5 +62,19 @@ describe('buildLodKindMeshes', () => {
     )
     expect(meshes[0].count).toBe(instances.length)
     expect(meshes[1].count).toBe(0)
+  })
+})
+
+describe('finishMesh', () => {
+  it('a malha fica parada na origem, sem recalcular a matriz a cada quadro', () => {
+    const mesh = finishMesh(
+      new THREE.InstancedMesh(
+        new THREE.BoxGeometry(),
+        new THREE.MeshBasicMaterial(),
+        1,
+      ),
+    )
+    expect(mesh.matrixAutoUpdate).toBe(false)
+    expect(mesh.matrix.equals(new THREE.Matrix4())).toBe(true)
   })
 })

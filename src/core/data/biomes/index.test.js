@@ -82,6 +82,24 @@ describe('registro de biomas', () => {
   )
 
   it.each(listBiomes())(
+    '$id: cor por bioma válida (docs/features/050-*.md)',
+    ({ vegetation }) => {
+      for (const { color } of vegetation.filter((e) => e.color)) {
+        expect(color).toMatch(HEX_COLOR)
+      }
+    },
+  )
+
+  it.each(listBiomes())(
+    '$id: tamanho por bioma válido (docs/features/050-*.md)',
+    ({ vegetation }) => {
+      for (const { scale } of vegetation.filter((e) => e.scale != null)) {
+        expect(scale).toBeGreaterThan(0)
+      }
+    },
+  )
+
+  it.each(listBiomes())(
     '$id: manchas da vegetação válidas (docs/features/049-*.md)',
     ({ vegetation }) => {
       for (const { patches } of vegetation.filter((entry) => entry.patches)) {

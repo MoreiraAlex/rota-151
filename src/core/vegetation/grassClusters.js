@@ -75,42 +75,64 @@ const noise = (seed, name, size) =>
  * @returns {{ inside: number, density: number, height: number }}
  */
 export function grassClusterAt(seed, clusters, x, z, openness = null) {
+  return createGrassClusterSampler(seed, clusters)(x, z, openness)
+}
+
+/**
+ * `grassClusterAt` para muitos pontos do mesmo bioma: as camadas de ruído
+ * e as constantes saem uma vez, fora da conta de cada ponto.
+ *
+ * @param {number} seed
+ * @param {GrassClusters} clusters
+ * @returns {(x: number, z: number, openness?: number | null) =>
+ *   { inside: number, density: number, height: number }}
+ */
+export function createGrassClusterSampler(seed, clusters) {
   const { size } = clusters
+  const shapeNoise = noise(seed, 'shape', size)
+  const bigNoise = noise(seed, 'big', size * BIG_SCALE)
+  const fineNoise = noise(seed, 'fine', size * FINE_SCALE)
+  const regionNoise = noise(seed, 'region', size * REGION_SCALE)
+  const holeNoise = noise(seed, 'holes', size * HOLE_SCALE)
+  const varietyNoise = noise(seed, 'variety', size)
   // As camadas (a mancha, a grande e a miúda da borda) somadas, viradas
   // numa fração uniforme do chão (0 a 1).
   const big = clusters.sizeVariation
   const fine = clusters.roughness * 0.5
-  const sum =
-    noise(seed, 'shape', size)(x, z) -
-    0.5 +
-    big * (noise(seed, 'big', size * BIG_SCALE)(x, z) - 0.5) +
-    fine * (noise(seed, 'fine', size * FINE_SCALE)(x, z) - 0.5)
   const spread = NOISE_SPREAD * Math.sqrt(1 + big * big + fine * fine)
-  const shape = normalShare(sum / spread)
+  const edge = { EDGE: Math.max(clusters.edge, 0.005) }
+  const holeThreshold = 1 - clusters.holes * 0.45
 
-  const region = noise(seed, 'region', size * REGION_SCALE)(x, z) - 0.5
-  let coverage = clusters.coverage + clusters.grouping * region * 1.2
-  if (openness !== null) {
-    coverage *= 1 + clusters.clearingPreference * (2 * openness - 1)
-  }
-  let inside = opennessOf(shape, clamp(coverage, 0, 1), {
-    EDGE: Math.max(clusters.edge, 0.005),
-  })
+  return (x, z, openness = null) => {
+    const sum =
+      shapeNoise(x, z) -
+      0.5 +
+      big * (bigNoise(x, z) - 0.5) +
+      fine * (fineNoise(x, z) - 0.5)
+    const shape = normalShare(sum / spread)
 
-  if (clusters.holes > 0) {
-    const hole = noise(seed, 'holes', size * HOLE_SCALE)(x, z)
-    const threshold = 1 - clusters.holes * 0.45
-    inside *= 1 - smoothstep(threshold, threshold + 0.05, hole)
-  }
+    const region = regionNoise(x, z) - 0.5
+    let coverage = clusters.coverage + clusters.grouping * region * 1.2
+    if (openness !== null) {
+      coverage *= 1 + clusters.clearingPreference * (2 * openness - 1)
+    }
+    let inside = opennessOf(shape, clamp(coverage, 0, 1), edge)
 
-  const variety = clusters.variety * noise(seed, 'variety', size)(x, z)
-  const density = clusters.density * (1 - variety)
-  const height = clusters.height * (1 - variety * HEIGHT_VARIETY)
-  return {
-    inside,
-    density: clusters.background + (density - clusters.background) * inside,
-    height:
-      clusters.backgroundHeight + (height - clusters.backgroundHeight) * inside,
+    if (clusters.holes > 0) {
+      const hole = holeNoise(x, z)
+      inside *= 1 - smoothstep(holeThreshold, holeThreshold + 0.05, hole)
+    }
+
+    const variety = clusters.variety * varietyNoise(x, z)
+    const density = clusters.density * (1 - variety)
+    const height = clusters.height * (1 - variety * HEIGHT_VARIETY)
+    return {
+      inside,
+      density: clusters.background + (density - clusters.background) * inside,
+      height:
+        clusters.backgroundHeight +
+        (height - clusters.backgroundHeight) * inside,
+    }
   }
 }
 
@@ -118,6 +140,10 @@ export function grassClusterAt(seed, clusters, x, z, openness = null) {
 // (entre os pontos, interpola): a grama tem vários tufos por m², e calcular
 // as camadas de ruído em cada um custava várias vezes o resto do bloco.
 const FIELD_STEP = 1
+// Chave de um canto da grade: `ix` e `iz` deslocados para positivos, um
+// em cada faixa de `CORNER_SPAN` (cabe com folga no inteiro exato do JS).
+const CORNER_OFFSET = 2 ** 20
+const CORNER_SPAN = 2 ** 21
 
 /**
  * Os conjuntos de grama de um bioma para muitos pontos seguidos (um bloco
@@ -128,33 +154,47 @@ const FIELD_STEP = 1
  * @returns {(x: number, z: number) => { density: number, height: number }}
  */
 export function createGrassClusterField(seed, clusters, opennessAt) {
+  const clusterAt = createGrassClusterSampler(seed, clusters)
+  // Chave numérica do canto (a de texto custava mais que o resto do bloco).
   const corners = new Map()
   const cornerAt = (ix, iz) => {
-    const key = `${ix},${iz}`
-    if (!corners.has(key)) {
+    const key = (ix + CORNER_OFFSET) * CORNER_SPAN + iz + CORNER_OFFSET
+    let corner = corners.get(key)
+    if (!corner) {
       const x = ix * FIELD_STEP
       const z = iz * FIELD_STEP
-      corners.set(key, grassClusterAt(seed, clusters, x, z, opennessAt(x, z)))
+      corner = clusterAt(x, z, opennessAt(x, z))
+      corners.set(key, corner)
     }
-    return corners.get(key)
+    return corner
   }
+  // Os quatro cantos da última célula: os tufos seguidos caem quase
+  // sempre na mesma.
+  let cellX = NaN
+  let cellZ = NaN
+  let a, b, c, d
   const result = { density: 0, height: 1 }
   return (x, z) => {
     const fx = x / FIELD_STEP
     const fz = z / FIELD_STEP
     const ix = Math.floor(fx)
     const iz = Math.floor(fz)
+    if (ix !== cellX || iz !== cellZ) {
+      a = cornerAt(ix, iz)
+      b = cornerAt(ix + 1, iz)
+      c = cornerAt(ix, iz + 1)
+      d = cornerAt(ix + 1, iz + 1)
+      cellX = ix
+      cellZ = iz
+    }
     const u = fx - ix
     const v = fz - iz
-    const a = cornerAt(ix, iz)
-    const b = cornerAt(ix + 1, iz)
-    const c = cornerAt(ix, iz + 1)
-    const d = cornerAt(ix + 1, iz + 1)
-    const mix = (key) =>
-      (a[key] * (1 - u) + b[key] * u) * (1 - v) +
-      (c[key] * (1 - u) + d[key] * u) * v
-    result.density = mix('density')
-    result.height = mix('height')
+    result.density =
+      (a.density * (1 - u) + b.density * u) * (1 - v) +
+      (c.density * (1 - u) + d.density * u) * v
+    result.height =
+      (a.height * (1 - u) + b.height * u) * (1 - v) +
+      (c.height * (1 - u) + d.height * u) * v
     return result
   }
 }

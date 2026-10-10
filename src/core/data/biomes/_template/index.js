@@ -92,8 +92,8 @@ export const BIOME_TEMPLATE = {
   // o tipo do objeto; `density` (0 a 1) é relativa entre os biomas. Já
   // aparecem no mundo: `tall-grass` (grama), `flower`, `bush`, `fern`,
   // `leafy-plant`, `mushroom` e `pebble` (atravessáveis); `broadleaf-tree`,
-  // `ancient-tree`, `pine-tree`, `dead-tree`, `rock` e `fallen-log` (com
-  // colisão). Os outros tipos só estão declarados.
+  // `ancient-tree`, `pine-tree`, `acacia-tree`, `dead-tree`, `rock` e
+  // `fallen-log` (com colisão). Os outros tipos só estão declarados.
   // - `place` (opcional, com `clearings`): 'shade' = rareia nas clareiras;
   //   'clearing' = nas clareiras (com `shade`, 0 a 1, a fração que ainda
   //   fica na mata). Sem ele, em qualquer lugar. 'trail' (com `trails`) =
@@ -102,6 +102,13 @@ export const BIOME_TEMPLATE = {
   //   manchas, mais ou menos `amount` (0 a 1) do chão, de `size` m de
   //   largura (bosque, tapete, roda). Sem ele, espalhado por igual.
   // - `moss` (opcional, `rock`): quanto do topo da pedra é musgo (0 a 1).
+  // - `color` (opcional, árvores, `bush`, `rock` e `pebble`): cor do tipo
+  //   neste bioma (a folha; na pedra e no seixo, a pedra), no lugar da cor
+  //   do config — o
+  //   arbusto seco e o arenito da savana (view/vegetation/biomeColor.js).
+  // - `scale` (opcional, objetos com colisão: árvores, `rock`,
+  //   `fallen-log`): multiplica o tamanho do tipo neste bioma — colisão e
+  //   desvio acompanham (as pedras maiores da savana).
   vegetation: [
     {
       kind: 'tall-grass',

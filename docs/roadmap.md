@@ -2,7 +2,7 @@
 
 ---
 
-# ✅ Já feito (0.0.1 – 0.0.49)
+# ✅ Já feito (0.0.1 – 0.0.50)
 
 O que já foi entregue, por tema. Detalhes de cada uma em `docs/features/`.
 
@@ -51,6 +51,7 @@ O que já foi entregue, por tema. Detalhes de cada uma em `docs/features/`.
 - [x] **047 — Biomas**
 - [x] **048 — Dia, noite e clima**
 - [x] **049 — Vegetação e floresta**
+- [x] **050 — Planície e savana**
 
 ### Combate
 - [x] **025 — Ataque comum de criatura**
@@ -110,7 +111,6 @@ pântano, deserto, vulcânico e tundra) ficam escondidos (`BIOMES.HIDDEN`) e
 só aparecem pelo F2. Os 3 iniciais não nascem no mundo: vêm só no kit
 inicial (063).
 
-- [ ] **050 — Planície e savana** — a vegetação dos dois biomas em cima da base da 049 (grama, flores, acácia, arbustos, pedras) e o ajuste visual de cada um (cores, desenho do chão). Os dois saem do `BIOMES.HIDDEN`.
 - [ ] **051 — Montanha** — pinheiro, pedras grandes e o ajuste visual do bioma (cores, desenho do chão, neve no alto); sai do `BIOMES.HIDDEN`. Prepara as encostas para a boca das cavernas (057).
 - [ ] **052 — Itens no mundo** — itens espalhados pela seed conforme o bioma (no chão e em arbustos: Pokébolas, poções) e **árvores de frutas** que dá para colher e voltam a dar fruto com o tempo. É a forma de conseguir itens além do kit inicial.
 - [ ] **053 — Estruturas e Pokécenter** — sistema para colocar construções pré-modeladas no mundo procedural (posição pela seed, terreno aplainado). Primeiro: o Pokécenter, que cura o time (com o som de cura) e é o ponto de reaparecimento.
@@ -180,7 +180,7 @@ item entra aqui quando for identificado e vira feature quando chegar a vez.
 - [ ] **079 — Chão plano no relevo** — o Rapier erra parte dos raios (bola, comida, câmera, mira) em células PLANAS do heightfield do relevo (medido na 045; o relevo por ruído não tem célula plana, então hoje não aparece). Resolver antes de aplainar terreno (estruturas na 053, chão da água na 056) — ex.: colisor próprio pra área plana *(detalhar quando chegar)*.
 - [ ] **080 — Rotação das entidades no relevo** — rever como o corpo acompanha a inclinação do terreno: subindo um morro o corpo continua reto, e às vezes as skills saem da cabeça do personagem *(detalhar quando chegar)*.
 - [ ] **081 — Luz no estilo BotW por hora** — sol mais quente, sombra azulada e névoa leve nas cores de cada hora (`DAY_CYCLE.KEYFRAMES`, 048). Mexer na luz muda a cor da grama, então junto vem um novo ajuste das cores da grama e da floresta (a 049 casou tudo com a luz de hoje) *(detalhar quando chegar)*.
-- [ ] **082 — Desempenho no celular** — medir no celular na qualidade baixa (a 049 só mediu na Intel UHD do PC: a mata densa fica perto do limite de 30 FPS) e cortar o que pesar — copas, grama, sombra, raio *(detalhar quando chegar)*.
+- [ ] **082 — Desempenho no celular** — medir no celular na qualidade baixa (a 049 só mediu na Intel UHD do PC: a mata densa fica perto do limite de 30 FPS) e cortar o que pesar — copas, grama, sombra, raio; se as flores pesarem, trocar pelas moitas mais leves do Ultimate (`Flower_*_Clump`, 050) *(detalhar quando chegar)*.
 - [ ] **083 — Ambiente da floresta** — névoa um pouco mais fechada dentro da mata; partículas (folhas caindo de dia, vaga-lumes à noite); som ambiente por bioma (pássaros de dia, grilos e coruja à noite) *(detalhar quando chegar)*.
 - [ ] **084 — Detalhes da floresta** — cogumelo-prateleira (`Mushroom_Laetiporus` do MegaKit), musgo nos troncos caídos e grama mais rala sob a copa fechada *(detalhar quando chegar)*.
 

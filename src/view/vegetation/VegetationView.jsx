@@ -26,7 +26,7 @@ import {
 } from './chunkMeshes'
 import { applyGrassLook } from './grassMaterial'
 import { disposeVegetationMesh, setShadowsEnabled } from './instancing'
-import { applyBarkLook, applyFoliageLook, applyMossLook } from './propMaterials'
+import { applyBarkLook, applyFoliageLook, applyRockLook } from './propMaterials'
 import {
   applyPartColor,
   materialsOfKind,
@@ -264,7 +264,10 @@ export function VegetationView() {
       canopy: materialsOfKind(models.kinds, 'canopy'),
       foliage: materialsOfKind(models.kinds, 'foliage'),
       bark: materialsOfKind(models.kinds, 'bark'),
-      rock: materialsOfKind(models.kinds, 'rock'),
+      rock: [
+        ...materialsOfKind(models.kinds, 'rock'),
+        ...materialsOfKind(models.kinds, 'pebble'),
+      ],
       log: models.log.materials,
     }),
     [models],
@@ -404,5 +407,5 @@ function updateUniforms(delta, grassMaterial, materials) {
   for (const material of materials.canopy) applyCanopyLook(material)
   for (const material of materials.foliage) applyFoliageLook(material)
   for (const material of materials.bark) applyBarkLook(material)
-  for (const material of materials.rock) applyMossLook(material)
+  for (const material of materials.rock) applyRockLook(material)
 }

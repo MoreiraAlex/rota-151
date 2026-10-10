@@ -1,7 +1,7 @@
 import { GAME_CONFIG } from '../gameConfig'
 import { createRng, deriveSeed } from '../rng'
 import { chunkHeightAt } from '../terrain/terrainChunk'
-import { createKindDensity, slopeAt } from './vegetationDensity'
+import { createKindDensity, densityAt, slopeAt } from './vegetationDensity'
 
 /**
  * Os objetos SÓLIDOS da vegetação (docs/features/049-vegetacao-e-
@@ -14,17 +14,19 @@ import { createKindDensity, slopeAt } from './vegetationDensity'
 export const TREE_KIND = 'broadleaf-tree'
 export const ANCIENT_TREE_KIND = 'ancient-tree'
 export const PINE_KIND = 'pine-tree'
+export const ACACIA_KIND = 'acacia-tree'
 export const DEAD_TREE_KIND = 'dead-tree'
 export const LOG_KIND = 'fallen-log'
 export const ROCK_KIND = 'rock'
 
 /**
  * As espécies de árvore em pé, na ordem em que ocupam o chão: as grandes
- * primeiro (a árvore antiga abre espaço para a copa dela), o pinheiro antes
- * da folhosa (nos bosques dele, ele domina).
+ * primeiro (a árvore antiga e a acácia abrem espaço para a copa larga
+ * delas), o pinheiro antes da folhosa (nos bosques dele, ele domina).
  */
 export const STANDING_TREE_KINDS = [
   ANCIENT_TREE_KIND,
+  ACACIA_KIND,
   PINE_KIND,
   TREE_KIND,
   DEAD_TREE_KIND,
@@ -35,6 +37,7 @@ const SPEC_KEYS = {
   [TREE_KIND]: 'trees',
   [ANCIENT_TREE_KIND]: 'ancientTrees',
   [PINE_KIND]: 'pines',
+  [ACACIA_KIND]: 'acacias',
   [DEAD_TREE_KIND]: 'deadTrees',
   [LOG_KIND]: 'logs',
   [ROCK_KIND]: 'rocks',
@@ -90,11 +93,13 @@ export function footprintOf(kind, placement, params) {
  * Folga (m) da borda do chunk sem objeto do tipo: a pegada (no maior
  * tamanho) e a margem dela na grade de navegação ficam dentro do próprio
  * chunk — a região de navegação de um chunk só precisa dos objetos dele.
+ * `scaleFactor`: o maior tamanho por bioma do tipo no chunk
+ * (`createScaleField`).
  */
-export function borderGapOf(kind, params) {
+export function borderGapOf(kind, params, scaleFactor = 1) {
   const { OBSTACLE_MARGIN, CELL_SIZE } = GAME_CONFIG.PATHFINDING
   const spec = specOf(kind, params)
-  const largest = { x: 0, z: 0, yaw: 0, scale: spec.SCALE[1] }
+  const largest = { x: 0, z: 0, yaw: 0, scale: spec.SCALE[1] * scaleFactor }
   const reach = Math.max(
     ...footprintOf(kind, largest, params).map(
       (circle) => Math.hypot(circle.x, circle.z) + circle.radius,
@@ -143,6 +148,25 @@ const crowdsCrowns = (trunk, crown, crowns) =>
         crown.radius,
   )
 
+/**
+ * O tamanho do tipo pelo bioma (`scale` da entrada do `vegetation`, 1 sem
+ * ele — as pedras maiores da savana), misturado pelo peso dos biomas no
+ * ponto: `at(x, z)` multiplica o tamanho sorteado; `max` é o maior do
+ * chunk (a folga da borda).
+ */
+export function createScaleField(chunk, kind, biomeList) {
+  const factors = Float32Array.from(chunk.biomeIds, (id) => {
+    const biome = biomeList.find((candidate) => candidate.id === id)
+    const entry = biome?.vegetation.find((item) => item.kind === kind)
+    return entry?.scale ?? 1
+  })
+  if (factors.every((factor) => factor === 1)) return { max: 1, at: () => 1 }
+  return {
+    max: Math.max(1, ...factors),
+    at: (x, z) => densityAt(chunk, factors, x, z),
+  }
+}
+
 // As duas pontas do tronco caído quase na mesma altura do chão.
 function isLevelEnough(chunk, { x, z, yaw, scale }, spec) {
   const reach = scale / 2
@@ -157,9 +181,9 @@ function isLevelEnough(chunk, { x, z, yaw, scale }, spec) {
 /**
  * Os objetos de um tipo num chunk, pela seed: o mundo é uma grade de
  * células de `SPACING` m; cada célula sorteia (com a própria sub-seed) um
- * ponto, o giro, o tamanho, o modelo e se ganha objeto — com chance pela
- * densidade do tipo no lugar (`createKindDensity`, com as clareiras e as
- * manchas). A
+ * ponto, o giro, o tamanho (vezes o do bioma, `createScaleField`), o
+ * modelo e se ganha objeto — com chance pela densidade do tipo no lugar
+ * (`createKindDensity`, com as clareiras e as manchas). A
  * célula é do mundo, não do chunk: o mesmo objeto sai igual qualquer que
  * seja o chunk que pergunte, e cada ponto cai num chunk só.
  *
@@ -184,7 +208,8 @@ function placeKind(
 
   const spec = specOf(kind, params)
   const { SPACING, CHANCE, SCALE, MAX_SLOPE, SHORE_GAP } = spec
-  const gap = borderGapOf(kind, params)
+  const biomeScale = createScaleField(chunk, kind, biomeList)
+  const gap = borderGapOf(kind, params, biomeScale.max)
   const minX = chunk.minX + gap
   const maxX = chunk.minX + chunk.size - gap
   const minZ = chunk.minZ + gap
@@ -207,7 +232,7 @@ function placeKind(
       const z = (cellZ + rng()) * SPACING
       const roll = rng()
       const yaw = rng() * Math.PI * 2
-      const scale = SCALE[0] + rng() * (SCALE[1] - SCALE[0])
+      const size = SCALE[0] + rng() * (SCALE[1] - SCALE[0])
       const variant = rng()
 
       const isInside = x >= minX && x < maxX && z >= minZ && z < maxZ
@@ -217,6 +242,7 @@ function placeKind(
       const y = chunkHeightAt(chunk, x, z)
       if (y < terrain.WATER_LEVEL + SHORE_GAP) continue
       if (slopeAt(chunk, x, z) > MAX_SLOPE) continue
+      const scale = size * biomeScale.at(x, z)
       const placement = { kind, x, y, z, yaw, scale, variant }
       if (kind === LOG_KIND && !isLevelEnough(chunk, placement, spec)) continue
       const footprint = footprintOf(kind, placement, params)
@@ -274,11 +300,13 @@ export function placeChunkSolids(
 
 /** Os números dos objetos sólidos agora (`GAME_CONFIG`). */
 export function solidParams() {
-  const { TREES, ANCIENT_TREES, PINES, DEAD_TREES, LOGS, ROCKS } = GAME_CONFIG
+  const { TREES, ANCIENT_TREES, PINES, ACACIAS, DEAD_TREES, LOGS, ROCKS } =
+    GAME_CONFIG
   return {
     trees: TREES,
     ancientTrees: ANCIENT_TREES,
     pines: PINES,
+    acacias: ACACIAS,
     deadTrees: DEAD_TREES,
     logs: LOGS,
     rocks: ROCKS,

@@ -16,6 +16,7 @@ import {
   GRASS_BLADES_PATH,
   PART_COLORS,
   PART_KINDS,
+  SHARED_TEXTURES,
   VEGETATION_MODELS,
   megakitPath,
 } from './vegetationAssets'
@@ -29,7 +30,7 @@ import {
  * `.glb`) não é liberado aqui.
  *
  * @typedef {object} ModelPart
- * @property {'canopy' | 'foliage' | 'bark' | 'rock' | 'solid'} kind
+ * @property {'canopy' | 'foliage' | 'bark' | 'rock' | 'pebble' | 'solid'} kind
  * @property {THREE.BufferGeometry} geometry
  * @property {THREE.Material} material
  * @property {THREE.Material} [depth] - sombra recortada (copa)
@@ -38,7 +39,7 @@ import {
  * @typedef {{ name: string, parts: ModelPart[], far?: VegetationModel }} VegetationModel
  */
 
-const MODEL_NAMES = [...new Set(Object.values(VEGETATION_MODELS).flat())]
+export const MODEL_NAMES = [...new Set(Object.values(VEGETATION_MODELS).flat())]
 export const MODEL_PATHS = MODEL_NAMES.map(megakitPath)
 
 const firstMesh = (scene) => {
@@ -117,16 +118,19 @@ export function toLambertMaterial(source) {
 
 /**
  * Uma parte de um modelo (uma malha do `.glb`). `sharedMaps`: a primeira
- * textura de cada material — os modelos que usam a mesma (a casca e as
- * folhas das árvores) passam a usar uma só na placa de vídeo.
+ * textura de cada arquivo dividido (`SHARED_TEXTURES`) — os modelos que
+ * usam o mesmo (a casca e as folhas das árvores) passam a usar uma só na
+ * placa de vídeo. Textura recortada (flores, plantas, pedras) fica a do
+ * próprio modelo.
  */
 function buildPart(mesh, { sharedMaps, disposables }) {
   const kind = PART_KINDS[mesh.material.name] ?? 'solid'
   const source = toLambertMaterial(mesh.material)
   disposables.push(source)
-  if (source.map) {
-    sharedMaps[source.name] ??= source.map
-    source.map = sharedMaps[source.name]
+  const sharedFile = SHARED_TEXTURES[source.name]
+  if (source.map && sharedFile) {
+    sharedMaps[sharedFile] ??= source.map
+    source.map = sharedMaps[sharedFile]
   }
   const { geometry } = mesh
   const { baseY, height, box } = boundsOf(geometry)
@@ -147,7 +151,7 @@ function buildPart(mesh, { sharedMaps, disposables }) {
   } else if (kind === 'bark') {
     part.material = createBarkMaterial(source)
     disposables.push(part.material)
-  } else if (kind === 'rock') {
+  } else if (kind === 'rock' || kind === 'pebble') {
     part.material = createMossyRockMaterial(source)
     disposables.push(part.material)
   }
