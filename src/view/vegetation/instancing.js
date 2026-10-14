@@ -227,8 +227,10 @@ export function buildKindMeshes(models, instances, options) {
 }
 
 // As instâncias de cada modelo (pelo `variant`), na ordem de `models`.
+// Sem modelo (o escolhido no painel ainda carregando), nenhum grupo.
 function groupByModel(models, instances) {
   const groups = models.map(() => [])
+  if (groups.length === 0) return groups
   for (const item of instances) {
     const index = Math.min(
       models.length - 1,

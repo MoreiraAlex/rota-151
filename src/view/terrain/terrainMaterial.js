@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import {
+  MAX_COLOR_LAYERS,
   MAX_TERRAIN_LAYERS,
   TERRAIN_COLOR_LAYERS,
   TERRAIN_LAYERS,
@@ -21,12 +22,14 @@ attribute vec4 groundLayers1;
 attribute float groundDetail;
 attribute vec4 groundColors0;
 attribute vec4 groundColors1;
+attribute vec4 groundColors2;
 attribute float groundTextureShare;
 varying vec4 vGroundLayers0;
 varying vec4 vGroundLayers1;
 varying float vGroundDetail;
 varying vec4 vGroundColors0;
 varying vec4 vGroundColors1;
+varying vec4 vGroundColors2;
 varying float vGroundTextureShare;
 varying vec3 vTerrainWorld;
 varying vec3 vTerrainNormal;
@@ -47,6 +50,7 @@ varying vec4 vGroundLayers1;
 varying float vGroundDetail;
 varying vec4 vGroundColors0;
 varying vec4 vGroundColors1;
+varying vec4 vGroundColors2;
 varying float vGroundTextureShare;
 varying vec3 vTerrainWorld;
 varying vec3 vTerrainNormal;
@@ -118,6 +122,7 @@ vGroundLayers1 = groundLayers1;
 vGroundDetail = groundDetail;
 vGroundColors0 = groundColors0;
 vGroundColors1 = groundColors1;
+vGroundColors2 = groundColors2;
 vGroundTextureShare = groundTextureShare;
 vTerrainWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;
 `
@@ -154,8 +159,10 @@ if (vGroundTextureShare > 0.001) {
   vec3 textured = vec3(0.0);
   float texturedTotal = 0.0;
   vec2 colorUv = vTerrainWorld.xz / uColorTextureSize;
-  for (int layer = 0; layer < ${MAX_TERRAIN_LAYERS}; layer++) {
-    float weight = layer < 4 ? vGroundColors0[layer] : vGroundColors1[layer - 4];
+  for (int layer = 0; layer < ${MAX_COLOR_LAYERS}; layer++) {
+    float weight = layer < 4
+      ? vGroundColors0[layer]
+      : layer < 8 ? vGroundColors1[layer - 4] : vGroundColors2[layer - 8];
     if (weight < 0.002) continue;
     textured += texture(uColorLayers, vec3(colorUv, float(layer))).rgb * weight;
     texturedTotal += weight;

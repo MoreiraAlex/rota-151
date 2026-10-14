@@ -1,5 +1,5 @@
 {
-  "source": "Pokémon Let's Go Pikachu/Eevee — forest001_00, road001_00 e buildmodel",
+  "source": "Pokémon Let's Go Pikachu/Eevee — forest001_00, road001_00, road003_00, road022_00 e buildmodel",
   "props": {
     "round-tree": {
       "label": "Árvore redonda (Rota 1)",
@@ -791,6 +791,396 @@
       },
       "copiesInMap": 22
     },
+    "round-tree-e": {
+      "label": "Árvore redonda (Rota 3)",
+      "category": "tree",
+      "file": "props/round-tree-e.glb",
+      "size": [
+        3.192,
+        3.318,
+        3.38
+      ],
+      "materials": {
+        "tree_miki": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "stem01_com",
+            "HighlightMap": "stem01_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23454786837100983,
+            0.36131009459495544,
+            0.39157116413116455
+          ],
+          "rimColor": [
+            0.45513415336608887,
+            1.0000240802764893,
+            0.8332290053367615
+          ],
+          "rim": [
+            0,
+            1,
+            1
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "tree04_3": {
+          "shader": "FieldTreeShader02",
+          "maps": {
+            "Texture01": "tree22_01",
+            "Texture02": "tree21_02"
+          },
+          "cutoff": 0.6000000238418579,
+          "doubleSided": true,
+          "shadowColor": [
+            0.23454786837100983,
+            0.36131009459495544,
+            0.39157116413116455
+          ],
+          "rimColor": [
+            0.2360350340604782,
+            1.1993017196655273,
+            0.5682230591773987
+          ],
+          "rim": [
+            0.27937787771224976,
+            0.9074069857597351,
+            1
+          ],
+          "lightColor": null,
+          "greenColor": [
+            0.015760956332087517,
+            0.07880350947380066,
+            0.06489596515893936
+          ]
+        }
+      },
+      "copiesInMap": 6
+    },
+    "round-tree-f": {
+      "label": "Árvore redonda média (Rota 3)",
+      "category": "tree",
+      "file": "props/round-tree-f.glb",
+      "size": [
+        3.334,
+        3.51,
+        3.333
+      ],
+      "materials": {
+        "tree002_newsha": {
+          "shader": "FieldTreeShader05",
+          "maps": {
+            "Texture01": "tree20_01_com",
+            "Texture02": "tree20_02_com",
+            "Texture03": "tree20_03_com"
+          },
+          "cutoff": 0.8500000238418579,
+          "doubleSided": true,
+          "shadowColor": [
+            0.19806824624538422,
+            0.30055078864097595,
+            0.2874460220336914
+          ],
+          "rimColor": [
+            0.07227212935686111,
+            0.37123918533325195,
+            0.049706704914569855
+          ],
+          "rim": [
+            0.6420000195503235,
+            1,
+            1
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "tree_miki": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "stem01_com",
+            "HighlightMap": "stem01_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23454786837100983,
+            0.36131009459495544,
+            0.39157116413116455
+          ],
+          "rimColor": [
+            0.45513415336608887,
+            1.0000240802764893,
+            0.8332290053367615
+          ],
+          "rim": [
+            0,
+            1,
+            1
+          ],
+          "lightColor": null,
+          "greenColor": null
+        }
+      },
+      "copiesInMap": 4
+    },
+    "tuft-route": {
+      "label": "Tufo (Rota 1)",
+      "category": "tuft",
+      "file": "props/tuft-route.glb",
+      "size": [
+        0.569,
+        0.311,
+        0.515
+      ],
+      "materials": {
+        "grass_s03": {
+          "shader": "FieldGrassShader04",
+          "maps": {
+            "Texture01": "grass08_1_com",
+            "Texture02": "grass08_2_com",
+            "Texture03": "grass08_3_com"
+          },
+          "cutoff": 0.4701330065727234,
+          "doubleSided": true,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        }
+      },
+      "copiesInMap": 59
+    },
+    "tuft-medium": {
+      "label": "Tufo médio (Rota 1)",
+      "category": "tuft",
+      "file": "props/tuft-medium.glb",
+      "size": [
+        0.906,
+        0.421,
+        0.879
+      ],
+      "materials": {
+        "grass01_com_001": {
+          "shader": "FieldGrassShader02",
+          "maps": {
+            "green_hikari": "grassdecoration01_com",
+            "TextureMap02": "grass02_com",
+            "green_blend": "greenblend01_com",
+            "Hilight": "grassdecoration02_com",
+            "TextureMap01": "grass01_com"
+          },
+          "cutoff": 0.8500000238418579,
+          "doubleSided": true,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        }
+      },
+      "copiesInMap": 26
+    },
+    "grass-mound": {
+      "label": "Monte de grama (Rota 1)",
+      "category": "plant",
+      "file": "props/grass-mound.glb",
+      "size": [
+        3.502,
+        0.947,
+        3.57
+      ],
+      "materials": {
+        "grass01_com": {
+          "shader": "FieldGrassShader02",
+          "maps": {
+            "green_hikari": "grassdecoration01_com",
+            "TextureMap02": "grass02_com",
+            "green_blend": "greenblend01_com",
+            "Hilight": "grassdecoration02_com",
+            "TextureMap01": "grass01_com"
+          },
+          "cutoff": 0.8500000238418579,
+          "doubleSided": true,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "grass01_com_002": {
+          "shader": "FieldGrassShader01",
+          "maps": {
+            "green_hikari": "grassdecoration01_com",
+            "TextureMap02": "grass02_com",
+            "green_blend": "greenblend01_com",
+            "Hilight": "grassdecoration02_com",
+            "TextureMap01": "grass01_com"
+          },
+          "cutoff": 0.8500000238418579,
+          "doubleSided": true,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": [
+            0,
+            0.25,
+            0.2047000527381897
+          ],
+          "rim": [
+            0.4333333373069763,
+            1,
+            1
+          ],
+          "lightColor": null,
+          "greenColor": null
+        }
+      },
+      "copiesInMap": 6
+    },
+    "rock-grass": {
+      "label": "Pedrinha na grama (Rota 1)",
+      "category": "rock",
+      "file": "props/rock-grass.glb",
+      "size": [
+        0.645,
+        0.169,
+        0.57
+      ],
+      "materials": {
+        "rock01_com_grass01_com": {
+          "shader": "FieldRockShader",
+          "maps": {
+            "Rock_tex": "rock01_com",
+            "GroundTex01": "grass01_com",
+            "BlendTex": "greenblend01_com",
+            "BorderTex": "glassmask01_com",
+            "GroundTex02": "grass02_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": [
+            0.5759999752044678,
+            0.4219279885292053,
+            0.14284799993038177
+          ],
+          "rim": [
+            0.6296300292015076,
+            1,
+            0.7160490155220032
+          ],
+          "lightColor": null,
+          "greenColor": null
+        }
+      },
+      "copiesInMap": 3
+    },
+    "rock-soil": {
+      "label": "Pedrinha na terra (Rota 22)",
+      "category": "rock",
+      "file": "props/rock-soil.glb",
+      "size": [
+        0.642,
+        0.167,
+        0.564
+      ],
+      "materials": {
+        "rock01_com_soil09_com": {
+          "shader": "FieldRockShader",
+          "maps": {
+            "Rock_tex": "rock01_com",
+            "GroundTex01": "soil09_com",
+            "BlendTex": "soil_blend_test",
+            "BorderTex": "glassmask01_com",
+            "GroundTex02": "soil10_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": [
+            0.5759999752044678,
+            0.4219279885292053,
+            0.14284799993038177
+          ],
+          "rim": [
+            0.6296300292015076,
+            1,
+            0.7160490155220032
+          ],
+          "lightColor": null,
+          "greenColor": null
+        }
+      },
+      "copiesInMap": 14
+    },
+    "rock-soil-b": {
+      "label": "Pedrinha na terra (Rota 3)",
+      "category": "rock",
+      "file": "props/rock-soil-b.glb",
+      "size": [
+        0.527,
+        0.134,
+        0.465
+      ],
+      "materials": {
+        "rock01_com_soil08_com": {
+          "shader": "FieldRockShader",
+          "maps": {
+            "Rock_tex": "rock01_com",
+            "GroundTex01": "soil09_com",
+            "BlendTex": "soil_blend_test",
+            "BorderTex": "glassmask01_com",
+            "GroundTex02": "soil10_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23454786837100983,
+            0.36131009459495544,
+            0.39157116413116455
+          ],
+          "rimColor": [
+            0.5759999752044678,
+            0.4219279885292053,
+            0.14284799993038177
+          ],
+          "rim": [
+            0.6296300292015076,
+            1,
+            0.7160490155220032
+          ],
+          "lightColor": null,
+          "greenColor": null
+        }
+      },
+      "copiesInMap": 6
+    },
     "tall-grass": {
       "label": "Mato alto",
       "category": "tall-grass",
@@ -1347,6 +1737,297 @@
         }
       }
     },
+    "flower-bush-b": {
+      "label": "Moita florida grande",
+      "category": "bush",
+      "file": "props/flower-bush-b.glb",
+      "size": [
+        2.413,
+        1.373,
+        2.211
+      ],
+      "materials": {
+        "flower07_model": {
+          "shader": "FieldTreeShader02",
+          "maps": {
+            "Texture02": "flower07_2",
+            "Texture01": "flower07"
+          },
+          "cutoff": 0.41874265670776367,
+          "doubleSided": true,
+          "shadowColor": [
+            0.23480798304080963,
+            0.3617064356803894,
+            0.3919999897480011
+          ],
+          "rimColor": [
+            0.23389163613319397,
+            0.42500001192092896,
+            0
+          ],
+          "rim": [
+            0.5333333611488342,
+            1,
+            1
+          ],
+          "lightColor": null,
+          "greenColor": [
+            1,
+            1,
+            1
+          ]
+        }
+      }
+    },
+    "flower-6": {
+      "label": "Flores 6",
+      "category": "flower",
+      "file": "props/flower-6.glb",
+      "size": [
+        0.717,
+        0.738,
+        0.463
+      ],
+      "materials": {
+        "flower06_shader": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "flower06"
+          },
+          "cutoff": 0.8500000238418579,
+          "doubleSided": true,
+          "shadowColor": [
+            0.23454800248146057,
+            0.3613100051879883,
+            0.3915709853172302
+          ],
+          "rimColor": [
+            0.05369162559509277,
+            0.5,
+            0
+          ],
+          "rim": [
+            0.7037037014961243,
+            1,
+            1
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "flower06_shader_02": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "flower06"
+          },
+          "cutoff": 0.8500000238418579,
+          "doubleSided": true,
+          "shadowColor": [
+            0.23454800248146057,
+            0.3613100051879883,
+            0.3915709853172302
+          ],
+          "rimColor": [
+            0.47200000286102295,
+            0.44801777601242065,
+            0.08024001121520996
+          ],
+          "rim": [
+            0.7037037014961243,
+            1,
+            1
+          ],
+          "lightColor": null,
+          "greenColor": null
+        }
+      }
+    },
+    "flower-9": {
+      "label": "Flores 9",
+      "category": "flower",
+      "file": "props/flower-9.glb",
+      "size": [
+        0.79,
+        0.563,
+        0.73
+      ],
+      "materials": {
+        "flower09_com": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "flowers09"
+          },
+          "cutoff": 0.6012195348739624,
+          "doubleSided": true,
+          "shadowColor": [
+            0.23294000327587128,
+            0.3517914116382599,
+            0.3799999952316284
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        }
+      }
+    },
+    "flower-10": {
+      "label": "Flores 10",
+      "category": "flower",
+      "file": "props/flower-10.glb",
+      "size": [
+        0.893,
+        0.764,
+        0.816
+      ],
+      "materials": {
+        "flower10_com": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "flowers10"
+          },
+          "cutoff": 0.37026354670524597,
+          "doubleSided": true,
+          "shadowColor": [
+            0.23294000327587128,
+            0.3517914116382599,
+            0.3799999952316284
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        }
+      }
+    },
+    "flower-11": {
+      "label": "Flores 11",
+      "category": "flower",
+      "file": "props/flower-11.glb",
+      "size": [
+        1.144,
+        1.005,
+        1.087
+      ],
+      "materials": {
+        "flower11_sha": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "flowers11",
+            "NormalMap": "flowers11_h"
+          },
+          "cutoff": 0.37026354670524597,
+          "doubleSided": true,
+          "shadowColor": [
+            0.23294000327587128,
+            0.3517914116382599,
+            0.3799999952316284
+          ],
+          "rimColor": [
+            0.13632510602474213,
+            0.8073484897613525,
+            0.00190123135689646
+          ],
+          "rim": [
+            0.5486969947814941,
+            1,
+            1
+          ],
+          "lightColor": null,
+          "greenColor": null
+        }
+      }
+    },
+    "flower-13": {
+      "label": "Flores 13",
+      "category": "flower",
+      "file": "props/flower-13.glb",
+      "size": [
+        1.51,
+        0.555,
+        1.367
+      ],
+      "materials": {
+        "flower13_com": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "flowers13"
+          },
+          "cutoff": 0.42500001192092896,
+          "doubleSided": true,
+          "shadowColor": [
+            0.23294000327587128,
+            0.3517914116382599,
+            0.3799999952316284
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        }
+      }
+    },
+    "cut-tree-b": {
+      "label": "Árvore de Corte 2",
+      "category": "tree",
+      "file": "props/cut-tree-b.glb",
+      "size": [
+        1.845,
+        1.148,
+        1.133
+      ],
+      "materials": {
+        "iaigiri_tree02_01": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "iaigiri_tree02_01"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.699999988079071,
+            0.699999988079071,
+            0.699999988079071
+          ],
+          "rimColor": [
+            0.7484261989593506,
+            0.5485298037528992,
+            0.14132052659988403
+          ],
+          "rim": [
+            0.5,
+            1,
+            0.800000011920929
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "iaigiri_tree02_01_alpha": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "iaigiri_tree02_01"
+          },
+          "cutoff": 0.6995580196380615,
+          "doubleSided": true,
+          "shadowColor": [
+            0.699999988079071,
+            0.699999988079071,
+            0.699999988079071
+          ],
+          "rimColor": [
+            0.7484261989593506,
+            0.5485298037528992,
+            0.14132052659988403
+          ],
+          "rim": [
+            0.699999988079071,
+            1,
+            0.6000000238418579
+          ],
+          "lightColor": null,
+          "greenColor": null
+        }
+      }
+    },
     "cut-tree": {
       "label": "Árvore de Corte",
       "category": "tree",
@@ -1453,7 +2134,19 @@
     "cliff01_com",
     "roadstone01_com",
     "greenblend01_com",
-    "glassmask01_com"
+    "glassmask01_com",
+    "grass01_area02",
+    "grass02_area02",
+    "grass03_area02",
+    "grass03_com",
+    "grass04_com",
+    "soil01_area02",
+    "soil08_area02",
+    "soil09_com",
+    "soil10_com",
+    "sand01_com",
+    "sand02_com",
+    "cliff01_area02"
   ],
   "toonTables": [
     "shadowtable01_t",
@@ -1617,6 +2310,72 @@
       "height": 256,
       "alpha": true
     },
+    "grass08_2_com": {
+      "file": "textures/grass08_2_com.png",
+      "width": 128,
+      "height": 128,
+      "alpha": true
+    },
+    "grass08_3_com": {
+      "file": "textures/grass08_3_com.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "grassdecoration01_com": {
+      "file": "textures/grassdecoration01_com.png",
+      "width": 512,
+      "height": 512,
+      "alpha": true
+    },
+    "grass02_com": {
+      "file": "textures/grass02_com.png",
+      "width": 512,
+      "height": 512,
+      "alpha": false
+    },
+    "grassdecoration02_com": {
+      "file": "textures/grassdecoration02_com.png",
+      "width": 512,
+      "height": 512,
+      "alpha": true
+    },
+    "grass01_com": {
+      "file": "textures/grass01_com.png",
+      "width": 512,
+      "height": 512,
+      "alpha": false
+    },
+    "rock01_com": {
+      "file": "textures/rock01_com.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "glassmask01_com": {
+      "file": "textures/glassmask01_com.png",
+      "width": 256,
+      "height": 512,
+      "alpha": true
+    },
+    "soil09_com": {
+      "file": "textures/soil09_com.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "soil_blend_test": {
+      "file": "textures/soil_blend_test.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "soil10_com": {
+      "file": "textures/soil10_com.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
     "encgrass01": {
       "file": "textures/encgrass01.png",
       "width": 256,
@@ -1713,6 +2472,60 @@
       "height": 128,
       "alpha": true
     },
+    "flower07_2": {
+      "file": "textures/flower07_2.png",
+      "width": 256,
+      "height": 256,
+      "alpha": true
+    },
+    "flower07": {
+      "file": "textures/flower07.png",
+      "width": 256,
+      "height": 256,
+      "alpha": true
+    },
+    "flower06": {
+      "file": "textures/flower06.png",
+      "width": 128,
+      "height": 128,
+      "alpha": true
+    },
+    "flowers09": {
+      "file": "textures/flowers09.png",
+      "width": 256,
+      "height": 256,
+      "alpha": true
+    },
+    "flowers10": {
+      "file": "textures/flowers10.png",
+      "width": 256,
+      "height": 256,
+      "alpha": true
+    },
+    "flowers11": {
+      "file": "textures/flowers11.png",
+      "width": 256,
+      "height": 256,
+      "alpha": true
+    },
+    "flowers11_h": {
+      "file": "textures/flowers11_h.png",
+      "width": 256,
+      "height": 256,
+      "alpha": true
+    },
+    "flowers13": {
+      "file": "textures/flowers13.png",
+      "width": 256,
+      "height": 256,
+      "alpha": true
+    },
+    "iaigiri_tree02_01": {
+      "file": "textures/iaigiri_tree02_01.png",
+      "width": 512,
+      "height": 512,
+      "alpha": true
+    },
     "iaigiri_tree01": {
       "file": "textures/iaigiri_tree01.png",
       "width": 128,
@@ -1733,18 +2546,6 @@
     },
     "kairiki_rock03": {
       "file": "textures/kairiki_rock03.png",
-      "width": 512,
-      "height": 512,
-      "alpha": false
-    },
-    "grass01_com": {
-      "file": "textures/grass01_com.png",
-      "width": 512,
-      "height": 512,
-      "alpha": false
-    },
-    "grass02_com": {
-      "file": "textures/grass02_com.png",
       "width": 512,
       "height": 512,
       "alpha": false
@@ -1785,11 +2586,65 @@
       "height": 512,
       "alpha": true
     },
-    "glassmask01_com": {
-      "file": "textures/glassmask01_com.png",
-      "width": 256,
+    "grass01_area02": {
+      "file": "textures/grass01_area02.png",
+      "width": 512,
       "height": 512,
+      "alpha": false
+    },
+    "grass02_area02": {
+      "file": "textures/grass02_area02.png",
+      "width": 512,
+      "height": 512,
+      "alpha": false
+    },
+    "grass03_area02": {
+      "file": "textures/grass03_area02.png",
+      "width": 256,
+      "height": 256,
       "alpha": true
+    },
+    "grass03_com": {
+      "file": "textures/grass03_com.png",
+      "width": 512,
+      "height": 512,
+      "alpha": false
+    },
+    "grass04_com": {
+      "file": "textures/grass04_com.png",
+      "width": 512,
+      "height": 512,
+      "alpha": false
+    },
+    "soil01_area02": {
+      "file": "textures/soil01_area02.png",
+      "width": 512,
+      "height": 512,
+      "alpha": false
+    },
+    "soil08_area02": {
+      "file": "textures/soil08_area02.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "sand01_com": {
+      "file": "textures/sand01_com.png",
+      "width": 512,
+      "height": 512,
+      "alpha": false
+    },
+    "sand02_com": {
+      "file": "textures/sand02_com.png",
+      "width": 512,
+      "height": 512,
+      "alpha": false
+    },
+    "cliff01_area02": {
+      "file": "textures/cliff01_area02.png",
+      "width": 512,
+      "height": 128,
+      "alpha": false
     },
     "shadowtable01_t": {
       "file": "textures/shadowtable01_t.png",

@@ -34,7 +34,7 @@ export const GAME_CONFIG = {
   // (docs/features/047-biomas.md).
   TERRAIN: {
     // Identifica a receita do relevo; subir quando a geração mudar.
-    GENERATION_VERSION: 12,
+    GENERATION_VERSION: 13,
     // Altura (m) da superfície da água: o que fica abaixo vira lago na 060.
     // O relevo dos biomas é medido a partir dela (`relief.baseHeight`).
     WATER_LEVEL: -2,
@@ -1751,6 +1751,35 @@ export const GAME_CONFIG = {
     PER_M2: 0.5,
     MIN_CLUSTER_HEIGHT: 0.85,
     SCALE: [0.85, 1.15],
+  },
+  // Vegetação abrindo para quem passa (docs/features/053-planicie-com-
+  // assets-do-lgpe.md, view/vegetation/grassPush.js): as plantas (grama,
+  // tufos, flores, arbustos e plantas largas; árvores não) dobram para
+  // longe do treinador e das criaturas
+  // mais perto da câmera, aos poucos, e voltam devagar depois que eles
+  // passam (a grama guarda o empurrão num mapa em volta da câmera).
+  // - RADIUS: alcance (m) além do raio do corpo;
+  // - INNER: parte do alcance (0 a 1) em que a dobra é inteira;
+  // - BEND: dobra máxima na ponta (rad);
+  // - BUSH: parte da dobra nos arbustos e plantas largas (mais altos);
+  // - ATTACK: tempo (s) para a grama tocada deitar (uma mola sem quicar:
+  //   parte parada, acelera e assenta);
+  // - RECOVERY: tempo (s) para a grama solta voltar de pé (a mesma mola);
+  // - RUSTLE: tremor das folhas enquanto deitam ou levantam;
+  // - HEIGHT_GATE: pé acima do chão (m) em que para de empurrar (pulo);
+  // - AREA: lado (m) do mapa em volta da câmera; MAP_SIZE: texels do lado.
+  GRASS_PUSH: {
+    ENABLED: true,
+    RADIUS: 0.7,
+    INNER: 0.25,
+    BEND: 0.7,
+    BUSH: 0.35,
+    ATTACK: 0.35,
+    RECOVERY: 1.6,
+    RUSTLE: 0.1,
+    HEIGHT_GATE: 0.8,
+    AREA: 48,
+    MAP_SIZE: 192,
   },
   // Qualidade (`VEGETATION_QUALITY.CURRENT`, escolhida no F2):
   // - density: quanto da densidade da vegetação só visual fica;

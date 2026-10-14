@@ -20,58 +20,96 @@ export const PLAINS = {
     roughness: 0.2,
     flatness: 1.4,
   },
+  // A paleta casa com a textura do Let's Go (a média dela): é a cor do
+  // relevo distante — de perto, a cor vem da textura (`ground.colors`). O
+  // chão é todo grama (sem margem, trilha ou alto por textura), então
+  // todos os papéis usam a mesma cor; a encosta, um verde um pouco mais
+  // escuro para o morro distante não ficar chapado.
   palette: {
     bed: '#6b5a3e',
-    shore: '#c2b280',
-    low: '#6fa33d',
-    high: '#a3c255',
+    shore: '#77c546',
+    low: '#77c546',
+    high: '#77c546',
     highHeight: 8,
-    slope: '#8a7a5c',
-    // Terra batida das trilhas, mais clara que a da floresta.
-    trail: '#a08a62',
+    slope: '#64ad3a',
+    trail: '#77c546',
   },
-  // Desenho do chão (camadas de view/terrain/terrainLayers.js).
+  // Desenho do chão (camadas de view/terrain/terrainLayers.js). `colors`:
+  // a cor vem da grama do Let's Go em todo o chão, trilha e margem
+  // inclusive (docs/features/053-planicie-com-assets-do-lgpe.md).
   ground: {
     texture: 'grass',
     slopeTexture: 'rock',
     shoreTexture: 'sand',
     trailTexture: 'sand',
     detail: 0.6,
+    colors: {
+      base: 'lgpe-grass',
+    },
   },
   // Trilhas de terra batida cruzando o campo (core/terrain/trails.js).
-  trails: true,
-  // Campo aberto no estilo dos jogos de Pokémon (docs/features/050-
-  // planicie-e-savana.md): conjuntos de mato alto com chão ralo entre eles,
-  // manchas de flores, folhosas em capões, arbustos e pedras soltas.
+  trails: false,
+  // Campo aberto das rotas de Kanto, com os modelos do Pokémon Let's Go
+  // (`models`, docs/features/053-planicie-com-assets-do-lgpe.md):
+  // conjuntos de grama com o mato alto de encontro no miolo e chão ralo
+  // entre eles, árvores redondas em capões, moitas, tufos e flores em
+  // manchas, pedrinhas na grama e na trilha.
   vegetation: [
     {
       kind: 'broadleaf-tree',
       density: 0.6,
       patches: { amount: 0.18, size: 30 },
+      scale: 1.2,
+      models: ['round-tree', 'round-tree-b', 'round-tree-e', 'round-tree-f'],
     },
-    // Arbusto mais claro que o da mata, para não virar mancha escura no
-    // campo aberto.
     {
       kind: 'bush',
       density: 0.5,
       patches: { amount: 0.3, size: 10 },
-      color: '#8aad48',
+      models: ['round-bush', 'shrub', 'flower-bush'],
     },
-    { kind: 'flower', density: 0.9, patches: { amount: 0.4, size: 12 } },
-    { kind: 'rock', density: 0.15, moss: 0.3 },
-    // Seixos soltos na terra batida das trilhas.
-    { kind: 'pebble', density: 0.6, place: 'trail' },
+    {
+      kind: 'leafy-plant',
+      density: 0.6,
+      patches: { amount: 0.4, size: 10 },
+      models: ['tuft-route', 'tuft-medium'],
+    },
+    {
+      kind: 'flower',
+      density: 0.15,
+      patches: { amount: 0.4, size: 12 },
+      models: ['flower-white', 'flower-yellow', 'flower-small', 'flower-9'],
+    },
+    {
+      kind: 'rock',
+      density: 0.05,
+      scale: 1.2,
+      models: ['rock-large', 'rock-grass'],
+    },
+    // Pedrinhas soltas na terra batida das trilhas.
+    {
+      kind: 'pebble',
+      density: 0.6,
+      place: 'trail',
+      models: ['rock-soil', 'rock-soil-b'],
+    },
+    // O mato alto do Let's Go, no miolo dos conjuntos de grama.
+    {
+      kind: 'encounter-grass',
+      density: 1,
+      models: ['tall-grass', 'tall-grass-2'],
+    },
     {
       kind: 'tall-grass',
       density: 0.75,
       clusters: {
         density: 1,
-        size: 12,
-        sizeVariation: 0.6,
-        roughness: 0.5,
-        edge: 0.05,
-        height: 1.15,
-        holes: 0.2,
+        size: 60,
+        sizeVariation: 1,
+        roughness: 1.5,
+        edge: 0.005,
+        height: 1.5,
+        holes: 0,
         coverage: 0.4,
         grouping: 0.5,
         variety: 0.35,
@@ -79,7 +117,7 @@ export const PLAINS = {
         backgroundHeight: 0.5,
         clearingPreference: 0,
       },
-      models: ['grass-low', 'grass-clump'],
+      models: ['tall-grass', 'tall-grass-2'],
       colors: { a: '#ffffff', b: '#fff2c0' },
     },
   ],

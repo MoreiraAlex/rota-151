@@ -115,24 +115,41 @@ export function WorldPage({ data, version }) {
           árvores. Ele fica mais forte com chuva e mais ainda com tempestade e
           neve.
         </p>
+        <p>
+          O mato e as plantas <strong>abrem</strong> quando você ou uma criatura
+          passa por eles: deitam devagar para os lados e, depois que vocês
+          passam, voltam a ficar de pé aos poucos — dá pra ver o caminho que
+          você fez no mato. Os arbustos abrem menos. As árvores não se mexem;
+          pulando, você passa por cima sem abrir nada.
+        </p>
       </Section>
 
       <Section id="planicie" title="A planície">
-        <p>Um campo aberto de grama verde, bom de atravessar.</p>
+        <p>
+          Um campo aberto de grama verde, como as rotas dos jogos de Pokémon. É
+          onde você começa.
+        </p>
         <ul>
           <li>
-            <strong>Mato alto</strong> em moitas, com chão de grama baixa entre
-            elas.
+            Muito <strong>mato alto</strong> em moitas, com chão de grama baixa
+            entre elas.
           </li>
           <li>
-            Manchas de <strong>flores</strong> vermelhas, rosas, amarelas e
-            laranjas.
+            <strong>Árvores redondas</strong> em pequenos bosques, de alguns
+            tons de verde.
           </li>
-          <li>Árvores em pequenos bosques, arbustos e pedras soltas.</li>
           <li>
-            <strong>Trilhas</strong> de terra batida, com pedrinhas no caminho.
+            Moitas redondas, arbustos (alguns com flores) e tufos de grama
+            espalhados.
+          </li>
+          <li>
+            Umas poucas <strong>flores</strong> e, de vez em quando, uma pedra.
           </li>
         </ul>
+        <p>
+          A planície não tem trilhas. Como na floresta, árvores e pedras
+          bloqueiam a passagem, e o resto dá pra atravessar.
+        </p>
       </Section>
 
       <Section id="savana" title="A savana">

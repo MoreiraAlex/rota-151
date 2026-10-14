@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import { withSeeThrough } from '@/view/materials/seeThrough'
+import { GRASS_PUSH_SHADER, grassPushUniforms } from './grassPush'
 import { WIND_SHADER, vegetationUniforms } from './windShader'
 
 /**
@@ -19,6 +20,11 @@ import { WIND_SHADER, vegetationUniforms } from './windShader'
  *   as plantas dobram como as do MegaKit (`vegGrassSway`) e as árvores
  *   balançam como as copas (`vegCanopySway`, com o pé parado) — sem
  *   número próprio, só o vento (`sway` no `createToonMaterial`);
+ * - as **plantas abrindo** para quem passa (`push`, grassPush.js): mato,
+ *   tufos, flores, arbustos e plantas largas dobram para longe do
+ *   treinador e das criaturas pelo
+ *   mapa do empurrão (deitam e levantam devagar), na mesma dobra em arco
+ *   do vento, e tremem um pouco com a passada;
  * - nas árvores redondas (`FieldTreeShader04/05`), a cor vem de uma
  *   **rampa** (`rampMap`) lida pelo segundo UV (a altura na copa), vezes o
  *   sombreado (`shadeMap`), mais o detalhe escuro da textura de base (que
@@ -74,6 +80,9 @@ attribute vec4 aWind;
 attribute vec2 uv1;
 varying vec2 vRampUv;
 #endif
+#if defined(LGPE_PUSH) && defined(USE_INSTANCING)
+${GRASS_PUSH_SHADER}
+#endif
 `
 
 const FRAGMENT_HEADER = /* glsl */ `
@@ -124,8 +133,18 @@ vColor.rgb *= instanceColor.rgb;
 const SWAY = /* glsl */ `
 #include <begin_vertex>
 #ifdef LGPE_SWAY_PLANT
+vec3 swayRest = transformed;
 transformed += vegGrassSway(transformed.y, uSwayHeight, aWind.xy, aWind.zw,
   vegHash(aWind.xy), uTurbulence * 0.6, uFlutter * 0.5, 1.6, 0.2, 0.1);
+#if defined(LGPE_PUSH) && defined(USE_INSTANCING)
+#ifdef LGPE_PUSH_BUSH
+float pushBend = uPushBushBend;
+#else
+float pushBend = uPushBend;
+#endif
+transformed += vegPush(swayRest.y, uSwayHeight, aWind.xy, aWind.zw,
+  vegHash(aWind.xy), pushBend);
+#endif
 #endif
 #ifdef LGPE_SWAY_TREE
 float swayRise = clamp(transformed.y / uSwayHeight, 0.0, 1.0);
@@ -166,6 +185,9 @@ outgoingLight += uRimColor * uRimStrength * uSunGlow * smoothstep(uRimMin, uRimM
  * @param {number[] | null} options.rim - `[min, max, força]` do jogo
  * @param {'plant' | 'tree' | null} [options.sway] - como o vento mexe
  *   (`null`: parado, ex.: pedra)
+ * @param {false | 'grass' | 'bush'} [options.push] - abre para quem
+ *   passa (só com `sway: 'plant'`): com a dobra da grama ou a dos
+ *   arbustos (`GRASS_PUSH.BUSH`)
  * @param {number} options.height - altura do modelo (m), para o vento
  * @param {THREE.Texture | null} [options.rampMap]
  * @param {THREE.Texture | null} [options.shadeMap]
@@ -178,6 +200,7 @@ export function createToonMaterial({
   rimColor,
   rim,
   sway = null,
+  push = false,
   height = 1,
   rampMap = null,
   shadeMap = null,
@@ -205,8 +228,20 @@ export function createToonMaterial({
     const define = sway === 'tree' ? 'LGPE_SWAY_TREE' : 'LGPE_SWAY_PLANT'
     material.defines = { ...material.defines, [define]: '' }
   }
+  if (push && sway === 'plant') {
+    material.defines = { ...material.defines, LGPE_PUSH: '' }
+    if (push === 'bush') {
+      material.defines = { ...material.defines, LGPE_PUSH_BUSH: '' }
+    }
+  }
   material.onBeforeCompile = (shader) => {
-    Object.assign(shader.uniforms, vegetationUniforms, toonUniforms, own)
+    Object.assign(
+      shader.uniforms,
+      vegetationUniforms,
+      toonUniforms,
+      grassPushUniforms,
+      own,
+    )
     shader.vertexShader =
       VERTEX_HEADER +
       shader.vertexShader
@@ -221,7 +256,7 @@ export function createToonMaterial({
         .replace('#include <opaque_fragment>', RIM)
   }
   material.customProgramCacheKey = () =>
-    `lgpe-toon-${vertexColors}-${Boolean(rampMap)}-${sway}`
+    `lgpe-toon-${vertexColors}-${Boolean(rampMap)}-${sway}-${push}`
   return withSeeThrough(material)
 }
 

@@ -19,25 +19,39 @@ export const lgpePropPath = (id) => `${LGPE_DIR}/props/${id}.glb`
 export const lgpeTexturePath = (name) => `${LGPE_DIR}/textures/${name}.png`
 
 /**
- * Os modelos do LGPE que podem ser a grama (`models` da entrada
- * `tall-grass`): carregados sempre, para o painel (F2) trocar ao vivo.
- * Id do manifesto → nome no painel.
+ * As categorias do manifesto que cada tipo de vegetação aceita
+ * (docs/features/053-planicie-com-assets-do-lgpe.md): as opções do
+ * "Modelos" do painel (F2) e a regra dos `models` dos biomas.
  */
-export const GRASS_MODEL_CHOICES = {
-  'grass-low': 'Grama baixa',
-  'grass-clump': 'Moita de grama',
-  tuft: 'Tufo',
-  'tall-grass': 'Mato alto',
-  'tall-grass-2': 'Mato alto 2',
-  reeds: 'Capim alto',
+export const LGPE_KIND_CATEGORIES = {
+  'broadleaf-tree': ['tree'],
+  'ancient-tree': ['tree'],
+  'pine-tree': ['tree'],
+  'acacia-tree': ['tree'],
+  'dead-tree': ['tree'],
+  bush: ['bush'],
+  fern: ['bush', 'plant'],
+  'leafy-plant': ['plant', 'tuft'],
+  flower: ['flower'],
+  rock: ['rock'],
+  pebble: ['rock'],
+  'tall-grass': ['tuft', 'tall-grass'],
+  'encounter-grass': ['tall-grass'],
 }
 
-/**
- * Os ids do LGPE que algum bioma usa (`models` das entradas), mais as
- * opções de grama (`GRASS_MODEL_CHOICES`).
- */
+/** Os props do manifesto que podem ser o tipo `kind` (id → nome). */
+export function lgpeChoicesOf(manifest, kind) {
+  const categories = LGPE_KIND_CATEGORIES[kind] ?? []
+  return Object.fromEntries(
+    Object.entries(manifest.props)
+      .filter(([, prop]) => categories.includes(prop.category))
+      .map(([id, prop]) => [id, prop.label]),
+  )
+}
+
+/** Os ids do LGPE que algum bioma usa (`models` das entradas). */
 export function usedLgpeIds(biomes = listBiomes()) {
-  const ids = new Set(Object.keys(GRASS_MODEL_CHOICES))
+  const ids = new Set()
   for (const { vegetation } of biomes) {
     for (const entry of vegetation) {
       for (const id of entry.models ?? []) ids.add(id)
@@ -68,6 +82,21 @@ const SWAY_BY_CATEGORY = {
   bush: 'plant',
   plant: 'plant',
 }
+// Como cada categoria abre para quem passa (grassPush.js): com a dobra da
+// grama ou, nas maiores, a dos arbustos. Árvore e pedra não abrem.
+const PUSH_BY_CATEGORY = {
+  'tall-grass': 'grass',
+  tuft: 'grass',
+  flower: 'grass',
+  bush: 'bush',
+  plant: 'bush',
+}
+
+/** Como um prop da `category` abre para quem passa (`false`: não abre). */
+export const lgpePushOf = (category) => PUSH_BY_CATEGORY[category] ?? false
+
+/** Como o vento mexe num prop da `category` (`null`: parado). */
+export const lgpeSwayOf = (category) => SWAY_BY_CATEGORY[category] ?? null
 // Categorias que fazem sombra (planta baixa e flor não: pequenas, e a
 // sombra desenha tudo de novo).
 const SHADOW_CATEGORIES = new Set(['tree', 'rock', 'bush'])
@@ -151,7 +180,8 @@ function buildPart(mesh, prop, textureOf, disposables) {
     vertexColors: !isRamp && hasPaintedColor(geometry),
     rimColor: entry.rimColor,
     rim: entry.rim,
-    sway: SWAY_BY_CATEGORY[prop.category] ?? null,
+    sway: lgpeSwayOf(prop.category),
+    push: lgpePushOf(prop.category),
     height: prop.size[1],
     rampMap: isRamp ? textureOf(entry.maps.Texture02) : null,
     shadeMap:

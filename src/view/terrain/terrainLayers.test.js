@@ -3,7 +3,7 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { listBiomes } from '@/core/data/biomes'
 import {
-  MAX_TERRAIN_LAYERS,
+  MAX_COLOR_LAYERS,
   TERRAIN_COLOR_LAYERS,
   TERRAIN_LAYERS,
   terrainColorLayerPath,
@@ -44,7 +44,7 @@ describe('camadas do chão', () => {
 
   it('cabem nos pesos por vértice, sem repetir nome', () => {
     const names = TERRAIN_COLOR_LAYERS.map(([layer]) => layer)
-    expect(names.length).toBeLessThanOrEqual(MAX_TERRAIN_LAYERS)
+    expect(names.length).toBeLessThanOrEqual(MAX_COLOR_LAYERS)
     expect(new Set(names).size).toBe(names.length)
   })
 

@@ -41,7 +41,14 @@ export const TERRAIN_COLOR_LAYERS = [
   ['lgpe-soil-damp', 'soil12_com'],
   ['lgpe-rock', 'rock01_forest'],
   ['lgpe-path-stone', 'roadstone01_com'],
+  // Das rotas de campo (docs/features/053-planicie-com-assets-do-lgpe.md).
+  ['lgpe-route-grass', 'grass01_area02'],
+  ['lgpe-trail-soil', 'soil09_com'],
+  ['lgpe-sand', 'sand01_com'],
 ]
+
+// Os pesos das camadas de cor vão para o shader em três vec4 por vértice.
+export const MAX_COLOR_LAYERS = 12
 
 export const terrainColorLayerPath = (layer) =>
   `/assets/vegetation/lgpe/textures/${TERRAIN_COLOR_LAYERS.find(([name]) => name === layer)[1]}.png`

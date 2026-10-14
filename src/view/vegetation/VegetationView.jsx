@@ -1,6 +1,7 @@
 'use client'
 
 import {
+  Suspense,
   useEffect,
   useMemo,
   useRef,
@@ -31,6 +32,8 @@ import {
   materialsOfKind,
   useVegetationModels,
 } from './useVegetationModels'
+import { createGrassPushMap } from './grassPush'
+import { LgpeChoiceLoader } from './LgpeChoiceLoader'
 import { applyToonLook } from './toonMaterial'
 import {
   buildEncounterGrassMeshes,
@@ -241,7 +244,8 @@ const chunkOfTile = (tile, { GRASS, TERRAIN }) => [
  *   que faz sombra pela distância do bloco da câmera
  *   (`VEGETATION_QUALITY`: `treeDistance`, `detailRing`, `shadowRing`);
  * - o **vento** (força pelo clima, `windStrengthOf`) e a luz do sol na
- *   folha, nos uniforms compartilhados (`vegetationUniforms`).
+ *   folha, nos uniforms compartilhados (`vegetationUniforms`);
+ * - a **grama abrindo** para quem passa (o mapa do empurrão, grassPush.js).
  *
  * `useFrame` aqui é a exceção das regras (3.4): componente só visual, que
  * só LÊ o ECS.
@@ -279,14 +283,18 @@ export function VegetationView() {
   // LOD das árvores e do sub-bosque: o `setNear` de cada chunk montado;
   // refeito quando a câmera anda `LOD_STEP` m ou entra um chunk novo.
   const lod = useMemo(() => createLodRegistry(), [])
+  // Mapa do empurrão da grama (a memória de por onde passaram).
+  const pushMap = useMemo(() => createGrassPushMap(), [])
+  useEffect(() => () => pushMap.dispose(), [pushMap])
   // Bloco de sólidos onde está a câmera (a distância de cada bloco sai
   // dele).
   const [cameraBlock, setCameraBlock] = useState({ x: 0, z: 0 })
   const cameraBlockRef = useRef(cameraBlock)
 
-  useFrame(({ camera }, delta) => {
+  useFrame(({ camera, gl }, delta) => {
     updateUniforms(delta, materials)
     applyToonLook(models.lgpeMaterials)
+    pushMap.update(gl, world, camera.position, delta)
     lod.update(camera.position)
 
     const { SOLIDS_BLOCK_SIZE } = GAME_CONFIG.TERRAIN
@@ -333,6 +341,10 @@ export function VegetationView() {
 
   return (
     <>
+      {/* Os modelos que o painel (F2) pediu, carregando à parte. */}
+      <Suspense fallback={null}>
+        <LgpeChoiceLoader />
+      </Suspense>
       {(settings.grass || settings.flowers) &&
         tiles.map((tile) => {
           const chunk = chunksByKey.get(

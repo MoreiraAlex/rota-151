@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { GAME_CONFIG } from '@/core/gameConfig'
+import { GRASS_PUSH_SHADER, grassPushUniforms } from './grassPush'
 import { WIND_SHADER, vegetationUniforms } from './windShader'
 
 /**
@@ -11,19 +12,32 @@ import { WIND_SHADER, vegetationUniforms } from './windShader'
 
 const FOLIAGE_HEADER = /* glsl */ `
 ${WIND_SHADER}
+${GRASS_PUSH_SHADER}
 uniform float uFoliageBase;
 uniform float uFoliageHeight;
 // Por planta: origem no mundo (xz) e giro (cos, sin).
 attribute vec4 aWind;
 `
 
-// O mesmo vento da grama, um pouco mais duro (folha grande).
+// O mesmo vento da grama, um pouco mais duro (folha grande), e abrindo
+// para quem passa (grassPush.js) — flor com a dobra da grama, o resto com
+// a dos arbustos (`FOLIAGE_GRASS`).
 const FOLIAGE_BEGIN = /* glsl */ `
 #include <begin_vertex>
-transformed += vegGrassSway(transformed.y - uFoliageBase, uFoliageHeight,
+float foliageY = transformed.y - uFoliageBase;
+transformed += vegGrassSway(foliageY, uFoliageHeight,
   aWind.xy, aWind.zw, vegHash(aWind.xy), uTurbulence * 0.6, uFlutter * 0.5,
   1.6, 0.2, 0.1);
+#ifdef FOLIAGE_GRASS
+float foliageBend = uPushBend;
+#else
+float foliageBend = uPushBushBend;
+#endif
+transformed += vegPush(foliageY, uFoliageHeight, aWind.xy, aWind.zw,
+  vegHash(aWind.xy), foliageBend);
 `
+// Material das flores do MegaKit (dobra como a grama).
+const FLOWER_MATERIAL = 'Flowers'
 
 // Folha de dois lados: normal para o hemisfério do céu (como a grama).
 const FOLIAGE_NORMAL = /* glsl */ `
@@ -40,7 +54,7 @@ normal = normalize(vNormal);
 
 /**
  * Cópia de `source` (o material de uma planta do `.glb`) balançando com o
- * vento da vegetação e clareada na sombra. `bounds`: base e altura do
+ * vento da vegetação, abrindo para quem passa e clareada na sombra. `bounds`: base e altura do
  * modelo. Atributo por instância `aWind`.
  */
 export function createFoliageMaterial(source, bounds) {
@@ -52,8 +66,15 @@ export function createFoliageMaterial(source, bounds) {
     uFoliageBase: { value: bounds.baseY },
     uFoliageHeight: { value: bounds.height },
   }
+  const isFlower = source.name === FLOWER_MATERIAL
+  if (isFlower) material.defines = { ...material.defines, FOLIAGE_GRASS: '' }
   material.onBeforeCompile = (shader) => {
-    Object.assign(shader.uniforms, vegetationUniforms, uniforms)
+    Object.assign(
+      shader.uniforms,
+      vegetationUniforms,
+      grassPushUniforms,
+      uniforms,
+    )
     shader.vertexShader = (FOLIAGE_HEADER + shader.vertexShader)
       .replace('#include <begin_vertex>', FOLIAGE_BEGIN)
       .replace('#include <normal_vertex>', FOLIAGE_NORMAL)
@@ -62,7 +83,7 @@ export function createFoliageMaterial(source, bounds) {
       FOLIAGE_FRAGMENT_NORMAL,
     )
   }
-  material.customProgramCacheKey = () => 'vegetation-foliage'
+  material.customProgramCacheKey = () => `vegetation-foliage-${isFlower}`
   return material
 }
 

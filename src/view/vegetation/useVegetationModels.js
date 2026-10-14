@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useSyncExternalStore } from 'react'
 import { useGLTF, useTexture } from '@react-three/drei'
 import { useLoader } from '@react-three/fiber'
 import * as THREE from 'three'
@@ -14,6 +14,7 @@ import {
   prepareLgpeTexture,
   usedLgpeIds,
 } from './lgpeModels'
+import { getReadyLgpeIds, subscribeLgpeChoices } from './lgpeChoices'
 import {
   createBarkMaterial,
   createFoliageMaterial,
@@ -50,7 +51,6 @@ export const MODEL_NAMES = [...new Set(Object.values(VEGETATION_MODELS).flat())]
 export const MODEL_PATHS = MODEL_NAMES.map(megakitPath)
 // Os modelos do LGPE que os biomas usam (`models` das entradas).
 const LGPE_IDS = usedLgpeIds()
-const LGPE_PATHS = LGPE_IDS.map(lgpePropPath)
 
 const meshesOf = (scene) => {
   const meshes = []
@@ -238,24 +238,44 @@ export function buildVegetationModels(scenes) {
   return { kinds, disposables }
 }
 
+export function useLgpeManifest() {
+  const manifestText = useLoader(THREE.FileLoader, LGPE_MANIFEST_PATH)
+  return useMemo(() => JSON.parse(manifestText), [manifestText])
+}
+
+// Os `.glb` e as texturas dos modelos `ids` (suspende até chegarem).
+export function useLgpeFiles(manifest, ids) {
+  const gltfs = useGLTF(ids.map(lgpePropPath))
+  const names = useMemo(() => lgpeTextureNames(manifest, ids), [manifest, ids])
+  const textures = useTexture(names.map(lgpeTexturePath))
+  return { gltfs, names, textures }
+}
+
 /**
  * Os modelos do LGPE (docs/features/052-assets-do-lgpe-e-floresta.md) que
- * os biomas usam: o manifesto, os `.glb` e as texturas deles, montados
+ * os biomas usam, mais os que o painel pediu e já carregaram
+ * (`lgpeChoices.js`): o manifesto, os `.glb` e as texturas deles, montados
  * com o material toon (`lgpeModels.js`).
  */
 function useLgpeModels() {
-  const manifestText = useLoader(THREE.FileLoader, LGPE_MANIFEST_PATH)
-  const manifest = useMemo(() => JSON.parse(manifestText), [manifestText])
-  const gltfs = useGLTF(LGPE_PATHS)
-  const names = useMemo(() => lgpeTextureNames(manifest, LGPE_IDS), [manifest])
-  const textures = useTexture(names.map(lgpeTexturePath))
+  const manifest = useLgpeManifest()
+  const readyIds = useSyncExternalStore(
+    subscribeLgpeChoices,
+    getReadyLgpeIds,
+    getReadyLgpeIds,
+  )
+  const ids = useMemo(
+    () => [...new Set([...LGPE_IDS, ...readyIds])],
+    [readyIds],
+  )
+  const { gltfs, names, textures } = useLgpeFiles(manifest, ids)
   return useOwned(() => {
     const byName = new Map(
       names.map((name, index) => [name, prepareLgpeTexture(textures[index])]),
     )
     return buildLgpeModels(
       manifest,
-      Object.fromEntries(LGPE_IDS.map((id, index) => [id, gltfs[index].scene])),
+      Object.fromEntries(ids.map((id, index) => [id, gltfs[index].scene])),
       (name) => byName.get(name) ?? null,
     )
   }, [manifest, gltfs, textures])
@@ -301,4 +321,4 @@ export function materialsOfKind(kinds, partKind) {
 }
 
 useGLTF.preload(MODEL_PATHS)
-useGLTF.preload(LGPE_PATHS)
+useGLTF.preload(LGPE_IDS.map(lgpePropPath))

@@ -4,6 +4,7 @@ import { GAME_CONFIG } from '@/core/gameConfig'
 import { heightIndex } from '@/core/terrain/terrainChunk'
 import { clearingNoiseAt, opennessOf } from '@/core/vegetation/clearings'
 import {
+  MAX_COLOR_LAYERS,
   MAX_TERRAIN_LAYERS,
   terrainColorLayerIndex,
   terrainLayerIndex,
@@ -230,8 +231,9 @@ function groundAttributes(chunk, side, vertex, positions, normals, waterLevel) {
   // cor e o quanto do vértice é desses biomas.
   const colors0 = new Float32Array(side * side * 4)
   const colors1 = new Float32Array(side * side * 4)
+  const colors2 = new Float32Array(side * side * 4)
   const textureShare = new Float32Array(side * side)
-  const colorWeights = new Float32Array(MAX_TERRAIN_LAYERS)
+  const colorWeights = new Float32Array(MAX_COLOR_LAYERS)
   const hasColors = biomes.some(({ ground }) => ground.colors)
 
   for (let ix = 0; ix < side; ix++) {
@@ -302,9 +304,10 @@ function groundAttributes(chunk, side, vertex, positions, normals, waterLevel) {
       layers1.set(layerWeights.subarray(4, 8), i * 4)
       colors0.set(colorWeights.subarray(0, 4), i * 4)
       colors1.set(colorWeights.subarray(4, 8), i * 4)
+      colors2.set(colorWeights.subarray(8, 12), i * 4)
     }
   }
-  return { layers0, layers1, detail, colors0, colors1, textureShare }
+  return { layers0, layers1, detail, colors0, colors1, colors2, textureShare }
 }
 
 /**
@@ -397,6 +400,10 @@ export function buildTerrainChunkGeometry(chunk, waterLevel) {
   geometry.setAttribute(
     'groundColors1',
     new THREE.BufferAttribute(ground.colors1, 4),
+  )
+  geometry.setAttribute(
+    'groundColors2',
+    new THREE.BufferAttribute(ground.colors2, 4),
   )
   geometry.setAttribute(
     'groundTextureShare',

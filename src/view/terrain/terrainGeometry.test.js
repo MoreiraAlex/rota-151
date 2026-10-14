@@ -13,6 +13,7 @@ import {
   terrainColorAt,
 } from './terrainGeometry'
 import {
+  MAX_COLOR_LAYERS,
   MAX_TERRAIN_LAYERS,
   TERRAIN_LAYERS,
   terrainColorLayerIndex,
@@ -130,21 +131,23 @@ describe('camadas de desenho do chão', () => {
     const layers1 = geometry.getAttribute('groundLayers1')
     const colors0 = geometry.getAttribute('groundColors0')
     const colors1 = geometry.getAttribute('groundColors1')
+    const colors2 = geometry.getAttribute('groundColors2')
     const share = geometry.getAttribute('groundTextureShare')
     const detail = geometry.getAttribute('groundDetail')
     const details = listBiomes().map(({ ground }) => ground.detail)
-    const sumOf = (a, b, i) => {
+    const sumOf = (i, ...attributes) => {
       let total = 0
-      for (let c = 0; c < 4; c++)
-        total += a.array[i * 4 + c] + b.array[i * 4 + c]
+      for (const { array } of attributes) {
+        for (let c = 0; c < 4; c++) total += array[i * 4 + c]
+      }
       return total
     }
     for (let i = 0; i < layers0.count; i += 31) {
       // A parte de cor por textura (biomas com `ground.colors`) sai do
       // desenho de sempre.
       const textured = share.getX(i)
-      expect(sumOf(layers0, layers1, i) + textured).toBeCloseTo(1, 5)
-      expect(sumOf(colors0, colors1, i)).toBeCloseTo(textured, 5)
+      expect(sumOf(i, layers0, layers1) + textured).toBeCloseTo(1, 5)
+      expect(sumOf(i, colors0, colors1, colors2)).toBeCloseTo(textured, 5)
       expect(detail.getX(i)).toBeGreaterThanOrEqual(
         Math.min(...details) * (1 - textured) - 1e-6,
       )
@@ -179,7 +182,7 @@ describe.each(listBiomes().filter(({ ground }) => ground.colors))(
     const { ground, palette } = biome
     const flat = { normalY: 1, shade: 0, trail: 0 }
     const weightsOf = (place, weight = 1) => {
-      const out = new Float32Array(MAX_TERRAIN_LAYERS)
+      const out = new Float32Array(MAX_COLOR_LAYERS)
       addColorLayers(biome, place, weight, out)
       return out
     }

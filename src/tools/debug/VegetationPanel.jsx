@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import GUI from 'lil-gui'
 import { regenerarTerreno } from '@/core/actions/terrain'
 import { listBiomes } from '@/core/data/biomes'
@@ -8,7 +8,8 @@ import { GAME_CONFIG } from '@/core/gameConfig'
 import { WEATHER_TYPES } from '@/core/weather/weatherMap'
 import { world } from '@/core/world/world'
 import { notifyRenderSettingsChanged } from '@/view/scene/renderSettings'
-import { GRASS_MODEL_CHOICES } from '@/view/vegetation/lgpeModels'
+import { requestLgpeModels } from '@/view/vegetation/lgpeChoices'
+import { LGPE_MANIFEST_PATH, lgpeChoicesOf } from '@/view/vegetation/lgpeModels'
 import {
   getVegetationSettings,
   rebuildVegetation,
@@ -80,6 +81,21 @@ const CLUSTER_MAP_CONTROLS = {
   },
 }
 
+// Plantas abrindo para quem passa (`GRASS_PUSH`): vale na hora.
+const PUSH_CONTROLS = {
+  RADIUS: { label: 'Alcance além do corpo (m)', range: [0, 2, 0.01] },
+  INNER: { label: 'Miolo com dobra inteira', range: [0, 1, 0.01] },
+  BEND: { label: 'Dobra máxima (rad)', range: [0, 1.5, 0.01] },
+  BUSH: { label: 'Dobra nos arbustos (parte)', range: [0, 1, 0.01] },
+  ATTACK: { label: 'Tempo para deitar (s)', range: [0, 2, 0.01] },
+  RECOVERY: { label: 'Tempo para voltar (s)', range: [0, 6, 0.05] },
+  RUSTLE: { label: 'Tremor', range: [0, 0.5, 0.01] },
+  HEIGHT_GATE: {
+    label: 'Altura do pulo que solta (m)',
+    range: [0.05, 3, 0.05],
+  },
+}
+
 const COLOR_LABELS = {
   a: 'Cor (A)',
   b: 'Cor (B)',
@@ -112,19 +128,54 @@ const KIND_LABELS = {
   fern: 'Samambaias',
   'leafy-plant': 'Plantas',
   rock: 'Pedras',
+  pebble: 'Pedrinhas da trilha',
+}
+
+/**
+ * Pasta "Modelos" de uma entrada do bioma: uma caixa por prop do Let's Go
+ * que serve ao tipo dela (`lgpeChoicesOf`, pela categoria), pelo menos uma
+ * marcada (docs/features/053-planicie-com-assets-do-lgpe.md). O que ainda
+ * não carregou é pedido (`requestLgpeModels`) e entra quando chegar.
+ * Devolve a pasta (ou `null`, sem opções).
+ */
+function addModelChoices(folder, title, entry, manifest, apply) {
+  const choices = lgpeChoicesOf(manifest, entry.kind)
+  if (Object.keys(choices).length === 0) return null
+  const modelFolder = folder.addFolder(title)
+  const chosen = Object.fromEntries(
+    Object.keys(choices).map((id) => [id, (entry.models ?? []).includes(id)]),
+  )
+  for (const [id, label] of Object.entries(choices)) {
+    modelFolder
+      .add(chosen, id)
+      .name(label)
+      .onChange(() => {
+        const ids = Object.keys(chosen).filter((key) => chosen[key])
+        if (ids.length === 0) {
+          chosen[id] = true
+          modelFolder.controllersRecursive().forEach((c) => c.updateDisplay())
+          return
+        }
+        requestLgpeModels(ids)
+        entry.models = ids
+        apply()
+      })
+  }
+  modelFolder.close()
+  return modelFolder
 }
 
 /**
  * Subpasta "No bioma": escolhe um bioma (dos que têm algum dos `kinds`) e
- * mostra a densidade de cada entrada desses tipos no `vegetation` dele.
- * `apply` ao soltar.
+ * mostra a densidade e os modelos do Let's Go (`addModelChoices`) de cada
+ * entrada desses tipos no `vegetation` dele. `apply` ao soltar.
  */
-function addBiomeDensities(folder, kinds, apply) {
+function addBiomeDensities(folder, kinds, apply, manifest) {
   const biomes = listBiomes().filter(({ vegetation }) =>
     vegetation.some(({ kind }) => kinds.includes(kind)),
   )
   if (biomes.length === 0) return
-  const biomeFolder = folder.addFolder('Densidade no bioma')
+  const biomeFolder = folder.addFolder('No bioma')
   const choice = { biome: biomes[0].id }
   let controllers = []
   const show = () => {
@@ -132,12 +183,22 @@ function addBiomeDensities(folder, kinds, apply) {
     const biome = biomes.find(({ id }) => id === choice.biome)
     controllers = biome.vegetation
       .filter(({ kind }) => kinds.includes(kind))
-      .map((entry) =>
-        biomeFolder
-          .add(entry, 'density', 0, 2, 0.01)
-          .name(KIND_LABELS[entry.kind] ?? entry.kind)
-          .onFinishChange(apply),
-      )
+      .flatMap((entry) => {
+        const label = KIND_LABELS[entry.kind] ?? entry.kind
+        return [
+          biomeFolder
+            .add(entry, 'density', 0, 2, 0.01)
+            .name(label)
+            .onFinishChange(apply),
+          addModelChoices(
+            biomeFolder,
+            `Modelos: ${label}`,
+            entry,
+            manifest,
+            apply,
+          ),
+        ].filter(Boolean)
+      })
   }
   biomeFolder
     .add(
@@ -199,6 +260,7 @@ function copyValues() {
     `FOLIAGE_FILL: ${GAME_CONFIG.FOLIAGE_FILL},`,
     `LGPE: ${JSON.stringify(GAME_CONFIG.LGPE, null, 2)},`,
     `ENCOUNTER_GRASS: ${JSON.stringify(GAME_CONFIG.ENCOUNTER_GRASS, null, 2)},`,
+    `GRASS_PUSH: ${JSON.stringify(GAME_CONFIG.GRASS_PUSH, null, 2)},`,
     ...Object.entries({
       ANCIENT_TREES,
       PINES,
@@ -223,14 +285,31 @@ function copyValues() {
  * (docs/features/049-vegetacao-e-floresta.md) — FPS e Stats, qualidade,
  * ligar e desligar cada parte ("Mostrar") e uma pasta com os números de
  * cada parte: grama (e, por bioma, cor, densidade e conjuntos), flores,
- * árvores e sub-bosque por espécie e pedras, cada uma com
- * a densidade no bioma; mais o toon do Let's Go e o vento. Mexe no
+ * árvores e sub-bosque por espécie e pedras, cada uma com a densidade e
+ * os modelos do Let's Go no bioma; mais o toon do Let's Go (com o mato
+ * alto) e o vento. Mexe no
  * `GAME_CONFIG` e nos biomas ao vivo (só nesta sessão); "Copiar valores"
  * leva os números para o código. O que o core sorteia (árvores e pedras)
  * refaz o terreno ao soltar.
  */
 export function VegetationPanel() {
+  // O manifesto do Let's Go (as opções de "Modelos"); o painel monta quando
+  // chega.
+  const [manifest, setManifest] = useState(null)
   useEffect(() => {
+    let cancelled = false
+    fetch(LGPE_MANIFEST_PATH)
+      .then((response) => response.json())
+      .then((loaded) => {
+        if (!cancelled) setManifest(loaded)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!manifest) return undefined
     const {
       GRASS,
       FLOWERS,
@@ -303,6 +382,11 @@ export function VegetationPanel() {
       rebuildVegetation,
     )
     const biomesWithGrass = listBiomes().filter(grassEntryOf)
+    // Plantas abrindo para quem passa (grassPush.js; grama e o resto das
+    // plantas, árvores não) — vale na hora.
+    const pushFolder = grassFolder.addFolder('Abrir ao passar')
+    pushFolder.add(GAME_CONFIG.GRASS_PUSH, 'ENABLED').name('Ligado')
+    addControls(pushFolder, GAME_CONFIG.GRASS_PUSH, PUSH_CONTROLS)
     const grassBiomeFolder = grassFolder.addFolder('No bioma')
     // Modelo de conjuntos para "Usar conjuntos" (o primeiro bioma que tem).
     const clusterTemplate = biomesWithGrass
@@ -344,31 +428,15 @@ export function VegetationPanel() {
           }),
       ]
       // Modelos do Let's Go da grama no bioma (pelo menos um).
-      const modelFolder = grassBiomeFolder.addFolder('Modelos')
-      grassControllers.push(modelFolder)
-      const chosen = Object.fromEntries(
-        Object.keys(GRASS_MODEL_CHOICES).map((id) => [
-          id,
-          entry.models.includes(id),
-        ]),
+      grassControllers.push(
+        addModelChoices(
+          grassBiomeFolder,
+          'Modelos',
+          entry,
+          manifest,
+          rebuildVegetation,
+        ),
       )
-      for (const [id, label] of Object.entries(GRASS_MODEL_CHOICES)) {
-        modelFolder
-          .add(chosen, id)
-          .name(label)
-          .onChange(() => {
-            const ids = Object.keys(chosen).filter((key) => chosen[key])
-            if (ids.length === 0) {
-              chosen[id] = true
-              modelFolder
-                .controllersRecursive()
-                .forEach((c) => c.updateDisplay())
-              return
-            }
-            entry.models = ids
-            rebuildVegetation()
-          })
-      }
       if (!entry.clusters) return
       for (const [title, controls] of [
         ['Conjunto', CLUSTER_CONTROLS],
@@ -406,7 +474,7 @@ export function VegetationPanel() {
       scaleControls([0.05, 1.5, 0.01]),
       rebuildVegetation,
     )
-    addBiomeDensities(flowerFolder, ['flower'], rebuildVegetation)
+    addBiomeDensities(flowerFolder, ['flower'], rebuildVegetation, manifest)
 
     // Árvores: o que vale para todas (material da copa e do tronco) e uma
     // subpasta por espécie; onde nascem vem do terreno (refaz ao soltar).
@@ -428,7 +496,7 @@ export function VegetationPanel() {
     addTreeSpecies(treeFolder, 'Pinheiro', PINES, { leaf: true, bark: true })
     addTreeSpecies(treeFolder, 'Acácia', ACACIAS, { leaf: true, bark: true })
     addTreeSpecies(treeFolder, 'Morta', DEAD_TREES, { bark: true })
-    addBiomeDensities(treeFolder, TREE_KINDS, regenerate)
+    addBiomeDensities(treeFolder, TREE_KINDS, regenerate, manifest)
 
     // Sub-bosque: uma subpasta por planta (refaz ao soltar).
     const undergrowthFolder = folderOf.undergrowth
@@ -450,7 +518,12 @@ export function VegetationPanel() {
       )
       if (config === BUSHES) folder.addColor(BUSHES, 'LEAF_COLOR').name('Cor')
     }
-    addBiomeDensities(undergrowthFolder, UNDERGROWTH_KINDS, rebuildVegetation)
+    addBiomeDensities(
+      undergrowthFolder,
+      UNDERGROWTH_KINDS,
+      rebuildVegetation,
+      manifest,
+    )
 
     // Pedras: onde nascem vem do terreno (refaz ao soltar); a cor vale na
     // hora.
@@ -466,7 +539,7 @@ export function VegetationPanel() {
     rockFolder.add(ROCKS, 'BRIGHTNESS', 0.5, 3, 0.05).name('Brilho')
     rockFolder.add(ROCKS, 'FILL', 0, 1, 0.01).name('Na sombra')
     rockFolder.addColor(ROCKS, 'MOSS_COLOR').name('Cor do musgo')
-    addBiomeDensities(rockFolder, ['rock'], regenerate)
+    addBiomeDensities(rockFolder, ['rock', 'pebble'], regenerate, manifest)
 
     // Modelos do Let's Go (docs/features/052-*.md): o material toon muda
     // na hora; o mato alto refaz ao soltar.
@@ -486,6 +559,12 @@ export function VegetationPanel() {
       .add(ENCOUNTER_GRASS, 'MIN_CLUSTER_HEIGHT', 0, 1.5, 0.01)
       .name('Mato alto: só no miolo')
       .onFinishChange(rebuildVegetation)
+    addBiomeDensities(
+      lgpeFolder,
+      ['encounter-grass'],
+      rebuildVegetation,
+      manifest,
+    )
 
     const windFolder = gui.addFolder('Vento')
     for (const type of WEATHER_TYPES) {
@@ -499,7 +578,7 @@ export function VegetationPanel() {
     for (const folder of gui.foldersRecursive()) folder.close()
 
     return () => gui.destroy()
-  }, [])
+  }, [manifest])
 
   return null
 }
