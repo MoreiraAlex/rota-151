@@ -11,6 +11,14 @@ const LAYER_SHRINK = 2
 // ...e a menor ainda tem pelo menos 2 vértices de largura (1 vértice por
 // metro, `terrainChunk.js`) — menor que isso nem aparece na malha.
 const SMALLEST_LAYER_SIZE = 2
+// Quantas camadas (das maiores) ganham crista com `ridges`: a forma da
+// serra. As menores ficam redondas — crista nelas vira vinco íngreme.
+const RIDGE_LAYERS = 2
+// A crista (`1 − |ruído|` ao quadrado, de 0 a 1, vezes 2 menos 1) tem média
+// abaixo de zero: os vales desceriam muito mais do que os picos sobem. A
+// média de `(1 − u)²` com `u` uniforme é um terço — somando de volta, ela
+// fica em volta de zero, como o ruído redondo.
+const RIDGE_SHIFT = 1 / 3
 // Peso abaixo do qual um bioma não entra na altura (economiza o ruído dele
 // longe da fronteira; o erro fica muito abaixo da precisão do float32).
 const MIN_RELIEF_WEIGHT = 1e-6
@@ -63,11 +71,14 @@ export function copyTerrainRecipe(recipe) {
  * Altura (m, a partir do chão médio do bioma) dos morros de um bioma em
  * `(x, z)`. Soma camadas de simplex: a primeira do tamanho dos morros
  * (`hillSize`), cada uma seguinte menor e pesando `roughness` vezes a
- * anterior. O resultado (-1 a 1) passa por `flatness` (achata o meio) e
- * vira metros (`hillHeight`).
+ * anterior. Com `ridges` (docs/features/051-montanha.md), parte de cada
+ * camada vira crista (`1 − |ruído|`, ao quadrado: serras e picos pontudos
+ * no lugar de morros redondos). O resultado (-1 a 1) passa por `flatness`
+ * (achata o meio) e vira metros (`hillHeight`).
  */
 function createReliefSampler(noise2D, relief) {
   const { baseHeight, hillSize, hillHeight, roughness, flatness } = relief
+  const ridges = relief.ridges ?? 0
   const layers = countLayers(hillSize)
 
   return function reliefAt(x, z) {
@@ -76,12 +87,18 @@ function createReliefSampler(noise2D, relief) {
     let totalWeight = 0
     let frequency = 1 / hillSize
     for (let layer = 0; layer < layers; layer++) {
-      sum += noise2D(x * frequency, z * frequency) * weight
+      const noise = noise2D(x * frequency, z * frequency)
+      const crest = 1 - Math.abs(noise)
+      const ridged = crest * crest * 2 - 1 + RIDGE_SHIFT
+      const share = layer < RIDGE_LAYERS ? ridges : 0
+      sum += (noise + (ridged - noise) * share) * weight
       totalWeight += weight
       weight *= roughness
       frequency *= LAYER_SHRINK
     }
-    const value = sum / totalWeight
+    // A crista centralizada pode passar um pouco de 1: `hillHeight` continua
+    // sendo o quanto o morro sobe, no máximo.
+    const value = Math.min(Math.max(sum / totalWeight, -1), 1)
     return (
       baseHeight + hillHeight * Math.sign(value) * Math.abs(value) ** flatness
     )

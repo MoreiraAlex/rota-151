@@ -2,7 +2,7 @@
 
 ---
 
-# ✅ Já feito (0.0.1 – 0.0.50)
+# ✅ Já feito (0.0.1 – 0.0.51)
 
 O que já foi entregue, por tema. Detalhes de cada uma em `docs/features/`.
 
@@ -52,6 +52,7 @@ O que já foi entregue, por tema. Detalhes de cada uma em `docs/features/`.
 - [x] **048 — Dia, noite e clima**
 - [x] **049 — Vegetação e floresta**
 - [x] **050 — Planície e savana**
+- [x] **051 — Montanha**
 
 ### Combate
 - [x] **025 — Ataque comum de criatura**
@@ -111,7 +112,6 @@ pântano, deserto, vulcânico e tundra) ficam escondidos (`BIOMES.HIDDEN`) e
 só aparecem pelo F2. Os 3 iniciais não nascem no mundo: vêm só no kit
 inicial (063).
 
-- [ ] **051 — Montanha** — pinheiro, pedras grandes e o ajuste visual do bioma (cores, desenho do chão, neve no alto); sai do `BIOMES.HIDDEN`. Prepara as encostas para a boca das cavernas (057).
 - [ ] **052 — Itens no mundo** — itens espalhados pela seed conforme o bioma (no chão e em arbustos: Pokébolas, poções) e **árvores de frutas** que dá para colher e voltam a dar fruto com o tempo. É a forma de conseguir itens além do kit inicial.
 - [ ] **053 — Estruturas e Pokécenter** — sistema para colocar construções pré-modeladas no mundo procedural (posição pela seed, terreno aplainado). Primeiro: o Pokécenter, que cura o time (com o som de cura) e é o ponto de reaparecimento.
 - [ ] **054 — As 10 espécies** — Bulbasaur, Charmander, Squirtle, Caterpie, Weedle, Pidgey, Rattata, Spearow, Ekans e Pikachu (7 novas, as selvagens; os 3 iniciais já existem e só vêm no kit inicial): modelo, status, golpes, sons e animações. Sons mapeados em `docs/reference/audio.md`.

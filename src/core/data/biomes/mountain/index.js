@@ -12,36 +12,99 @@ export const MOUNTAIN = {
     continent: [0.36, 1],
     relief: [0.8, 1],
   },
+  // Serras (docs/features/051-montanha.md): morros grandes e altos, com
+  // crista (`ridges`) e pouco detalhe miúdo — mais que isso e a encosta
+  // passa do que dá para subir a pé.
   relief: {
-    baseHeight: 18,
-    hillHeight: 28,
-    hillSize: 260,
-    roughness: 0.3,
+    baseHeight: 28,
+    hillHeight: 90,
+    hillSize: 600,
+    roughness: 0.25,
     flatness: 1.3,
+    ridges: 0.6,
   },
+  // Faixas por altura (docs/features/051-montanha.md): pé verde, meio de
+  // rocha a partir de `highHeight` e neve no pico.
   palette: {
     bed: '#5a5248',
     shore: '#9a9080',
-    low: '#7f9050',
-    high: '#8f8b7e',
-    highHeight: 22,
-    slope: '#8c867a',
+    low: '#7c9a4c',
+    high: '#a3a093',
+    highHeight: 45,
+    slope: '#96918a',
     peak: '#f2f4f7',
-    peakHeight: 34,
+    peakHeight: 60,
     debug: '#8d8d8d',
   },
-  // Desenho do chão (camadas de view/terrain/terrainLayers.js).
+  // Desenho do chão (camadas de view/terrain/terrainLayers.js): grama no
+  // pé e rocha no alto (`highTexture`, como a cor vai de `low` a `high`).
   ground: {
-    texture: 'rock',
+    texture: 'grass',
+    highTexture: 'rock',
     slopeTexture: 'rock',
     shoreTexture: 'sand',
     peakTexture: 'snow',
-    detail: 0.7,
+    detail: 0.45,
   },
+  // Bosques de pinheiro no pé, até a linha das árvores (`maxHeight`);
+  // acima, rocha com pedregulhos; no pico, só neve.
   vegetation: [
-    { kind: 'pine-tree', density: 0.2 },
-    { kind: 'rock', density: 0.4 },
-    { kind: 'boulder', density: 0.2 },
+    {
+      kind: 'pine-tree',
+      density: 0.8,
+      patches: { amount: 0.45, size: 40 },
+      maxHeight: 42,
+    },
+    { kind: 'dead-tree', density: 0.1, maxHeight: 45 },
+    // Pedregulhos (`scale`) de granito cinza, sem musgo, até pouco acima
+    // da neve.
+    {
+      kind: 'rock',
+      density: 0.6,
+      color: '#dcc4cc',
+      scale: 1.8,
+      maxHeight: 66,
+    },
+    {
+      kind: 'bush',
+      density: 0.25,
+      patches: { amount: 0.3, size: 10 },
+      color: '#6f8f3e',
+      maxHeight: 34,
+    },
+    {
+      kind: 'flower',
+      density: 0.3,
+      patches: { amount: 0.3, size: 8 },
+      maxHeight: 30,
+    },
+    // Grama de pasto alto: conjuntos baixos e ralos, até antes da rocha.
+    {
+      kind: 'tall-grass',
+      density: 0.6,
+      maxHeight: 40,
+      clusters: {
+        density: 1,
+        size: 10,
+        sizeVariation: 0.6,
+        roughness: 0.5,
+        edge: 0.05,
+        height: 0.9,
+        holes: 0.3,
+        coverage: 0.25,
+        grouping: 0.5,
+        variety: 0.35,
+        background: 0.15,
+        backgroundHeight: 0.5,
+        clearingPreference: 0.5,
+      },
+      colors: {
+        root: '#4f7a3a',
+        tip: '#8fae4a',
+        rootB: '#5e8a34',
+        tipB: '#b0bf5a',
+      },
+    },
   ],
   tags: ['mountain', 'rocky', 'cave-entrance'],
   weather: { clear: 4, sun: 1, rain: 2, storm: 1, snow: 2 },

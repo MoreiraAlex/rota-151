@@ -121,6 +121,7 @@ describe('camadas de desenho do chão', () => {
       ground.slopeTexture,
       ground.shoreTexture,
       ground.peakTexture,
+      ground.highTexture,
     ].filter(Boolean)
     for (const name of names) expect(TERRAIN_LAYERS).toContain(name)
     expect(ground.detail).toBeGreaterThanOrEqual(0)
@@ -130,7 +131,11 @@ describe('camadas de desenho do chão', () => {
   it.each(listBiomes())('$id: chão, encosta, margem e pico', (biome) => {
     const { ground, palette } = biome
     const flatHeight = palette.highHeight / 2
-    expect(layersOf(biome, flatHeight, 1)).toEqual(only(ground.texture))
+    expect(layersOf(biome, SHORE_HEIGHT, 1)).toEqual(only(ground.texture))
+    // No alto do chão, a `highTexture` (docs/features/051-*.md).
+    expect(layersOf(biome, palette.highHeight, 1)).toEqual(
+      only(ground.highTexture ?? ground.texture),
+    )
     expect(layersOf(biome, flatHeight, SLOPE_FULL)).toEqual(
       only(ground.slopeTexture),
     )

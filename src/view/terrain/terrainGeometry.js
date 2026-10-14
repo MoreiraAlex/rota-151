@@ -128,7 +128,10 @@ function applyTrailColor(trail, biomes, target) {
  * Soma em `layerWeights` (um peso por camada de terrainLayers.js) as
  * camadas de desenho de um bioma num vértice, vezes `weight` (o peso do
  * bioma ali), pelas mesmas regras da cor (`terrainColorAt`): margem e fundo
- * da água (`shoreTexture`), encosta (`slopeTexture`) e pico (`peakTexture`).
+ * da água (`shoreTexture`), chão de `texture` a `highTexture` (se o bioma
+ * tiver — a rocha no alto da montanha, docs/features/051-montanha.md) como
+ * a cor vai de `low` a `high`, encosta (`slopeTexture`) e pico
+ * (`peakTexture`).
  */
 export function addGroundLayers(
   biome,
@@ -139,10 +142,14 @@ export function addGroundLayers(
 ) {
   const { palette, ground } = biome
   const { SHORE_HEIGHT, SLOPE_START, SLOPE_FULL } = GAME_CONFIG.TERRAIN_COLOR
-  const base =
-    heightAboveWater < SHORE_HEIGHT
-      ? (ground.shoreTexture ?? ground.texture)
-      : ground.texture
+  const isShore = heightAboveWater < SHORE_HEIGHT
+  const base = isShore
+    ? (ground.shoreTexture ?? ground.texture)
+    : ground.texture
+  const high =
+    ground.highTexture && !isShore
+      ? smoothstep(SHORE_HEIGHT, palette.highHeight, heightAboveWater)
+      : 0
   const steepness = smoothstep(SLOPE_START, SLOPE_FULL, normalY)
   const peak = palette.peak
     ? smoothstep(
@@ -154,7 +161,8 @@ export function addGroundLayers(
   const add = (layer, share) => {
     layerWeights[terrainLayerIndex(layer)] += weight * share
   }
-  add(base, (1 - steepness) * (1 - peak))
+  add(base, (1 - high) * (1 - steepness) * (1 - peak))
+  if (high > 0) add(ground.highTexture, high * (1 - steepness) * (1 - peak))
   add(ground.slopeTexture, steepness * (1 - peak))
   if (peak > 0) add(ground.peakTexture ?? ground.texture, peak)
 }

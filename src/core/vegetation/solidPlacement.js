@@ -203,6 +203,8 @@ function placeKind(
     seed,
     clearings: params.clearings,
     patches: params.patches,
+    altitude: params.altitude,
+    terrain,
   })
   if (density.isEmpty) return []
 
@@ -279,8 +281,9 @@ function placeKind(
  * @param {number} options.seed - seed do relevo
  * @param {object[]} options.biomeList - biomas da receita do relevo
  * @param {object} [options.terrain] - forma de `GAME_CONFIG.TERRAIN`
- * @param {object} [options.params] - `{ trees, logs, rocks, clearings }`,
- *   formas de `GAME_CONFIG.TREES`/`LOGS`/`ROCKS`/`CLEARINGS`
+ * @param {object} [options.params] - `{ trees, logs, rocks, clearings,
+ *   patches, altitude }`, formas de `GAME_CONFIG.TREES`/`LOGS`/`ROCKS`/
+ *   `CLEARINGS`/`VEGETATION_PATCHES`/`VEGETATION_ALTITUDE`
  * @returns {ChunkSolids}
  */
 export function placeChunkSolids(
@@ -312,5 +315,6 @@ export function solidParams() {
     rocks: ROCKS,
     clearings: GAME_CONFIG.CLEARINGS,
     patches: GAME_CONFIG.VEGETATION_PATCHES,
+    altitude: GAME_CONFIG.VEGETATION_ALTITUDE,
   }
 }

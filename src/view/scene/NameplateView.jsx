@@ -10,6 +10,7 @@ import { verticalClearance } from '@/core/physics/colliders'
 import { clamp } from '@/core/math/clamp'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import { resolveRenderPosition } from '@/view/registry/renderInterpolation'
+import { fogFactorAt } from '@/view/terrain/fogRange'
 import {
   BeingCaptured,
   CreatureLevel,
@@ -191,9 +192,7 @@ function NameplateView({ entity, species }) {
     // chunks.md) — overlay de DOM não é enevoado pelo shader, e ficaria
     // boiando no meio dela.
     const { fog } = state.scene
-    content.style.opacity = fog
-      ? String(1 - clamp((distance - fog.near) / (fog.far - fog.near), 0, 1))
-      : '1'
+    content.style.opacity = fog ? String(1 - fogFactorAt(distance, fog)) : '1'
   })
 
   if (!vitals) return null

@@ -16,6 +16,7 @@ import { LocalWeather, WorldClock } from '@/core/traits'
 import { windStrengthOf } from '@/core/weather/wind'
 import { world } from '@/core/world/world'
 import { useTerrainChunks } from '@/view/hooks/useTerrainChunks'
+import { loadedFogRange } from '@/view/terrain/fogRange'
 import { resolveSkyLook } from '@/view/weather/skyLook'
 import { applyCanopyLook } from './canopyMaterial'
 import {
@@ -290,7 +291,7 @@ export function VegetationView() {
   const [cameraBlock, setCameraBlock] = useState({ x: 0, z: 0 })
   const cameraBlockRef = useRef(cameraBlock)
 
-  useFrame(({ camera, scene }, delta) => {
+  useFrame(({ camera }, delta) => {
     updateUniforms(delta, models.grass.material, materials)
     lod.update(camera.position)
 
@@ -308,7 +309,9 @@ export function VegetationView() {
     const wanted = tilesAround(
       camera.position.x,
       camera.position.z,
-      scene.fog?.far ?? GAME_CONFIG.FOG.MIN_DISTANCE,
+      // Até a borda do mundo carregado (a névoa pode ir além, com o
+      // relevo distante).
+      loadedFogRange(TEST_LEVEL.terrain.chunkSize()).far,
       GAME_CONFIG.GRASS.TILE_SIZE,
     ).filter((tile) =>
       TEST_LEVEL.terrain.isLoaded(...chunkOfTile(tile, GAME_CONFIG)),

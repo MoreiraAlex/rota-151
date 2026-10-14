@@ -40,6 +40,10 @@ export const BIOME_TEMPLATE = {
     // 1 = relevo natural; acima disso, mais campo plano e morros mais
     // marcados; abaixo, morros arredondados (dunas).
     flatness: 1.2,
+    // Opcional (0 a 1): quanto dos morros grandes vira crista — serras e
+    // picos pontudos no lugar de morros redondos (a montanha). Sobe a
+    // encosta: conferir o limite de subida do personagem.
+    // ridges: 0.6,
   },
   // Cores do chão (view/terrain/terrainGeometry.js).
   palette: {
@@ -75,6 +79,9 @@ export const BIOME_TEMPLATE = {
     shoreTexture: 'sand',
     // Opcional (com `trails`): a trilha (sem ele, `texture`).
     // trailTexture: 'dry-ground',
+    // Opcional: o alto do chão — mistura de `texture` para ela como a cor
+    // vai de `low` a `high` (a rocha no alto da montanha).
+    // highTexture: 'rock',
     // Opcional: o alto (com `palette.peak`; sem ele, `texture`).
     // peakTexture: 'snow',
     // Força do desenho (0 a 1): 0 = só a cor da paleta.
@@ -109,6 +116,9 @@ export const BIOME_TEMPLATE = {
   // - `scale` (opcional, objetos com colisão: árvores, `rock`,
   //   `fallen-log`): multiplica o tamanho do tipo neste bioma — colisão e
   //   desvio acompanham (as pedras maiores da savana).
+  // - `maxHeight` (opcional): altura (m acima da água) em que o tipo some —
+  //   ele rareia na faixa `GAME_CONFIG.VEGETATION_ALTITUDE.FADE` abaixo
+  //   dela (a linha das árvores da montanha).
   vegetation: [
     {
       kind: 'tall-grass',

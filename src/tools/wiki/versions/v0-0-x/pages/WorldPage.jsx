@@ -46,7 +46,8 @@ export function WorldPage({ data, version }) {
       <Section id="biomas" title="Biomas">
         <p>
           O mundo é dividido em <strong>biomas</strong>, cada um com o próprio
-          chão, cores, plantas e formato de terreno. Por enquanto existem três:
+          chão, cores, plantas e formato de terreno. Por enquanto existem
+          quatro:
         </p>
         <ul>
           <li>
@@ -58,6 +59,9 @@ export function WorldPage({ data, version }) {
           </li>
           <li>
             <strong>Savana</strong>: campo seco e quente, com ondulações largas.
+          </li>
+          <li>
+            <strong>Montanha</strong>: serras altas e frias, com picos nevados.
           </li>
         </ul>
         <p>
@@ -144,11 +148,38 @@ export function WorldPage({ data, version }) {
         </p>
       </Section>
 
+      <Section id="montanha" title="A montanha">
+        <p>
+          Serras altas, com cristas e picos pontudos. Quanto mais alto, mais
+          frio e mais vazio:
+        </p>
+        <ul>
+          <li>
+            <strong>No pé</strong>: grama verde, bosques de pinheiros, arbustos
+            e algumas flores. Às vezes, um lago entre os morros.
+          </li>
+          <li>
+            <strong>No meio</strong>: o chão vira rocha, os pinheiros vão
+            rareando até sumir e aparecem pedregulhos grandes e cinzentos.
+          </li>
+          <li>
+            <strong>No pico</strong>: neve, sem planta nenhuma.
+          </li>
+          <li>De vez em quando, uma árvore morta.</li>
+        </ul>
+        <p>
+          Dá pra subir a montanha a pé, menos os <strong>paredões</strong> das
+          cristas, íngremes demais. A montanha não tem trilhas. Como nos outros
+          biomas, árvores e pedras bloqueiam a passagem.
+        </p>
+      </Section>
+
       <Section id="tamanho" title="Tamanho">
         <p>
           O mundo <strong>não tem fim</strong>: dá pra andar em qualquer direção
-          sem bater numa borda. O que está longe fica escondido por uma névoa no
-          horizonte e vai aparecendo conforme você chega perto.
+          sem bater numa borda. No horizonte dá pra ver o relevo distante
+          (morros e montanhas lá longe) atrás de uma bruma leve; as plantas e os
+          detalhes vão aparecendo conforme você chega perto.
         </p>
         <ul>
           <li>
@@ -260,9 +291,9 @@ export function WorldPage({ data, version }) {
 
       <Notice tone="soon">
         <p>
-          Ainda vão chegar ao mundo: a montanha, água de verdade em lagos e
-          rios, cavernas, itens pelo chão e o Pokécenter. Os Pokémon de cada
-          bioma, horário e clima também chegam depois.
+          Ainda vão chegar ao mundo: água de verdade em lagos e rios, cavernas,
+          itens pelo chão e o Pokécenter. Os Pokémon de cada bioma, horário e
+          clima também chegam depois.
         </p>
       </Notice>
     </>

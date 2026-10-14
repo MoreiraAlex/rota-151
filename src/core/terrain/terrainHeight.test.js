@@ -84,6 +84,39 @@ describe('createTerrainSampler', () => {
   })
 })
 
+describe('cristas (`ridges`, docs/features/051-montanha.md)', () => {
+  // `ridges` em todos os biomas (`undefined` = sem o campo).
+  const withRidges = (ridges) => {
+    const recipe = copyTerrainRecipe(currentTerrainRecipe())
+    for (const biome of recipe.biomeList) biome.relief.ridges = ridges
+    return createTerrainSampler(10, recipe)
+  }
+
+  it('`ridges` 0 é o relevo sem crista', () => {
+    const plain = withRidges(undefined)
+    const zero = withRidges(0)
+    for (const [x, z] of POINTS) {
+      expect(zero.heightAt(x, z)).toBe(plain.heightAt(x, z))
+    }
+  })
+
+  it('com cristas o relevo muda, é o mesmo para a mesma seed e fica nos limites', () => {
+    const { lowest, highest } = reliefLimits()
+    const plain = withRidges(undefined)
+    const a = withRidges(1)
+    const b = withRidges(1)
+    expect(
+      POINTS.some(([x, z]) => a.heightAt(x, z) !== plain.heightAt(x, z)),
+    ).toBe(true)
+    for (const [x, z] of POINTS) {
+      expect(a.heightAt(x, z)).toBe(b.heightAt(x, z))
+      const height = a.heightAt(x, z) - WATER_LEVEL
+      expect(height).toBeGreaterThanOrEqual(lowest)
+      expect(height).toBeLessThanOrEqual(highest)
+    }
+  })
+})
+
 describe('countLayers', () => {
   it('morros maiores ganham mais camadas de detalhe', () => {
     expect(countLayers(200)).toBeGreaterThan(countLayers(20))

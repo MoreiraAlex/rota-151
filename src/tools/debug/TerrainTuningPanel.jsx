@@ -51,10 +51,11 @@ const BIOME_MAP_CONTROLS = {
 const BIOME_CONTROLS = {
   size: { label: 'Tamanho (m)', range: [50, 5000, 10] },
   baseHeight: { label: 'Chão médio (m)', range: [-40, 60, 0.1] },
-  hillHeight: { label: 'Altura dos morros (m)', range: [0, 60, 0.1] },
-  hillSize: { label: 'Largura dos morros (m)', range: [10, 600, 1] },
+  hillHeight: { label: 'Altura dos morros (m)', range: [0, 150, 0.1] },
+  hillSize: { label: 'Largura dos morros (m)', range: [10, 1000, 1] },
   roughness: { label: 'Detalhe miúdo', range: [0, 1, 0.01] },
   flatness: { label: 'Campo plano', range: [0.3, 3, 0.05] },
+  ridges: { label: 'Cristas', range: [0, 1, 0.01] },
 }
 const isBiomeSize = (key) => key === 'size'
 const biomeTarget = (biome, key) => (isBiomeSize(key) ? biome : biome.relief)
@@ -63,7 +64,8 @@ const biomeTuning = (biome) =>
   Object.fromEntries(
     Object.keys(BIOME_CONTROLS).map((key) => [
       key,
-      biomeTarget(biome, key)[key],
+      // Campo opcional (`ridges`) ausente vale 0.
+      biomeTarget(biome, key)[key] ?? 0,
     ]),
   )
 
@@ -284,11 +286,16 @@ export function TerrainTuningPanel() {
       biomeControllers.forEach((controller) => controller.destroy())
       const biome = BIOME_REGISTRY[choice.id]
       biomeControllers = Object.entries(BIOME_CONTROLS).map(
-        ([key, { label, range }]) =>
-          biomeFolder
-            .add(biomeTarget(biome, key), key, ...range)
+        ([key, { label, range }]) => {
+          const target = biomeTarget(biome, key)
+          // O lil-gui não cria controle para campo ausente: o opcional
+          // (`ridges`) entra com 0, que é o mesmo relevo de sem ele.
+          target[key] ??= 0
+          return biomeFolder
+            .add(target, key, ...range)
             .name(label)
-            .onFinishChange(regenerate),
+            .onFinishChange(regenerate)
+        },
       )
     }
     biomeFolder

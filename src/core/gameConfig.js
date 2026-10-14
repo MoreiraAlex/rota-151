@@ -34,7 +34,7 @@ export const GAME_CONFIG = {
   // (docs/features/047-biomas.md).
   TERRAIN: {
     // Identifica a receita do relevo; subir quando a geração mudar.
-    GENERATION_VERSION: 9,
+    GENERATION_VERSION: 11,
     // Altura (m) da superfície da água: o que fica abaixo vira lago na 056.
     // O relevo dos biomas é medido a partir dela (`relief.baseHeight`).
     WATER_LEVEL: -2,
@@ -103,15 +103,14 @@ export const GAME_CONFIG = {
     // deles). Ferramenta de teste: o painel do debug (F2) esconde biomas
     // para olhar um só. Na beta só aparecem os biomas das espécies
     // selvagens, cada um ao ser refinado (docs/roadmap.md, Marco 2): a
-    // floresta (049), a planície e a savana (050); a montanha sai daqui na
-    // feature dela. Os outros ficam na seed, vistos só pelo F2.
+    // floresta (049), a planície e a savana (050) e a montanha (051). Os
+    // outros ficam na seed, vistos só pelo F2.
     HIDDEN: [
       'ocean',
       'beach',
       'jungle',
       'swamp',
       'desert',
-      'mountain',
       'volcanic',
       'tundra',
     ],
@@ -1239,6 +1238,46 @@ export const GAME_CONFIG = {
     START_FRACTION: 0.55,
     // Menor distância (m) em que ela fecha, mesmo com raio e chunk pequenos.
     MIN_DISTANCE: 24,
+    // Com o relevo distante (`FAR_TERRAIN`, docs/features/051-montanha.md),
+    // a névoa vira bruma: começa em `HAZE_START` (m), engrossa devagar
+    // (`HAZE_LENGTH`, m — maior = mais transparente ao longe) até no máximo
+    // `HAZE_MAX` (0 a 1, para os morros do fundo continuarem como
+    // silhueta), e só fecha de vez na borda do relevo distante, a partir
+    // de `EDGE_FRACTION` dela.
+    HAZE_START: 20,
+    HAZE_LENGTH: 380,
+    HAZE_MAX: 0.85,
+    EDGE_FRACTION: 0.75,
+  },
+  // Relevo distante (docs/features/051-montanha.md, core/terrain/
+  // farTerrain.js, view/terrain/FarTerrainView.jsx): além dos chunks
+  // carregados, uma malha grossa do mesmo relevo da seed até o horizonte —
+  // só visual, sem colisão nem vegetação (o tom da copa pinta as matas).
+  // Some onde o chunk de verdade está carregado.
+  FAR_TERRAIN: {
+    // Liga o relevo distante (e a névoa de bruma, `FOG.HAZE_*`). Lido uma
+    // vez ao abrir o jogo.
+    ENABLED: true,
+    // Até onde vai (m, a partir do centro da malha).
+    RADIUS: 800,
+    // Lado (m) de uma célula da malha: múltiplo do `TERRAIN.CHUNK_SIZE`,
+    // para os vértices caírem nos cantos dos chunks.
+    CELL: 16,
+    // Pontos do relevo amostrados por quadro ao montar a malha (o resto
+    // entra nos quadros seguintes).
+    SAMPLES_PER_FRAME: 500,
+    // Quanto a câmera anda (m) a partir do centro da malha antes de montar
+    // outra em volta dela.
+    RECENTER_DISTANCE: 128,
+    // Quanto a malha fica abaixo do relevo (m): na borda dos chunks
+    // carregados ela não aparece por cima do chão de verdade.
+    SINK: 0.6,
+    // Quanto do tom da copa (folhas das árvores do bioma) cobre o chão
+    // onde há mata (0 a 1).
+    CANOPY_STRENGTH: 0.85,
+    // Clareia ou escurece a malha (1 = a cor da paleta) para casar com o
+    // chão desenhado dos chunks.
+    BRIGHTNESS: 1,
   },
   // Dia e noite (docs/features/048-dia-noite-e-clima.md, core/time/
   // dayCycle.js). O horário é medido em dias de jogo: 0 a 1 é um dia, e a
@@ -1583,6 +1622,13 @@ export const GAME_CONFIG = {
   // salpicado por igual. Largura da borda da mancha (0 a 1 do ruído).
   VEGETATION_PATCHES: {
     EDGE: 0.12,
+  },
+  // Linha das árvores (docs/features/051-montanha.md): um tipo com
+  // `maxHeight` no `vegetation` do bioma rareia ao subir e some nessa
+  // altura.
+  VEGETATION_ALTITUDE: {
+    // Faixa (m) abaixo do `maxHeight` em que o tipo vai rareando até sumir.
+    FADE: 6,
   },
   // Clareiras (docs/features/049-vegetacao-e-floresta.md): manchas abertas
   // pela seed nos biomas que têm `clearings`. A vegetação de sombra rareia

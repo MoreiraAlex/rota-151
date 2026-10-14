@@ -1,6 +1,6 @@
 import { GAME_CONFIG } from '../gameConfig'
 import { clamp } from '../math'
-import { heightIndex } from '../terrain/terrainChunk'
+import { chunkHeightAt, heightIndex } from '../terrain/terrainChunk'
 import { trailAt } from '../terrain/trails'
 import { clearingNoiseAt, opennessOf } from './clearings'
 import { createGrassClusterField } from './grassClusters'
@@ -93,12 +93,15 @@ const PLACE_FACTOR = {
  * com `place: 'clearing'` fica onde é aberto (e só o `shade` dele na mata);
  * com `patches`, o tipo só fica dentro das manchas dele (`patchAt`); com
  * `clusters` (a grama), segue os conjuntos de grama (`grassClusterAt`, que
- * também dão a altura, `heightAt`); e
+ * também dão a altura, `heightAt`); com `maxHeight` (a linha das árvores,
+ * docs/features/051-montanha.md), rareia na faixa `altitude.FADE` abaixo
+ * dele e some acima; e
  * rareia até sumir no meio das trilhas do chunk (`trailAt`) — menos o de
  * `place: 'trail'`, que só nasce nelas. `seed`
  * = a das clareiras e manchas (a do relevo); `clearings` = forma de
- * `GAME_CONFIG.CLEARINGS`. Sem clareira nem mancha no chunk, é o
- * `densityAt` de sempre.
+ * `GAME_CONFIG.CLEARINGS`; `terrain` = forma de `GAME_CONFIG.TERRAIN` (o
+ * nível da água, de onde o `maxHeight` é medido). Sem clareira, mancha nem
+ * altura máxima no chunk, é o `densityAt` de sempre.
  *
  * @returns {KindDensity}
  */
@@ -110,6 +113,8 @@ export function createKindDensity(
     seed,
     clearings = GAME_CONFIG.CLEARINGS,
     patches = GAME_CONFIG.VEGETATION_PATCHES,
+    altitude = GAME_CONFIG.VEGETATION_ALTITUDE,
+    terrain = GAME_CONFIG.TERRAIN,
   },
 ) {
   const densities = kindDensities(biomeList, chunk.biomeIds, kind)
@@ -122,7 +127,10 @@ export function createKindDensity(
       amount > 0 && PLACE_FACTOR[entry?.place]
         ? PLACE_FACTOR[entry.place](entry)
         : null
-    if (!factor && !entry?.patches && !entry?.clusters) return null
+    const maxHeight = entry?.maxHeight ?? null
+    if (!factor && !entry?.patches && !entry?.clusters && maxHeight === null) {
+      return null
+    }
     const opennessAt = (x, z) =>
       amount > 0
         ? opennessOf(clearingNoiseAt(seed, x, z, clearings), amount, clearings)
@@ -131,6 +139,7 @@ export function createKindDensity(
       factor,
       amount,
       patches: entry?.patches,
+      maxHeight,
       // Os conjuntos numa grade guardada (a grama pergunta muitos pontos).
       clusters:
         entry?.clusters &&
@@ -155,12 +164,16 @@ export function createKindDensity(
     }
   }
 
+  const hasAltitude = shaping.some((item) => item && item.maxHeight !== null)
   const scaled = new Float32Array(densities.length)
   const heights = new Float32Array(densities.length)
   // A densidade de cada bioma no ponto (em `scaled`) e a altura dos
   // conjuntos de grama dele (em `heights`).
   const shapeAt = (x, z) => {
     const noise = clearingNoiseAt(seed, x, z, clearings)
+    const height = hasAltitude
+      ? chunkHeightAt(chunk, x, z) - terrain.WATER_LEVEL
+      : 0
     shaping.forEach((item, biome) => {
       let density = densities[biome]
       heights[biome] = 1
@@ -174,6 +187,9 @@ export function createKindDensity(
         const cluster = item.clusters(x, z)
         density *= cluster.density
         heights[biome] = cluster.height
+      }
+      if (item?.maxHeight != null) {
+        density *= clamp((item.maxHeight - height) / altitude.FADE, 0, 1)
       }
       scaled[biome] = density
     })

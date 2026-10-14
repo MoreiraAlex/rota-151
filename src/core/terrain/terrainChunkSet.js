@@ -52,6 +52,12 @@ import {
  *
  * @typedef {object} TerrainChunkSet
  * @property {(x: number, z: number) => number} heightAt
+ * @property {(x: number, z: number, weightsOut?: Float64Array) => number} sample -
+ *   altura do relevo da seed em `(x, z)` (sem trilhas), com os pesos dos
+ *   biomas em `weightsOut` (na ordem de `recipe().biomeList`) — o relevo
+ *   distante (core/terrain/farTerrain.js)
+ * @property {() => import('./terrainHeight').TerrainRecipe} recipe - a
+ *   receita em uso (troca no `reconfigure`)
  * @property {(x: number, z: number) => object} biomeAt - bioma de maior
  *   peso (`core/data/biomes/`)
  * @property {(chunkX: number, chunkZ: number) => import('./terrainChunk').TerrainChunk} load
@@ -201,6 +207,9 @@ export function createTerrainChunkSet({
     },
 
     biomeAt: (x, z) => sampler.biomeAt(x, z),
+
+    sample: (x, z, weightsOut) => sampler.sample(x, z, weightsOut),
+    recipe: () => recipe,
 
     load(chunkX, chunkZ) {
       const key = chunkKey(chunkX, chunkZ)

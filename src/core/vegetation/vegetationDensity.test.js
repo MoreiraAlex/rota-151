@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { generateTerrainChunk, heightIndex } from '../terrain/terrainChunk'
+import { GAME_CONFIG } from '../gameConfig'
+import {
+  chunkHeightAt,
+  generateTerrainChunk,
+  heightIndex,
+} from '../terrain/terrainChunk'
 import {
   copyTerrainRecipe,
   createTerrainSampler,
@@ -248,5 +253,66 @@ describe('createKindDensity (conjuntos de grama)', () => {
       seed: 3,
     })
     for (const [x, z] of points) expect(plain.heightAt(x, z)).toBe(1)
+  })
+})
+
+describe('createKindDensity (linha das árvores, docs/features/051-*.md)', () => {
+  const { WATER_LEVEL } = recipe.terrain
+  const single = {
+    ...chunk,
+    biomeIds: ['teste'],
+    biomeWeights: new Uint8Array(chunk.heights.length).fill(255),
+  }
+  const points = Array.from({ length: 400 }, (_, i) => [
+    single.minX + ((i * 7.7) % single.size),
+    single.minZ + ((i * 3.3) % single.size),
+  ])
+  const heightOf = ([x, z]) => chunkHeightAt(single, x, z) - WATER_LEVEL
+  // A altura máxima no meio do relevo do chunk: há pontos dos dois lados.
+  const sorted = points.map(heightOf).sort((a, b) => a - b)
+  const maxHeight = sorted[Math.floor(sorted.length / 2)]
+  // A faixa em que rareia, pelo relevo do chunk (não pelo config).
+  const FADE = (sorted.at(-1) - sorted[0]) / 4
+  const altitude = { ...GAME_CONFIG.VEGETATION_ALTITUDE, FADE }
+  const biomeWith = (entry) => ({
+    id: 'teste',
+    vegetation: [{ kind: 'pinheiro', density: 0.8, ...entry }],
+  })
+  const limited = createKindDensity(single, 'pinheiro', {
+    biomeList: [biomeWith({ maxHeight })],
+    seed: 3,
+    altitude,
+  })
+  const free = createKindDensity(single, 'pinheiro', {
+    biomeList: [biomeWith({})],
+    seed: 3,
+  })
+
+  it('o relevo do chunk cruza a altura máxima', () => {
+    expect(sorted[0]).toBeLessThan(maxHeight - FADE)
+    expect(sorted.at(-1)).toBeGreaterThan(maxHeight)
+  })
+
+  it('acima da altura máxima, nada nasce', () => {
+    for (const point of points.filter((p) => heightOf(p) >= maxHeight)) {
+      expect(limited.at(...point)).toBeCloseTo(0, 4)
+    }
+  })
+
+  it('bem abaixo dela, a densidade de sempre', () => {
+    for (const point of points.filter((p) => heightOf(p) <= maxHeight - FADE)) {
+      expect(limited.at(...point)).toBeCloseTo(free.at(...point), 4)
+    }
+  })
+
+  it('na faixa, rareia ao subir', () => {
+    const band = points
+      .filter((p) => heightOf(p) > maxHeight - FADE && heightOf(p) < maxHeight)
+      .sort((a, b) => heightOf(a) - heightOf(b))
+    for (let i = 1; i < band.length; i++) {
+      expect(limited.at(...band[i])).toBeLessThanOrEqual(
+        limited.at(...band[i - 1]) + 1e-4,
+      )
+    }
   })
 })

@@ -1,7 +1,9 @@
 import { PerspectiveCamera } from '@react-three/drei'
 import { TEST_LEVEL } from '@/core/data/testLevel'
+import { GAME_CONFIG } from '@/core/gameConfig'
 import { AmbientAudio } from '@/view/audio/AmbientAudio'
 import { PlayerView } from './PlayerView'
+import { FarTerrainView } from './FarTerrainView'
 import { TerrainView } from './TerrainView'
 import { VegetationView } from '../vegetation/VegetationView'
 import { WaterView } from '../water/WaterView'
@@ -75,6 +77,8 @@ function TestLevelView() {
   return (
     <>
       <TerrainView />
+      {/* Relevo distante até o horizonte (051). */}
+      {GAME_CONFIG.FAR_TERRAIN.ENABLED && <FarTerrainView />}
       {/* Grama, flores e árvores (049). */}
       <VegetationView />
       {/* Superfície da água, só visual (049; a de verdade é da 056). */}

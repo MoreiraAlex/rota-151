@@ -46,6 +46,10 @@ describe('registro de biomas', () => {
     expect(relief.roughness).toBeGreaterThanOrEqual(0)
     expect(relief.roughness).toBeLessThanOrEqual(1)
     expect(relief.flatness).toBeGreaterThan(0)
+    if (relief.ridges != null) {
+      expect(relief.ridges).toBeGreaterThanOrEqual(0)
+      expect(relief.ridges).toBeLessThanOrEqual(1)
+    }
   })
 
   it.each(listBiomes())('$id: paleta com todas as cores', ({ palette }) => {
@@ -95,6 +99,18 @@ describe('registro de biomas', () => {
     ({ vegetation }) => {
       for (const { scale } of vegetation.filter((e) => e.scale != null)) {
         expect(scale).toBeGreaterThan(0)
+      }
+    },
+  )
+
+  it.each(listBiomes())(
+    '$id: altura máxima da vegetação válida (docs/features/051-*.md)',
+    ({ vegetation }) => {
+      for (const { maxHeight } of vegetation.filter(
+        (e) => e.maxHeight != null,
+      )) {
+        expect(maxHeight).toEqual(expect.any(Number))
+        expect(maxHeight).toBeGreaterThan(0)
       }
     },
   )
