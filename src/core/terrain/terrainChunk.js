@@ -28,7 +28,7 @@ import { clamp } from '../math'
  *   bioma]`
  * @property {string} biome - id do bioma com mais peso no chunk
  * @property {import('../vegetation/solidPlacement').ChunkSolids} [solids] -
- *   árvores, troncos caídos e pedras do chunk (postos pelo conjunto de
+ *   árvores e pedras do chunk (postos pelo conjunto de
  *   chunks ao carregar, `terrainChunkSet.js`)
  * @property {number} [vegetationSeed] - seed da vegetação e das clareiras
  * @property {Float32Array | null} [trails] - força da trilha por vértice

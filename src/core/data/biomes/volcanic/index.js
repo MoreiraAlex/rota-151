@@ -28,7 +28,6 @@ export const VOLCANIC = {
     slope: '#2a2220',
     peak: '#6b2a1c',
     peakHeight: 30,
-    debug: '#c0392b',
   },
   // Desenho do chão (camadas de view/terrain/terrainLayers.js).
   ground: {

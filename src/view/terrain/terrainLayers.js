@@ -24,3 +24,27 @@ export const terrainLayerPath = (layer) =>
   `/assets/textures/terrain/${layer}.jpg`
 
 export const terrainLayerIndex = (layer) => TERRAIN_LAYERS.indexOf(layer)
+
+/**
+ * Camadas de COR do chão (docs/features/052-assets-do-lgpe-e-floresta.md):
+ * texturas pintadas do Pokémon Let's Go, usadas como cor (não só claro e
+ * escuro) pelos biomas que têm `ground.colors`. Nome da camada → arquivo
+ * em public/assets/vegetation/lgpe/textures/ (scripts/lgpe/pack-lgpe.js).
+ * A ORDEM é o índice no array de texturas e nos pesos por vértice.
+ */
+export const TERRAIN_COLOR_LAYERS = [
+  ['lgpe-grass', 'grass01_com'],
+  ['lgpe-grass-bright', 'grass02_com'],
+  ['lgpe-forest-floor', 'floor01_forest'],
+  ['lgpe-soil', 'soil01_com'],
+  ['lgpe-soil-dark', 'soil08_com'],
+  ['lgpe-soil-damp', 'soil12_com'],
+  ['lgpe-rock', 'rock01_forest'],
+  ['lgpe-path-stone', 'roadstone01_com'],
+]
+
+export const terrainColorLayerPath = (layer) =>
+  `/assets/vegetation/lgpe/textures/${TERRAIN_COLOR_LAYERS.find(([name]) => name === layer)[1]}.png`
+
+export const terrainColorLayerIndex = (layer) =>
+  TERRAIN_COLOR_LAYERS.findIndex(([name]) => name === layer)

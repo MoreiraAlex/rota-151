@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { listBiomes } from '../data/biomes'
 import { GAME_CONFIG } from '../gameConfig'
-import { chunkHeightAt, generateTerrainChunk } from '../terrain/terrainChunk'
+import { generateTerrainChunk } from '../terrain/terrainChunk'
 import {
   copyTerrainRecipe,
   createTerrainSampler,
@@ -9,7 +9,6 @@ import {
 } from '../terrain/terrainHeight'
 import { slopeAt } from './vegetationDensity'
 import {
-  LOG_KIND,
   ROCK_KIND,
   STANDING_TREE_KINDS,
   TREE_KIND,
@@ -20,8 +19,8 @@ import {
 } from './solidPlacement'
 
 const { TERRAIN } = GAME_CONFIG
-const GROUPS = ['trees', 'logs', 'rocks']
-const SOLID_KINDS = [...STANDING_TREE_KINDS, LOG_KIND, ROCK_KIND]
+const GROUPS = ['trees', 'rocks']
+const SOLID_KINDS = [...STANDING_TREE_KINDS, ROCK_KIND]
 
 // Todos os objetos do chunk, de todos os grupos (cada um com o `kind`).
 const allOf = (solids) => GROUPS.flatMap((group) => solids[group])
@@ -50,12 +49,16 @@ function solidsOf(recipe, seed, chunkX, chunkZ) {
   return { chunk, solids }
 }
 
-// Um bioma do registro com árvore, tronco caído e pedra.
-const withAllSolids = listBiomes().find(({ vegetation }) =>
-  [TREE_KIND, LOG_KIND, ROCK_KIND].every((kind) =>
-    vegetation.some((entry) => entry.kind === kind),
-  ),
-)
+// O bioma do registro com árvore e pedra que tem mais árvore.
+const treeDensityOf = ({ vegetation }) =>
+  vegetation.find(({ kind }) => kind === TREE_KIND)?.density ?? 0
+const withAllSolids = listBiomes()
+  .filter(({ vegetation }) =>
+    [TREE_KIND, ROCK_KIND].every((kind) =>
+      vegetation.some((entry) => entry.kind === kind),
+    ),
+  )
+  .sort((a, b) => treeDensityOf(b) - treeDensityOf(a))[0]
 
 const CHUNKS = [
   [1, 0],
@@ -80,7 +83,12 @@ describe.runIf(withAllSolids)('placeChunkSolids', () => {
       const { chunk, solids } = solidsOf(world, 11, chunkX, chunkZ)
       for (const item of allOf(solids)) {
         const spec = specOf(item.kind, params)
-        const gap = borderGapOf(item.kind, params)
+        // O tamanho do tipo no bioma (`scale` da entrada) multiplica o
+        // sorteado e a folga da borda.
+        const biomeScale =
+          world.biomeList[0].vegetation.find(({ kind }) => kind === item.kind)
+            ?.scale ?? 1
+        const gap = borderGapOf(item.kind, params, biomeScale)
         expect(item.y).toBeGreaterThanOrEqual(
           TERRAIN.WATER_LEVEL + spec.SHORE_GAP,
         )
@@ -94,26 +102,15 @@ describe.runIf(withAllSolids)('placeChunkSolids', () => {
         expect(item.x).toBeLessThan(chunk.minX + chunk.size - gap)
         expect(item.z).toBeGreaterThanOrEqual(chunk.minZ + gap)
         expect(item.z).toBeLessThan(chunk.minZ + chunk.size - gap)
-        expect(item.scale).toBeGreaterThanOrEqual(spec.SCALE[0])
-        expect(item.scale).toBeLessThanOrEqual(spec.SCALE[1])
+        expect(item.scale).toBeGreaterThanOrEqual(
+          spec.SCALE[0] * biomeScale - 1e-9,
+        )
+        expect(item.scale).toBeLessThanOrEqual(
+          spec.SCALE[1] * biomeScale + 1e-9,
+        )
       }
     },
   )
-
-  it('tronco caído com as duas pontas quase na mesma altura', () => {
-    for (const [chunkX, chunkZ] of CHUNKS) {
-      const { chunk, solids } = solidsOf(world, 13, chunkX, chunkZ)
-      for (const log of solids.logs) {
-        const circles = footprintOf(LOG_KIND, log, params)
-        const [start, end] = [circles[0], circles.at(-1)]
-        const drop = Math.abs(
-          chunkHeightAt(chunk, start.x, start.z) -
-            chunkHeightAt(chunk, end.x, end.z),
-        )
-        expect(drop).toBeLessThanOrEqual(GAME_CONFIG.LOGS.MAX_END_DROP + 1e-6)
-      }
-    }
-  })
 
   it('a pegada de cada objeto fica dentro do chunk (navegação por chunk)', () => {
     const { chunk, solids } = solidsOf(world, 3, 1, 1)
@@ -132,7 +129,6 @@ describe.runIf(withAllSolids)('placeChunkSolids', () => {
       expect(STANDING_TREE_KINDS).toContain(tree.kind)
       expect(declared).toContain(tree.kind)
     }
-    expect(solids.logs.every(({ kind }) => kind === LOG_KIND)).toBe(true)
     expect(solids.rocks.every(({ kind }) => kind === ROCK_KIND)).toBe(true)
   })
 
@@ -264,6 +260,14 @@ describe('placeChunkSolids — tamanho por bioma', () => {
       )
       entry.scale = scale
     })
+  // Um `scale` diferente do do bioma que ainda cabe folgado no chunk (a
+  // folga da borda até um quarto dele), qualquer que seja o tamanho das
+  // pedras no config.
+  const params = currentTerrainRecipe().solids
+  const { OBSTACLE_MARGIN, CELL_SIZE } = GAME_CONFIG.PATHFINDING
+  const reach = params.rocks.RADIUS * params.rocks.SCALE[1]
+  const room = GAME_CONFIG.TERRAIN.CHUNK_SIZE / 4 - OBSTACLE_MARGIN - CELL_SIZE
+  const fitting = Math.min(2, room / reach)
   const area = Array.from({ length: 16 }, (_, i) => [i % 4, Math.floor(i / 4)])
   const rocksOf = (recipe) =>
     area.flatMap(([chunkX, chunkZ]) => {
@@ -273,17 +277,16 @@ describe('placeChunkSolids — tamanho por bioma', () => {
 
   it('o `scale` do bioma multiplica o tamanho sorteado', () => {
     const { SCALE } = GAME_CONFIG.ROCKS
-    const bigger = rocksOf(withScale(2))
-    expect(bigger.length).toBeGreaterThan(0)
-    for (const { rock } of bigger) {
-      expect(rock.scale).toBeGreaterThanOrEqual(SCALE[0] * 2 - 1e-6)
-      expect(rock.scale).toBeLessThanOrEqual(SCALE[1] * 2 + 1e-6)
+    const scaled = rocksOf(withScale(fitting))
+    expect(scaled.length).toBeGreaterThan(0)
+    for (const { rock } of scaled) {
+      expect(rock.scale).toBeGreaterThanOrEqual(SCALE[0] * fitting - 1e-6)
+      expect(rock.scale).toBeLessThanOrEqual(SCALE[1] * fitting + 1e-6)
     }
   })
 
   it('a pegada maior continua dentro do chunk e guardada', () => {
-    const params = currentTerrainRecipe().solids
-    for (const { rock, chunk, solids } of rocksOf(withScale(2))) {
+    for (const { rock, chunk, solids } of rocksOf(withScale(fitting))) {
       const [circle] = footprintOf(ROCK_KIND, rock, params)
       expect(circle.radius).toBeCloseTo(params.rocks.RADIUS * rock.scale)
       expect(circle.x - circle.radius).toBeGreaterThan(chunk.minX)
@@ -292,21 +295,6 @@ describe('placeChunkSolids — tamanho por bioma', () => {
       expect(circle.z + circle.radius).toBeLessThan(chunk.minZ + chunk.size)
       expect(solids.footprints).toContainEqual(circle)
     }
-  })
-})
-
-describe('footprintOf', () => {
-  const params = currentTerrainRecipe().solids
-
-  it('tronco caído: círculos de ponta a ponta, na direção do giro', () => {
-    const log = { x: 10, z: -4, yaw: 0.7, scale: 4 }
-    const circles = footprintOf(LOG_KIND, log, params)
-    const ends = [circles[0], circles.at(-1)]
-    const length = Math.hypot(ends[0].x - ends[1].x, ends[0].z - ends[1].z)
-    expect(length).toBeCloseTo(log.scale)
-    // Mesmo sentido do eixo X local girado pelo `yaw` no three.js.
-    expect((ends[1].x - ends[0].x) / length).toBeCloseTo(Math.cos(log.yaw))
-    expect((ends[1].z - ends[0].z) / length).toBeCloseTo(-Math.sin(log.yaw))
   })
 })
 
@@ -322,7 +310,6 @@ describe('placeChunkSolids — bioma sem sólidos', () => {
     for (const [chunkX, chunkZ] of CHUNKS) {
       const { solids } = solidsOf(recipe, 2, chunkX, chunkZ)
       expect(solids.trees).toEqual([])
-      expect(solids.logs).toEqual([])
       expect(solids.rocks).toEqual([])
       expect(solids.footprints).toEqual([])
     }

@@ -126,8 +126,10 @@ export function computeLookAtPoint(
 
 /**
  * Ajusta `uncollided` (posição desejada da câmera, sem colisão) pra logo
- * antes de qualquer coisa (parede/obstáculo/chão) no caminho entre
- * `pivot` e ela — em vez de atravessar. `COLLISION_MARGIN` é a folga (m)
+ * antes do CHÃO (o relevo, montanhas incluídas) no caminho entre `pivot` e
+ * ela — em vez de atravessar. Só o chão (`groundOnly`): árvore, pedra,
+ * caixa e personagem no caminho não aproximam a câmera — ficam
+ * translúcidos (`view/materials/seeThrough.js`). `COLLISION_MARGIN` é a folga (m)
  * mantida antes da superfície; `MIN_DISTANCE_AFTER_COLLISION` é o piso de
  * quão perto do pivô a câmera pode chegar. Sem física pronta ainda
  * (`castRay` devolve `null`) ou sem nada no caminho, devolve `uncollided`
@@ -164,6 +166,7 @@ export function resolveCameraCollision(
 
   const hit = castRay(pivot, direction, desiredDistance, {
     excludeColliderHandle,
+    groundOnly: true,
   })
   if (!hit) return uncollided
 

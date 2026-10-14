@@ -85,8 +85,8 @@ export function releaseGeometry(geometry) {
 }
 
 /** Tira uma malha daqui: libera a geometria própria (não a do modelo). */
-export function disposeVegetationMesh(mesh, { sharedGeometry = false } = {}) {
-  if (!sharedGeometry) releaseGeometry(mesh.geometry)
+export function disposeVegetationMesh(mesh) {
+  releaseGeometry(mesh.geometry)
   mesh.dispose()
 }
 
@@ -108,10 +108,20 @@ export function tintAt(x, z, variation, out = new THREE.Color()) {
 }
 
 const WHITE = new THREE.Color(1, 1, 1)
-// Partes que recebem o tom de cada objeto (a casca, não).
-const TINTED_PARTS = new Set(['canopy', 'foliage', 'solid', 'rock', 'pebble'])
+// Partes que recebem o tom de cada objeto (a casca, não). `toon` e
+// `toon-low`: os modelos do LGPE (lgpeModels.js), com e sem sombra.
+const TINTED_PARTS = new Set([
+  'canopy',
+  'foliage',
+  'solid',
+  'rock',
+  'pebble',
+  'toon',
+  'toon-low',
+])
 // Partes que balançam (precisam da origem e do giro de cada instância).
-const SWAYING_PARTS = new Set(['canopy', 'foliage'])
+// Nos modelos do LGPE (`toon`) quem decide é o material (a pedra não).
+const SWAYING_PARTS = new Set(['canopy', 'foliage', 'toon', 'toon-low'])
 // Sombra fixa por parte; a copa segue a qualidade (`castShadow`). Planta
 // baixa, cogumelo e seixo não fazem (pequenos, e a sombra desenha tudo de
 // novo).
@@ -121,6 +131,7 @@ const SHADOW_BY_PART = {
   rock: true,
   pebble: false,
   solid: false,
+  'toon-low': false,
 }
 // Partes com o material da pedra (musgo por instância, `aMoss`).
 const ROCK_PARTS = new Set(['rock', 'pebble'])

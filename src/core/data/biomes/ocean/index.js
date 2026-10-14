@@ -24,7 +24,6 @@ export const OCEAN = {
     high: '#a08f60',
     highHeight: 6,
     slope: '#6f6650',
-    debug: '#1f4e9c',
   },
   // Desenho do chão (camadas de view/terrain/terrainLayers.js).
   ground: {

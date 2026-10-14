@@ -2,7 +2,13 @@ import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { listBiomes } from '@/core/data/biomes'
-import { TERRAIN_LAYERS, terrainLayerPath } from './terrainLayers'
+import {
+  MAX_TERRAIN_LAYERS,
+  TERRAIN_COLOR_LAYERS,
+  TERRAIN_LAYERS,
+  terrainColorLayerPath,
+  terrainLayerPath,
+} from './terrainLayers'
 
 describe('camadas do chão', () => {
   it.each(TERRAIN_LAYERS)('%s tem o JPEG empacotado em public/', (layer) => {
@@ -26,4 +32,30 @@ describe('camadas do chão', () => {
   it('nomes sem repetição', () => {
     expect(new Set(TERRAIN_LAYERS).size).toBe(TERRAIN_LAYERS.length)
   })
+
+  it.each(TERRAIN_COLOR_LAYERS.map(([layer]) => layer))(
+    'camada de cor %s tem a textura empacotada em public/',
+    (layer) => {
+      expect(existsSync(join('public', terrainColorLayerPath(layer)))).toBe(
+        true,
+      )
+    },
+  )
+
+  it('cabem nos pesos por vértice, sem repetir nome', () => {
+    const names = TERRAIN_COLOR_LAYERS.map(([layer]) => layer)
+    expect(names.length).toBeLessThanOrEqual(MAX_TERRAIN_LAYERS)
+    expect(new Set(names).size).toBe(names.length)
+  })
+
+  it.each(listBiomes().filter(({ ground }) => ground.colors))(
+    '$id: as camadas de cor existem e há base',
+    ({ ground }) => {
+      const names = TERRAIN_COLOR_LAYERS.map(([layer]) => layer)
+      expect(ground.colors.base).toBeDefined()
+      for (const layer of Object.values(ground.colors)) {
+        expect(names).toContain(layer)
+      }
+    },
+  )
 })

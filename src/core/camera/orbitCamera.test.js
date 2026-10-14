@@ -8,6 +8,8 @@ import { GAME_CONFIG } from '../gameConfig'
 import {
   initPhysics,
   disposePhysics,
+  getRapier,
+  getRapierWorld,
   stepPhysics,
 } from '../physics/physicsWorld'
 import {
@@ -247,6 +249,30 @@ describe('resolveCameraCollision', () => {
       // (2 - COLLISION_MARGIN) = 1.7 do pivô, não nas -5 originais.
       expect(result.y).toBeCloseTo(ground + 2 - 1.7)
       expect(result.y).toBeGreaterThan(ground) // acima do chão, não atravessou
+    })
+
+    // Só o chão aproxima a câmera: um objeto (caixa fixa) no caminho, não —
+    // ele fica translúcido na view (view/materials/seeThrough.js).
+    it('objeto no caminho não aproxima a câmera; o chão, sim', async () => {
+      await initPhysics()
+      buildGameLevelAtOrigin()
+      const RAPIER = getRapier()
+      const world = getRapierWorld()
+      const ground = TEST_LEVEL.terrain.heightAt(0, 0)
+      const body = world.createRigidBody(
+        RAPIER.RigidBodyDesc.fixed().setTranslation(0, ground + 2, 4),
+      )
+      world.createCollider(RAPIER.ColliderDesc.cuboid(1, 1, 1), body)
+      stepPhysics()
+
+      const pivot = { x: 0, y: ground + 2, z: 0 }
+      const uncollided = { x: 0, y: ground + 2, z: 10 }
+      const result = resolveCameraCollision(pivot, uncollided, undefined, {
+        COLLISION_MARGIN: 0.3,
+        MIN_DISTANCE_AFTER_COLLISION: 0.5,
+      })
+
+      expect(result).toEqual(uncollided)
     })
   })
 })

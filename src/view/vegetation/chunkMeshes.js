@@ -1,4 +1,3 @@
-import * as THREE from 'three'
 import { listBiomes } from '@/core/data/biomes'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import {
@@ -8,21 +7,16 @@ import {
 import {
   ROCK_KIND,
   STANDING_TREE_KINDS,
+  rockBaseY,
 } from '@/core/vegetation/solidPlacement'
-import {
-  allowShadow,
-  buildKindMeshes,
-  buildLodKindMeshes,
-  finishMesh,
-  setInstance,
-  tintAt,
-} from './instancing'
+import { buildKindMeshes, buildLodKindMeshes, tintAt } from './instancing'
 import { createBiomeColorFactor } from './biomeColor'
+import { entryOf, groupByBiome, lgpePlantScale, modelsOf } from './biomeModels'
 import { scatterArea } from './vegetationScatter'
 
 /**
  * Malhas por chunk (docs/features/049-vegetacao-e-floresta.md): os
- * objetos sólidos do core (`chunk.solids` — árvores, troncos caídos e
+ * objetos sólidos do core (`chunk.solids` — árvores e
  * pedras, os mesmos do colisor) e o sub-bosque só visual (arbustos,
  * samambaias, plantas de folha larga e cogumelos, sorteados aqui com as
  * clareiras e as manchas e fora das pegadas dos sólidos). Cada função devolve uma lista de malhas (vazia sem
@@ -41,9 +35,6 @@ const SALTS = {
 const MUSHROOM_TINT_VARIATION = 0.2
 const ROCK_TINT_VARIATION = 0.12
 
-const scratchColor = new THREE.Color()
-const scratchScale = new THREE.Vector3()
-
 const between = ([min, max], t) => min + (max - min) * t
 
 /**
@@ -59,27 +50,29 @@ function createTint(chunk, kind, variation) {
 }
 
 /**
- * Árvores do chunk (as do core), cada uma nos modelos da espécie dela e com
- * o próprio tom de folha, com LOD por árvore (`buildLodKindMeshes`):
+ * Árvores do chunk (as do core), cada uma nos modelos da espécie dela no
+ * bioma onde está (`modelsOf`: os do LGPE da entrada ou o padrão) e com o
+ * próprio tom de folha, com LOD por árvore (`buildLodKindMeshes`):
  * `setNear` divide entre o modelo inteiro e o de longe (sem galhos).
  */
-export function buildTreeMeshes(chunk, { kinds, castCanopyShadow }) {
+export function buildTreeMeshes(chunk, models) {
   const trees = chunk.solids?.trees ?? []
   const { TINT_VARIATION } = GAME_CONFIG.TREES
-  const bySpecies = STANDING_TREE_KINDS.map((kind) => {
+  const sets = STANDING_TREE_KINDS.flatMap((kind) => {
     const tintOf = createTint(chunk, kind, TINT_VARIATION)
-    return buildLodKindMeshes(
-      kinds[kind],
-      trees
-        .filter((tree) => tree.kind === kind)
-        .map((tree) => ({ ...tree, tint: tintOf(tree.x, tree.z) })),
-      { castShadow: castCanopyShadow },
+    const ofKind = trees
+      .filter((tree) => tree.kind === kind)
+      .map((tree) => ({ ...tree, tint: tintOf(tree.x, tree.z) }))
+    return [...groupByBiome(chunk, ofKind, kind)].map(([biomeId, group]) =>
+      buildLodKindMeshes(modelsOf(models, kind, biomeId).list, group, {
+        castShadow: models.castCanopyShadow,
+      }),
     )
   })
   return {
-    meshes: bySpecies.flatMap(({ meshes }) => meshes),
+    meshes: sets.flatMap(({ meshes }) => meshes),
     setNear: (isNear) => {
-      for (const { setNear } of bySpecies) setNear(isNear)
+      for (const { setNear } of sets) setNear(isNear)
     },
   }
 }
@@ -91,11 +84,7 @@ export function buildTreeMeshes(chunk, { kinds, castCanopyShadow }) {
  * dos sólidos, tamanho entre o `SCALE` do tipo e o tom de cada planta. Com LOD (`buildLodKindMeshes`):
  * `setNear` diz quais plantas desenhar (as de perto).
  */
-export function buildUndergrowthMeshes(
-  chunk,
-  kind,
-  { kinds, castCanopyShadow },
-) {
+export function buildUndergrowthMeshes(chunk, kind, models) {
   const { GRASS, TERRAIN, VEGETATION_QUALITY, TREES } = GAME_CONFIG
   const spec = {
     bush: GAME_CONFIG.BUSHES,
@@ -129,26 +118,45 @@ export function buildUndergrowthMeshes(
       y,
       z,
       yaw: points.yaws[i],
-      scale: between(spec.SCALE, points.sizes[i]),
+      size: points.sizes[i],
       variant: points.variants[i],
       tint: tintOf(x, z),
     }
   })
+  // Por bioma: os modelos dele e o tamanho (os do LGPE já vêm em metros).
   // De longe, nada (`far` vazio): só desenha perto da câmera.
-  const models = kinds[kind].map((model) => ({
-    ...model,
-    far: { name: `${model.name}-far`, parts: [] },
-  }))
-  return buildLodKindMeshes(models, instances, {
-    castShadow: castCanopyShadow,
-  })
+  const sets = [...groupByBiome(chunk, instances, kind)].map(
+    ([biomeId, group]) => {
+      const { list, isLgpe } = modelsOf(models, kind, biomeId)
+      const entry = entryOf(biomeId, kind)
+      const sized = group.map((item) => ({
+        ...item,
+        scale: isLgpe
+          ? lgpePlantScale(item.size, entry)
+          : between(spec.SCALE, item.size),
+      }))
+      const nearOnly = list.map((model) => ({
+        ...model,
+        far: { name: `${model.name}-far`, parts: [] },
+      }))
+      return buildLodKindMeshes(nearOnly, sized, {
+        castShadow: models.castCanopyShadow,
+      })
+    },
+  )
+  return {
+    meshes: sets.flatMap(({ meshes }) => meshes),
+    setNear: (isNear) => {
+      for (const { setNear } of sets) setNear(isNear)
+    },
+  }
 }
 
 /**
  * Pedras do chunk (as do core), afundadas um pouco, com o musgo do bioma
  * no topo (`moss` da entrada `rock`) e a cor dele (`color`).
  */
-export function buildRockMeshes(chunk, { kinds }) {
+export function buildRockMeshes(chunk, models) {
   const rocks = chunk.solids?.rocks ?? []
   const { ROCKS } = GAME_CONFIG
   const mossByBiome = Float32Array.from(chunk.biomeIds, (id) => {
@@ -159,37 +167,12 @@ export function buildRockMeshes(chunk, { kinds }) {
   const tintOf = createTint(chunk, ROCK_KIND, ROCK_TINT_VARIATION)
   const instances = rocks.map((rock) => ({
     ...rock,
-    y: rock.y - ROCKS.SINK * ROCKS.HEIGHT * rock.scale,
+    y: rockBaseY(rock, ROCKS),
     moss: densityAt(chunk, mossByBiome, rock.x, rock.z),
     tint: tintOf(rock.x, rock.z),
   }))
-  return buildKindMeshes(kinds[ROCK_KIND], instances)
-}
-
-/**
- * Troncos caídos do chunk (os do core): um cilindro deitado (`log`, de
- * `useVegetationModels`) com a casca das árvores e as pontas de madeira.
- */
-export function buildLogMeshes(chunk, { log }) {
-  const logs = chunk.solids?.logs ?? []
-  if (logs.length === 0) return []
-  const { RADIUS } = GAME_CONFIG.LOGS
-
-  const mesh = new THREE.InstancedMesh(log.geometry, log.materials, logs.length)
-  logs.forEach((item, index) => {
-    scratchScale.set(item.scale, RADIUS, RADIUS)
-    setInstance(
-      mesh,
-      index,
-      item.x,
-      item.y + RADIUS * 0.7,
-      item.z,
-      item.yaw,
-      scratchScale,
-    )
-    mesh.setColorAt(index, tintAt(item.x, item.z, 0.15, scratchColor))
-  })
-  allowShadow(mesh, true)
-  mesh.receiveShadow = true
-  return [finishMesh(mesh)]
+  return [...groupByBiome(chunk, instances, ROCK_KIND)].flatMap(
+    ([biomeId, group]) =>
+      buildKindMeshes(modelsOf(models, ROCK_KIND, biomeId).list, group),
+  )
 }

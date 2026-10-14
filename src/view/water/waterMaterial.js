@@ -95,7 +95,7 @@ totalEmissiveRadiance += uSkyColor * (0.3 + 0.7 * waterFresnel) * uReflection
 
 /**
  * Material da água (docs/features/049-vegetacao-e-floresta.md) — uma
- * representação simples até a água de verdade (056): `MeshStandardMaterial`
+ * representação simples até a água de verdade (060): `MeshStandardMaterial`
  * transparente (recebe sol, sombra e névoa do jogo) com a cor pela
  * profundidade (`waterDepth` da geometria), espuma na beira, ondinhas que
  * pegam o brilho do sol e o céu refletido. Os números são de

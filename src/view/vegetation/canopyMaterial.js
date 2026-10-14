@@ -7,7 +7,6 @@ ${WIND_SHADER}
 uniform float uCanopyBaseY;
 uniform float uCanopyHeight;
 uniform float uCanopyRadius;
-uniform float uSway;
 uniform float uInnerShade;
 uniform float uTopLight;
 uniform float uLeafTranslucency;
@@ -30,7 +29,7 @@ const VERTEX_BEGIN = /* glsl */ `
 #include <begin_vertex>
 float canopyHeight = clamp((transformed.y - uCanopyBaseY) / uCanopyHeight, 0.0, 1.0);
 transformed += vegCanopySway(transformed, uCanopyBaseY, uCanopyHeight,
-  aWind.xy, aWind.zw, vegHash(aWind.xy), uSway);
+  aWind.xy, aWind.zw, vegHash(aWind.xy), 1.0);
 `
 
 // Normal de esfera em volta do centro da copa: a copa vira um volume macio
@@ -84,7 +83,6 @@ function canopyUniforms(bounds) {
     uCanopyBaseY: { value: bounds.baseY },
     uCanopyHeight: { value: bounds.height },
     uCanopyRadius: { value: bounds.radius },
-    uSway: { value: GAME_CONFIG.TREES.SWAY },
     uInnerShade: { value: GAME_CONFIG.TREES.INNER_SHADE },
     uTopLight: { value: GAME_CONFIG.TREES.TOP_LIGHT },
     uLeafTranslucency: { value: GAME_CONFIG.TREES.TRANSLUCENCY },
@@ -141,14 +139,12 @@ export function createCanopyMaterials(source, bounds) {
 }
 
 /**
- * Passa os números de `GAME_CONFIG.TREES` para o material: balanço, volume
- * e o preenchimento da sombra.
+ * Passa os números de `GAME_CONFIG.TREES` para o material: volume e o
+ * preenchimento da sombra (o balanço é só o vento).
  */
 export function applyCanopyLook(material) {
-  const { SWAY, LEAF_FILL, INNER_SHADE, TOP_LIGHT, TRANSLUCENCY } =
-    GAME_CONFIG.TREES
+  const { LEAF_FILL, INNER_SHADE, TOP_LIGHT, TRANSLUCENCY } = GAME_CONFIG.TREES
   const uniforms = material.userData.canopyUniforms
-  uniforms.uSway.value = SWAY
   uniforms.uInnerShade.value = INNER_SHADE
   uniforms.uTopLight.value = TOP_LIGHT
   uniforms.uLeafTranslucency.value = TRANSLUCENCY

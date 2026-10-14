@@ -20,12 +20,10 @@ import { loadedFogRange } from '@/view/terrain/fogRange'
 import { resolveSkyLook } from '@/view/weather/skyLook'
 import { applyCanopyLook } from './canopyMaterial'
 import {
-  buildLogMeshes,
   buildRockMeshes,
   buildTreeMeshes,
   buildUndergrowthMeshes,
 } from './chunkMeshes'
-import { applyGrassLook } from './grassMaterial'
 import { disposeVegetationMesh, setShadowsEnabled } from './instancing'
 import { applyBarkLook, applyFoliageLook, applyRockLook } from './propMaterials'
 import {
@@ -33,7 +31,12 @@ import {
   materialsOfKind,
   useVegetationModels,
 } from './useVegetationModels'
-import { buildFlowerMeshes, buildGrassMesh } from './vegetationMeshes'
+import { applyToonLook } from './toonMaterial'
+import {
+  buildEncounterGrassMeshes,
+  buildFlowerMeshes,
+  buildGrassMeshes,
+} from './vegetationMeshes'
 import { tilesAround } from './vegetationScatter'
 import {
   getVegetationSettings,
@@ -46,33 +49,27 @@ import { vegetationUniforms } from './windShader'
 const NEW_TILES_PER_FRAME = 2
 
 /**
- * Monta e tira as malhas que `build` devolve: uma malha, `{ mesh,
- * sharedGeometry }` (a malha usa a geometria do modelo direto — não liberar
- * ela), uma lista delas ou `null`. `castShadows`: liga a sombra das que
+ * Monta e tira as malhas que `build` devolve: uma malha, uma lista delas
+ * ou `null`. `castShadows`: liga a sombra das que
  * podem fazer (`allowShadow`).
  */
 function MeshesOf({ build, castShadows = true }) {
   const built = useMemo(build, [build])
   const meshes = useMemo(
-    () =>
-      (Array.isArray(built) ? built : [built])
-        .filter(Boolean)
-        .map((item) => (item.isObject3D ? { mesh: item } : item)),
+    () => (Array.isArray(built) ? built : [built]).filter(Boolean),
     [built],
   )
   useEffect(
     () => () => {
-      for (const { mesh, sharedGeometry } of meshes) {
-        disposeVegetationMesh(mesh, { sharedGeometry })
-      }
+      for (const mesh of meshes) disposeVegetationMesh(mesh)
     },
     [meshes],
   )
   // Sombra pela distância: liga e desliga sem remontar.
   useEffect(() => {
-    for (const { mesh } of meshes) setShadowsEnabled(mesh, castShadows)
+    for (const mesh of meshes) setShadowsEnabled(mesh, castShadows)
   }, [meshes, castShadows])
-  return meshes.map(({ mesh }) => <primitive key={mesh.uuid} object={mesh} />)
+  return meshes.map((mesh) => <primitive key={mesh.uuid} object={mesh} />)
 }
 
 /**
@@ -97,16 +94,22 @@ function LodMeshesOf({ build, castShadows, lod, distanceOf }) {
 
 function GrassTile({ chunk, tile, models, showGrass, showFlowers }) {
   const buildGrass = useMemo(
-    () => () => buildGrassMesh(chunk, tile, models.grass),
+    () => () => buildGrassMeshes(chunk, tile, models),
     [chunk, tile, models],
   )
   const buildFlowers = useMemo(
-    () => () => buildFlowerMeshes(chunk, tile, models.kinds.flower),
+    () => () => buildFlowerMeshes(chunk, tile, models),
+    [chunk, tile, models],
+  )
+  // Mato alto do LGPE (só nos biomas com `encounter-grass`): vai com a grama.
+  const buildEncounterGrass = useMemo(
+    () => () => buildEncounterGrassMeshes(chunk, tile, models),
     [chunk, tile, models],
   )
   return (
     <>
       {showGrass && <MeshesOf build={buildGrass} />}
+      {showGrass && <MeshesOf build={buildEncounterGrass} />}
       {showFlowers && <MeshesOf build={buildFlowers} />}
     </>
   )
@@ -115,7 +118,7 @@ function GrassTile({ chunk, tile, models, showGrass, showFlowers }) {
 /**
  * A vegetação de um bloco de sólidos (`loadedBlocks` do conjunto de chunks,
  * `SOLIDS_BLOCK_SIZE` m — vários chunks, para não multiplicar as malhas):
- * árvores, troncos caídos e pedras (os do core) e o sub-bosque (arbustos,
+ * árvores e pedras (os do core) e o sub-bosque (arbustos,
  * samambaias, plantas, cogumelos, seixos), sorteados sobre o relevo do
  * bloco inteiro (`ground`). Pela distância da câmera
  * (`VEGETATION_QUALITY`): `showSolids` (até `treeDistance`), `showDetail`
@@ -144,12 +147,6 @@ function BlockVegetation({
       mushrooms: undergrowth('mushroom'),
       pebbles: undergrowth('pebble'),
       rocks: () => buildRockMeshes(chunk, options),
-      // O cilindro do tronco caído é um só para todos (não liberar).
-      logs: () =>
-        buildLogMeshes(chunk, options).map((mesh) => ({
-          mesh,
-          sharedGeometry: true,
-        })),
     }
   }, [chunk, models, castCanopyShadow])
 
@@ -178,10 +175,7 @@ function BlockVegetation({
         </>
       )}
       {settings.rocks && (
-        <>
-          <MeshesOf build={builds.rocks} castShadows={castShadows} />
-          <MeshesOf build={builds.logs} castShadows={castShadows} />
-        </>
+        <MeshesOf build={builds.rocks} castShadows={castShadows} />
       )}
     </>
   )
@@ -234,15 +228,15 @@ const chunkOfTile = (tile, { GRASS, TERRAIN }) => [
 ]
 
 /**
- * A vegetação do mundo (docs/features/049-vegetacao-e-floresta.md), no
- * estilo do stylized-scene:
+ * A vegetação do mundo (docs/features/049-vegetacao-e-floresta.md; a
+ * grama, do Let's Go, docs/features/052-assets-do-lgpe-e-floresta.md):
  *
  * - **grama e flores** em blocos de `GRASS.TILE_SIZE` m em volta da câmera
  *   até onde a névoa fecha (dali em diante não se vê nada — a grama não
  *   encolhe nem some antes), cada bloco montado quando entra no raio
  *   (poucos por quadro) e tirado quando sai;
  * - por **bloco de sólidos** carregado (`SOLIDS_BLOCK_SIZE` m, vários
- *   chunks): árvores, troncos caídos e pedras (os do core) e o sub-bosque
+ *   chunks): árvores e pedras (os do core) e o sub-bosque
  *   (arbustos, samambaias, plantas, cogumelos, seixos) — o que aparece e o
  *   que faz sombra pela distância do bloco da câmera
  *   (`VEGETATION_QUALITY`: `treeDistance`, `detailRing`, `shadowRing`);
@@ -269,7 +263,6 @@ export function VegetationView() {
         ...materialsOfKind(models.kinds, 'rock'),
         ...materialsOfKind(models.kinds, 'pebble'),
       ],
-      log: models.log.materials,
     }),
     [models],
   )
@@ -292,7 +285,8 @@ export function VegetationView() {
   const cameraBlockRef = useRef(cameraBlock)
 
   useFrame(({ camera }, delta) => {
-    updateUniforms(delta, models.grass.material, materials)
+    updateUniforms(delta, materials)
+    applyToonLook(models.lgpeMaterials)
     lod.update(camera.position)
 
     const { SOLIDS_BLOCK_SIZE } = GAME_CONFIG.TERRAIN
@@ -382,7 +376,7 @@ export function VegetationView() {
 
 // Vento e sol: uma vez por quadro, nos uniforms de todos; e os
 // números de material que o painel do debug mexe ao vivo.
-function updateUniforms(delta, grassMaterial, materials) {
+function updateUniforms(delta, materials) {
   const { WIND } = GAME_CONFIG
   const clock = world.get(WorldClock)
   const weather = world.get(LocalWeather)
@@ -401,12 +395,10 @@ function updateUniforms(delta, grassMaterial, materials) {
     uniforms.uSunGlow.value = look.shadowIntensity
   }
 
-  applyGrassLook(grassMaterial)
   // A cor antes do preenchimento da sombra (que segue a cor).
   for (const material of [...materials.canopy, ...materials.bark]) {
     applyPartColor(material)
   }
-  applyPartColor(materials.log[0])
   for (const material of materials.canopy) applyCanopyLook(material)
   for (const material of materials.foliage) applyFoliageLook(material)
   for (const material of materials.bark) applyBarkLook(material)

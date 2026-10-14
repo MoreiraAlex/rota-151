@@ -42,7 +42,7 @@ export function countLayers(hillSize) {
  * @typedef {object} TerrainRecipe
  * @property {object} terrain - forma de `GAME_CONFIG.TERRAIN`
  * @property {object} biomes - forma de `GAME_CONFIG.BIOMES`
- * @property {object} solids - `{ trees, logs, rocks, clearings }`: os
+ * @property {object} solids - `{ trees, rocks, clearings }`: os
  *   números dos objetos sólidos do chunk (`solidParams`,
  *   docs/features/049-vegetacao-e-floresta.md)
  * @property {object} trails - forma de `GAME_CONFIG.TRAILS` (core/terrain/

@@ -12,11 +12,15 @@ import { castRay } from './raycast'
 import { GAME_CONFIG } from '../gameConfig'
 import { createTerrainSampler } from '../terrain/terrainHeight'
 import { chunkHeightAt, generateTerrainChunk } from '../terrain/terrainChunk'
+import { listBiomes } from '../data/biomes'
 import {
+  ROCK_KIND,
   STANDING_TREE_KINDS,
+  rockBaseY,
   solidParams,
   trunkOf,
 } from '../vegetation/solidPlacement'
+import { lgpeColliderOf } from '../vegetation/solidModels'
 
 const OFFSET = GAME_CONFIG.PHYSICS.CHARACTER.CONTROLLER_OFFSET
 // Bulbasaur: deitada ao longo da frente (+Z local), 1 m de ponta a ponta.
@@ -143,7 +147,7 @@ describe('createTerrainChunkCollider — o colisor bate com o relevo do chunk', 
   })
 
   // docs/features/049-vegetacao-e-floresta.md
-  it('árvore, pedra e tronco caído bloqueiam e saem junto com o chunk', () => {
+  it('árvore e pedra bloqueiam e saem junto com o chunk', () => {
     // Chão plano: o raio de lado só pode acertar os objetos.
     const chunk = generateTerrainChunk(createTerrainSampler(5), 0, 0)
     chunk.heights.fill(0)
@@ -159,9 +163,7 @@ describe('createTerrainChunkCollider — o colisor bate com o relevo do chunk', 
       scale: 1,
     }))
     const rock = { ...at(0.7, 0.3), scale: 0.5 }
-    // Deitado ao longo do X (giro 0): o raio de lado (em Z) acerta.
-    const log = { ...at(0.5, 0.8), scale: 4 }
-    chunk.solids = { trees, rocks: [rock], logs: [log], footprints: [] }
+    chunk.solids = { trees, rocks: [rock], footprints: [] }
     const handle = createTerrainChunkCollider(chunk)
     stepPhysics()
 
@@ -176,7 +178,6 @@ describe('createTerrainChunkCollider — o colisor bate com o relevo do chunk', 
         trunkOf(tree, solidParams()).radius,
       ]),
       [fromSide(rock, 0.3), GAME_CONFIG.ROCKS.RADIUS * rock.scale],
-      [fromSide(log, GAME_CONFIG.LOGS.RADIUS * 0.7), GAME_CONFIG.LOGS.RADIUS],
     ]
     for (const [probe, radius] of probes) {
       const hit = probe()
@@ -187,6 +188,60 @@ describe('createTerrainChunkCollider — o colisor bate com o relevo do chunk', 
     destroyTerrainChunkCollider(handle)
     stepPhysics()
     for (const [probe] of probes) expect(probe()).toBeNull()
+  })
+})
+
+describe('colisor pelo modelo do LGPE', () => {
+  beforeEach(async () => {
+    await initPhysics()
+  })
+  afterEach(() => disposePhysics())
+
+  // Uma árvore e uma pedra de bioma com modelo do LGPE (tirados dos biomas).
+  const withModels = (kinds) =>
+    listBiomes().flatMap(({ id, vegetation }) =>
+      vegetation
+        .filter(({ kind, models }) => kinds.includes(kind) && models)
+        .map(({ kind }) => ({ kind, biome: id })),
+    )[0]
+
+  // docs/features/052-assets-do-lgpe-e-floresta.md
+  it('o tronco e a pedra colidem dentro do casco; ao lado do tronco, nada', () => {
+    const chunk = generateTerrainChunk(createTerrainSampler(5), 0, 0)
+    chunk.heights.fill(0)
+    const at = (fx, fz) => {
+      const x = chunk.minX + chunk.size * fx
+      const z = chunk.minZ + chunk.size * fz
+      return { x, y: chunkHeightAt(chunk, x, z), z, yaw: 1, variant: 0 }
+    }
+    const tree = {
+      ...at(0.3, 0.6),
+      ...withModels(STANDING_TREE_KINDS),
+      scale: 1.2,
+    }
+    const rock = { ...at(0.7, 0.3), ...withModels([ROCK_KIND]), scale: 1.5 }
+    expect(lgpeColliderOf(tree)).not.toBeNull()
+    expect(lgpeColliderOf(rock)).not.toBeNull()
+    chunk.solids = { trees: [tree], rocks: [rock], footprints: [] }
+    createTerrainChunkCollider(chunk)
+    stepPhysics()
+
+    const reach = 10
+    const ray = ({ x, z }, y, side = 0) =>
+      castRay({ x: x + side, y, z: z - reach }, { x: 0, y: 0, z: 1 }, reach)
+    for (const [solid, y] of [
+      [tree, tree.y + 0.1],
+      [rock, rockBaseY(rock) + 0.1],
+    ]) {
+      const hit = ray(solid, y)
+      expect(hit).not.toBeNull()
+      expect(reach - hit.distance).toBeLessThanOrEqual(
+        lgpeColliderOf(solid).reach * solid.scale + 1e-3,
+      )
+    }
+    // Ao lado do tronco, na altura da copa: passa.
+    const side = lgpeColliderOf(tree).reach * tree.scale + 0.05
+    expect(ray(tree, tree.y + 2, side)).toBeNull()
   })
 })
 

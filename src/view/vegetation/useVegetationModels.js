@@ -1,25 +1,32 @@
 import { useEffect, useMemo } from 'react'
 import { useGLTF, useTexture } from '@react-three/drei'
+import { useLoader } from '@react-three/fiber'
 import * as THREE from 'three'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import { createCanopyMaterials } from './canopyMaterial'
-import { bladePivotsOf } from './grassBlades'
-import { createGrassMaterial } from './grassMaterial'
 import { releaseGeometry, shareGeometry } from './instancing'
+import {
+  LGPE_MANIFEST_PATH,
+  buildLgpeModels,
+  lgpePropPath,
+  lgpeTextureNames,
+  lgpeTexturePath,
+  prepareLgpeTexture,
+  usedLgpeIds,
+} from './lgpeModels'
 import {
   createBarkMaterial,
   createFoliageMaterial,
   createMossyRockMaterial,
 } from './propMaterials'
 import {
-  BARK_TEXTURE_PATH,
-  GRASS_BLADES_PATH,
   PART_COLORS,
   PART_KINDS,
   SHARED_TEXTURES,
   VEGETATION_MODELS,
   megakitPath,
 } from './vegetationAssets'
+import { withSeeThrough } from '@/view/materials/seeThrough'
 
 /**
  * Modelos e materiais da vegetação (docs/features/049-vegetacao-e-
@@ -41,14 +48,9 @@ import {
 
 export const MODEL_NAMES = [...new Set(Object.values(VEGETATION_MODELS).flat())]
 export const MODEL_PATHS = MODEL_NAMES.map(megakitPath)
-
-const firstMesh = (scene) => {
-  let found = null
-  scene.traverse((object) => {
-    if (!found && object.isMesh) found = object
-  })
-  return found
-}
+// Os modelos do LGPE que os biomas usam (`models` das entradas).
+const LGPE_IDS = usedLgpeIds()
+const LGPE_PATHS = LGPE_IDS.map(lgpePropPath)
 
 const meshesOf = (scene) => {
   const meshes = []
@@ -157,6 +159,8 @@ function buildPart(mesh, { sharedMaps, disposables }) {
   }
   // Tinta lida a cada quadro (`applyPartColor`).
   part.material.userData.colorFrom = PART_COLORS[source.name]
+  // Entre a câmera e o alvo, some em pontilhado (a sombra, `depth`, não).
+  withSeeThrough(part.material)
   return part
 }
 
@@ -205,15 +209,6 @@ function buildFarModel(model, disposables) {
   }
 }
 
-/** A grama (o tufo do stylized-scene) e o material dela. */
-export function buildGrassModel(bladeScene) {
-  const { geometry } = firstMesh(bladeScene)
-  geometry.setAttribute('aBlade', bladePivotsOf(geometry))
-  const bladeHeight = boundsOf(geometry).box.max.y
-  const material = createGrassMaterial(bladeHeight)
-  return { geometry, bladeHeight, material, disposables: [material] }
-}
-
 /**
  * Os modelos do MegaKit por tipo (`VEGETATION_MODELS`), de `scenes` na
  * ordem de `MODEL_PATHS`.
@@ -244,47 +239,49 @@ export function buildVegetationModels(scenes) {
 }
 
 /**
- * Tronco caído: cilindro deitado ao longo do X (comprimento e raio vêm da
- * escala da instância), casca nos lados e madeira nas pontas.
+ * Os modelos do LGPE (docs/features/052-assets-do-lgpe-e-floresta.md) que
+ * os biomas usam: o manifesto, os `.glb` e as texturas deles, montados
+ * com o material toon (`lgpeModels.js`).
  */
-export function buildLogModel(bark) {
-  bark.colorSpace = THREE.SRGBColorSpace
-  bark.wrapS = THREE.RepeatWrapping
-  bark.wrapT = THREE.RepeatWrapping
-  bark.repeat.set(2, 2)
-  bark.needsUpdate = true
-  const geometry = new THREE.CylinderGeometry(1, 1, 1, 12, 1).rotateZ(
-    -Math.PI / 2,
-  )
-  const side = new THREE.MeshLambertMaterial({ map: bark })
-  side.userData.colorFrom = PART_COLORS.Bark_Broadleaf
-  const ends = new THREE.MeshLambertMaterial({
-    color: GAME_CONFIG.LOGS.WOOD_COLOR,
-  })
-  // Grupos do cilindro: lado, topo, base.
-  const materials = [side, ends, ends]
-  return { geometry, materials, disposables: [geometry, side, ends] }
+function useLgpeModels() {
+  const manifestText = useLoader(THREE.FileLoader, LGPE_MANIFEST_PATH)
+  const manifest = useMemo(() => JSON.parse(manifestText), [manifestText])
+  const gltfs = useGLTF(LGPE_PATHS)
+  const names = useMemo(() => lgpeTextureNames(manifest, LGPE_IDS), [manifest])
+  const textures = useTexture(names.map(lgpeTexturePath))
+  return useOwned(() => {
+    const byName = new Map(
+      names.map((name, index) => [name, prepareLgpeTexture(textures[index])]),
+    )
+    return buildLgpeModels(
+      manifest,
+      Object.fromEntries(LGPE_IDS.map((id, index) => [id, gltfs[index].scene])),
+      (name) => byName.get(name) ?? null,
+    )
+  }, [manifest, gltfs, textures])
 }
 
 /**
- * @returns {{ grass: object, kinds: Record<string, VegetationModel[]>,
- *   log: object }}
+ * @returns {{ kinds: Record<string, VegetationModel[]>,
+ *   lgpe: Record<string, VegetationModel>,
+ *   lgpeMaterials: THREE.Material[] }}
  */
 export function useVegetationModels() {
-  const { scene: bladeScene } = useGLTF(GRASS_BLADES_PATH)
   const scenes = useGLTF(MODEL_PATHS).map(({ scene }) => scene)
-  const bark = useTexture(BARK_TEXTURE_PATH)
 
-  const grass = useOwned(() => buildGrassModel(bladeScene), [bladeScene])
   const models = useOwned(() => buildVegetationModels(scenes), scenes)
-  const log = useOwned(() => buildLogModel(bark), [bark])
+  const lgpe = useLgpeModels()
 
   // O mesmo objeto enquanto os modelos não mudam: as malhas de grama e de
   // chunk dependem dele, e um objeto novo a cada render remontava a
   // vegetação inteira a cada bloco de grama ou chunk que entrava.
   return useMemo(
-    () => ({ grass, kinds: models.kinds, log }),
-    [grass, models, log],
+    () => ({
+      kinds: models.kinds,
+      lgpe: lgpe.models,
+      lgpeMaterials: lgpe.materials,
+    }),
+    [models, lgpe],
   )
 }
 
@@ -303,5 +300,5 @@ export function materialsOfKind(kinds, partKind) {
     .map((part) => part.material)
 }
 
-useGLTF.preload(GRASS_BLADES_PATH)
 useGLTF.preload(MODEL_PATHS)
+useGLTF.preload(LGPE_PATHS)

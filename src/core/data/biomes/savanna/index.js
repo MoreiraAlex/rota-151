@@ -28,7 +28,6 @@ export const SAVANNA = {
     highHeight: 8,
     slope: '#8a6e4a',
     trail: '#b0905e',
-    debug: '#d9b44a',
   },
   // Desenho do chão (camadas de view/terrain/terrainLayers.js).
   // A terra rachada (`dry-ground`) lia como deserto: o chão é o de campo,
@@ -76,12 +75,8 @@ export const SAVANNA = {
         backgroundHeight: 0.6,
         clearingPreference: 0,
       },
-      colors: {
-        root: '#8a8a3c',
-        tip: '#d8c46a',
-        rootB: '#9a7f3a',
-        tipB: '#e6d48a',
-      },
+      models: ['grass-low', 'grass-clump'],
+      colors: { a: '#ffe9a0', b: '#fff0b8' },
     },
   ],
   tags: ['grassland', 'hot', 'dry'],

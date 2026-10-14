@@ -151,9 +151,9 @@ export function scatterTile(chunk, { tileX, tileZ, tileSize, ...options }) {
 
 /**
  * Cores da grama em `(x, z)`: as de cada bioma (`colorsByBiome`, na ordem
- * de `chunk.biomeIds`; 12 números — raiz, ponta, raiz B e ponta B, RGB)
- * misturadas pelo quanto de grama cada um põe ali (peso × densidade). Grava
- * em `out` a partir de `offset`.
+ * de `chunk.biomeIds`; listas do mesmo tamanho, ex.: as cores `a` e `b` em
+ * RGB) misturadas pelo quanto de grama cada um põe ali (peso ×
+ * densidade). Grava em `out` a partir de `offset`.
  */
 export function blendGrassColors(
   chunk,
@@ -164,27 +164,28 @@ export function blendGrassColors(
   out,
   offset,
 ) {
+  const size = colorsByBiome.find(Boolean)?.length ?? 0
   const count = chunk.biomeIds.length
   const step = chunk.size / chunk.resolution
   const ix = Math.round((x - chunk.minX) / step)
   const iz = Math.round((z - chunk.minZ) / step)
   const base = heightIndex(chunk.resolution, ix, iz) * count
   let total = 0
-  for (let k = 0; k < 12; k++) out[offset + k] = 0
+  for (let k = 0; k < size; k++) out[offset + k] = 0
   for (let biome = 0; biome < count; biome++) {
     const colors = colorsByBiome[biome]
     if (!colors) continue
     const weight = (chunk.biomeWeights[base + biome] / 255) * densities[biome]
     if (weight <= 0) continue
     total += weight
-    for (let k = 0; k < 12; k++) out[offset + k] += colors[k] * weight
+    for (let k = 0; k < size; k++) out[offset + k] += colors[k] * weight
   }
   if (total === 0) {
     // Vértice sem grama (a grama nasceu pela densidade dos vizinhos): a do
     // primeiro bioma do chunk que tem grama.
     const fallback = colorsByBiome.find(Boolean)
-    for (let k = 0; k < 12; k++) out[offset + k] = fallback?.[k] ?? 0
+    for (let k = 0; k < size; k++) out[offset + k] = fallback?.[k] ?? 0
     return
   }
-  for (let k = 0; k < 12; k++) out[offset + k] /= total
+  for (let k = 0; k < size; k++) out[offset + k] /= total
 }

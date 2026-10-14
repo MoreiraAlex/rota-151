@@ -27,7 +27,6 @@ export const DESERT = {
     high: '#e0bd7c',
     highHeight: 8,
     slope: '#b8915c',
-    debug: '#f0c060',
   },
   // Desenho do chão (camadas de view/terrain/terrainLayers.js).
   ground: {

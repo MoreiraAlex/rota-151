@@ -53,6 +53,7 @@ import { syncPhysicsSystem } from '@/core/systems/syncPhysicsSystem'
 import { animationStateSystem } from '@/core/systems/animationStateSystem'
 import { syncTransformSystem } from '@/view/systems/syncTransformSystem'
 import { cameraFollowSystem } from '@/view/systems/cameraFollowSystem'
+import { seeThroughSystem } from '@/view/systems/seeThroughSystem'
 import { animationSystem } from '@/view/systems/animationSystem'
 import { hitStopSystem } from '@/view/systems/hitStopSystem'
 import { heldItemViewSystem } from '@/view/systems/heldItemViewSystem'
@@ -274,6 +275,8 @@ export function registerGameSystems() {
 
   registerSystem(GAME_PHASES.PRESENTATION, syncTransformSystem)
   registerSystem(GAME_PHASES.PRESENTATION, cameraFollowSystem)
+  // O que fica entre a câmera (já no lugar) e o alvo some em pontilhado.
+  registerSystem(GAME_PHASES.PRESENTATION, seeThroughSystem)
   // Antes da animação: o acerto deste frame já congela o clipe agora.
   registerSystem(GAME_PHASES.PRESENTATION, hitStopSystem)
   registerSystem(GAME_PHASES.PRESENTATION, animationSystem)

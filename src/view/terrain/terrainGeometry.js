@@ -2,8 +2,12 @@ import * as THREE from 'three'
 import { getBiome } from '@/core/data/biomes'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import { heightIndex } from '@/core/terrain/terrainChunk'
-import { TERRAIN_COLOR_MODES } from './terrainColorMode'
-import { MAX_TERRAIN_LAYERS, terrainLayerIndex } from './terrainLayers'
+import { clearingNoiseAt, opennessOf } from '@/core/vegetation/clearings'
+import {
+  MAX_TERRAIN_LAYERS,
+  terrainColorLayerIndex,
+  terrainLayerIndex,
+} from './terrainLayers'
 
 // Uma `THREE.Color` por cor de paleta (as paletas não mudam em jogo).
 const parsedColors = new Map()
@@ -52,17 +56,9 @@ const biomeColor = new THREE.Color()
 
 /**
  * Cor de um vértice misturando a de cada bioma pelo peso dele no vértice
- * (`biomeWeights` do chunk) — a fronteira não tem recorte. No modo
- * `biome` (debug, F2), a cor chapada de cada bioma (`palette.debug`).
+ * (`biomeWeights` do chunk) — a fronteira não tem recorte.
  */
-function vertexColor(
-  chunk,
-  vertexIndex,
-  heightAboveWater,
-  normalY,
-  mode,
-  target,
-) {
+function vertexColor(chunk, vertexIndex, heightAboveWater, normalY, target) {
   const { biomeIds, biomeWeights } = chunk
   const first = vertexIndex * biomeIds.length
   // Os pesos guardados são arredondados: normaliza pela soma deles.
@@ -75,12 +71,12 @@ function vertexColor(
   for (let biome = 0; biome < biomeIds.length; biome++) {
     const weight = biomeWeights[first + biome] / total
     if (weight === 0) continue
-    const { palette } = getBiome(biomeIds[biome])
-    if (mode === TERRAIN_COLOR_MODES.biome) {
-      color.copy(colorOf(palette.debug))
-    } else {
-      terrainColorAt(palette, heightAboveWater, normalY, color)
-    }
+    terrainColorAt(
+      getBiome(biomeIds[biome]).palette,
+      heightAboveWater,
+      normalY,
+      color,
+    )
     target.r += color.r * weight
     target.g += color.g * weight
     target.b += color.b * weight
@@ -168,6 +164,57 @@ export function addGroundLayers(
 }
 
 /**
+ * Soma em `colorWeights` (um peso por camada de cor, `TERRAIN_COLOR_LAYERS`)
+ * as camadas de COR de um bioma com `ground.colors`
+ * (docs/features/052-assets-do-lgpe-e-floresta.md), vezes `weight`: a base
+ * (`base`), o chão de mata onde é fechado (`shade`, pelas clareiras do
+ * bioma — `shade` de 0 a 1), a margem (`shore`), a trilha (`trail`, pela
+ * força dela), o alto (`high`, como a cor vai de `low` a `high`), a
+ * encosta (`slope`) e o pico (`peak`). Cada papel cobre os de antes pela
+ * força dele; papel sem camada no bioma fica de fora.
+ */
+export function addColorLayers(
+  biome,
+  { heightAboveWater, normalY, shade, trail },
+  weight,
+  colorWeights,
+) {
+  const { palette, ground } = biome
+  const colors = ground.colors
+  const { SHORE_HEIGHT, SLOPE_START, SLOPE_FULL } = GAME_CONFIG.TERRAIN_COLOR
+  const roles = [
+    ['shade', shade],
+    ['high', smoothstep(SHORE_HEIGHT, palette.highHeight, heightAboveWater)],
+    [
+      'shore',
+      1 - smoothstep(SHORE_HEIGHT * 0.5, SHORE_HEIGHT * 1.5, heightAboveWater),
+    ],
+    ['trail', trail],
+    ['slope', smoothstep(SLOPE_START, SLOPE_FULL, normalY)],
+    [
+      'peak',
+      palette.peak
+        ? smoothstep(
+            palette.peakHeight,
+            palette.peakHeight + SHORE_HEIGHT * 4,
+            heightAboveWater,
+          )
+        : 0,
+    ],
+  ]
+  const shares = new Map([[colors.base, 1]])
+  for (const [role, strength] of roles) {
+    const layer = colors[role]
+    if (!layer || strength <= 0) continue
+    for (const [name, share] of shares) shares.set(name, share * (1 - strength))
+    shares.set(layer, (shares.get(layer) ?? 0) + strength)
+  }
+  for (const [layer, share] of shares) {
+    colorWeights[terrainColorLayerIndex(layer)] += weight * share
+  }
+}
+
+/**
  * Atributos do desenho do chão por vértice (terrainMaterial.js): o peso de
  * cada camada (`groundLayers0`/`groundLayers1`, quatro em cada) e a força
  * do desenho (`groundDetail`, o `ground.detail` dos biomas pelo peso).
@@ -179,6 +226,13 @@ function groundAttributes(chunk, side, vertex, positions, normals, waterLevel) {
   const layers1 = new Float32Array(side * side * 4)
   const detail = new Float32Array(side * side)
   const layerWeights = new Float32Array(MAX_TERRAIN_LAYERS)
+  // Cor por textura (biomas com `ground.colors`): os pesos das camadas de
+  // cor e o quanto do vértice é desses biomas.
+  const colors0 = new Float32Array(side * side * 4)
+  const colors1 = new Float32Array(side * side * 4)
+  const textureShare = new Float32Array(side * side)
+  const colorWeights = new Float32Array(MAX_TERRAIN_LAYERS)
+  const hasColors = biomes.some(({ ground }) => ground.colors)
 
   for (let ix = 0; ix < side; ix++) {
     for (let iz = 0; iz < side; iz++) {
@@ -189,9 +243,36 @@ function groundAttributes(chunk, side, vertex, positions, normals, waterLevel) {
         total += biomeWeights[first + biome]
       }
       layerWeights.fill(0)
+      colorWeights.fill(0)
+      const heightAboveWater = positions[i * 3 + 1] - waterLevel
+      const strength = chunk.trails?.[heightIndex(resolution, ix, iz)] ?? 0
+      const noise = hasColors
+        ? clearingNoiseAt(
+            chunk.vegetationSeed ?? 0,
+            positions[i * 3],
+            positions[i * 3 + 2],
+          )
+        : 0
       for (let biome = 0; biome < biomeIds.length; biome++) {
         const weight = biomeWeights[first + biome] / total
         if (weight === 0) continue
+        const { ground, clearings, trails } = biomes[biome]
+        if (ground.colors) {
+          const amount = clearings?.amount ?? 0
+          addColorLayers(
+            biomes[biome],
+            {
+              heightAboveWater,
+              normalY: normals.getY(i),
+              shade: amount > 0 ? 1 - opennessOf(noise, amount) : 0,
+              trail: trails ? strength : 0,
+            },
+            weight,
+            colorWeights,
+          )
+          textureShare[i] += weight
+          continue
+        }
         addGroundLayers(
           biomes[biome],
           positions[i * 3 + 1] - waterLevel,
@@ -203,22 +284,27 @@ function groundAttributes(chunk, side, vertex, positions, normals, waterLevel) {
       }
       const trail = trailShareAt(chunk, biomes, heightIndex(resolution, ix, iz))
       if (trail) {
-        // A trilha troca o desenho do chão pela textura dela.
+        // A trilha troca o desenho do chão pela textura dela — só nos
+        // biomas sem cor por textura (nos outros ela é um papel da cor).
+        const share = trail.strength * (1 - textureShare[i])
         for (let layer = 0; layer < MAX_TERRAIN_LAYERS; layer++) {
-          layerWeights[layer] *= 1 - trail.strength
+          layerWeights[layer] *= 1 - share
         }
         biomes.forEach(({ ground }, index) => {
+          if (ground.colors) return
           const layer = terrainLayerIndex(ground.trailTexture ?? ground.texture)
           layerWeights[layer] += trail.strength * trail.shares[index]
         })
         // A terra batida tem mais marca que o chão em volta.
-        detail[i] += (GAME_CONFIG.TRAILS.DETAIL - detail[i]) * trail.strength
+        detail[i] += (GAME_CONFIG.TRAILS.DETAIL - detail[i]) * share
       }
       layers0.set(layerWeights.subarray(0, 4), i * 4)
       layers1.set(layerWeights.subarray(4, 8), i * 4)
+      colors0.set(colorWeights.subarray(0, 4), i * 4)
+      colors1.set(colorWeights.subarray(4, 8), i * 4)
     }
   }
-  return { layers0, layers1, detail }
+  return { layers0, layers1, detail, colors0, colors1, textureShare }
 }
 
 /**
@@ -226,15 +312,11 @@ function groundAttributes(chunk, side, vertex, positions, normals, waterLevel) {
  * coordenadas de mundo, com a MESMA triangulação do colisor heightfield:
  * cada célula corta na diagonal do canto `+x,-z` ao `-x,+z` — o que se vê é
  * o que se pisa. Cor por vértice pelos biomas (`vertexColor`) e pela
- * trilha (`chunk.trails`); `mode` é um de `TERRAIN_COLOR_MODES`. Os atributos `groundLayers0/1` e
+ * trilha (`chunk.trails`). Os atributos `groundLayers0/1` e
  * `groundDetail` são o desenho do chão (`groundAttributes`,
  * terrainMaterial.js). Quem cria é dono do `dispose()` (regra 5.3).
  */
-export function buildTerrainChunkGeometry(
-  chunk,
-  waterLevel,
-  mode = TERRAIN_COLOR_MODES.natural,
-) {
+export function buildTerrainChunkGeometry(chunk, waterLevel) {
   const { resolution, heights, minX, minZ } = chunk
   const side = resolution + 1
   const step = chunk.size / resolution
@@ -278,12 +360,9 @@ export function buildTerrainChunkGeometry(
         heightIndex(resolution, ix, iz),
         positions[i * 3 + 1] - waterLevel,
         normals.getY(i),
-        mode,
         color,
       )
-      const trail =
-        mode === TERRAIN_COLOR_MODES.natural &&
-        trailShareAt(chunk, biomes, heightIndex(resolution, ix, iz))
+      const trail = trailShareAt(chunk, biomes, heightIndex(resolution, ix, iz))
       if (trail) applyTrailColor(trail, biomes, color)
       colors[i * 3] = color.r
       colors[i * 3 + 1] = color.g
@@ -310,6 +389,18 @@ export function buildTerrainChunkGeometry(
   geometry.setAttribute(
     'groundDetail',
     new THREE.BufferAttribute(ground.detail, 1),
+  )
+  geometry.setAttribute(
+    'groundColors0',
+    new THREE.BufferAttribute(ground.colors0, 4),
+  )
+  geometry.setAttribute(
+    'groundColors1',
+    new THREE.BufferAttribute(ground.colors1, 4),
+  )
+  geometry.setAttribute(
+    'groundTextureShare',
+    new THREE.BufferAttribute(ground.textureShare, 1),
   )
   geometry.computeBoundingSphere()
 

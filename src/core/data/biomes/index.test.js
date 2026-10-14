@@ -4,7 +4,7 @@ import { WEATHER_TYPES } from '../../weather/weatherMap'
 import { BIOME_REGISTRY, getBiome, listBiomes } from '.'
 
 const HEX_COLOR = /^#[0-9a-f]{6}$/i
-const PALETTE_COLORS = ['bed', 'shore', 'low', 'high', 'slope', 'debug']
+const PALETTE_COLORS = ['bed', 'shore', 'low', 'high', 'slope']
 const RELIEF_FIELDS = [
   'baseHeight',
   'hillHeight',
@@ -69,8 +69,9 @@ describe('registro de biomas', () => {
       expect(vegetation.length).toBeGreaterThan(0)
       for (const { kind, density } of vegetation) {
         expect(kind).toEqual(expect.any(String))
+        // Acima de 1 vale: o tipo enche mais (a chance satura).
+        expect(Number.isFinite(density)).toBe(true)
         expect(density).toBeGreaterThanOrEqual(0)
-        expect(density).toBeLessThanOrEqual(1)
       }
       expect(tags.length).toBeGreaterThan(0)
       for (const tag of tags) expect(tag).toEqual(expect.any(String))
@@ -157,11 +158,11 @@ describe('registro de biomas', () => {
   )
 
   it.each(listBiomes())(
-    '$id: grama com as quatro cores (docs/features/049-*.md)',
+    '$id: grama com as duas cores (docs/features/052-*.md)',
     ({ vegetation }) => {
       const grass = vegetation.filter(({ kind }) => kind === 'tall-grass')
       for (const { colors } of grass) {
-        for (const key of ['root', 'tip', 'rootB', 'tipB']) {
+        for (const key of ['a', 'b']) {
           expect(colors[key]).toMatch(HEX_COLOR)
         }
       }

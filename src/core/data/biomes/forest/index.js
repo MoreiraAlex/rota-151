@@ -20,73 +20,117 @@ export const FOREST = {
     roughness: 0.25,
     flatness: 1.2,
   },
+  // A paleta casa com as texturas do Let's Go (a média delas): é a cor do
+  // relevo distante — de perto, a cor vem das texturas (`ground.colors`).
   palette: {
-    bed: '#5a4a32',
-    // Margem e trilha da mesma terra (a margem, um pouco mais clara).
-    shore: '#8f7c5a',
-    // O chão na família da grama: o mesmo verde amarelado, mais escuro.
-    low: '#5b8137',
-    high: '#4b6f2f',
+    bed: '#6b5a3a',
+    shore: '#c99c5a',
+    // A mata fechada (a maior parte) puxa para o chão de mata, escuro.
+    low: '#2c7438',
+    high: '#286a33',
     highHeight: 10,
-    slope: '#75684e',
-    trail: '#7d6a4c',
-    debug: '#2e7d32',
+    slope: '#4a7c2b',
+    trail: '#c39549',
   },
-  // Desenho do chão (camadas de view/terrain/terrainLayers.js).
+  // Desenho do chão (camadas de view/terrain/terrainLayers.js). `colors`:
+  // a cor vem das texturas do Let's Go — grama nas clareiras, chão de mata
+  // onde é fechado, terra na trilha e na margem, pedra com musgo na
+  // encosta (docs/features/052-assets-do-lgpe-e-floresta.md).
   ground: {
     texture: 'forest-floor',
     slopeTexture: 'rock',
     shoreTexture: 'sand',
     trailTexture: 'sand',
     detail: 0.7,
+    colors: {
+      base: 'lgpe-grass',
+      shade: 'lgpe-grass-bright',
+      trail: 'lgpe-soil-dark',
+      shore: 'lgpe-soil',
+      slope: 'lgpe-soil',
+    },
   },
   // Trilhas de terra batida cortando a mata (core/terrain/trails.js).
   trails: true,
-  // Mata fechada com clareiras, em camadas: árvores antigas espalhadas (a
-  // copa alta), folhosas, bosques de pinheiros e uma ou outra árvore morta;
-  // por baixo, arbustos, tapetes de samambaia, plantas de folha larga e
-  // rodas de cogumelos (`patches`). Tudo isso rareia nas clareiras, onde
-  // ficam as flores e a maioria dos conjuntos de grama (`clusters`).
+  // Mata fechada com clareiras, em camadas, com os modelos do Pokémon Let's
+  // Go (`models`, docs/features/052-assets-do-lgpe-e-floresta.md): árvores
+  // redondas grandes espalhadas (a copa alta), redondas comuns, bosques de
+  // pinheiros de Viridian e uma ou outra árvore jovem; por baixo,
+  // samambaias, moitas redondas, trevos e tufos (`patches`). Tudo isso
+  // rareia nas clareiras, onde ficam as flores e a maioria dos conjuntos de
+  // grama (`clusters`) — com o mato alto do Let's Go no miolo deles.
   clearings: { amount: 0.3 },
   vegetation: [
-    { kind: 'ancient-tree', density: 0.55, place: 'shade' },
+    {
+      kind: 'ancient-tree',
+      density: 0.55,
+      place: 'shade',
+      scale: 1.45,
+      models: ['round-tree-d'],
+    },
     {
       kind: 'pine-tree',
       density: 0.7,
       place: 'shade',
       patches: { amount: 0.3, size: 50 },
+      scale: 1.1,
+      models: ['pine-viridian'],
     },
-    { kind: 'broadleaf-tree', density: 0.7, place: 'shade' },
-    { kind: 'dead-tree', density: 0.2, place: 'shade' },
+    {
+      kind: 'broadleaf-tree',
+      density: 0.7,
+      place: 'shade',
+      scale: 1.2,
+      models: ['round-tree', 'round-tree-b', 'round-tree-c'],
+    },
+    {
+      kind: 'dead-tree',
+      density: 0.2,
+      place: 'shade',
+      models: ['young-tree'],
+    },
     {
       kind: 'bush',
       density: 0.6,
       place: 'shade',
       patches: { amount: 0.55, size: 16 },
+      models: ['fern', 'round-bush'],
     },
     {
       kind: 'fern',
       density: 0.9,
       place: 'shade',
       patches: { amount: 0.4, size: 14 },
+      models: ['fern-loose', 'clover-large'],
     },
     {
       kind: 'leafy-plant',
       density: 0.8,
       place: 'shade',
       patches: { amount: 0.3, size: 10 },
+      models: ['clover', 'tuft'],
     },
+    // Pedrinhas soltas na terra batida das trilhas.
     {
-      kind: 'mushroom',
-      density: 0.9,
-      place: 'shade',
-      patches: { amount: 0.2, size: 5 },
+      kind: 'pebble',
+      density: 0.8,
+      place: 'trail',
+      scale: 0.5,
+      models: ['rock-small'],
     },
-    { kind: 'fallen-log', density: 0.4, place: 'shade' },
-    // Seixos soltos na terra batida das trilhas.
-    { kind: 'pebble', density: 0.8, place: 'trail' },
-    { kind: 'rock', density: 0.25, moss: 0.8 },
-    { kind: 'flower', density: 0.35, place: 'clearing' },
+    { kind: 'rock', density: 2, scale: 1.8, models: ['rock-large'] },
+    {
+      kind: 'flower',
+      density: 0.5,
+      place: 'clearing',
+      models: ['flower-white', 'flower-yellow', 'flower-forest'],
+    },
+    // O mato alto do Let's Go, no miolo dos conjuntos de grama.
+    {
+      kind: 'encounter-grass',
+      density: 1,
+      models: ['tall-grass', 'tall-grass-2'],
+    },
     // Grama em conjuntos (o mato alto, core/vegetation/grassClusters.js):
     // manchas fechadas, a maioria nas clareiras, com grama baixa e rala
     // entre elas — o chão da mata fica para samambaias, arbustos e
@@ -109,12 +153,8 @@ export const FOREST = {
         backgroundHeight: 0.55,
         clearingPreference: 0.5,
       },
-      colors: {
-        root: '#3f7a3a',
-        tip: '#7fae3c',
-        rootB: '#4d8a2c',
-        tipB: '#a8c64a',
-      },
+      models: ['tall-grass', 'tall-grass-2'],
+      colors: { a: '#ffffff', b: '#f2f5d8' },
     },
   ],
   tags: ['forest', 'temperate', 'humid'],

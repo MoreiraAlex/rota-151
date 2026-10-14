@@ -38,6 +38,7 @@ import { ActionTimerRingView } from './ActionTimerRingView'
 import { CreaturesView, WildCreaturesView } from './CreatureView'
 import { NameplatesView } from './NameplateView'
 import { DamageNumbersView } from './DamageNumbersView'
+import { withSeeThrough } from '@/view/materials/seeThrough'
 
 function obstacleRotation(rotation) {
   if (!rotation) return [0, 0, 0]
@@ -81,7 +82,7 @@ function TestLevelView() {
       {GAME_CONFIG.FAR_TERRAIN.ENABLED && <FarTerrainView />}
       {/* Grama, flores e árvores (049). */}
       <VegetationView />
-      {/* Superfície da água, só visual (049; a de verdade é da 056). */}
+      {/* Superfície da água, só visual (049; a de verdade é da 060). */}
       <WaterView />
 
       {obstacles.map((obstacle) => (
@@ -94,6 +95,7 @@ function TestLevelView() {
         >
           <boxGeometry args={obstacle.size} />
           <meshStandardMaterial
+            ref={(material) => material && withSeeThrough(material)}
             color={
               TRAINING_OBJECT_COLOR[obstacle.trainingKind] ??
               OBSTACLE_COLOR[obstacle.type] ??

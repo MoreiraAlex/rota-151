@@ -34,8 +34,8 @@ export const GAME_CONFIG = {
   // (docs/features/047-biomas.md).
   TERRAIN: {
     // Identifica a receita do relevo; subir quando a geração mudar.
-    GENERATION_VERSION: 11,
-    // Altura (m) da superfície da água: o que fica abaixo vira lago na 056.
+    GENERATION_VERSION: 12,
+    // Altura (m) da superfície da água: o que fica abaixo vira lago na 060.
     // O relevo dos biomas é medido a partir dela (`relief.baseHeight`).
     WATER_LEVEL: -2,
     // Lado (m) de um chunk — sempre um vértice por metro (o do Minecraft).
@@ -122,6 +122,9 @@ export const GAME_CONFIG = {
   TERRAIN_LOOK: {
     // Tamanho (m) de uma repetição da textura no chão.
     TEXTURE_SIZE: 4,
+    // Tamanho (m) de uma repetição das texturas de cor (as do Let's Go, nos
+    // biomas com `ground.colors` — docs/features/052-*.md).
+    COLOR_TEXTURE_SIZE: 6,
     // Força do relevo de luz do mapa de normal (0 = liso).
     NORMAL_STRENGTH: 0.8,
     // Quanto do claro e escuro da textura entra, para todos os biomas (vezes
@@ -169,7 +172,7 @@ export const GAME_CONFIG = {
   },
   // Água (view/water/, docs/features/049-vegetacao-e-floresta.md): só a
   // superfície no `TERRAIN.WATER_LEVEL`, onde o chão fica abaixo dela — sem
-  // nadar nem colidir (a água de verdade é da 056).
+  // nadar nem colidir (a água de verdade é da 060).
   WATER: {
     // Cor na margem e no fundo; profundidade (m) em que a cor é a do fundo.
     SHALLOW_COLOR: '#4fa7a0',
@@ -1181,8 +1184,9 @@ export const GAME_CONFIG = {
     SHOULDER_OFFSET: 0.4,
     // Colisão da câmera orbital (docs/backlog.md → "Câmera orbital com
     // colisão"): raycast do alvo até a posição desejada da câmera; batendo
-    // em algo antes de `orbit.distance`, a câmera aproxima pra logo antes
-    // do ponto de impacto em vez de atravessar. COLLISION_MARGIN é a folga
+    // no CHÃO (relevo, montanhas incluídas — o resto fica translúcido,
+    // `SEE_THROUGH`) antes de `orbit.distance`, a câmera aproxima pra logo
+    // antes do ponto de impacto em vez de atravessar. COLLISION_MARGIN é a folga
     // (m) mantida antes da superfície (senão a câmera encostaria bem em
     // cima dela). MIN_DISTANCE_AFTER_COLLISION é o piso de quão perto do
     // alvo a colisão pode empurrar a câmera — independente de MIN_DISTANCE
@@ -1190,6 +1194,21 @@ export const GAME_CONFIG = {
     // precisa poder chegar bem mais perto do que o zoom mínimo normal.
     COLLISION_MARGIN: 0.3,
     MIN_DISTANCE_AFTER_COLLISION: 0.5,
+    // Só o chão aproxima a câmera; o resto entre ela e o alvo (árvores,
+    // pedras, plantas, caixas) fica translúcido (`view/materials/
+    // seeThrough.js`): some em pontilhado dentro de um cilindro em volta
+    // da linha câmera → alvo.
+    // - RADIUS: raio (m) do cilindro; EDGE: largura (m) da borda suave.
+    // - OPACITY: quanto fica visível dentro dele (0 some, 1 não muda).
+    // - TARGET_GAP: perto do alvo (m) o efeito vai apagando — o que está
+    //   encostado nele, do lado, não some.
+    SEE_THROUGH: {
+      ENABLED: true,
+      RADIUS: 1.2,
+      EDGE: 0.6,
+      OPACITY: 0.5,
+      TARGET_GAP: 0.4,
+    },
     // Câmera do modo Scan (item categoria `scanner`, botão direito
     // SEGURADO — ver `view/systems/cameraFollowSystem.js`,
     // `core/systems/scannerModeSystem.js`, docs/features/033-*.md) —
@@ -1467,36 +1486,33 @@ export const GAME_CONFIG = {
     },
   },
   // Vegetação (docs/features/049-vegetacao-e-floresta.md): grama, flores
-  // e árvores no estilo do repositório stylized-scene. Quanto de cada uma
-  // nasce em cada bioma é a `density` do `vegetation` dele
-  // (core/data/biomes/).
+  // e árvores. Quanto de cada uma nasce em cada bioma é a `density` do
+  // `vegetation` dele (core/data/biomes/). A grama
+  // (docs/features/052-assets-do-lgpe-e-floresta.md) são os modelos do
+  // Let's Go de cada bioma (`models` da entrada `tall-grass`), espalhados
+  // por bloco e tingidos pela cor do bioma.
   GRASS: {
     // Lado (m) de um bloco de grama — a grama nasce e some por bloco. O
     // `TERRAIN.CHUNK_SIZE` tem que ser múltiplo dele.
     TILE_SIZE: 16,
-    // Tufos por m² onde a `density` do bioma é 1.
-    CLUMPS_PER_M2: 10,
-    // Altura (m) de um tufo (o modelo é redimensionado para ela).
-    HEIGHT: 0.75,
-    // Quanto cada folha gira para ficar de frente para a câmera (0 = como
-    // no modelo, 1 = sempre de frente). Vista de lado, a folha é um risco.
-    FACE_CAMERA: 0.8,
+    // Tufos por m² onde a `density` do bioma é 1 (cada modelo cobre mais
+    // de um m²).
+    CLUMPS_PER_M2: 1.2,
+    // Tamanho (multiplica o modelo) — sorteado entre os dois.
+    SCALE: [0.8, 1.2],
+    // Altura: multiplica o modelo só na vertical (por cima do tamanho).
+    HEIGHT: 1.5,
     // Quanto a altura varia em manchas (0 = toda igual).
     HEIGHT_VARIATION: 0.45,
     // Tamanho (m) das manchas de altura.
     HEIGHT_PATCH_SIZE: 7,
-    // Tamanho (m) das manchas de cor (entre o par A e o par B do bioma)...
+    // Tamanho (m) das manchas de cor (entre a cor `a` e a `b` do bioma)...
     COLOR_PATCH_SIZE: 1.5,
-    // ...e quanto uma mancha pode puxar para o par B (0 a 1).
+    // ...e quanto uma mancha pode puxar para a `b` (0 a 1).
     COLOR_VARIATION: 0.5,
     // Variação grande de claro e escuro (0 a 1) e o tamanho (m) dela.
-    MACRO_VARIATION: 0.45,
+    MACRO_VARIATION: 0.25,
     MACRO_SIZE: 9,
-    // Escurecimento na base do tufo (0 a 1) — sombra de contato falsa.
-    BASE_SHADE: 0.75,
-    // Luz do sol passando pela folha (0 = desliga) e brilho de borda.
-    TRANSLUCENCY: 0.7,
-    RIM: 0.25,
     // Sem grama: abaixo da água + esta folga (m) e em encosta mais
     // íngreme que esta (rad).
     SHORE_GAP: 0.4,
@@ -1504,7 +1520,7 @@ export const GAME_CONFIG = {
   },
   FLOWERS: {
     // Moitas de flores por m² onde a `density` é 1.
-    CLUMPS_PER_M2: 0.25,
+    CLUMPS_PER_M2: 0.5,
     // Tamanho (multiplica o modelo) — sorteado entre os dois.
     SCALE: [0.22, 0.38],
   },
@@ -1522,7 +1538,7 @@ export const GAME_CONFIG = {
     SCALE: [0.85, 1.4],
     // Sem árvore em encosta mais íngreme que esta (rad), abaixo da água +
     // `SHORE_GAP` (m), nem perto da origem (onde o treinador nasce — vale
-    // para todas as espécies, pedras e troncos caídos).
+    // para todas as espécies e pedras).
     MAX_SLOPE: 0.45,
     SHORE_GAP: 0.8,
     SPAWN_CLEAR_RADIUS: 18,
@@ -1536,8 +1552,6 @@ export const GAME_CONFIG = {
     // vegetação, do musgo e do chão seguem a da grama (o mesmo verde
     // amarelado), cada uma mais clara ou mais escura.
     LEAF_COLOR: '#73983e',
-    // Quanto a copa balança com o vento.
-    SWAY: 1.4,
     // Quanto da cor das folhas a copa tem mesmo na sombra (0 a 1) — sem
     // isso a copa fica quase preta (o jogo não tem luz de céu de imagem).
     LEAF_FILL: 0.28,
@@ -1643,9 +1657,9 @@ export const GAME_CONFIG = {
   },
   // Pedras (`rock`) — colidem e entram no pathfinding.
   ROCKS: {
-    SPACING: 9,
-    CHANCE: 0.8,
-    SCALE: [0.35, 0.7],
+    SPACING: 5,
+    CHANCE: 0.75,
+    SCALE: [0.1, 3],
     MAX_SLOPE: 0.6,
     SHORE_GAP: 0.2,
     // Raio (m) da colisão no tamanho 1 (o modelo é um pouco maior que ele:
@@ -1664,21 +1678,6 @@ export const GAME_CONFIG = {
     // Quanto da cor a pedra tem mesmo na sombra (0 a 1), como a casca
     // (`TREES.TRUNK_FILL`) — sem isso o lado sem sol fica quase preto.
     FILL: 0.3,
-  },
-  // Troncos caídos (`fallen-log`) — colidem e entram no pathfinding. O
-  // tamanho é o comprimento (m).
-  LOGS: {
-    SPACING: 14,
-    CHANCE: 0.7,
-    SCALE: [2.5, 4.5],
-    RADIUS: 0.32,
-    MAX_SLOPE: 0.3,
-    // Diferença máxima de altura (m) do chão entre as duas pontas — o
-    // tronco é reto e não pode ficar com uma ponta no ar.
-    MAX_END_DROP: 0.3,
-    SHORE_GAP: 0.4,
-    // Cor da madeira nas pontas cortadas.
-    WOOD_COLOR: '#c8a26a',
   },
   // Arbustos (`bush`) — atravessáveis.
   BUSHES: {
@@ -1724,6 +1723,35 @@ export const GAME_CONFIG = {
     TURBULENCE: 0.15,
     FLUTTER: 0.15,
   },
+  // Modelos do Pokémon Let's Go (docs/features/052-assets-do-lgpe-e-
+  // floresta.md): o material toon deles e o tamanho das plantas baixas.
+  LGPE: {
+    // Degrau da luz (0 a 1, do lado contra o sol ao lado do sol) e a
+    // largura dele.
+    RAMP_THRESHOLD: 1,
+    RAMP_SOFTNESS: 0.5,
+    // Cor que o lado sem sol puxa (a `Shadow_Color` do jogo original,
+    // clareada).
+    SHADOW_TINT: '#ffffff',
+    // Força da luz de borda (na cor de cada material).
+    RIM_STRENGTH: 0.25,
+    // Quanto do sombreado pintado por vértice entra (0 a 1).
+    VERTEX_COLOR: 1,
+    // Fator do corte das folhas recortadas (o do jogo original vezes isto).
+    CUTOFF: 0.75,
+    // Tamanho sorteado das plantas baixas (vezes o `scale` da entrada do
+    // bioma) — os modelos já vêm em metros.
+    PLANT_SCALE: [0.8, 1.2],
+  },
+
+  // Mato alto do LGPE (`encounter-grass`, o "mato de encontro"): pontos
+  // por m² e só onde a altura dos conjuntos de grama passa de
+  // `MIN_CLUSTER_HEIGHT` (o miolo deles).
+  ENCOUNTER_GRASS: {
+    PER_M2: 0.5,
+    MIN_CLUSTER_HEIGHT: 0.85,
+    SCALE: [0.85, 1.15],
+  },
   // Qualidade (`VEGETATION_QUALITY.CURRENT`, escolhida no F2):
   // - density: quanto da densidade da vegetação só visual fica;
   // - canopyShadow: se copas e arbustos fazem sombra;
@@ -1735,7 +1763,7 @@ export const GAME_CONFIG = {
   // - shadowRing: até quantos blocos de sólidos da câmera os objetos fazem
   //   sombra;
   // - treeDistance: até onde (m, do centro do bloco da câmera ao centro do
-  //   bloco) aparecem árvores, pedras e troncos caídos;
+  //   bloco) aparecem árvores e pedras;
   // - maxDpr: densidade de pixels máxima da tela (telas de alta resolução
   //   desenham até o dobro de pixels).
   VEGETATION_QUALITY: {

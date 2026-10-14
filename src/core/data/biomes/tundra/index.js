@@ -26,7 +26,6 @@ export const TUNDRA = {
     high: '#eef2f5',
     highHeight: 10,
     slope: '#9aa3ab',
-    debug: '#bfe3ff',
   },
   // Desenho do chão (camadas de view/terrain/terrainLayers.js).
   ground: {

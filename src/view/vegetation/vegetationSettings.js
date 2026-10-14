@@ -2,7 +2,7 @@
  * O que o debug (F2, painel "Vegetação") mexe na vegetação
  * (docs/features/049-vegetacao-e-floresta.md): ligar e desligar grama,
  * flores, árvores, sub-bosque (arbustos, samambaias, plantas, cogumelos) e
- * pedras com troncos caídos (para medir o FPS) e refazer os blocos de grama
+ * pedras (para medir o FPS) e refazer os blocos de grama
  * e flores depois de mudar densidade, cores ou qualidade no `GAME_CONFIG`.
  * Os números de material (vento, cor da folha) o `VegetationView` lê a cada
  * quadro e não precisam disto.

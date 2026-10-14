@@ -24,7 +24,6 @@ export const BEACH = {
     high: '#d9c48a',
     highHeight: 3,
     slope: '#a89470',
-    debug: '#f2d98a',
   },
   // Desenho do chão (camadas de view/terrain/terrainLayers.js).
   ground: {

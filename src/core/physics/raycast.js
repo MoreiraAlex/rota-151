@@ -4,6 +4,9 @@ import {
   terrainOnlyFilterFlags,
 } from './physicsWorld'
 
+const isGround = (collider) =>
+  collider.shapeType() === getRapier().ShapeType.HeightField
+
 /**
  * Raycast contra o mundo físico (chão/obstáculos/cápsulas) — usado tanto
  * pra mirar (`playerActionSystem`, a partir da câmera) quanto pra detectar
@@ -35,7 +38,11 @@ export function castRay(origin, direction, maxDistance, options = {}) {
   const world = getRapierWorld()
   if (!RAPIER || !world || maxDistance <= 0) return null
 
-  const { excludeColliderHandle, terrainOnly = false } = options
+  const {
+    excludeColliderHandle,
+    terrainOnly = false,
+    groundOnly = false,
+  } = options
   const excludeCollider =
     excludeColliderHandle != null && excludeColliderHandle >= 0
       ? world.getCollider(excludeColliderHandle)
@@ -43,6 +50,10 @@ export function castRay(origin, direction, maxDistance, options = {}) {
   // `terrainOnly`: só a geometria FIXA do nível (chão/obstáculos), sem
   // bater em criatura nenhuma — pra consultar a altura do terreno.
   const filterFlags = terrainOnly ? terrainOnlyFilterFlags() : undefined
+
+  // `groundOnly`: só o relevo (o heightfield dos chunks, montanhas
+  // incluídas) — sem árvore, pedra, caixa nem personagem.
+  const filterPredicate = groundOnly ? isGround : undefined
 
   const ray = new RAPIER.Ray(origin, direction)
   const hit = world.castRay(
@@ -52,6 +63,8 @@ export function castRay(origin, direction, maxDistance, options = {}) {
     filterFlags,
     undefined,
     excludeCollider,
+    undefined,
+    filterPredicate,
   )
   if (!hit) return null
 

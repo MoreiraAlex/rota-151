@@ -27,7 +27,6 @@ export const SWAMP = {
     high: '#4a5f34',
     highHeight: 4,
     slope: '#5a5038',
-    debug: '#6b6b2f',
   },
   // Desenho do chão (camadas de view/terrain/terrainLayers.js).
   ground: {

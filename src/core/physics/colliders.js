@@ -6,7 +6,8 @@ import {
   wrapAngle,
 } from '../math'
 import { chunkKey } from '../terrain/terrainChunk'
-import { solidParams, trunkOf } from '../vegetation/solidPlacement'
+import { rockBaseY, solidParams, trunkOf } from '../vegetation/solidPlacement'
+import { lgpeColliderOf } from '../vegetation/solidModels'
 import { getRapier, getRapierWorld } from './physicsWorld'
 
 /**
@@ -41,22 +42,38 @@ export function createTerrainChunkCollider(chunk) {
   return body.handle
 }
 
-// Deita a cápsula do Rapier (em pé no Y) ao longo do X local.
-const LYING_ALONG_X = quaternionFromAxisAngle('z', -Math.PI / 2)
+/**
+ * O casco do modelo do LGPE de um sólido (`lgpeColliderOf`) no tamanho
+ * dele e girado como a view desenha, com a origem na base do modelo — ou
+ * `null` sem modelo do LGPE.
+ */
+function lgpeHullOf(solid) {
+  const collider = lgpeColliderOf(solid)
+  if (!collider) return null
+  const points = Float32Array.from(
+    collider.points,
+    (value) => value * solid.scale,
+  )
+  return getRapier()
+    .ColliderDesc.convexHull(points)
+    ?.setRotation(quaternionFromAxisAngle('y', solid.yaw))
+}
 
 /**
  * Objetos sólidos do chunk (`chunk.solids`, docs/features/049-vegetacao-e-
- * floresta.md), no corpo do relevo — nascem e saem com ele:
+ * floresta.md), no corpo do relevo — nascem e saem com ele. Com modelo do
+ * LGPE, o casco convexo da malha (docs/features/052-assets-do-lgpe-e-
+ * floresta.md, `lgpeHullOf`): o tronco da árvore até o alto (a copa não
+ * colide) e a pedra inteira. Sem (modelo padrão):
  * - árvore (qualquer espécie): cilindro em pé no tronco, do tamanho da
- *   espécie (`trunkOf`) — a copa não colide;
- * - pedra: cilindro afundado um pouco no chão;
- * - tronco caído: cápsula deitada ao longo dele (giro = `yaw`).
+ *   espécie (`trunkOf`);
+ * - pedra: cilindro afundado um pouco no chão.
  */
 function addSolidColliders(chunk, body) {
   if (!chunk.solids) return
   const RAPIER = getRapier()
   const world = getRapierWorld()
-  const { ROCKS, LOGS } = GAME_CONFIG
+  const { ROCKS } = GAME_CONFIG
   const params = solidParams()
   const center = body.translation()
   const add = (desc, x, y, z) =>
@@ -66,6 +83,11 @@ function addSolidColliders(chunk, body) {
     )
 
   for (const tree of chunk.solids.trees) {
+    const hull = lgpeHullOf(tree)
+    if (hull) {
+      add(hull, tree.x, tree.y, tree.z)
+      continue
+    }
     const { radius, height } = trunkOf(tree, params)
     add(
       RAPIER.ColliderDesc.cylinder(height / 2, radius),
@@ -75,27 +97,17 @@ function addSolidColliders(chunk, body) {
     )
   }
   for (const rock of chunk.solids.rocks) {
+    const hull = lgpeHullOf(rock)
+    if (hull) {
+      add(hull, rock.x, rockBaseY(rock, ROCKS), rock.z)
+      continue
+    }
     const height = ROCKS.HEIGHT * rock.scale
     add(
       RAPIER.ColliderDesc.cylinder(height / 2, ROCKS.RADIUS * rock.scale),
       rock.x,
       rock.y + height * (0.5 - ROCKS.SINK),
       rock.z,
-    )
-  }
-  for (const log of chunk.solids.logs) {
-    const halfLength = Math.max(0, log.scale / 2 - LOGS.RADIUS)
-    const rotation = multiplyQuaternions(
-      quaternionFromAxisAngle('y', log.yaw),
-      LYING_ALONG_X,
-    )
-    add(
-      RAPIER.ColliderDesc.capsule(halfLength, LOGS.RADIUS).setRotation(
-        rotation,
-      ),
-      log.x,
-      log.y + LOGS.RADIUS * 0.7,
-      log.z,
     )
   }
 }

@@ -21,7 +21,7 @@ import {
  * (`core/actions/chunks.js`).
  *
  * Cada chunk carregado leva também os objetos sólidos dele (`solids`:
- * árvores, troncos caídos e pedras — `placeChunkSolids`,
+ * árvores e pedras — `placeChunkSolids`,
  * docs/features/049-vegetacao-e-floresta.md) — o colisor e a grade de
  * navegação saem deles, e a view os desenha — e a seed da vegetação
  * (`vegetationSeed`, para a view sortear a vegetação só visual com as
@@ -103,7 +103,6 @@ function solidsOfChunk(blockSolids, chunk) {
     z < chunk.minZ + chunk.size
   return {
     trees: blockSolids.trees.filter(isInside),
-    logs: blockSolids.logs.filter(isInside),
     rocks: blockSolids.rocks.filter(isInside),
     footprints: blockSolids.footprints.filter((circle) =>
       touchesRect(

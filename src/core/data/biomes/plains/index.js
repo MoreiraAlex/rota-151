@@ -29,7 +29,6 @@ export const PLAINS = {
     slope: '#8a7a5c',
     // Terra batida das trilhas, mais clara que a da floresta.
     trail: '#a08a62',
-    debug: '#8fd16a',
   },
   // Desenho do chão (camadas de view/terrain/terrainLayers.js).
   ground: {
@@ -80,12 +79,8 @@ export const PLAINS = {
         backgroundHeight: 0.5,
         clearingPreference: 0,
       },
-      colors: {
-        root: '#6aa14f',
-        tip: '#a1cc33',
-        rootB: '#74a022',
-        tipB: '#e8e84f',
-      },
+      models: ['grass-low', 'grass-clump'],
+      colors: { a: '#ffffff', b: '#fff2c0' },
     },
   ],
   tags: ['grassland', 'temperate'],

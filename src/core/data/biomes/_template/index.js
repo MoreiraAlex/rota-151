@@ -64,8 +64,6 @@ export const BIOME_TEMPLATE = {
     // acima da água.
     // peak: '#f2f4f7',
     // peakHeight: 30,
-    // Cor chapada do bioma no modo "chão por bioma" do debug (F2).
-    debug: '#ff00ff',
   },
   // Desenho do chão (view/terrain/terrainMaterial.js): o claro e escuro e o
   // relevo de luz de uma textura sobre a cor da paleta. Os nomes são as
@@ -86,6 +84,14 @@ export const BIOME_TEMPLATE = {
     // peakTexture: 'snow',
     // Força do desenho (0 a 1): 0 = só a cor da paleta.
     detail: 0.6,
+    // Opcional: a COR vem de texturas do Pokémon Let's Go no lugar da
+    // paleta (docs/features/052-assets-do-lgpe-e-floresta.md) — camadas de
+    // `TERRAIN_COLOR_LAYERS` (view/terrain/terrainLayers.js) por papel:
+    // `base` (chão), `shade` (onde a mata é fechada, pelas `clearings`),
+    // `shore`, `trail`, `slope`, `high` e `peak` (como os de cima). Só
+    // `base` é obrigatório; a paleta continua sendo a cor do relevo
+    // distante.
+    // colors: { base: 'lgpe-grass', shade: 'lgpe-forest-floor' },
   },
   // Opcional: clareiras (docs/features/049-vegetacao-e-floresta.md) —
   // manchas abertas pela seed; `amount` (0 a 1) é mais ou menos a fração do
@@ -96,11 +102,14 @@ export const BIOME_TEMPLATE = {
   // `ground.trailTexture`, e a vegetação não nasce nelas.
   // trails: true,
   // O que nasce aqui (docs/features/049-vegetacao-e-floresta.md). `kind` é
-  // o tipo do objeto; `density` (0 a 1) é relativa entre os biomas. Já
+  // o tipo do objeto; `density` (0 ou mais; acima de 1 a chance satura) é
+  // relativa entre os biomas. Já
   // aparecem no mundo: `tall-grass` (grama), `flower`, `bush`, `fern`,
-  // `leafy-plant`, `mushroom` e `pebble` (atravessáveis); `broadleaf-tree`,
-  // `ancient-tree`, `pine-tree`, `acacia-tree`, `dead-tree`, `rock` e
-  // `fallen-log` (com colisão). Os outros tipos só estão declarados.
+  // `leafy-plant`, `mushroom`, `pebble` e `encounter-grass` (o mato alto do
+  // Let's Go, no miolo dos conjuntos de grama) (atravessáveis);
+  // `broadleaf-tree`, `ancient-tree`, `pine-tree`, `acacia-tree`,
+  // `dead-tree` e `rock` (com colisão). Os outros tipos só
+  // estão declarados.
   // - `place` (opcional, com `clearings`): 'shade' = rareia nas clareiras;
   //   'clearing' = nas clareiras (com `shade`, 0 a 1, a fração que ainda
   //   fica na mata). Sem ele, em qualquer lugar. 'trail' (com `trails`) =
@@ -113,9 +122,15 @@ export const BIOME_TEMPLATE = {
   //   neste bioma (a folha; na pedra e no seixo, a pedra), no lugar da cor
   //   do config — o
   //   arbusto seco e o arenito da savana (view/vegetation/biomeColor.js).
-  // - `scale` (opcional, objetos com colisão: árvores, `rock`,
-  //   `fallen-log`): multiplica o tamanho do tipo neste bioma — colisão e
+  // - `scale` (opcional, objetos com colisão: árvores e `rock`):
+  //   multiplica o tamanho do tipo neste bioma — colisão e
   //   desvio acompanham (as pedras maiores da savana).
+  // - `models` (opcional): ids dos modelos do Pokémon Let's Go do tipo
+  //   neste bioma (os do `manifest.json` de public/assets/vegetation/lgpe/,
+  //   docs/features/052-assets-do-lgpe-e-floresta.md); cada objeto sorteia
+  //   um. Sem ele, os modelos de sempre do tipo (MegaKit). Nas plantas
+  //   baixas e flores, o tamanho passa a ser `LGPE.PLANT_SCALE` vezes o
+  //   `scale` da entrada (os modelos já vêm em metros).
   // - `maxHeight` (opcional): altura (m acima da água) em que o tipo some —
   //   ele rareia na faixa `GAME_CONFIG.VEGETATION_ALTITUDE.FADE` abaixo
   //   dela (a linha das árvores da montanha).
@@ -132,17 +147,15 @@ export const BIOME_TEMPLATE = {
       //   grouping: 0.5, variety: 0.35, background: 0.12,
       //   backgroundHeight: 0.55, clearingPreference: 0.5,
       // },
-      // Cor da grama: da raiz (`root`) à ponta (`tip`), em dois pares —
-      // manchas puxam do par A para o B (`GRASS.COLOR_VARIATION`).
-      colors: {
-        root: '#6aa14f',
-        tip: '#a1cc33',
-        rootB: '#74a022',
-        tipB: '#e8e84f',
-      },
+      // Modelos do Let's Go da grama (ids do manifesto, como `models` dos
+      // outros tipos) e a tinta deles neste bioma: duas cores que
+      // multiplicam a textura (branco = a textura pura) — manchas puxam da
+      // `a` para a `b` (`GRASS.COLOR_VARIATION`).
+      models: ['grass-low', 'grass-clump'],
+      colors: { a: '#ffffff', b: '#fff2c0' },
     },
   ],
-  // Tags que o spawn (055) usa nas condições de cada espécie.
+  // Tags que o spawn (059) usa nas condições de cada espécie.
   tags: ['grassland'],
   // Chances relativas de cada clima (docs/features/048-dia-noite-e-
   // clima.md): a cada período, cada região sorteia um tipo por estes pesos.

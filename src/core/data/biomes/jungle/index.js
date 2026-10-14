@@ -27,7 +27,6 @@ export const JUNGLE = {
     high: '#2e8436',
     highHeight: 10,
     slope: '#5d5238',
-    debug: '#00a86b',
   },
   // Desenho do chão (camadas de view/terrain/terrainLayers.js).
   ground: {
@@ -43,12 +42,8 @@ export const JUNGLE = {
     {
       kind: 'tall-grass',
       density: 0.4,
-      colors: {
-        root: '#2f6b34',
-        tip: '#6fae3a',
-        rootB: '#3d7a2a',
-        tipB: '#9cc94a',
-      },
+      models: ['grass-low', 'grass-clump'],
+      colors: { a: '#d8e8d0', b: '#e8f0c8' },
     },
   ],
   tags: ['forest', 'jungle', 'hot', 'humid'],

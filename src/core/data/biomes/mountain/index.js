@@ -1,6 +1,6 @@
 /**
  * Montanha (docs/features/047-biomas.md) — Morros altos e íngremes de rocha,
- * com neve no alto. É onde ficarão as bocas das cavernas (057).
+ * com neve no alto. É onde ficarão as bocas das cavernas (061).
  * Campos: ver `../_template/`.
  */
 export const MOUNTAIN = {
@@ -34,7 +34,6 @@ export const MOUNTAIN = {
     slope: '#96918a',
     peak: '#f2f4f7',
     peakHeight: 60,
-    debug: '#8d8d8d',
   },
   // Desenho do chão (camadas de view/terrain/terrainLayers.js): grama no
   // pé e rocha no alto (`highTexture`, como a cor vai de `low` a `high`).
@@ -98,12 +97,8 @@ export const MOUNTAIN = {
         backgroundHeight: 0.5,
         clearingPreference: 0.5,
       },
-      colors: {
-        root: '#4f7a3a',
-        tip: '#8fae4a',
-        rootB: '#5e8a34',
-        tipB: '#b0bf5a',
-      },
+      models: ['grass-low', 'grass-clump'],
+      colors: { a: '#e8eedc', b: '#f4f2d0' },
     },
   ],
   tags: ['mountain', 'rocky', 'cave-entrance'],

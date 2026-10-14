@@ -1,11 +1,12 @@
 import { GAME_CONFIG } from '../gameConfig'
 import { createRng, deriveSeed } from '../rng'
 import { chunkHeightAt } from '../terrain/terrainChunk'
+import { dominantBiomeAt, largestReachOf, lgpeColliderOf } from './solidModels'
 import { createKindDensity, densityAt, slopeAt } from './vegetationDensity'
 
 /**
  * Os objetos SÓLIDOS da vegetação (docs/features/049-vegetacao-e-
- * floresta.md): árvores (de várias espécies), troncos caídos e pedras.
+ * floresta.md): árvores (de várias espécies) e pedras.
  * Colidem e entram no pathfinding, por isso moram no core e saem da seed
  * com o chunk. O resto da vegetação (grama, flores, arbustos, samambaias,
  * plantas, cogumelos) é só visual e mora na view.
@@ -16,7 +17,6 @@ export const ANCIENT_TREE_KIND = 'ancient-tree'
 export const PINE_KIND = 'pine-tree'
 export const ACACIA_KIND = 'acacia-tree'
 export const DEAD_TREE_KIND = 'dead-tree'
-export const LOG_KIND = 'fallen-log'
 export const ROCK_KIND = 'rock'
 
 /**
@@ -39,7 +39,6 @@ const SPEC_KEYS = {
   [PINE_KIND]: 'pines',
   [ACACIA_KIND]: 'acacias',
   [DEAD_TREE_KIND]: 'deadTrees',
-  [LOG_KIND]: 'logs',
   [ROCK_KIND]: 'rocks',
 }
 
@@ -55,38 +54,26 @@ const isStandingTree = (kind) => STANDING_TREE_KINDS.includes(kind)
  * @property {number} y - chão no centro
  * @property {number} z
  * @property {number} yaw - giro (rad)
- * @property {number} scale - multiplica o modelo (no tronco caído, é o
- *   comprimento em m)
- * @property {number} variant - qual modelo (pedras), 0 a 1
+ * @property {number} scale - multiplica o modelo
+ * @property {number} variant - qual modelo, 0 a 1
+ * @property {string} biome - o bioma dos modelos dele (`dominantBiomeAt`,
+ *   o mesmo da view)
  */
 
 /** @typedef {{ x: number, z: number, radius: number }} Footprint */
 
 /**
  * Pegada de um objeto no chão, em círculos (colisão com os vizinhos, borda
- * do chunk e pathfinding): o tronco da árvore; a pedra; o tronco caído,
- * uma fileira de círculos ao longo dele.
+ * do chunk e pathfinding): o tronco da árvore; a pedra.
  *
  * @returns {Footprint[]}
  */
 export function footprintOf(kind, placement, params) {
-  const { x, z, scale, yaw } = placement
+  const { x, z, scale } = placement
   if (isStandingTree(kind)) {
     return [{ x, z, radius: specOf(kind, params).TRUNK_RADIUS * scale }]
   }
-  if (kind === ROCK_KIND) {
-    return [{ x, z, radius: params.rocks.RADIUS * scale }]
-  }
-  const { RADIUS } = params.logs
-  const steps = Math.max(1, Math.ceil(scale / RADIUS))
-  return Array.from({ length: steps + 1 }, (_, index) => {
-    const along = (index / steps - 0.5) * scale
-    return {
-      x: x + Math.cos(yaw) * along,
-      z: z - Math.sin(yaw) * along,
-      radius: RADIUS,
-    }
-  })
+  return [{ x, z, radius: params.rocks.RADIUS * scale }]
 }
 
 /**
@@ -94,18 +81,41 @@ export function footprintOf(kind, placement, params) {
  * tamanho) e a margem dela na grade de navegação ficam dentro do próprio
  * chunk — a região de navegação de um chunk só precisa dos objetos dele.
  * `scaleFactor`: o maior tamanho por bioma do tipo no chunk
- * (`createScaleField`).
+ * (`createScaleField`); `modelReach`: o maior alcance dos colisores do
+ * LGPE do tipo no chunk (`largestReachOf`, a pegada pelo modelo).
  */
-export function borderGapOf(kind, params, scaleFactor = 1) {
+export function borderGapOf(kind, params, scaleFactor = 1, modelReach = 0) {
   const { OBSTACLE_MARGIN, CELL_SIZE } = GAME_CONFIG.PATHFINDING
   const spec = specOf(kind, params)
   const largest = { x: 0, z: 0, yaw: 0, scale: spec.SCALE[1] * scaleFactor }
   const reach = Math.max(
+    modelReach * largest.scale,
     ...footprintOf(kind, largest, params).map(
       (circle) => Math.hypot(circle.x, circle.z) + circle.radius,
     ),
   )
   return reach + OBSTACLE_MARGIN + CELL_SIZE
+}
+
+/**
+ * A pegada que a navegação e o sub-bosque evitam: com o modelo do LGPE, o
+ * círculo que cobre o casco dele (`lgpeColliderOf`); sem, `footprintOf`.
+ * O sorteio (encostar nos vizinhos, folga da borda) segue no
+ * `footprintOf` — o mundo não muda com o modelo.
+ *
+ * @returns {Footprint}
+ */
+export function solidFootprintOf(solid, params) {
+  const collider = lgpeColliderOf(solid)
+  if (!collider) return footprintOf(solid.kind, solid, params)[0]
+  return { x: solid.x, z: solid.z, radius: collider.reach * solid.scale }
+}
+
+/**
+ * A altura da base do modelo de uma pedra (afundada um pouco no chão).
+ */
+export function rockBaseY(rock, rocks = GAME_CONFIG.ROCKS) {
+  return rock.y - rocks.SINK * rocks.HEIGHT * rock.scale
 }
 
 /**
@@ -167,17 +177,6 @@ export function createScaleField(chunk, kind, biomeList) {
   }
 }
 
-// As duas pontas do tronco caído quase na mesma altura do chão.
-function isLevelEnough(chunk, { x, z, yaw, scale }, spec) {
-  const reach = scale / 2
-  const dx = Math.cos(yaw) * reach
-  const dz = -Math.sin(yaw) * reach
-  const drop = Math.abs(
-    chunkHeightAt(chunk, x + dx, z + dz) - chunkHeightAt(chunk, x - dx, z - dz),
-  )
-  return drop <= spec.MAX_END_DROP
-}
-
 /**
  * Os objetos de um tipo num chunk, pela seed: o mundo é uma grade de
  * células de `SPACING` m; cada célula sorteia (com a própria sub-seed) um
@@ -189,9 +188,8 @@ function isLevelEnough(chunk, { x, z, yaw, scale }, spec) {
  *
  * Sem objeto: perto da água, em encosta, perto da origem (onde o treinador
  * nasce), na folga da borda (`borderGapOf`), encostado em `taken` (as
- * pegadas dos objetos já postos), na árvore, com o tronco na copa de outra
- * (`CROWN_RADIUS`, em `crowns`), e, no tronco caído, com uma ponta bem
- * mais alta que a outra (`LOGS.MAX_END_DROP`).
+ * pegadas dos objetos já postos) e, na árvore, com o tronco na copa de
+ * outra (`CROWN_RADIUS`, em `crowns`).
  */
 function placeKind(
   chunk,
@@ -211,7 +209,12 @@ function placeKind(
   const spec = specOf(kind, params)
   const { SPACING, CHANCE, SCALE, MAX_SLOPE, SHORE_GAP } = spec
   const biomeScale = createScaleField(chunk, kind, biomeList)
-  const gap = borderGapOf(kind, params, biomeScale.max)
+  const gap = borderGapOf(
+    kind,
+    params,
+    biomeScale.max,
+    largestReachOf(kind, chunk.biomeIds),
+  )
   const minX = chunk.minX + gap
   const maxX = chunk.minX + chunk.size - gap
   const minZ = chunk.minZ + gap
@@ -245,8 +248,8 @@ function placeKind(
       if (y < terrain.WATER_LEVEL + SHORE_GAP) continue
       if (slopeAt(chunk, x, z) > MAX_SLOPE) continue
       const scale = size * biomeScale.at(x, z)
-      const placement = { kind, x, y, z, yaw, scale, variant }
-      if (kind === LOG_KIND && !isLevelEnough(chunk, placement, spec)) continue
+      const biome = dominantBiomeAt(chunk, x, z, kind)
+      const placement = { kind, x, y, z, yaw, scale, variant, biome }
       const footprint = footprintOf(kind, placement, params)
       if (overlaps(footprint, taken)) continue
       if (isStandingTree(kind)) {
@@ -266,14 +269,14 @@ function placeKind(
  * @typedef {object} ChunkSolids
  * @property {SolidPlacement[]} trees - as árvores em pé de todas as
  *   espécies (`kind` de cada uma)
- * @property {SolidPlacement[]} logs
  * @property {SolidPlacement[]} rocks
- * @property {Footprint[]} footprints - de todos (pathfinding)
+ * @property {Footprint[]} footprints - de todos, pelo modelo
+ *   (`solidFootprintOf` — pathfinding e sub-bosque)
  */
 
 /**
  * Os objetos sólidos do chunk: árvores primeiro (na ordem de
- * `STANDING_TREE_KINDS`), depois troncos caídos e pedras, cada um sem
+ * `STANDING_TREE_KINDS`), depois pedras, cada uma sem
  * encostar nos de antes.
  *
  * @param {import('../terrain/terrainChunk').TerrainChunk} chunk
@@ -281,8 +284,8 @@ function placeKind(
  * @param {number} options.seed - seed do relevo
  * @param {object[]} options.biomeList - biomas da receita do relevo
  * @param {object} [options.terrain] - forma de `GAME_CONFIG.TERRAIN`
- * @param {object} [options.params] - `{ trees, logs, rocks, clearings,
- *   patches, altitude }`, formas de `GAME_CONFIG.TREES`/`LOGS`/`ROCKS`/
+ * @param {object} [options.params] - `{ trees, rocks, clearings,
+ *   patches, altitude }`, formas de `GAME_CONFIG.TREES`/`ROCKS`/
  *   `CLEARINGS`/`VEGETATION_PATCHES`/`VEGETATION_ALTITUDE`
  * @returns {ChunkSolids}
  */
@@ -296,14 +299,16 @@ export function placeChunkSolids(
   const trees = STANDING_TREE_KINDS.flatMap((kind) =>
     placeKind(chunk, kind, options),
   )
-  const logs = placeKind(chunk, LOG_KIND, options)
   const rocks = placeKind(chunk, ROCK_KIND, options)
-  return { trees, logs, rocks, footprints: taken }
+  const footprints = [...trees, ...rocks].map((solid) =>
+    solidFootprintOf(solid, params),
+  )
+  return { trees, rocks, footprints }
 }
 
 /** Os números dos objetos sólidos agora (`GAME_CONFIG`). */
 export function solidParams() {
-  const { TREES, ANCIENT_TREES, PINES, ACACIAS, DEAD_TREES, LOGS, ROCKS } =
+  const { TREES, ANCIENT_TREES, PINES, ACACIAS, DEAD_TREES, ROCKS } =
     GAME_CONFIG
   return {
     trees: TREES,
@@ -311,7 +316,6 @@ export function solidParams() {
     pines: PINES,
     acacias: ACACIAS,
     deadTrees: DEAD_TREES,
-    logs: LOGS,
     rocks: ROCKS,
     clearings: GAME_CONFIG.CLEARINGS,
     patches: GAME_CONFIG.VEGETATION_PATCHES,

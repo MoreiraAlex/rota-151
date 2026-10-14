@@ -68,40 +68,47 @@ export function WorldPage({ data, version }) {
           Entre um bioma e outro a passagem é aos poucos: a mata vai rareando
           até virar campo. Você sempre começa em terra firme.
         </p>
+        <p>
+          Quando uma árvore, uma pedra ou uma planta fica entre a câmera e você,
+          ela fica <strong>transparente</strong> e você continua se vendo. Só o
+          chão e as montanhas fazem a câmera chegar mais perto.
+        </p>
       </Section>
 
       <Section id="floresta" title="A floresta">
         <p>
           A floresta é uma mata fechada, com <strong>clareiras</strong> abertas
-          no meio dela.
+          no meio dela. Ela tem o visual dos jogos de Pokémon: árvores redondas,
+          cores vivas e sombras suaves.
         </p>
         <ul>
           <li>
-            <strong>Árvores</strong> de vários tipos: folhosas, pinheiros em
-            bosques, árvores antigas e enormes e, de vez em quando, uma árvore
-            morta.
+            <strong>Árvores</strong> de vários tipos: árvores redondas, algumas
+            enormes de copa alta, pinheiros em bosques e, de vez em quando, uma
+            árvore jovem.
           </li>
           <li>
-            Por baixo das árvores: arbustos, samambaias, plantas de folha larga
-            e rodas de cogumelos.
+            Por baixo das árvores: samambaias, moitas redondas, trevos e tufos
+            de folhas.
           </li>
           <li>
             <strong>Flores</strong> só nas clareiras.
           </li>
           <li>
-            <strong>Mato alto</strong> em moitas, com chão de grama baixa entre
-            elas.
+            <strong>Mato alto</strong> no meio das moitas de grama, com grama
+            baixa entre elas.
           </li>
           <li>
             <strong>Trilhas</strong> de terra batida cortam a mata, com
             pedrinhas no caminho. As trilhas que chegam num lago terminam na
             margem.
           </li>
-          <li>Troncos caídos e pedras com musgo pelo chão.</li>
+          <li>Pedras grandes espalhadas pelo chão.</li>
         </ul>
         <p>
-          Árvores, troncos caídos e pedras bloqueiam a passagem, e as criaturas
-          desviam deles. Arbustos, plantas e mato dá pra atravessar.
+          Árvores e pedras bloqueiam a passagem do jeito que você as vê: o
+          tronco e a pedra param você, a copa não. As criaturas desviam deles.
+          Arbustos, plantas e mato dá pra atravessar.
         </p>
         <p>
           O <strong>vento</strong> balança o mato, as plantas e as copas das

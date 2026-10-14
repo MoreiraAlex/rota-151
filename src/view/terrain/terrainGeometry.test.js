@@ -1,24 +1,21 @@
 import { describe, expect, it } from 'vitest'
 import * as THREE from 'three'
 import { GAME_CONFIG } from '@/core/gameConfig'
-import {
-  copyTerrainRecipe,
-  createTerrainSampler,
-  currentTerrainRecipe,
-} from '@/core/terrain/terrainHeight'
+import { createTerrainSampler } from '@/core/terrain/terrainHeight'
 import {
   chunkHeightAt,
   generateTerrainChunk,
 } from '@/core/terrain/terrainChunk'
 import {
+  addColorLayers,
   addGroundLayers,
   buildTerrainChunkGeometry,
   terrainColorAt,
 } from './terrainGeometry'
-import { TERRAIN_COLOR_MODES } from './terrainColorMode'
 import {
   MAX_TERRAIN_LAYERS,
   TERRAIN_LAYERS,
+  terrainColorLayerIndex,
   terrainLayerIndex,
 } from './terrainLayers'
 import { listBiomes } from '@/core/data/biomes'
@@ -77,28 +74,6 @@ const expectColor = (actual, hex) => {
   expect(actual.b).toBeCloseTo(expected.b, 5)
 }
 
-describe('cor por bioma', () => {
-  it('no modo bioma, cada vértice tem a cor de debug do bioma', () => {
-    // Receita com um bioma só: todo vértice é 100% dele.
-    const [biome] = listBiomes()
-    const recipe = copyTerrainRecipe(currentTerrainRecipe())
-    recipe.biomeList = [structuredClone(biome)]
-    const single = generateTerrainChunk(createTerrainSampler(9, recipe), 0, 0)
-    const colors = buildTerrainChunkGeometry(
-      single,
-      WATER_LEVEL,
-      TERRAIN_COLOR_MODES.biome,
-    ).getAttribute('color')
-
-    for (let i = 0; i < colors.count; i += 53) {
-      expectColor(
-        new THREE.Color().fromBufferAttribute(colors, i),
-        biome.palette.debug,
-      )
-    }
-  })
-})
-
 describe('camadas de desenho do chão', () => {
   const layersOf = (biome, height, normalY) => {
     const weights = new Float32Array(MAX_TERRAIN_LAYERS)
@@ -149,19 +124,30 @@ describe('camadas de desenho do chão', () => {
     }
   })
 
-  it('na geometria, os pesos das camadas somam 1 e o desenho é o do bioma', () => {
+  it('na geometria, desenho e cor por textura somam 1 e o desenho é o do bioma', () => {
     const geometry = buildTerrainChunkGeometry(chunk, WATER_LEVEL)
     const layers0 = geometry.getAttribute('groundLayers0')
     const layers1 = geometry.getAttribute('groundLayers1')
+    const colors0 = geometry.getAttribute('groundColors0')
+    const colors1 = geometry.getAttribute('groundColors1')
+    const share = geometry.getAttribute('groundTextureShare')
     const detail = geometry.getAttribute('groundDetail')
     const details = listBiomes().map(({ ground }) => ground.detail)
-    for (let i = 0; i < layers0.count; i += 31) {
+    const sumOf = (a, b, i) => {
       let total = 0
-      for (let c = 0; c < 4; c++) {
-        total += layers0.array[i * 4 + c] + layers1.array[i * 4 + c]
-      }
-      expect(total).toBeCloseTo(1, 5)
-      expect(detail.getX(i)).toBeGreaterThanOrEqual(Math.min(...details) - 1e-6)
+      for (let c = 0; c < 4; c++)
+        total += a.array[i * 4 + c] + b.array[i * 4 + c]
+      return total
+    }
+    for (let i = 0; i < layers0.count; i += 31) {
+      // A parte de cor por textura (biomas com `ground.colors`) sai do
+      // desenho de sempre.
+      const textured = share.getX(i)
+      expect(sumOf(layers0, layers1, i) + textured).toBeCloseTo(1, 5)
+      expect(sumOf(colors0, colors1, i)).toBeCloseTo(textured, 5)
+      expect(detail.getX(i)).toBeGreaterThanOrEqual(
+        Math.min(...details) * (1 - textured) - 1e-6,
+      )
       expect(detail.getX(i)).toBeLessThanOrEqual(Math.max(...details) + 1e-6)
     }
   })
@@ -186,3 +172,55 @@ describe.each(listBiomes())('terrainColorAt — $id', ({ palette }) => {
     expectColor(at(palette.peakHeight + SHORE_HEIGHT * 10, 1), palette.peak)
   })
 })
+
+describe.each(listBiomes().filter(({ ground }) => ground.colors))(
+  'addColorLayers — $id',
+  (biome) => {
+    const { ground, palette } = biome
+    const flat = { normalY: 1, shade: 0, trail: 0 }
+    const weightsOf = (place, weight = 1) => {
+      const out = new Float32Array(MAX_TERRAIN_LAYERS)
+      addColorLayers(biome, place, weight, out)
+      return out
+    }
+    const middle = (SHORE_HEIGHT + palette.highHeight) / 2
+
+    it('os pesos somam o peso do bioma', () => {
+      const out = weightsOf(
+        { ...flat, heightAboveWater: middle, shade: 0.5, trail: 0.3 },
+        0.6,
+      )
+      expect(out.reduce((sum, value) => sum + value, 0)).toBeCloseTo(0.6, 5)
+    })
+
+    it.runIf(ground.colors.shade)(
+      'mata fechada no plano é o chão de mata',
+      () => {
+        const out = weightsOf({
+          ...flat,
+          heightAboveWater: SHORE_HEIGHT * 1.5,
+          shade: 1,
+        })
+        expect(out[terrainColorLayerIndex(ground.colors.shade)]).toBeCloseTo(
+          1,
+          5,
+        )
+      },
+    )
+
+    it.runIf(ground.colors.trail)(
+      'no meio da trilha, a terra da trilha',
+      () => {
+        const out = weightsOf({
+          ...flat,
+          heightAboveWater: SHORE_HEIGHT * 1.5,
+          trail: 1,
+        })
+        expect(out[terrainColorLayerIndex(ground.colors.trail)]).toBeCloseTo(
+          1,
+          5,
+        )
+      },
+    )
+  },
+)

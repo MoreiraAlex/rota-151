@@ -39,7 +39,9 @@ describe('buildVegetationModels — texturas', () => {
     const { kinds } = buildVegetationModels(scenes)
     const [part] = kinds.pebble[0].parts
     expect(part.kind).toBe('pebble')
-    expect(part.material.customProgramCacheKey()).toBe('vegetation-mossy-rock')
+    expect(part.material.customProgramCacheKey()).toMatch(
+      /^vegetation-mossy-rock/,
+    )
   })
 
   it('arquivo dividido vira uma textura só', () => {

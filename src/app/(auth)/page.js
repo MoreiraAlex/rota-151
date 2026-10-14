@@ -26,6 +26,7 @@ import { ChunkDebugView } from '@/tools/debug/ChunkDebugView'
 import { TerrainTuningPanel } from '@/tools/debug/TerrainTuningPanel'
 import { DayWeatherPanel } from '@/tools/debug/DayWeatherPanel'
 import { VegetationPanel } from '@/tools/debug/VegetationPanel'
+import { CameraPanel } from '@/tools/debug/CameraPanel'
 import { RenderStatsProbe } from '@/tools/debug/RenderStatsProbe'
 import {
   isStatsVisible,
@@ -448,6 +449,7 @@ function GameScreen({ saveError, onDeleteSave, onSceneReady }) {
           {showDebug && <TerrainTuningPanel />}
           {showDebug && <DayWeatherPanel />}
           {showDebug && <VegetationPanel />}
+          {showDebug && <CameraPanel />}
 
           {/* Save automático falhando (docs/features/044-*.md): some no
               próximo envio que der certo. */}

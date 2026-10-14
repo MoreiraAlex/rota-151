@@ -1,7 +1,9 @@
 import * as THREE from 'three'
 import {
   MAX_TERRAIN_LAYERS,
+  TERRAIN_COLOR_LAYERS,
   TERRAIN_LAYERS,
+  terrainColorLayerPath,
   terrainLayerPath,
 } from './terrainLayers'
 
@@ -17,15 +19,23 @@ const VERTEX_HEADER = /* glsl */ `
 attribute vec4 groundLayers0;
 attribute vec4 groundLayers1;
 attribute float groundDetail;
+attribute vec4 groundColors0;
+attribute vec4 groundColors1;
+attribute float groundTextureShare;
 varying vec4 vGroundLayers0;
 varying vec4 vGroundLayers1;
 varying float vGroundDetail;
+varying vec4 vGroundColors0;
+varying vec4 vGroundColors1;
+varying float vGroundTextureShare;
 varying vec3 vTerrainWorld;
 varying vec3 vTerrainNormal;
 `
 
 const FRAGMENT_HEADER = /* glsl */ `
 uniform sampler2DArray uGroundLayers;
+uniform sampler2DArray uColorLayers;
+uniform float uColorTextureSize;
 uniform float uTextureSize;
 uniform float uNormalStrength;
 uniform float uTextureDetail;
@@ -35,6 +45,9 @@ uniform float uGrainStrength;
 varying vec4 vGroundLayers0;
 varying vec4 vGroundLayers1;
 varying float vGroundDetail;
+varying vec4 vGroundColors0;
+varying vec4 vGroundColors1;
+varying float vGroundTextureShare;
 varying vec3 vTerrainWorld;
 varying vec3 vTerrainNormal;
 
@@ -103,6 +116,9 @@ const VERTEX_WORLD = /* glsl */ `
 vGroundLayers0 = groundLayers0;
 vGroundLayers1 = groundLayers1;
 vGroundDetail = groundDetail;
+vGroundColors0 = groundColors0;
+vGroundColors1 = groundColors1;
+vGroundTextureShare = groundTextureShare;
 vTerrainWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;
 `
 
@@ -129,6 +145,24 @@ for (int layer = 0; layer < ${MAX_TERRAIN_LAYERS}; layer++) {
   layerDetail += sampled.w * weight;
   layerBump += sampled.xyz * weight;
   layerTotal += weight;
+}
+
+// Cor por textura (biomas com \`ground.colors\`, docs/features/052-*.md):
+// a cor das camadas pelo peso de cada uma, no lugar da paleta, na parte
+// do vértice que é desses biomas.
+if (vGroundTextureShare > 0.001) {
+  vec3 textured = vec3(0.0);
+  float texturedTotal = 0.0;
+  vec2 colorUv = vTerrainWorld.xz / uColorTextureSize;
+  for (int layer = 0; layer < ${MAX_TERRAIN_LAYERS}; layer++) {
+    float weight = layer < 4 ? vGroundColors0[layer] : vGroundColors1[layer - 4];
+    if (weight < 0.002) continue;
+    textured += texture(uColorLayers, vec3(colorUv, float(layer))).rgb * weight;
+    texturedTotal += weight;
+  }
+  if (texturedTotal > 0.0) {
+    diffuseColor.rgb = mix(diffuseColor.rgb, textured / texturedTotal, vGroundTextureShare);
+  }
 }
 
 float patches = terrainFbm(vTerrainWorld.xz / uPatchSize);
@@ -175,6 +209,28 @@ function createLayerArray() {
   return texture
 }
 
+function createColorArray() {
+  const data = new Uint8Array(
+    LAYER_SIZE * LAYER_SIZE * 4 * TERRAIN_COLOR_LAYERS.length,
+  )
+  for (let i = 0; i < data.length; i += 4) data.set(NEUTRAL_TEXEL, i)
+  const texture = new THREE.DataArrayTexture(
+    data,
+    LAYER_SIZE,
+    LAYER_SIZE,
+    TERRAIN_COLOR_LAYERS.length,
+  )
+  texture.wrapS = THREE.RepeatWrapping
+  texture.wrapT = THREE.RepeatWrapping
+  texture.minFilter = THREE.LinearMipmapLinearFilter
+  texture.magFilter = THREE.LinearFilter
+  texture.generateMipmaps = true
+  texture.anisotropy = TEXTURE_ANISOTROPY
+  texture.colorSpace = THREE.SRGBColorSpace
+  texture.needsUpdate = true
+  return texture
+}
+
 /**
  * Copia a imagem de uma camada para a fatia `index` do array, de cabeça
  * para baixo (a linha 0 do array é a de baixo da textura — assim o y do
@@ -198,14 +254,20 @@ function copyLayer(texture, index, image) {
  * com a cor da paleta por vértice e, por cima, manchas suaves, granulado e
  * o desenho das camadas de textura (claro e escuro + relevo de luz, em
  * projeção triplanar) pelo peso de cada camada no vértice
- * (`groundLayers0/1`, `groundDetail` — terrainGeometry.js). Os números são
+ * (`groundLayers0/1`, `groundDetail` — terrainGeometry.js). Nos biomas com
+ * `ground.colors` (docs/features/052-assets-do-lgpe-e-floresta.md), a cor
+ * vem das camadas de cor do Let's Go (`groundColors0/1`), na parte do
+ * vértice que é deles (`groundTextureShare`). Os números são
  * de `GAME_CONFIG.TERRAIN_LOOK` (`applyTerrainLook`). Um material para todos
  * os chunks; quem cria chama `dispose()` (regra 5.3).
  */
 export function createTerrainMaterial() {
   const layers = createLayerArray()
+  const colorLayers = createColorArray()
   const uniforms = {
     uGroundLayers: { value: layers },
+    uColorLayers: { value: colorLayers },
+    uColorTextureSize: { value: 1 },
     uTextureSize: { value: 1 },
     uNormalStrength: { value: 0 },
     uTextureDetail: { value: 0 },
@@ -234,8 +296,15 @@ export function createTerrainMaterial() {
     ),
   )
 
+  TERRAIN_COLOR_LAYERS.forEach(([layer], index) =>
+    loader.load(terrainColorLayerPath(layer), (image) =>
+      copyLayer(colorLayers, index, image),
+    ),
+  )
+
   const dispose = material.dispose.bind(material)
   material.dispose = () => {
+    colorLayers.dispose()
     layers.dispose()
     dispose()
   }
@@ -244,16 +313,15 @@ export function createTerrainMaterial() {
 
 /**
  * Passa os números do desenho do chão (`GAME_CONFIG.TERRAIN_LOOK`) para o
- * material. `enabled = false` (modo "chão por bioma" do debug) deixa só a
- * cor por vértice.
+ * material.
  */
-export function applyTerrainLook(material, look, enabled = true) {
+export function applyTerrainLook(material, look) {
   const uniforms = material.userData.terrainUniforms
-  const on = enabled ? 1 : 0
   uniforms.uTextureSize.value = look.TEXTURE_SIZE
-  uniforms.uNormalStrength.value = look.NORMAL_STRENGTH * on
-  uniforms.uTextureDetail.value = look.TEXTURE_DETAIL * on
-  uniforms.uPatchStrength.value = look.PATCH_STRENGTH * on
+  uniforms.uColorTextureSize.value = look.COLOR_TEXTURE_SIZE
+  uniforms.uNormalStrength.value = look.NORMAL_STRENGTH
+  uniforms.uTextureDetail.value = look.TEXTURE_DETAIL
+  uniforms.uPatchStrength.value = look.PATCH_STRENGTH
   uniforms.uPatchSize.value = look.PATCH_SIZE
-  uniforms.uGrainStrength.value = look.GRAIN_STRENGTH * on
+  uniforms.uGrainStrength.value = look.GRAIN_STRENGTH
 }

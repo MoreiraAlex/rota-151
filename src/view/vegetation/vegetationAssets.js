@@ -1,21 +1,14 @@
 /**
- * Modelos da vegetação (docs/features/049-vegetacao-e-floresta.md). A
- * grama vem do repositório stylized-scene (código MIT, uso liberado pelo
- * usuário); todo o resto, do Stylized Nature MegaKit da Quaternius (CC0),
- * empacotado por `scripts/pack-forest-assets.py` em
- * `public/assets/vegetation/megakit/`.
+ * Modelos padrão da vegetação (docs/features/049-vegetacao-e-floresta.md):
+ * os do Stylized Nature MegaKit da Quaternius (CC0), empacotados por
+ * `scripts/pack-forest-assets.py` em `public/assets/vegetation/megakit/`.
+ * A grama não tem padrão: vem sempre dos modelos do Let's Go do bioma
+ * (`models`, lgpeModels.js).
  */
-export const GRASS_BLADES_PATH = '/assets/vegetation/grass-blades.glb'
 
 const MEGAKIT_DIR = '/assets/vegetation/megakit'
 
 export const megakitPath = (name) => `${MEGAKIT_DIR}/${name}.glb`
-
-/**
- * Casca da folhosa e da árvore antiga — também a do tronco caído (feito em
- * código).
- */
-export const BARK_TEXTURE_PATH = `${MEGAKIT_DIR}/bark-twisted.jpg`
 
 const numbered = (prefix, numbers) => numbers.map((n) => `${prefix}-${n}`)
 
