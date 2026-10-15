@@ -1,5 +1,6 @@
 import { placeChunkBushes } from '../vegetation/bushPlacement'
 import { createCityIndex } from '../town/cityIndex'
+import { chunkRoads } from '../town/roads'
 import { chunkStreets, withStreets } from '../town/townPlan'
 import { placeChunkSolids } from '../vegetation/solidPlacement'
 import { carveTrails, chunkTrails } from './trails'
@@ -61,8 +62,7 @@ import {
  *   correnteza dos rios (docs/features/057-lagos-e-rios.md)
  * @property {(x: number, z: number, weightsOut?: Float64Array) => number} sample -
  *   altura do relevo da seed em `(x, z)` (sem trilhas), com os pesos dos
- *   biomas em `weightsOut` (na ordem de `recipe().biomeList`) — o relevo
- *   distante (core/terrain/farTerrain.js)
+ *   biomas em `weightsOut` (na ordem de `recipe().biomeList`)
  * @property {() => import('./terrainHeight').TerrainRecipe} recipe - a
  *   receita em uso (troca no `reconfigure`)
  * @property {(x: number, z: number) => object} biomeAt - bioma de maior
@@ -75,8 +75,13 @@ import {
  * @property {(minX: number, maxX: number, minZ: number, maxZ: number) => import('../vegetation/solidPlacement').Footprint[]} footprintsIn -
  *   pegadas dos objetos sólidos que tocam o retângulo (dos blocos dos
  *   chunks carregados)
+ * @property {(x: number, z: number) => { city: import('../town/citySites').CitySite, distance: number } | null} nearestCity -
+ *   a cidade da seed mais perto e a distância (m) até o centro dela
  * @property {() => SolidsBlock[]} loadedBlocks - os blocos de sólidos com
  *   algum chunk carregado (a view desenha a vegetação por bloco)
+ * @property {(x: number, z: number, reach: number) => import('../vegetation/solidPlacement').Footprint[]} footprintsAround -
+ *   pegadas dos objetos sólidos até `reach` m de `(x, z)`, com ou sem
+ *   chunk carregado
  * @property {(status: StreamingStatus) => void} setStreamingStatus
  * @property {() => StreamingStatus} streamingStatus
  * @property {(seed: number, recipe?: import('./terrainHeight').TerrainRecipe) => void} reconfigure
@@ -159,6 +164,7 @@ function worldCityIndex(seed, recipe, sampler) {
       return share
     },
     heightAt: (x, z) => sampler.sample(x, z),
+    sites: sampler.cities,
   })
 }
 
@@ -191,6 +197,16 @@ export function createTerrainChunkSet({
   const size = () => recipe.terrain.CHUNK_SIZE
   const blockSize = () => recipe.terrain.SOLIDS_BLOCK_SIZE
 
+  // As estradas entre as cidades (docs/features/058-ajuste-dos-biomas.md):
+  // afundam como as trilhas e vão no mesmo canal (`chunk.trails` — a
+  // vegetação não nasce nelas); `chunk.roads` fica também à parte, para o
+  // chão pintar a estrada em todo bioma.
+  function addRoads(chunk) {
+    chunk.roads = chunkRoads(chunk, sampler.roads)
+    carveTrails(chunk, chunk.roads, recipe.roads)
+    chunk.trails = withStreets(chunk.trails, chunk.roads)
+  }
+
   // O chunk do relevo de um bloco inteiro, com as trilhas afundadas — de
   // onde saem os sólidos dele (a mesma conta dos chunks: as alturas batem).
   function blockGround(blockX, blockZ) {
@@ -205,9 +221,35 @@ export function createTerrainChunkSet({
       waterLevel: recipe.terrain.WATER_LEVEL,
     })
     carveTrails(ground, ground.trails, recipe.trails)
+    addRoads(ground)
     ground.streets = chunkStreets(ground, { biomeList: recipe.biomeList })
     ground.trails = withStreets(ground.trails, ground.streets)
     return ground
+  }
+
+  // Um bloco de sólidos (o relevo, os sólidos e os arbustos dele).
+  function buildBlock(blockX, blockZ) {
+    const ground = blockGround(blockX, blockZ)
+    ground.vegetationSeed = vegetationSeed
+    ground.solids = placeChunkSolids(ground, {
+      seed: vegetationSeed,
+      biomeList: recipe.biomeList,
+      terrain: recipe.terrain,
+      params: recipe.solids,
+      cities,
+    })
+    // Os arbustos, que o F vasculha (docs/features/055-itens-no-mundo.md),
+    // no bloco inteiro como os sólidos (a view desenha o bloco) e depois
+    // deles, fora das pegadas.
+    ground.bushes = placeChunkBushes(ground, { biomeList: recipe.biomeList })
+    return {
+      key: chunkKey(blockX, blockZ),
+      blockX,
+      blockZ,
+      ground,
+      solids: ground.solids,
+      chunkKeys: new Set(),
+    }
   }
 
   // O bloco do chunk, sorteado na primeira vez.
@@ -215,29 +257,7 @@ export function createTerrainChunkSet({
     const blockX = chunkCoordAt(chunk.minX + chunk.size / 2, blockSize())
     const blockZ = chunkCoordAt(chunk.minZ + chunk.size / 2, blockSize())
     const key = chunkKey(blockX, blockZ)
-    if (!blocks.has(key)) {
-      const ground = blockGround(blockX, blockZ)
-      ground.vegetationSeed = vegetationSeed
-      ground.solids = placeChunkSolids(ground, {
-        seed: vegetationSeed,
-        biomeList: recipe.biomeList,
-        terrain: recipe.terrain,
-        params: recipe.solids,
-        cities,
-      })
-      // Os arbustos, que o F vasculha (docs/features/055-itens-no-mundo.md),
-      // no bloco inteiro como os sólidos (a view desenha o bloco) e depois
-      // deles, fora das pegadas.
-      ground.bushes = placeChunkBushes(ground, { biomeList: recipe.biomeList })
-      blocks.set(key, {
-        key,
-        blockX,
-        blockZ,
-        ground,
-        solids: ground.solids,
-        chunkKeys: new Set(),
-      })
-    }
+    if (!blocks.has(key)) blocks.set(key, buildBlock(blockX, blockZ))
     return blocks.get(key)
   }
   const chunkAt = (x, z) =>
@@ -252,6 +272,9 @@ export function createTerrainChunkSet({
     },
 
     biomeAt: (x, z) => sampler.biomeAt(x, z),
+    // A cidade da seed mais perto de `(x, z)` e a distância (m) até ela
+    // (docs/features/058-ajuste-dos-biomas.md) — `null` sem cidades.
+    nearestCity: (x, z) => sampler.cities?.nearestCity(x, z) ?? null,
     // Correnteza dos rios em `(x, z)` (docs/features/057-lagos-e-rios.md).
     flowAt: (x, z) => sampler.flowAt(x, z),
 
@@ -276,6 +299,7 @@ export function createTerrainChunkSet({
         waterLevel: recipe.terrain.WATER_LEVEL,
       })
       carveTrails(chunk, chunk.trails, recipe.trails)
+      addRoads(chunk)
       // As ruas das cidades no mesmo canal, depois de afundar as trilhas:
       // pintam o chão e afastam a vegetação, sem afundar.
       // `streets` fica também à parte: o que é só de trilha (os seixos) não
@@ -328,6 +352,29 @@ export function createTerrainChunkSet({
     },
 
     loadedBlocks: () => [...blocks.values()],
+
+    // As pegadas dos sólidos em volta de `(x, z)` (até `reach` m), com ou
+    // sem chunk carregado: o bloco que não está carregado é sorteado só
+    // para a consulta, sem guardar (o save, ao voltar para uma posição
+    // longe — docs/features/058-ajuste-dos-biomas.md).
+    footprintsAround(x, z, reach) {
+      const found = []
+      const minX = x - reach
+      const maxX = x + reach
+      const minZ = z - reach
+      const maxZ = z + reach
+      const fromX = chunkCoordAt(minX, blockSize())
+      const fromZ = chunkCoordAt(minZ, blockSize())
+      for (let bx = fromX; bx <= chunkCoordAt(maxX, blockSize()); bx++) {
+        for (let bz = fromZ; bz <= chunkCoordAt(maxZ, blockSize()); bz++) {
+          const block = blocks.get(chunkKey(bx, bz)) ?? buildBlock(bx, bz)
+          for (const circle of block.solids.footprints) {
+            if (touchesRect(circle, minX, maxX, minZ, maxZ)) found.push(circle)
+          }
+        }
+      }
+      return found
+    },
 
     setStreamingStatus(next) {
       const isSame =

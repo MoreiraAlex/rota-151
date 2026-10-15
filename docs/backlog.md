@@ -218,6 +218,13 @@ de puxar ela pra frente.
       golpe (ou relembra um esquecido). Saiu da
       `docs/features/038-aprendizado-treino-e-dominio-de-golpes.md`.
 
+## Mundo
+
+- [ ] **Ponte nas estradas** — hoje, onde a estrada cruza rio ou lago, o
+      leito fica raso (o vau, `docs/features/058-ajuste-dos-biomas.md`) e dá
+      pra atravessar a pé. Trocar por uma ponte de verdade (modelo, colisor
+      e a IA passando por cima).
+
 ## Animação
 
 - [X] **Clipe por keyframes gravados (além de curva procedural)** —

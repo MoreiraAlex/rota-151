@@ -2,7 +2,7 @@
 
 ---
 
-# ✅ Já feito (0.0.1 – 0.0.57)
+# ✅ Já feito (0.0.1 – 0.0.58)
 
 O que já foi entregue, por tema. Detalhes de cada uma em `docs/features/`.
 
@@ -59,6 +59,7 @@ O que já foi entregue, por tema. Detalhes de cada uma em `docs/features/`.
 - [x] **055 — Itens no mundo**
 - [x] **056 — Bioma cidade**
 - [x] **057 — Lagos e rios**
+- [x] **058 — Ajuste dos biomas**
 
 ### Combate
 - [x] **025 — Ataque comum de criatura**
@@ -119,7 +120,6 @@ só aparecem pelo F2. A montanha foi adiada: na beta não teria espécie
 exclusiva (o Spearow já mora na savana). Os 3 iniciais não nascem no mundo:
 vêm só no kit inicial (066).
 
-- [ ] **058 — Ajuste dos biomas** — fechar os biomas visíveis antes das espécies: tamanho e distribuição de cada bioma no mapa (quanto do mundo é floresta, planície, savana e cidade, e como se vizinham), névoa, desenho dos objetos do bioma (distância, densidade, pop-in) e os detalhes que ainda não ficaram alinhados. Doc em `docs/features/058-ajuste-dos-biomas.md`.
 - [ ] **059 — As 10 espécies** — Bulbasaur, Charmander, Squirtle, Caterpie, Weedle, Pidgey, Rattata, Spearow, Ekans e Pikachu (7 novas, as selvagens; os 3 iniciais já existem e só vêm no kit inicial): modelo, status, golpes, sons e animações. Sons mapeados em `docs/reference/audio.md`.
 - [ ] **060 — Spawn estilo Cobblemon** — limite por jogador ativo, nascer fora da vista, despawn dos distantes; condições por espécie: bioma, tags, horário, clima, faixa de nível e raridade. Só as 7 selvagens têm spawn; os 3 iniciais não nascem no mundo.
 - [ ] **061 — Design da HUD** — visual definitivo da interface (com horário e clima); menus saem de `src/tools/menu/` para `view/`.

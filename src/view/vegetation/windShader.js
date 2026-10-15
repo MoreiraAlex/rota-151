@@ -57,6 +57,17 @@ vec2 vegTravellingGust(vec2 origin, vec2 windDir) {
   return vec2(along, pow(sin(phase) * 0.5 + 0.5, 1.6));
 }
 
+// Dobra em arco do ponto à altura y de uma folha de altura height, com a
+// ponta curvada bend rad (o ângulo cresce do pé à ponta por exponent).
+// Devolve o deslocamento a partir do ponto parado — x: para o lado; y: na
+// vertical. Sem dobra, nenhum: a folha fica na forma do modelo.
+vec2 vegArc(float y, float height, float bend, float exponent) {
+  float reach = height * pow(clamp(y / height, 0.0, 1.0), exponent);
+  float a = bend * reach / height;
+  if (abs(a) < 1e-4) return vec2(reach * a * 0.5, 0.0);
+  return vec2(reach * (1.0 - cos(a)) / a, reach * (sin(a) / a - 1.0));
+}
+
 // Desfaz o giro da instância (facing = cos/sin do giro) num deslocamento
 // horizontal de mundo — o giro aplicado depois o leva de volta para a
 // direção certa.
@@ -91,21 +102,16 @@ vec3 vegGrassSway(
   float chop = sin(gust.x * uGustScale * 2.7 - uWindTime * uWindSpeed * 1.3 + phase) * 0.5 + 0.5;
   float intensity = (calmFloor + gust.y * 0.85 + chop * chopStrength) * ampVar;
 
-  // Ângulo da dobra na ponta (rad), sem passar de ~90°. O mínimo vale para
-  // o ângulo e o raio juntos: sem vento nenhum, a folha fica de pé (com
-  // a dobra zerada só no ângulo, ela caía no chão).
-  float bend = max(clamp(uWindStrength * intensity * 3.0, 0.0, 1.6), 1e-3);
-  float a = bend * pow(t, bendExponent);
-  float radius = height / bend;
-  float u = radius * (1.0 - cos(a));
-  float dv = radius * sin(a) - y;
+  // Ângulo da dobra na ponta (rad), sem passar de ~90°.
+  float bend = clamp(uWindStrength * intensity * 3.0, 0.0, 1.6);
+  vec2 arc = vegArc(y, height, bend, bendExponent);
 
   float flutterMask = smoothstep(0.55, 1.0, t);
   float flutterAmount = sin(uWindTime * 10.0 + phase * 3.0 + gust.x * 0.8)
     * flutter * 0.08 * flutterMask * height;
 
-  vec2 horiz = windDir * u + perpDir * flutterAmount;
-  return vegToLocalFrame(horiz, dv, facing);
+  vec2 horiz = windDir * arc.x + perpDir * flutterAmount;
+  return vegToLocalFrame(horiz, arc.y, facing);
 }
 
 vec3 vegCanopySway(

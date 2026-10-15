@@ -59,11 +59,9 @@ vec3 vegPush(float y, float height, vec2 origin, vec2 facing, float seed, float 
   float eased = amount * amount * (3.0 - 2.0 * amount);
   float moving = min(length(stored.zw) / uPushRustleSpeed, 1.0);
   float tremble = sin(uWindTime * 4.0 + seed * 6.28318) * uPushRustle * moving;
-  float bend = max(maxBend * eased + tremble * maxBend / max(uPushBend, 1e-3), 1e-3);
-  float tip = clamp(y / height, 0.0, 1.0);
-  float a = bend * pow(tip, 1.6);
-  float radius = height / bend;
-  return vegToLocalFrame(direction * radius * (1.0 - cos(a)), radius * sin(a) - y, facing);
+  float bend = max(maxBend * eased + tremble * maxBend / max(uPushBend, 1e-3), 0.0);
+  vec2 arc = vegArc(y, height, bend, 1.6);
+  return vegToLocalFrame(direction * arc.x, arc.y, facing);
 }
 `
 

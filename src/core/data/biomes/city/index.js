@@ -10,16 +10,10 @@
 export const CITY = {
   id: 'city',
   name: 'Cidade',
-  // O menor bioma: as manchas dele ficam por cima das dos vizinhos.
-  size: 300,
-  // Rara: as manchas cobrem pouco do clima dela.
-  coverage: 0.12,
-  climate: {
-    temperature: [0.25, 0.7],
-    humidity: [0.15, 0.6],
-    continent: [0.4, 1],
-    relief: [0, 0.6],
-  },
+  // Sem `size`, `coverage` nem `climate`: a cidade não disputa pelo clima —
+  // é posta pela seed, uma por área (core/town/citySites.js,
+  // docs/features/058-ajuste-dos-biomas.md), num disco do raio do porte
+  // dela (`town.sizes`).
   // Quase plana e lisa (o chão perfeitamente plano fica para a 081).
   relief: {
     baseHeight: 3.5,
@@ -121,6 +115,37 @@ export const CITY = {
       },
     ],
     centralLots: 6,
+    // O porte de cada cidade (core/town/citySites.js), sorteado pelo
+    // `weight`: o `radius` (m) do disco dela no mapa e quais prédios únicos
+    // ela tem (`landmarks`: os `model` de `landmarks` acima; `special`: o
+    // prédio especial do tema). A primeira cidade tem o porte
+    // `CITIES.FIRST_SIZE`.
+    sizes: [
+      {
+        id: 'village',
+        name: 'Vila',
+        weight: 4,
+        radius: 110,
+        landmarks: ['pokecenter'],
+        special: false,
+      },
+      {
+        id: 'town',
+        name: 'Cidade',
+        weight: 4.5,
+        radius: 160,
+        landmarks: ['pokecenter', 'poke-mart'],
+        special: false,
+      },
+      {
+        id: 'big-city',
+        name: 'Cidade grande',
+        weight: 1.5,
+        radius: 230,
+        landmarks: ['pokecenter', 'poke-mart', 'gym'],
+        special: true,
+      },
+    ],
     // Os temas: cada cidade sorteia um (pela seed, `weight`) e segue ele
     // inteira — as casas (pelo peso; `fence`: cerca na frente), o prédio
     // especial (mais um prédio único; `scale` próprio quando o modelo é

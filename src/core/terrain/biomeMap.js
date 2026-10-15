@@ -109,6 +109,12 @@ function cubicBSpline(t, out) {
  *
  * Quem pontua mais vence; quem fica a menos de `BLEND` do vencedor mistura.
  *
+ * O bioma com `town` (a cidade) não disputa assim: ele vale num **disco** em
+ * volta de cada cidade posta pela seed (`cities`, core/town/citySites.js,
+ * docs/features/058-ajuste-dos-biomas.md) — dentro do raio vence, fora
+ * some, com uma borda de `EDGE` m (de `cities`) onde mistura com o bioma
+ * de volta. Sem `cities`, ele nunca aparece.
+ *
  * A disputa é feita numa grade de `BLEND_CELL` metros (alinhada ao mundo, os
  * pontos ficam em cache) e suavizada entre os pontos por uma B-spline
  * cúbica: a transição entre dois biomas dura umas três células, nunca
@@ -120,11 +126,12 @@ function cubicBSpline(t, out) {
  * em `(0, y, 0)` está sempre em terra firme.
  *
  * `params` tem a forma de `GAME_CONFIG.BIOMES`; `biomes`, a lista do
- * registro (`core/data/biomes/`) — os testes passam outros.
+ * registro (`core/data/biomes/`) — os testes passam outros; `cities`, as
+ * cidades da seed (`createCitySites`).
  */
 export function createBiomeSampler(
   seed,
-  { params = GAME_CONFIG.BIOMES, biomes = listBiomes() } = {},
+  { params = GAME_CONFIG.BIOMES, biomes = listBiomes(), cities = null } = {},
 ) {
   const {
     CLIMATE_SIZE,
@@ -146,11 +153,14 @@ export function createBiomeSampler(
   const presenceNoises = biomes.map(({ id }) => noiseFor(`presence:${id}`))
   const ranges = biomes.map(climateRanges)
   const count = biomes.length
+  // A cidade (o bioma com `town`) vale pelo disco das cidades, não pelo
+  // clima.
+  const townIndex = biomes.findIndex(({ town }) => town)
   // Prioridade pelo tamanho: o menor bioma fica por cima (1), o maior por
   // baixo (0).
-  const sizes = [...new Set(biomes.map(({ size }) => size))].sort(
-    (a, b) => b - a,
-  )
+  const sizes = [
+    ...new Set(biomes.filter(({ size }) => size).map(({ size }) => size)),
+  ].sort((a, b) => b - a)
   const priorities = biomes.map(({ size }) =>
     sizes.length > 1 ? sizes.indexOf(size) / (sizes.length - 1) : 0,
   )
@@ -198,12 +208,30 @@ export function createBiomeSampler(
     return out
   }
 
+  /**
+   * Placar da cidade em `(x, z)` contra o do bioma de volta (`ground`): o
+   * empata na beira do disco da cidade mais próxima e passa `BLEND` a cada
+   * `EDGE` m para dentro (perde o mesmo para fora) — a borda mistura os
+   * dois. Sozinha no mundo (sem bioma de volta — os testes da planta da
+   * cidade), ela vale em todo lugar.
+   */
+  function townScore(x, z, ground) {
+    if (ground === -Infinity) return 0
+    if (!cities) return -Infinity
+    const { city, distance } = cities.nearestCity(x, z)
+    return ground + (BLEND * (city.radius - distance)) / cities.edge
+  }
+
   /** A disputa em `(x, z)`: pesos em `out` (somam 1). */
   function contest(x, z, out) {
     climateAt(x, z)
 
     let bestFit = -Infinity
     for (let i = 0; i < count; i++) {
+      if (i === townIndex) {
+        fit[i] = -Infinity
+        continue
+      }
       let penalty = 0
       for (let axis = 0; axis < CLIMATE_AXES.length; axis++) {
         penalty += outside(climate[axis], ranges[i][axis])
@@ -223,6 +251,10 @@ export function createBiomeSampler(
           ? -Infinity
           : fit[i] + PRESENCE_STRENGTH * patchScore(i, x, z)
       if (scores[i] > scores[best]) best = i
+    }
+    if (townIndex >= 0) {
+      scores[townIndex] = townScore(x, z, scores[best])
+      if (scores[townIndex] > scores[best]) best = townIndex
     }
 
     let total = 0

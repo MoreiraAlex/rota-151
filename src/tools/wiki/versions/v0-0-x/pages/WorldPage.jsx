@@ -61,13 +61,14 @@ export function WorldPage({ data, version }) {
             <strong>Savana</strong>: campo seco e quente, com ondulações largas.
           </li>
           <li>
-            <strong>Cidade</strong>: chão quase plano, com ruas e casas. É rara
-            e pequena — achar uma é uma surpresa no caminho.
+            <strong>Cidade</strong>: chão quase plano, com ruas e casas. Cada
+            pedaço do mundo tem a sua, ligada às vizinhas por estradas (veja{' '}
+            <a href="#cidades">As cidades</a>).
           </li>
         </ul>
         <p>
           Entre um bioma e outro a passagem é aos poucos: a mata vai rareando
-          até virar campo. Você sempre começa em terra firme.
+          até virar campo. Você começa o jogo no meio de uma vila.
         </p>
         <p>
           Quando uma árvore, uma pedra ou uma planta fica entre a câmera e você,
@@ -114,7 +115,8 @@ export function WorldPage({ data, version }) {
         <p>
           O <strong>vento</strong> balança o mato, as plantas e as copas das
           árvores. Ele fica mais forte com chuva e mais ainda com tempestade e
-          neve.
+          neve — quanto mais forte o clima, mais vento: uma chuva fraca venta
+          pouco.
         </p>
         <p>
           O mato e as plantas <strong>abrem</strong> quando você ou uma criatura
@@ -127,8 +129,7 @@ export function WorldPage({ data, version }) {
 
       <Section id="planicie" title="A planície">
         <p>
-          Um campo aberto de grama verde, como as rotas dos jogos de Pokémon. É
-          onde você começa.
+          Um campo aberto de grama verde, como as rotas dos jogos de Pokémon.
         </p>
         <ul>
           <li>
@@ -217,13 +218,16 @@ export function WorldPage({ data, version }) {
 
       <Section id="cidades" title="As cidades">
         <p>
-          De vez em quando o campo dá lugar a uma <strong>cidade</strong>: ruas
-          calçadas em quadras, postes nas esquinas e casas de frente para a rua,
-          com jardim, flores e algumas árvores.
+          O mundo é dividido em áreas, e cada área tem uma{' '}
+          <strong>cidade</strong>. Entre uma cidade e a vizinha são uns 10 a 15
+          minutos andando pela estrada. Em volta delas ficam a floresta, a
+          planície e a savana.
         </p>
         <p>
-          Cada cidade segue o jeito de uma cidade de Kanto — as casas, o
-          calçamento da rua e um prédio que só ela tem:
+          Toda cidade tem ruas calçadas em quadras, postes nas esquinas e casas
+          de frente para a rua, com jardim, flores e algumas árvores. Ela segue
+          o jeito de uma cidade de Kanto — as casas, o calçamento da rua e, nas
+          maiores, um prédio que só ela tem:
         </p>
         <ul>
           <li>
@@ -242,11 +246,22 @@ export function WorldPage({ data, version }) {
             Pokémon.
           </li>
         </ul>
-        <p>
-          Toda cidade tem um <strong>Pokécenter</strong>, uma{' '}
-          <strong>loja</strong> e um <strong>ginásio</strong>, perto do meio
-          dela. O ginásio tem a cor da cidade.
-        </p>
+        <p>As cidades têm três tamanhos:</p>
+        <ul>
+          <li>
+            <strong>Vila</strong>: pequena, com o <strong>Pokécenter</strong> e
+            casas. Você começa o jogo numa vila.
+          </li>
+          <li>
+            <strong>Cidade</strong>: maior, com o Pokécenter e uma{' '}
+            <strong>loja</strong>.
+          </li>
+          <li>
+            <strong>Cidade grande</strong>: a maior e mais rara, com o
+            Pokécenter, a loja, um <strong>ginásio</strong> com a cor da cidade
+            e o prédio especial dela.
+          </li>
+        </ul>
         <ul>
           <li>
             Os prédios são sólidos: dá pra contornar, mas ainda não dá pra
@@ -256,6 +271,25 @@ export function WorldPage({ data, version }) {
             Na cidade não aparecem itens no chão, e as plantas do jardim não dão
             fruta.
           </li>
+        </ul>
+      </Section>
+
+      <Section id="estradas" title="Estradas">
+        <p>
+          <strong>Estradas</strong> de terra ligam as cidades, como as rotas de
+          Kanto: seguindo por elas você chega a qualquer cidade do mundo.
+        </p>
+        <ul>
+          <li>
+            Cada cidade liga a pelo menos uma vizinha, e algumas ligam a mais de
+            uma — tem voltas e atalhos.
+          </li>
+          <li>A estrada faz curvas pelo campo e nada cresce em cima dela.</li>
+          <li>
+            Onde ela cruza um rio ou um lago, a água fica rasa: dá pra
+            atravessar a pé, e as criaturas também passam.
+          </li>
+          <li>Chegando na cidade, a estrada vira as ruas dela.</li>
         </ul>
       </Section>
 
@@ -301,9 +335,9 @@ export function WorldPage({ data, version }) {
       <Section id="tamanho" title="Tamanho">
         <p>
           O mundo <strong>não tem fim</strong>: dá pra andar em qualquer direção
-          sem bater numa borda. No horizonte dá pra ver o relevo distante
-          (morros e montanhas lá longe) atrás de uma bruma leve; as plantas e os
-          detalhes vão aparecendo conforme você chega perto.
+          sem bater numa borda. Ao longe o mundo some numa{' '}
+          <strong>névoa</strong>, com serras no horizonte; até onde a névoa
+          começa, tudo aparece inteiro — árvores, prédios, mato e sombras.
         </p>
         <ul>
           <li>
@@ -333,8 +367,9 @@ export function WorldPage({ data, version }) {
               estrelas.
             </li>
             <li>
-              O céu, a luz e a névoa do horizonte mudam de cor com a hora:
-              alaranjados no amanhecer e no pôr do sol, azul-escuro à noite.
+              O céu, a luz, a névoa e as serras do horizonte mudam de cor com a
+              hora: alaranjados no amanhecer e no pôr do sol, azul-escuro à
+              noite.
             </li>
             <li>
               A noite é escura, mas dá pra enxergar o caminho e as criaturas. Só

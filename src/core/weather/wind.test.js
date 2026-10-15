@@ -34,6 +34,17 @@ describe('windStrengthOf', () => {
     }
   })
 
+  it('o clima fraco venta entre o limpo e o mesmo clima na força cheia', () => {
+    for (const type of WEATHER_TYPES.filter((kind) => kind !== 'clear')) {
+      const weak = windStrengthOf({ [type]: GAME_CONFIG.WEATHER.MIN_INTENSITY })
+      const full = windStrengthOf(only(type))
+      const clear = windStrengthOf(only('clear'))
+      expect(weak).toBeGreaterThanOrEqual(Math.min(clear, full))
+      expect(weak).toBeLessThanOrEqual(Math.max(clear, full))
+      expect(Math.abs(weak - clear)).toBeLessThan(Math.abs(full - clear) + 1e-9)
+    }
+  })
+
   it('sem força nenhuma: a do tempo limpo', () => {
     expect(windStrengthOf({})).toBe(GAME_CONFIG.WIND.STRENGTH.clear)
   })

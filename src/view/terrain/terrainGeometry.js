@@ -188,13 +188,15 @@ export function addGroundLayers(
  * (docs/features/052-assets-do-lgpe-e-floresta.md), vezes `weight`: a base
  * (`base`), o chão de mata onde é fechado (`shade`, pelas clareiras do
  * bioma — `shade` de 0 a 1), a margem (`shore`), a trilha (`trail`, pela
- * força dela), o alto (`high`, como a cor vai de `low` a `high`), a
- * encosta (`slope`) e o pico (`peak`). Cada papel cobre os de antes pela
- * força dele; papel sem camada no bioma fica de fora.
+ * força dela), a estrada (`road`, a camada `ROADS.LAYER` em todo bioma —
+ * docs/features/058-ajuste-dos-biomas.md), o alto (`high`, como a cor vai
+ * de `low` a `high`), a encosta (`slope`) e o pico (`peak`). Cada papel
+ * cobre os de antes pela força dele; papel sem camada no bioma fica de
+ * fora.
  */
 export function addColorLayers(
   biome,
-  { heightAboveWater, normalY, shade, trail },
+  { heightAboveWater, normalY, shade, trail, road = 0 },
   weight,
   colorWeights,
 ) {
@@ -209,6 +211,7 @@ export function addColorLayers(
       1 - smoothstep(SHORE_HEIGHT * 0.5, SHORE_HEIGHT * 1.5, heightAboveWater),
     ],
     ['trail', trail],
+    ['road', road],
     ['slope', smoothstep(SLOPE_START, SLOPE_FULL, normalY)],
     [
       'peak',
@@ -223,7 +226,7 @@ export function addColorLayers(
   ]
   const shares = new Map([[colors.base, 1]])
   for (const [role, strength] of roles) {
-    const layer = colors[role]
+    const layer = role === 'road' ? GAME_CONFIG.ROADS.LAYER : colors[role]
     if (!layer || strength <= 0) continue
     for (const [name, share] of shares) shares.set(name, share * (1 - strength))
     shares.set(layer, (shares.get(layer) ?? 0) + strength)
@@ -267,6 +270,7 @@ function groundAttributes(chunk, side, vertex, positions, normals, waterLevel) {
       colorWeights.fill(0)
       const heightAboveWater = positions[i * 3 + 1] - waterLevel
       const strength = chunk.trails?.[heightIndex(resolution, ix, iz)] ?? 0
+      const road = chunk.roads?.[heightIndex(resolution, ix, iz)] ?? 0
       const noise = hasColors
         ? clearingNoiseAt(
             chunk.vegetationSeed ?? 0,
@@ -287,6 +291,7 @@ function groundAttributes(chunk, side, vertex, positions, normals, waterLevel) {
               normalY: normals.getY(i),
               shade: amount > 0 ? 1 - opennessOf(noise, amount) : 0,
               trail: paintsTrails(biomes[biome]) ? strength : 0,
+              road,
             },
             weight,
             colorWeights,

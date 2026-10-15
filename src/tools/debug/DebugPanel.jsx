@@ -152,6 +152,9 @@ export function DebugPanel({ onDeleteSave = null }) {
       <ChunkDebugCounter />
       {/* Bioma onde está quem é controlado (docs/features/047-biomas.md). */}
       <p>bioma: {TEST_LEVEL.terrain.biomeAt(position.x, position.z).name}</p>
+      {/* A cidade mais perto (docs/features/058-ajuste-dos-biomas.md): a
+          base do nível dos selvagens pela distância (060). */}
+      <NearestCityLine x={position.x} z={position.z} />
       <RenderStatsLine />
       {/* Relógio e clima (docs/features/048-dia-noite-e-clima.md). */}
       {clock && weather && (
@@ -494,6 +497,26 @@ function RenderStatsLine() {
     <p>
       desenho: {calls} chamadas · {(triangles / 1e6).toFixed(2)} M triângulos ·
       dpr {dpr.toFixed(2)}
+    </p>
+  )
+}
+
+// Direções do mundo para a cidade mais perto (leste = +x, norte = +z, como
+// as estradas — core/town/roads.js).
+const COMPASS = ['L', 'NE', 'N', 'NO', 'O', 'SO', 'S', 'SE']
+
+// A cidade mais perto de `(x, z)`: porte, célula, distância e direção.
+function NearestCityLine({ x, z }) {
+  const nearest = TEST_LEVEL.terrain.nearestCity?.(x, z)
+  if (!nearest) return null
+  const { city, distance } = nearest
+  const angle = Math.atan2(city.z - z, city.x - x)
+  const sector = Math.round(angle / (Math.PI / 4))
+  const direction = COMPASS[(sector + COMPASS.length) % COMPASS.length]
+  return (
+    <p>
+      cidade: {city.size.name} ({city.id}) · {Math.round(distance)} m ·{' '}
+      {direction}
     </p>
   )
 }

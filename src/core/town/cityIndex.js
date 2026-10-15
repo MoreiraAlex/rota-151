@@ -8,12 +8,17 @@ import { createRng, deriveSeed } from '../rng'
  * aberto (`isLotOpen`: o lote inteiro no bioma da cidade, em terra seca e
  * longe da origem). Cada cidade tem:
  *
- * - um **id** (o quarteirão de menor coordenada dela) — o mesmo qualquer
- *   que seja o quarteirão que perguntou;
+ * - um **id** — o da cidade da seed (`sites`, core/town/citySites.js,
+ *   docs/features/058-ajuste-dos-biomas.md) mais perto dela; sem `sites`, o
+ *   quarteirão de menor coordenada dela — o mesmo qualquer que seja o
+ *   quarteirão que perguntou;
+ * - um **porte** (`size`, de `town.sizes`, o da cidade da seed; sem
+ *   `sites`, `null`): decide quais prédios únicos ela tem;
  * - um **tema** (`town.themes`, sorteado pela seed e pelo id): as casas, o
  *   prédio especial e a rua de uma cidade de Kanto;
- * - os **prédios únicos** (`town.landmarks`: Pokécenter, loja, ginásio, e o
- *   especial do tema), um de cada, nos lotes abertos mais perto do meio
+ * - os **prédios únicos** (os de `town.landmarks` que o porte pede —
+ *   `size.landmarks` — e o especial do tema se ele pedir, `size.special`;
+ *   sem porte, todos), um de cada, nos lotes abertos mais perto do meio
  *   dela (sorteados entre os `centralLots` mais centrais, pela seed e pelo
  *   id) — numa cidade com pelo menos `TOWN.MIN_CITY_LOTS` lotes abertos;
  *   abaixo disso (lascas na borda da mancha), só casas.
@@ -26,6 +31,7 @@ import { createRng, deriveSeed } from '../rng'
  *
  * @typedef {object} City
  * @property {string} id
+ * @property {object | null} size - a entrada de `town.sizes` da cidade
  * @property {object} theme - a entrada de `town.themes` da cidade
  * @property {Map<string, object>} landmarks - chave do lote → prédio único
  *   que fica nele (de `town.landmarks` ou o `special` do tema)
@@ -76,6 +82,8 @@ export function lotBoundsOf(town, lotX, lotZ) {
  * @param {object} [options.terrain] - forma de `GAME_CONFIG.TERRAIN`
  * @param {number[]} [options.bounds] - `[minX, minZ, maxX, maxZ]` onde a
  *   busca vale (sem ele, o mundo todo)
+ * @param {import('./citySites').CitySites} [options.sites] - as cidades da
+ *   seed (o id e o porte de cada cidade)
  * @returns {CityIndex}
  */
 export function createCityIndex({
@@ -85,6 +93,7 @@ export function createCityIndex({
   heightAt,
   terrain = GAME_CONFIG.TERRAIN,
   bounds = null,
+  sites = null,
 }) {
   const {
     LOT_MARGIN,
@@ -172,9 +181,18 @@ export function createCityIndex({
     return themes.at(-1)
   }
 
-  // Os prédios únicos (os de toda cidade e o especial do tema) nos lotes
-  // mais centrais da cidade.
-  function landmarksOf(id, lots, theme) {
+  // Os prédios únicos que a cidade tem: os que o porte pede (sem porte,
+  // todos) e o especial do tema.
+  function landmarkListOf(size, theme) {
+    if (!size) return [...town.landmarks, theme.special].filter(Boolean)
+    return [
+      ...town.landmarks.filter(({ model }) => size.landmarks.includes(model)),
+      size.special ? theme.special : null,
+    ].filter(Boolean)
+  }
+
+  // Os prédios únicos nos lotes mais centrais da cidade.
+  function landmarksOf(id, lots, theme, size) {
     // Lasca da borda da mancha: só casas.
     if (lots.length < MIN_CITY_LOTS) return new Map()
     const centerX = lots.reduce((sum, [x]) => sum + x, 0) / lots.length
@@ -188,8 +206,7 @@ export function createCityIndex({
     )
     const rng = createRng(deriveSeed(seed, `town:city:${id}`))
     const landmarks = new Map()
-    const all = [...town.landmarks, theme.special].filter(Boolean)
-    for (const landmark of all) {
+    for (const landmark of landmarkListOf(size, theme)) {
       if (byCenter.length === 0) break
       const choices = Math.min(town.centralLots, byCenter.length)
       const [lot] = byCenter.splice(Math.floor(rng() * choices), 1)
@@ -212,10 +229,22 @@ export function createCityIndex({
           ? block
           : min,
       )
-      const id = blockKey(firstX, firstZ)
+      // A cidade da seed mais perto do meio do quarteirão de menor
+      // coordenada (o mesmo para a cidade inteira).
+      const site = sites?.nearestCity(
+        (firstX + 0.5) * town.blockSize,
+        (firstZ + 0.5) * town.blockSize,
+      ).city
+      const id = site?.id ?? blockKey(firstX, firstZ)
+      const size = site?.size ?? null
       const lots = blocks.flatMap(([x, z]) => openLotsOf(x, z))
       const theme = themeOf(id)
-      const city = { id, theme, landmarks: landmarksOf(id, lots, theme) }
+      const city = {
+        id,
+        size,
+        theme,
+        landmarks: landmarksOf(id, lots, theme, size),
+      }
       for (const [x, z] of blocks) cities.set(blockKey(x, z), city)
       return city
     },

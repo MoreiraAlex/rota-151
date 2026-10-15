@@ -48,7 +48,7 @@ Versão: `0.0.56` (`package.json`). Branch: `feature/056-bioma-cidade`.
 - **Itens no mundo** (055) e **fruta na vegetação** saem dos campos
   `worldItems` e `forage` do bioma: bioma sem eles não tem nenhum.
 - **Selvagens**: hoje nascem uma vez, em pontos fixos do nível de teste
-  (`wildCreatureSpawnSystem`). O spawn por bioma é da 058.
+  (`wildCreatureSpawnSystem`). O spawn por bioma é da 060.
 
 ---
 
@@ -121,7 +121,7 @@ Texturas de chão para as ruas e calçadas: `asphalt01_area02`,
   (`ground.colors` com as texturas do LGPE).
 - `vegetation`: só jardim (flores, moitas, árvores de rua, poucas), longe
   das ruas e dos prédios.
-- Sem `worldItems`, sem `forage`; `tags: ['urban']` (a 058 não põe
+- Sem `worldItems`, sem `forage`; `tags: ['urban']` (a 060 não põe
   selvagem em bioma sem espécie dele).
 - Campo novo `town` com os números da grade e a tabela de prédios (o que
   sorteia com que peso, o recuo da rua, a escala) — molde no `_template`.
@@ -443,7 +443,7 @@ passado para o código.
 - [x] Um Pokécenter, uma loja e um ginásio por cidade; o resto, casas.
 - [x] Sem itens dentro da cidade e só vegetação de jardim. Selvagens: a
       cidade não tem espécie (`tags: ['urban']`); o spawn por bioma é da
-      058.
+      060.
 - [x] Desempenho na Intel UHD no nível de hoje (dentro do ruído).
 - [x] `npm run build`, `npm run lint` e `npm test` passando.
 - [x] Wiki atualizada.

@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { GAME_CONFIG } from '../gameConfig'
-import { listBiomes } from '../data/biomes'
+import { getBiome, listBiomes } from '../data/biomes'
 import { deriveSeed } from '../rng'
+import { createCitySites } from '../town/citySites'
 import { CLIMATE_AXES, createBiomeSampler, noiseToFraction } from './biomeMap'
+import { createWaterBodies } from './waterBodies'
 
 const PARAMS = GAME_CONFIG.BIOMES
 const POINTS = Array.from({ length: 40 }, (_, i) => [
@@ -15,6 +17,12 @@ const weightsOf = (sampler, x, z) => {
   sampler.weightsAt(x, z, out)
   return out
 }
+
+const citiesFor = (seed) =>
+  createCitySites(seed, {
+    town: getBiome('city').town,
+    waterBodies: createWaterBodies(seed),
+  })
 
 // Bioma de teste: sem faixa de clima (vive em qualquer lugar).
 const sandboxBiome = (id, size) => ({ id, name: id, size, climate: {} })
@@ -117,7 +125,7 @@ describe('createBiomeSampler', () => {
     // Biomas que aceitam a continentalidade garantida na origem.
     const landIds = listBiomes()
       .filter(({ climate }) => {
-        const [min, max] = climate.continent ?? [0, 1]
+        const [min, max] = climate?.continent ?? [0, 1]
         return min <= PARAMS.SPAWN_CONTINENT && PARAMS.SPAWN_CONTINENT <= max
       })
       .map(({ id }) => id)
@@ -134,10 +142,11 @@ describe('createBiomeSampler', () => {
   it('todos os biomas do registro aparecem no mundo do jogo', () => {
     // Grade grossa (um ponto da disputa por amostra): o que importa aqui é
     // quem vence, não a transição.
-    const sampler = createBiomeSampler(
-      deriveSeed(GAME_CONFIG.WORLD.SEED, 'terrain'),
-      { params: { ...PARAMS, BLEND_CELL: 200 } },
-    )
+    const seed = deriveSeed(GAME_CONFIG.WORLD.SEED, 'terrain')
+    const sampler = createBiomeSampler(seed, {
+      params: { ...PARAMS, BLEND_CELL: 200 },
+      cities: citiesFor(seed),
+    })
     const seen = new Set()
     for (let x = -15000; x <= 15000; x += 200) {
       for (let z = -15000; z <= 15000; z += 200) {
@@ -188,5 +197,62 @@ describe('createBiomeSampler', () => {
     expect(shareWith(PARAMS.PATCH_COVERAGE / 4)).toBeLessThan(
       shareWith(PARAMS.PATCH_COVERAGE) / 2,
     )
+  })
+
+  describe('cidades', () => {
+    const seed = 151
+    const cities = citiesFor(seed)
+    const sampler = createBiomeSampler(seed, { cities })
+    const cells = Array.from({ length: 25 }, (_, i) => [
+      (i % 5) - 2,
+      Math.floor(i / 5) - 2,
+    ])
+
+    it('o centro de toda cidade é cidade, a origem inclusive', () => {
+      for (const [x, z] of cells) {
+        const city = cities.cityAt(x, z)
+        expect(sampler.biomeAt(city.x, city.z).id).toBe('city')
+      }
+      expect(sampler.biomeAt(0, 0).id).toBe('city')
+    })
+
+    it('longe de toda cidade, nada de cidade', () => {
+      for (const [x, z] of cells) {
+        const city = cities.cityAt(x, z)
+        // Logo além da borda e da grade de mistura, nos quatro lados.
+        const reach =
+          city.radius + GAME_CONFIG.CITIES.EDGE + 3 * PARAMS.BLEND_CELL
+        for (const [dx, dz] of [
+          [1, 0],
+          [-1, 0],
+          [0, 1],
+          [0, -1],
+        ]) {
+          const px = city.x + dx * reach
+          const pz = city.z + dz * reach
+          if (cities.nearestCity(px, pz).city !== city) continue
+          expect(sampler.biomeAt(px, pz).id).not.toBe('city')
+        }
+      }
+    })
+
+    it('sem as cidades, o bioma da cidade nunca aparece', () => {
+      const without = createBiomeSampler(seed)
+      for (const [x, z] of cells) {
+        const city = cities.cityAt(x, z)
+        expect(without.biomeAt(city.x, city.z).id).not.toBe('city')
+      }
+    })
+
+    it('fora das cidades, o mapa é o mesmo com e sem elas', () => {
+      const without = createBiomeSampler(seed)
+      for (const [x, z] of POINTS) {
+        const { city, distance } = cities.nearestCity(x, z)
+        const clear =
+          city.radius + GAME_CONFIG.CITIES.EDGE + 3 * PARAMS.BLEND_CELL
+        if (distance < clear) continue
+        expect(sampler.biomeAt(x, z)).toBe(without.biomeAt(x, z))
+      }
+    })
   })
 })

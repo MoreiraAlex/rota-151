@@ -34,7 +34,7 @@ export const GAME_CONFIG = {
   // (docs/features/047-biomas.md).
   TERRAIN: {
     // Identifica a receita do relevo; subir quando a geração mudar.
-    GENERATION_VERSION: 17,
+    GENERATION_VERSION: 19,
     // Altura (m) da superfície da água: o que fica abaixo vira lago na 057.
     // O relevo dos biomas é medido a partir dela (`relief.baseHeight`).
     WATER_LEVEL: -2,
@@ -215,6 +215,56 @@ export const GAME_CONFIG = {
     // ginásio e o especial: abaixo disso (lascas na borda da mancha), só
     // casas.
     MIN_CITY_LOTS: 8,
+  },
+  // Onde ficam as cidades (core/town/citySites.js, docs/features/058-
+  // ajuste-dos-biomas.md): uma por célula de uma grade, a âncora da área em
+  // volta. O porte e o raio de cada uma vêm do `town.sizes` do bioma. Faz
+  // parte da receita do relevo: mudar qualquer número muda o mundo da seed
+  // — subir `TERRAIN.GENERATION_VERSION` junto.
+  CITIES: {
+    // Lado (m) da célula: a distância típica entre duas cidades vizinhas.
+    SPACING: 1600,
+    // Quanto (fração da célula) o centro da cidade pode sair do centro da
+    // célula. Abaixo de um terço: a busca da mais próxima olha só as
+    // células vizinhas (`nearestCity`).
+    JITTER: 0.3,
+    // Folga (m) de rio e lago que o centro e a volta da cidade buscam, e
+    // quantos sorteios tentar até achar um lugar assim (sem achar, fica o
+    // de centro seco e menos água em volta).
+    WATER_GAP: 20,
+    TRIES: 16,
+    // Largura (m) da borda da cidade no mapa de biomas: de lá para fora,
+    // o bioma de volta entra aos poucos.
+    EDGE: 24,
+    // Porte da primeira cidade (a da origem, onde o treinador nasce).
+    FIRST_SIZE: 'village',
+  },
+  // Estradas entre as cidades (core/town/roads.js, docs/features/058-
+  // ajuste-dos-biomas.md). Faz parte da receita do relevo (o vau muda o
+  // leito da água): mudar qualquer número muda o mundo da seed — subir
+  // `TERRAIN.GENERATION_VERSION` junto.
+  ROADS: {
+    // Chance (0 a 1) de uma cidade ligar às duas vizinhas (leste e norte),
+    // não só a uma: maior = mais voltas e atalhos.
+    EXTRA: 0.15,
+    // Quanto a estrada serpenteia, em fração do comprimento dela.
+    WARP: 0.15,
+    // Distância (m) entre os pontos do traçado.
+    STEP: 16,
+    // Largura (m) da estrada e da borda dela (onde a grama volta aos
+    // poucos).
+    WIDTH: 5,
+    EDGE: 1.5,
+    // Relevo: quanto (m) o meio afunda e a beirada sobe (como a trilha).
+    DEPTH: 0.1,
+    BANK: 0.05,
+    // Vau: onde a estrada cruza rio ou lago, o leito sobe até esta
+    // profundidade (m) — somada ao afundado da estrada, abaixo do raso por
+    // onde a IA navega (`WATER.NAV_DEPTH`) — numa faixa desta largura (m).
+    FORD_DEPTH: 0.08,
+    FORD_WIDTH: 9,
+    // Camada de cor do chão da estrada (a mesma em todo bioma).
+    LAYER: 'lgpe-trail-soil',
   },
   // Lagos e rios (core/terrain/waterBodies.js, docs/features/057-lagos-e-
   // rios.md): cavam o relevo abaixo do `TERRAIN.WATER_LEVEL` nos biomas com
@@ -758,8 +808,6 @@ export const GAME_CONFIG = {
   // - MAX_SLOPE (rad) e SHORE_GAP (m): sem item em encosta íngreme nem
   //   perto da água.
   // - SPOT_ATTEMPTS: tentativas de achar um ponto livre antes de desistir.
-  // - DRAW_DISTANCE (m): até onde da câmera o item do chão é desenhado (ele
-  //   é pequeno: de longe não aparece, e cada um custa desenhos e sombra).
   // - REFILL_CHECK_SECONDS (s): de quanto em quanto tempo a reposição confere
   //   os chunks (a reposição é de minutos de jogo; conferir todo passo é
   //   desperdício).
@@ -774,7 +822,6 @@ export const GAME_CONFIG = {
     SHORE_GAP: 0.6,
     SPOT_ATTEMPTS: 24,
     REFILL_CHECK_SECONDS: 1,
-    DRAW_DISTANCE: 45,
   },
   // Grade do inventário (docs/features/041-inventario-de-itens-e-pokemon.md).
   INVENTORY: {
@@ -1175,6 +1222,9 @@ export const GAME_CONFIG = {
   SAVE: {
     // Segundos entre um pedido de save automático e o próximo.
     AUTOSAVE_INTERVAL: 30,
+    // Até onde (m) procurar um lugar livre quando a posição salva caiu
+    // dentro de um prédio que agora existe ali (core/save/trainerSave.js).
+    FREE_SPOT_REACH: 40,
   },
 
   // Tela de "Carregando…" (docs/features/044-salvar-o-jogo.md):
@@ -1422,51 +1472,61 @@ export const GAME_CONFIG = {
   // raio de carregar e do lado do chunk (`view/terrain/fogRange.js`).
   // A cor da névoa é a do horizonte da hora (`DAY_CYCLE.KEYFRAMES`), pra o
   // relevo enevoado não aparecer recortado contra o céu.
+  // Serras do fundo (view/scene/BackdropView.jsx, backdropGeometry.js,
+  // docs/features/058-ajuste-dos-biomas.md): na névoa fechada, silhuetas
+  // de montanha em volta da câmera, como parte do céu, na cor da névoa —
+  // o mundo não acaba num limbo. Lido ao abrir o jogo.
+  BACKDROP: {
+    ENABLED: true,
+    // Raio (m) das faixas em volta da câmera (dentro do alcance dela) e
+    // quantas colunas cada uma tem.
+    RADIUS: 800,
+    SEGMENTS: 512,
+    // Da mais longe à mais perto. Cada uma: a altura da crista em graus
+    // acima do horizonte (`minAngle` a `maxAngle`), quanto a base desce
+    // abaixo dele (`belowAngle`: o bastante para não sobrar céu entre a
+    // serra e o chão enevoado), quantas serras em volta (`frequency`), o
+    // detalhe (`octaves`), crista pontuda (`ridged`, 0 a 1), quanto
+    // escurece a cor da névoa (`shade`: 1 = igual a ela), o tom da serra
+    // (`tint`, puxado com a força `tintAmount` — mais azulado ao longe) e
+    // até que altura ela sai da névoa (`mist`, fração da crista mais alta:
+    // do horizonte até lá, vai da cor da névoa à da serra).
+    LAYERS: [
+      {
+        minAngle: 1.5,
+        maxAngle: 7,
+        belowAngle: 25,
+        frequency: 1.4,
+        octaves: 4,
+        ridged: 0.7,
+        shade: 0.78,
+        tint: '#8ea7c7',
+        tintAmount: 0.4,
+        mist: 0.7,
+      },
+      {
+        minAngle: 0.5,
+        maxAngle: 4,
+        belowAngle: 25,
+        frequency: 2.2,
+        octaves: 4,
+        ridged: 0.4,
+        shade: 0.62,
+        tint: '#6f8f8a',
+        tintAmount: 0.4,
+        mist: 0.8,
+      },
+    ],
+  },
+  // Névoa (view/scene/FogView.jsx, docs/features/058-ajuste-dos-
+  // biomas.md): fecha na borda do mundo carregado e, até onde começa, tudo
+  // aparece inteiro (vegetação, cidades, sombras, grama, itens); dentro
+  // dela some. Atrás dela, as serras do fundo (`BACKDROP`), na cor dela.
   FOG: {
     // Onde a névoa começa, como fração da distância em que ela fecha.
     START_FRACTION: 0.55,
     // Menor distância (m) em que ela fecha, mesmo com raio e chunk pequenos.
     MIN_DISTANCE: 24,
-    // Com o relevo distante (`FAR_TERRAIN`, docs/features/051-montanha.md),
-    // a névoa vira bruma: começa em `HAZE_START` (m), engrossa devagar
-    // (`HAZE_LENGTH`, m — maior = mais transparente ao longe) até no máximo
-    // `HAZE_MAX` (0 a 1, para os morros do fundo continuarem como
-    // silhueta), e só fecha de vez na borda do relevo distante, a partir
-    // de `EDGE_FRACTION` dela.
-    HAZE_START: 20,
-    HAZE_LENGTH: 380,
-    HAZE_MAX: 0.85,
-    EDGE_FRACTION: 0.75,
-  },
-  // Relevo distante (docs/features/051-montanha.md, core/terrain/
-  // farTerrain.js, view/terrain/FarTerrainView.jsx): além dos chunks
-  // carregados, uma malha grossa do mesmo relevo da seed até o horizonte —
-  // só visual, sem colisão nem vegetação (o tom da copa pinta as matas).
-  // Some onde o chunk de verdade está carregado.
-  FAR_TERRAIN: {
-    // Liga o relevo distante (e a névoa de bruma, `FOG.HAZE_*`). Lido uma
-    // vez ao abrir o jogo.
-    ENABLED: true,
-    // Até onde vai (m, a partir do centro da malha).
-    RADIUS: 800,
-    // Lado (m) de uma célula da malha: múltiplo do `TERRAIN.CHUNK_SIZE`,
-    // para os vértices caírem nos cantos dos chunks.
-    CELL: 16,
-    // Pontos do relevo amostrados por quadro ao montar a malha (o resto
-    // entra nos quadros seguintes).
-    SAMPLES_PER_FRAME: 500,
-    // Quanto a câmera anda (m) a partir do centro da malha antes de montar
-    // outra em volta dela.
-    RECENTER_DISTANCE: 128,
-    // Quanto a malha fica abaixo do relevo (m): na borda dos chunks
-    // carregados ela não aparece por cima do chão de verdade.
-    SINK: 0.6,
-    // Quanto do tom da copa (folhas das árvores do bioma) cobre o chão
-    // onde há mata (0 a 1).
-    CANOPY_STRENGTH: 0.85,
-    // Clareia ou escurece a malha (1 = a cor da paleta) para casar com o
-    // chão desenhado dos chunks.
-    BRIGHTNESS: 1,
   },
   // Dia e noite (docs/features/048-dia-noite-e-clima.md, core/time/
   // dayCycle.js). O horário é medido em dias de jogo: 0 a 1 é um dia, e a
@@ -1573,8 +1633,14 @@ export const GAME_CONFIG = {
     // Sombra do sol e da lua (view/scene/DayLightView.jsx): ela acompanha
     // quem está no controle. Lado (m) da área com sombra e distância (m) da
     // luz até o centro dela.
-    SHADOW_AREA: 60,
+    SHADOW_AREA: 120,
     SHADOW_DISTANCE: 80,
+    // Quanto (m) o centro da área de sombra vai à frente de quem está no
+    // controle, na direção em que a câmera olha (docs/features/058-ajuste-
+    // dos-biomas.md): a área cobre o que se vê até a névoa, não o que fica
+    // atrás da câmera. Menos que metade do `SHADOW_AREA`, para quem está no
+    // controle e a volta dele seguirem dentro.
+    SHADOW_AHEAD: 45,
     SHADOW_MAP_SIZE: 2048,
   },
   // Nuvens no céu (view/scene/DayNightView.jsx, docs/features/048-dia-
@@ -1694,8 +1760,8 @@ export const GAME_CONFIG = {
   },
   // Árvores (docs/features/049-vegetacao-e-floresta.md). `TREES` é a
   // folhosa comum (`broadleaf-tree`) e o que vale para todas as espécies
-  // (tom, LOD); cada espécie tem o próprio bloco com a colocação e a cor
-  // da copa ao longe (`ANCIENT_TREES`, `PINES`, `DEAD_TREES`).
+  // (tom, LOD); cada espécie tem o próprio bloco com a colocação
+  // (`ANCIENT_TREES`, `PINES`, `DEAD_TREES`).
   TREES: {
     // Lado (m) da grade de candidatas: no máximo uma árvore por célula —
     // é o espaço mínimo entre duas.
@@ -1716,15 +1782,12 @@ export const GAME_CONFIG = {
     // Raio (m, no tamanho 1) em volta do tronco onde não nasce o tronco de
     // outra árvore — a copa não atravessa a da vizinha.
     CROWN_RADIUS: 1.6,
-    // Cor da copa no relevo distante (view/terrain/farTerrainGeometry.js,
-    // onde não há árvores), vezes a tinta do bioma (`tint`).
-    LEAF_COLOR: '#73983e',
     // Quanto o tom varia de uma árvore (ou planta) para outra (0 = todas
     // iguais): mais clara ou mais escura, e um pouco mais amarelada.
     TINT_VARIATION: 0.18,
     // Árvore de longe (LOD): a partir desta distância (m) da câmera, a
     // árvore para de fazer sombra.
-    LOD_DISTANCE: 30,
+    LOD_DISTANCE: 60,
   },
   // Árvore antiga (`ancient-tree`): a grande e retorcida, poucas e
   // espalhadas — a copa alta que fecha a mata. Mesmos campos de `TREES`.
@@ -1737,7 +1800,6 @@ export const GAME_CONFIG = {
     TRUNK_RADIUS: 0.95,
     TRUNK_HEIGHT: 6,
     CROWN_RADIUS: 4.5,
-    LEAF_COLOR: '#66883a',
   },
   // Pinheiro (`pine-tree`): em bosques (`patches` no bioma), com a casca
   // um pouco mais quente que a da folhosa.
@@ -1750,7 +1812,6 @@ export const GAME_CONFIG = {
     TRUNK_RADIUS: 0.32,
     TRUNK_HEIGHT: 4,
     CROWN_RADIUS: 1.6,
-    LEAF_COLOR: '#4e6a39',
   },
   // Acácia (`acacia-tree`, savana): isolada no campo. Mesmos campos de
   // `TREES`.
@@ -1763,7 +1824,6 @@ export const GAME_CONFIG = {
     TRUNK_RADIUS: 0.5,
     TRUNK_HEIGHT: 4,
     CROWN_RADIUS: 3.5,
-    LEAF_COLOR: '#8a9466',
   },
   // Árvore morta (`dead-tree`): só galhos, rara.
   DEAD_TREES: {
@@ -1892,11 +1952,11 @@ export const GAME_CONFIG = {
   GRASS_PUSH: {
     ENABLED: true,
     RADIUS: 0.7,
-    INNER: 0.25,
-    BEND: 0.7,
-    BUSH: 0.35,
-    ATTACK: 0.35,
-    RECOVERY: 1.6,
+    INNER: 0.75,
+    BEND: 1.25,
+    BUSH: 0.85,
+    ATTACK: 0.25,
+    RECOVERY: 1,
     RUSTLE: 0.1,
     HEIGHT_GATE: 0.8,
     AREA: 48,
@@ -1905,13 +1965,9 @@ export const GAME_CONFIG = {
   // Qualidade (`VEGETATION_QUALITY.CURRENT`, escolhida no F2):
   // - density: quanto da densidade da vegetação só visual fica;
   // - canopyShadow: se copas e arbustos fazem sombra;
-  // - detailRing: até quantos blocos de sólidos (`TERRAIN.SOLIDS_BLOCK_SIZE`)
-  //   da câmera o sub-bosque (arbustos, samambaias, cogumelos) é montado —
-  //   0 = só o bloco dela;
-  // - detailDistance: até onde (m da câmera) cada planta do sub-bosque é
-  //   desenhada;
-  // - shadowRing: até quantos blocos de sólidos da câmera os objetos fazem
-  //   sombra;
+  // - shadowRing: até quantos blocos de sólidos (`TERRAIN.SOLIDS_BLOCK_SIZE`)
+  //   da câmera os objetos fazem sombra — o bastante para cobrir a área de
+  //   sombra (`DAY_CYCLE.SHADOW_AREA`); 0 = nenhum;
   // - treeDistance: até onde (m, do centro do bloco da câmera ao centro do
   //   bloco) aparecem árvores e pedras;
   // - maxDpr: densidade de pixels máxima da tela (telas de alta resolução
@@ -1921,17 +1977,13 @@ export const GAME_CONFIG = {
     high: {
       density: 1,
       canopyShadow: true,
-      detailRing: 1,
-      detailDistance: 40,
-      shadowRing: 1,
+      shadowRing: 2,
       treeDistance: 150,
       maxDpr: 1.5,
     },
     low: {
       density: 0.5,
       canopyShadow: false,
-      detailRing: 1,
-      detailDistance: 25,
       shadowRing: 0,
       treeDistance: 100,
       maxDpr: 1,

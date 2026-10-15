@@ -202,3 +202,22 @@ describe('currentTerrainRecipe — biomas escondidos', () => {
     }
   })
 })
+
+describe('vau das estradas', () => {
+  it('onde a estrada cruza rio ou lago, o leito fica raso', () => {
+    const sampler = createTerrainSampler(GAME_CONFIG.WORLD.SEED)
+    const { FORD_DEPTH } = GAME_CONFIG.ROADS
+    const edges = sampler.roads.edgesIn([-5000, -5000, 5000, 5000])
+    let crossings = 0
+    for (const { points } of edges) {
+      for (let i = 0; i < points.length; i += 2) {
+        const [x, z] = [points[i], points[i + 1]]
+        const height = sampler.heightAt(x, z)
+        if (height < WATER_LEVEL) crossings += 1
+        expect(height).toBeGreaterThanOrEqual(WATER_LEVEL - FORD_DEPTH - 1e-6)
+      }
+    }
+    // A seed do jogo tem estrada cruzando água (o teste mede alguma coisa).
+    expect(crossings).toBeGreaterThan(0)
+  })
+})

@@ -5,6 +5,7 @@ import { GAME_CONFIG } from '@/core/gameConfig'
 import {
   LGPE_KIND_CATEGORIES,
   lgpeChoicesOf,
+  lgpeBillboardOf,
   lgpePushOf,
   lgpeSwayOf,
 } from './lgpeModels'
@@ -68,6 +69,14 @@ describe("modelos do Let's Go nos biomas", () => {
     }
     expect(lgpePushOf('tree')).toBe(false)
     expect(lgpePushOf('rock')).toBe(false)
+  })
+
+  it('o que fica de frente para a câmera existe e balança como planta', () => {
+    const billboards = Object.keys(manifest.props).filter(lgpeBillboardOf)
+    expect(billboards.length).toBeGreaterThan(0)
+    for (const id of billboards) {
+      expect(lgpeSwayOf(manifest.props[id].category)).toBe('plant')
+    }
   })
 
   it('a grama de todo bioma tem modelos e as duas cores', () => {

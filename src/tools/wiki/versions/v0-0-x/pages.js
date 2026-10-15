@@ -45,7 +45,7 @@ const PAGES = {
   mundo: {
     title: 'O mundo',
     summary:
-      'Relevo, biomas, itens pelo mundo, dia e noite, clima, tamanho do mundo e o que ainda vai chegar.',
+      'Relevo, biomas, lagos e rios, cidades e estradas, itens pelo mundo, dia e noite, clima, tamanho do mundo e o que ainda vai chegar.',
     Component: WorldPage,
   },
   'criaturas/status': {

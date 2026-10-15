@@ -87,6 +87,19 @@ varying vec2 vRampUv;
 #if defined(LGPE_PUSH) && defined(USE_INSTANCING)
 ${GRASS_PUSH_SHADER}
 #endif
+#if defined(LGPE_BILLBOARD) && defined(LGPE_SWAY_PLANT) && defined(USE_INSTANCING)
+// Gira a planta parada para o plano dela (o +z do modelo) ficar de frente
+// para a câmera, descontando o giro da instância (facing). O vento e o
+// empurrão somam depois, no espaço local da instância: não mudam.
+vec3 vegFaceCamera(vec3 p, vec2 origin, vec2 facing) {
+  vec2 toCamera = cameraPosition.xz - origin;
+  if (dot(toCamera, toCamera) < 1e-6) return p;
+  float turn = atan(toCamera.x, toCamera.y) - atan(facing.y, facing.x);
+  float c = cos(turn);
+  float s = sin(turn);
+  return vec3(p.x * c + p.z * s, p.y, p.z * c - p.x * s);
+}
+#endif
 #ifdef USE_INSTANCING
 // Por instância: a cor da tinta (rgb) e quanto puxa para ela (a).
 attribute vec4 aRecolor;
@@ -148,6 +161,9 @@ vRecolor = vec4(0.0);
 const SWAY = /* glsl */ `
 #include <begin_vertex>
 #ifdef LGPE_SWAY_PLANT
+#if defined(LGPE_BILLBOARD) && defined(USE_INSTANCING)
+transformed = vegFaceCamera(transformed, aWind.xy, aWind.zw);
+#endif
 vec3 swayRest = transformed;
 transformed += vegGrassSway(transformed.y, uSwayHeight, aWind.xy, aWind.zw,
   vegHash(aWind.xy), uTurbulence * 0.6, uFlutter * 0.5, 1.6, 0.2, 0.1);
@@ -213,6 +229,8 @@ if (vRecolor.a > 0.0) {
  * @param {false | 'grass' | 'bush'} [options.push] - abre para quem
  *   passa (só com `sway: 'plant'`): com a dobra da grama ou a dos
  *   arbustos (`GRASS_PUSH.BUSH`)
+ * @param {boolean} [options.billboard] - sempre de frente para a câmera
+ *   (só com `sway: 'plant'`): os tufos, que são planos
  * @param {number} options.height - altura do modelo (m), para o vento
  * @param {THREE.Texture | null} [options.rampMap]
  * @param {THREE.Texture | null} [options.shadeMap]
@@ -226,6 +244,7 @@ export function createToonMaterial({
   rim,
   sway = null,
   push = false,
+  billboard = false,
   height = 1,
   rampMap = null,
   shadeMap = null,
@@ -259,6 +278,9 @@ export function createToonMaterial({
       material.defines = { ...material.defines, LGPE_PUSH_BUSH: '' }
     }
   }
+  if (billboard && sway === 'plant') {
+    material.defines = { ...material.defines, LGPE_BILLBOARD: '' }
+  }
   material.onBeforeCompile = (shader) => {
     Object.assign(
       shader.uniforms,
@@ -281,7 +303,7 @@ export function createToonMaterial({
         .replace('#include <opaque_fragment>', RIM)
   }
   material.customProgramCacheKey = () =>
-    `lgpe-toon-${vertexColors}-${Boolean(rampMap)}-${sway}-${push}`
+    `lgpe-toon-${vertexColors}-${Boolean(rampMap)}-${sway}-${push}-${billboard}`
   return withSeeThrough(material)
 }
 

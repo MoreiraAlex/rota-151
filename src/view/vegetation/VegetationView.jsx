@@ -120,7 +120,7 @@ function GrassTile({ chunk, tile, models, showGrass, showFlowers }) {
  * samambaias, plantas, seixos), sorteados sobre o relevo do
  * bloco inteiro (`ground`). Pela distância da câmera
  * (`VEGETATION_QUALITY`): `showSolids` (até `treeDistance`), `showDetail`
- * (sub-bosque, até `detailRing`) e `castShadows` (até `shadowRing`) — ligar
+ * (sub-bosque, até a névoa) e `castShadows` (até `shadowRing`) — ligar
  * e desligar não refaz o que já foi montado.
  */
 function BlockVegetation({
@@ -186,11 +186,16 @@ function BlockVegetation({
 const LOD_STEP = 2
 
 // Distância de perto (m) de cada LOD: árvore inteira e sub-bosque.
+// O sub-bosque vai até a névoa fechar: até onde ela começa, tudo aparece
+// inteiro (docs/features/058-ajuste-dos-biomas.md).
 const treeLodDistance = () => GAME_CONFIG.TREES.LOD_DISTANCE
-const detailDistance = () => {
-  const { VEGETATION_QUALITY } = GAME_CONFIG
-  return VEGETATION_QUALITY[VEGETATION_QUALITY.CURRENT].detailDistance
-}
+const detailDistance = () => loadedFogRange(TEST_LEVEL.terrain.chunkSize()).far
+
+// Até que anel de blocos (em volta do da câmera) o sub-bosque é montado:
+// o bastante para cobrir até a névoa fechar — a câmera pode estar na borda
+// do bloco dela.
+const detailRing = () =>
+  Math.ceil(detailDistance() / GAME_CONFIG.TERRAIN.SOLIDS_BLOCK_SIZE + 0.5)
 
 /**
  * Os `setNear` dos chunks montados (`LodMeshesOf`), cada um com a distância
@@ -240,7 +245,8 @@ const chunkOfTile = (tile, { GRASS, TERRAIN }) => [
  *   chunks): árvores e pedras (os do core) e o sub-bosque
  *   (arbustos, samambaias, plantas, cogumelos, seixos) — o que aparece e o
  *   que faz sombra pela distância do bloco da câmera
- *   (`VEGETATION_QUALITY`: `treeDistance`, `detailRing`, `shadowRing`);
+ *   (`treeDistance` e `shadowRing` de `VEGETATION_QUALITY`; o sub-bosque
+ *   até a névoa);
  * - o **vento** (força pelo clima, `windStrengthOf`) e a luz do sol na
  *   folha, nos uniforms compartilhados (`vegetationUniforms`);
  * - a **grama abrindo** para quem passa (o mapa do empurrão, grassPush.js).
@@ -362,7 +368,7 @@ export function VegetationView() {
             settings={settings}
             castCanopyShadow={quality.canopyShadow}
             showSolids={distance <= quality.treeDistance}
-            showDetail={ring <= quality.detailRing}
+            showDetail={ring <= detailRing()}
             castShadows={ring <= quality.shadowRing}
             lod={lod}
           />

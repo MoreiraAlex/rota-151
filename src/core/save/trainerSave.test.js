@@ -17,7 +17,7 @@ import { GAME_CONFIG } from '../gameConfig'
 import { wadeLimit } from '../terrain/water'
 import { verticalClearance } from '../physics/capsule'
 import { trainerSaveSchema } from './saveFormat'
-import { restoreTrainer, serializeTrainer } from './trainerSave'
+import { freeSpotNear, restoreTrainer, serializeTrainer } from './trainerSave'
 
 // O treinador no save (docs/features/044-salvar-o-jogo.md). Itens e espécies
 // só como dado de teste.
@@ -98,6 +98,29 @@ describe('serializeTrainer / restoreTrainer', () => {
     const { x, y, z } = target.player.get(Position)
     expect({ x, z }).toEqual({ x: 3, z: -4 })
     expect(y).toBeGreaterThan(ground)
+  })
+
+  // docs/features/058-ajuste-dos-biomas.md
+  it('posição salva dentro de um prédio vai para fora dele', () => {
+    const { player } = setup()
+    const radius = player.get(CharacterController).capsuleRadius
+    // Um prédio da primeira cidade (a da origem): o maior círculo da pegada
+    // de algum sólido em volta.
+    const circles = TEST_LEVEL.terrain.footprintsAround(0, 0, 150)
+    const inside = circles.reduce((a, b) => (b.radius > a.radius ? b : a))
+    player.set(Position, { x: inside.x, y: 50, z: inside.z })
+    const saved = serializeTrainer(player)
+
+    const target = setup()
+    restoreTrainer(target.player, saved)
+
+    const { x, z } = target.player.get(Position)
+    expect({ x, z }).not.toEqual({ x: inside.x, z: inside.z })
+    for (const circle of TEST_LEVEL.terrain.footprintsAround(x, z, 10)) {
+      expect(Math.hypot(x - circle.x, z - circle.z)).toBeGreaterThanOrEqual(
+        circle.radius + radius - 1e-9,
+      )
+    }
   })
 
   // docs/features/057-lagos-e-rios.md
@@ -202,5 +225,35 @@ describe('serializeTrainer / restoreTrainer', () => {
     restoreTrainer(target.player, saved)
 
     expect(target.player.get(HeldItem).itemId).toBe(null)
+  })
+})
+
+describe('freeSpotNear', () => {
+  const wall = [
+    { x: 0, z: 0, radius: 3 },
+    { x: 4, z: 0, radius: 3 },
+  ]
+  const around = (circles) => () => circles
+
+  it('lugar livre fica onde está', () => {
+    expect(freeSpotNear(around(wall), 20, 20, 0.5, 10)).toEqual({
+      x: 20,
+      z: 20,
+    })
+  })
+
+  it('dentro de um sólido, vai para o lugar livre mais perto', () => {
+    const spot = freeSpotNear(around(wall), 0, 0, 0.5, 10)
+    for (const circle of wall) {
+      expect(
+        Math.hypot(spot.x - circle.x, spot.z - circle.z),
+      ).toBeGreaterThanOrEqual(circle.radius + 0.5)
+    }
+    expect(Math.hypot(spot.x, spot.z)).toBeLessThanOrEqual(10)
+  })
+
+  it('sem lugar livre ao alcance, fica onde está', () => {
+    const huge = [{ x: 0, z: 0, radius: 100 }]
+    expect(freeSpotNear(around(huge), 1, 2, 0.5, 10)).toEqual({ x: 1, z: 2 })
   })
 })

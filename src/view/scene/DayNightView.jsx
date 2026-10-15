@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { GAME_CONFIG } from '@/core/gameConfig'
+import { fogColorOf } from './backdropGeometry'
 import { lightingAt } from '@/core/time/dayCycle'
 import {
   InputControlled,
@@ -128,6 +129,27 @@ const skyFragmentShader = /* glsl */ `
 
 const toVector = ({ x, y, z }, out) => out.set(x, y, z)
 
+/**
+ * A câmera da sombra no tamanho da área de sombra (`SHADOW_AREA`, com a
+ * luz a `SHADOW_DISTANCE` do centro) — direto na câmera da luz: as props
+ * `shadow-camera-*` do JSX não chegavam nela (ficava a de 10 m do three,
+ * docs/features/058-ajuste-dos-biomas.md). Só refaz a projeção quando muda.
+ */
+function fitShadowCamera(shadowCamera, { SHADOW_AREA, SHADOW_DISTANCE }) {
+  const half = SHADOW_AREA / 2
+  const far = SHADOW_DISTANCE * 2
+  if (shadowCamera.right === half && shadowCamera.far === far) return
+  shadowCamera.left = -half
+  shadowCamera.right = half
+  shadowCamera.top = half
+  shadowCamera.bottom = -half
+  shadowCamera.near = 1
+  shadowCamera.far = far
+  shadowCamera.updateProjectionMatrix()
+}
+// Cor do horizonte (rascunho reaproveitado a cada quadro).
+const horizon = new THREE.Color()
+
 function createSkyMaterial() {
   const { DAY_CYCLE } = GAME_CONFIG
   // As cores da config já são as da tela (sRGB): o shader as escreve como
@@ -235,7 +257,12 @@ export function DayNightView() {
     uniforms.uCloudShade.value.setRGB(...look.cloudShade, THREE.NoColorSpace)
     skyRef.current?.position.copy(camera.position)
 
-    scene.fog?.color.setRGB(...look.horizon, THREE.SRGBColorSpace)
+    // A névoa na cor do horizonte — ou, com as serras do fundo, na da serra
+    // da frente (docs/features/058-ajuste-dos-biomas.md).
+    if (scene.fog) {
+      horizon.setRGB(...look.horizon, THREE.SRGBColorSpace)
+      fogColorOf(horizon, scene.fog.color)
+    }
 
     const ambient = ambientRef.current
     if (ambient) {
@@ -245,19 +272,26 @@ export function DayNightView() {
 
     const light = lightRef.current
     if (!light) return
+    fitShadowCamera(light.shadow.camera, DAY_CYCLE)
     light.color.setRGB(...look.light, THREE.SRGBColorSpace)
     light.intensity = look.lightIntensity
     light.shadow.intensity = look.shadowIntensity
     light.shadow.autoUpdate = look.shadowIntensity > 0
-    // Centro da sombra em quem está no controle, preso à grade de texels
-    // do mapa de sombra (a sombra não tremula andando).
+    // Centro da sombra à frente de quem está no controle, para onde a
+    // câmera olha (`SHADOW_AHEAD`: a área cobre o que se vê até a névoa),
+    // preso à grade de texels do mapa de sombra (a sombra não tremula
+    // andando).
     const controlled = world.queryFirst(InputControlled, Position)
     const center = controlled?.get(Position) ?? camera.position
+    camera.getWorldDirection(scratch)
+    const flat = Math.hypot(scratch.x, scratch.z) || 1
+    const aheadX = center.x + (scratch.x / flat) * DAY_CYCLE.SHADOW_AHEAD
+    const aheadZ = center.z + (scratch.z / flat) * DAY_CYCLE.SHADOW_AHEAD
     const texel = DAY_CYCLE.SHADOW_AREA / DAY_CYCLE.SHADOW_MAP_SIZE
     target.position.set(
-      Math.round(center.x / texel) * texel,
+      Math.round(aheadX / texel) * texel,
       Math.round(center.y / texel) * texel,
-      Math.round(center.z / texel) * texel,
+      Math.round(aheadZ / texel) * texel,
     )
     toVector(look.lightDirection, scratch)
     light.position

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { GAME_CONFIG } from '@/core/gameConfig'
-import { fogRange, hazeFactorAt } from './fogRange'
+import { fogFactorAt, fogRange, loadedFogRange } from './fogRange'
 
 const { CHUNK_SIZE, LOAD_RADIUS } = GAME_CONFIG.TERRAIN
 const { START_FRACTION, MIN_DISTANCE } = GAME_CONFIG.FOG
@@ -42,32 +42,23 @@ describe('fogRange', () => {
   })
 })
 
-describe('hazeFactorAt (docs/features/051-montanha.md)', () => {
-  const { HAZE_START, HAZE_LENGTH, HAZE_MAX, EDGE_FRACTION } = GAME_CONFIG.FOG
-  const fog = { near: HAZE_START, far: GAME_CONFIG.FAR_TERRAIN.RADIUS }
-  const params = {
-    hazeLength: HAZE_LENGTH,
-    hazeMax: HAZE_MAX,
-    edgeFraction: EDGE_FRACTION,
-  }
-  const at = (distance) => hazeFactorAt(distance, fog, params)
-
-  it('nada antes de começar', () => {
-    expect(at(0)).toBe(0)
-    expect(at(fog.near)).toBe(0)
+describe('loadedFogRange (docs/features/058-ajuste-dos-biomas.md)', () => {
+  it('fecha na borda do mundo carregado e começa antes dela', () => {
+    const { TERRAIN, CAMERA, FOG } = GAME_CONFIG
+    const { near, far } = loadedFogRange(TERRAIN.CHUNK_SIZE)
+    expect(far).toBe(
+      Math.max(
+        TERRAIN.LOAD_RADIUS * TERRAIN.CHUNK_SIZE - CAMERA.MAX_DISTANCE,
+        FOG.MIN_DISTANCE,
+      ),
+    )
+    expect(near).toBeCloseTo(far * FOG.START_FRACTION, 9)
   })
 
-  it('engrossa ao se afastar, sem passar do máximo antes da borda', () => {
-    let previous = 0
-    for (let d = fog.near; d < fog.far * EDGE_FRACTION; d += 10) {
-      expect(at(d)).toBeGreaterThanOrEqual(previous)
-      expect(at(d)).toBeLessThanOrEqual(HAZE_MAX)
-      previous = at(d)
-    }
-  })
-
-  it('fecha de vez na borda do relevo distante', () => {
-    expect(at(fog.far)).toBe(1)
-    expect(at(fog.far * 2)).toBe(1)
+  it('fogFactorAt: nada até a névoa começar, tudo onde ela fecha', () => {
+    const fog = loadedFogRange(GAME_CONFIG.TERRAIN.CHUNK_SIZE)
+    expect(fogFactorAt(fog.near, fog)).toBe(0)
+    expect(fogFactorAt(fog.far, fog)).toBe(1)
+    expect(fogFactorAt((fog.near + fog.far) / 2, fog)).toBeCloseTo(0.5, 9)
   })
 })

@@ -62,9 +62,42 @@ const TOWN_CONTROLS = {
 }
 // As texturas que a rua de um tema pode usar (as camadas de cor do chão).
 const STREET_LAYER_OPTIONS = TERRAIN_COLOR_LAYERS.map(([name]) => name)
-const TOWN_SHAPE_CONTROLS = {
-  size: { label: 'Tamanho das manchas (m)', range: [100, 1200, 10] },
-  coverage: { label: 'Cobertura', range: [0.01, 0.4, 0.01] },
+// Onde ficam as cidades (`GAME_CONFIG.CITIES`, core/town/citySites.js,
+// docs/features/058-ajuste-dos-biomas.md).
+const CITIES_CONTROLS = {
+  SPACING: { label: 'Distância entre cidades (m)', range: [400, 4000, 50] },
+  JITTER: { label: 'Desvio do centro da célula', range: [0, 0.32, 0.01] },
+  EDGE: { label: 'Borda da cidade (m)', range: [4, 120, 1] },
+  WATER_GAP: { label: 'Folga da água (m)', range: [0, 80, 1] },
+}
+// Cada camada das serras do fundo (`GAME_CONFIG.BACKDROP.LAYERS`,
+// view/scene/BackdropView.jsx): a cor vale na hora; a forma (os ângulos e
+// as serras) só ao recarregar.
+const BACKDROP_LAYER_CONTROLS = {
+  shade: { label: 'Escurecer (1 = cor da névoa)', range: [0.3, 1.2, 0.01] },
+  tintAmount: { label: 'Força do tom', range: [0, 1, 0.01] },
+  mist: { label: 'Sai da névoa em (fração da altura)', range: [0, 1.5, 0.01] },
+  minAngle: {
+    label: 'Crista mais baixa (graus, recarregar)',
+    range: [0, 15, 0.1],
+  },
+  maxAngle: {
+    label: 'Crista mais alta (graus, recarregar)',
+    range: [0, 25, 0.1],
+  },
+  frequency: { label: 'Serras em volta (recarregar)', range: [0.2, 6, 0.1] },
+  ridged: { label: 'Crista pontuda (recarregar)', range: [0, 1, 0.01] },
+}
+// As estradas entre elas (`GAME_CONFIG.ROADS`, core/town/roads.js).
+const ROADS_CONTROLS = {
+  EXTRA: { label: 'Estradas extras (chance)', range: [0, 1, 0.01] },
+  WARP: { label: 'Curvas da estrada', range: [0, 0.3, 0.01] },
+  WIDTH: { label: 'Largura da estrada (m)', range: [1, 12, 0.1] },
+  EDGE: { label: 'Borda da estrada (m)', range: [0.1, 5, 0.1] },
+  DEPTH: { label: 'Afundado da estrada (m)', range: [0, 0.5, 0.01] },
+  BANK: { label: 'Beirada da estrada (m)', range: [0, 0.3, 0.01] },
+  FORD_DEPTH: { label: 'Fundura do vau (m)', range: [0, 0.3, 0.01] },
+  FORD_WIDTH: { label: 'Largura do vau (m)', range: [2, 30, 0.5] },
 }
 // O que nasce por m² (sub-bosque): muda com a vegetação refeita.
 const perM2Controls = (max) => ({
@@ -329,6 +362,9 @@ function copyValues() {
     `LGPE: ${JSON.stringify(GAME_CONFIG.LGPE, null, 2)},`,
     `ENCOUNTER_GRASS: ${JSON.stringify(GAME_CONFIG.ENCOUNTER_GRASS, null, 2)},`,
     `GRASS_PUSH: ${JSON.stringify(GAME_CONFIG.GRASS_PUSH, null, 2)},`,
+    `CITIES: ${JSON.stringify(GAME_CONFIG.CITIES, null, 2)},`,
+    `ROADS: ${JSON.stringify(GAME_CONFIG.ROADS, null, 2)},`,
+    `BACKDROP: ${JSON.stringify(GAME_CONFIG.BACKDROP, null, 2)},`,
     ...Object.entries({
       ANCIENT_TREES,
       PINES,
@@ -581,12 +617,18 @@ export function VegetationPanel() {
     )
     addBiomeDensities(rockFolder, ['rock', 'pebble'], regenerate, manifest)
 
-    // Cidade (docs/features/056-bioma-cidade.md): a planta e as manchas
-    // vêm do terreno (refaz ao soltar).
+    // Cidade (docs/features/056-bioma-cidade.md): a planta e onde ficam as
+    // cidades (058) vêm do terreno (refaz ao soltar).
     const cityFolder = folderOf.buildings
+    addControls(cityFolder, GAME_CONFIG.CITIES, CITIES_CONTROLS, regenerate)
+    addControls(
+      cityFolder.addFolder('Estradas'),
+      GAME_CONFIG.ROADS,
+      ROADS_CONTROLS,
+      regenerate,
+    )
     for (const biome of listBiomes().filter(({ town }) => town)) {
       const folder = cityFolder.addFolder(biome.name)
-      addControls(folder, biome, TOWN_SHAPE_CONTROLS, regenerate)
       addControls(folder, biome.town, TOWN_CONTROLS, regenerate)
       folder
         .add(biome.town, 'blockSize', quarterSizesOf(GAME_CONFIG.TERRAIN))
@@ -657,6 +699,15 @@ export function VegetationPanel() {
         .name(`Força (${WEATHER_LABELS[type]})`)
     }
     addControls(windFolder, WIND, WIND_CONTROLS)
+
+    // Serras do fundo (docs/features/058-ajuste-dos-biomas.md): a cor vale
+    // na hora; a forma, ao recarregar a página.
+    const backdropFolder = gui.addFolder('Serras do fundo')
+    GAME_CONFIG.BACKDROP.LAYERS.forEach((layer, index) => {
+      const folder = backdropFolder.addFolder(`Camada ${index + 1}`)
+      addControls(folder, layer, BACKDROP_LAYER_CONTROLS)
+      folder.addColor(layer, 'tint').name('Tom')
+    })
 
     gui.add({ copiar: copyValues }, 'copiar').name('Copiar valores')
     for (const folder of gui.foldersRecursive()) folder.close()

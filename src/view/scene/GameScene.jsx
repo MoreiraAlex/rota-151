@@ -3,7 +3,7 @@ import { TEST_LEVEL } from '@/core/data/testLevel'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import { AmbientAudio } from '@/view/audio/AmbientAudio'
 import { PlayerView } from './PlayerView'
-import { FarTerrainView } from './FarTerrainView'
+import { BackdropView } from './BackdropView'
 import { TerrainView } from './TerrainView'
 import { VegetationView } from '../vegetation/VegetationView'
 import { WaterView } from '../water/WaterView'
@@ -80,8 +80,6 @@ function TestLevelView() {
   return (
     <>
       <TerrainView />
-      {/* Relevo distante até o horizonte (051). */}
-      {GAME_CONFIG.FAR_TERRAIN.ENABLED && <FarTerrainView />}
       {/* Grama, flores e árvores (049). */}
       <VegetationView />
       {/* Superfície da água dos lagos e rios (049, 057). */}
@@ -130,6 +128,8 @@ export function GameScene({ children }) {
 
       {/* Céu, sol, lua e luz pela hora e pelo clima; chuva e neve (048). */}
       <DayNightView />
+      {/* Serras do fundo na névoa fechada (058). */}
+      {GAME_CONFIG.BACKDROP.ENABLED && <BackdropView />}
       <WeatherView />
 
       <AmbientAudio />

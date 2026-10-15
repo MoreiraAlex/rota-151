@@ -119,6 +119,13 @@ const PUSH_BY_CATEGORY = {
   plant: 'bush',
 }
 
+// Props que são só um leque de planos virados quase para o mesmo lado (os
+// tufos): de perfil eles somem, então ficam sempre de frente para a câmera.
+const BILLBOARD_PROPS = new Set(['tuft', 'tuft-route', 'tuft-medium'])
+
+/** Se o prop `id` fica sempre de frente para a câmera. */
+export const lgpeBillboardOf = (id) => BILLBOARD_PROPS.has(id)
+
 /** Como um prop da `category` abre para quem passa (`false`: não abre). */
 export const lgpePushOf = (category) => PUSH_BY_CATEGORY[category] ?? false
 
@@ -193,7 +200,7 @@ export function prepareLgpeTexture(texture) {
   return texture
 }
 
-function buildPart(mesh, prop, textureOf, disposables) {
+function buildPart(mesh, id, prop, textureOf, disposables) {
   const entry = prop.materials[mesh.material.name] ?? {}
   const colorName = COLOR_SAMPLERS.map((sampler) => entry.maps?.[sampler]).find(
     Boolean,
@@ -215,6 +222,7 @@ function buildPart(mesh, prop, textureOf, disposables) {
     rim: entry.rim,
     sway: lgpeSwayOf(prop.category),
     push: lgpePushOf(prop.category),
+    billboard: lgpeBillboardOf(id),
     height: prop.size[1],
     rampMap: isRamp ? textureOf(entry.maps.Texture02) : null,
     shadeMap:
@@ -247,7 +255,7 @@ export function buildLgpeModels(manifest, scenes, textureOf) {
       name: id,
       category: prop.category,
       parts: meshesOf(scene).map((mesh) =>
-        buildPart(mesh, prop, textureOf, disposables),
+        buildPart(mesh, id, prop, textureOf, disposables),
       ),
     }
   }

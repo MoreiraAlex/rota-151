@@ -4,6 +4,8 @@ import { GAME_CONFIG } from '../gameConfig'
 import { createRng, deriveSeed } from '../rng'
 import { solidParams } from '../vegetation/solidPlacement'
 import { createBiomeSampler } from './biomeMap'
+import { createCitySites } from '../town/citySites'
+import { createRoads } from '../town/roads'
 import { createWaterBodies } from './waterBodies'
 
 // Cada camada de ondulação tem metade do tamanho da anterior (o padrão da
@@ -50,6 +52,10 @@ export function countLayers(hillSize) {
  *   trails.js)
  * @property {object} waterBodies - forma de `GAME_CONFIG.WATER_BODIES`
  *   (core/terrain/waterBodies.js)
+ * @property {object} cities - forma de `GAME_CONFIG.CITIES`
+ *   (core/town/citySites.js)
+ * @property {object} roads - forma de `GAME_CONFIG.ROADS`
+ *   (core/town/roads.js)
  * @property {object[]} biomeList - biomas (`core/data/biomes/`), na ordem
  *   do registro
  */
@@ -60,6 +66,8 @@ export function currentTerrainRecipe() {
     solids: solidParams(),
     trails: GAME_CONFIG.TRAILS,
     waterBodies: GAME_CONFIG.WATER_BODIES,
+    cities: GAME_CONFIG.CITIES,
+    roads: GAME_CONFIG.ROADS,
     biomeList: listBiomes().filter(
       ({ id }) => !GAME_CONFIG.BIOMES.HIDDEN.includes(id),
     ),
@@ -116,7 +124,8 @@ function createReliefSampler(noise2D, relief) {
  * bioma pelo peso dele — na fronteira, um vira o outro aos poucos, sem
  * degrau. Alturas a partir de `WATER_LEVEL` (o chão médio de cada bioma é
  * medido da água). Depois da média, os lagos e rios cavam o relevo onde os
- * biomas aceitam (`water`, docs/features/057-lagos-e-rios.md). Mesma seed e mesma receita, mesmo relevo em todo ponto;
+ * biomas aceitam (`water`, docs/features/057-lagos-e-rios.md) — rasos
+ * onde as estradas cruzam (o vau, docs/features/058-ajuste-dos-biomas.md). Mesma seed e mesma receita, mesmo relevo em todo ponto;
  * ruído embaralhado pelo PRNG seedado, nunca `Math.random()`.
  *
  * @param {number} seed
@@ -124,7 +133,41 @@ function createReliefSampler(noise2D, relief) {
  */
 export function createTerrainSampler(seed, recipe = currentTerrainRecipe()) {
   const { terrain, biomes: params, biomeList } = recipe
-  const biomeMap = createBiomeSampler(seed, { params, biomes: biomeList })
+  const waterBodies = createWaterBodies(
+    seed,
+    recipe.waterBodies ?? GAME_CONFIG.WATER_BODIES,
+  )
+  // As cidades da seed (docs/features/058-ajuste-dos-biomas.md) — só com o
+  // bioma da cidade no mundo.
+  const townBiome = biomeList.find(({ town }) => town)
+  const cities = townBiome
+    ? createCitySites(seed, {
+        town: townBiome.town,
+        waterBodies,
+        params: recipe.cities ?? GAME_CONFIG.CITIES,
+      })
+    : null
+  // As estradas entre elas: onde cruzam rio ou lago, o leito vira vau.
+  const roadParams = recipe.roads ?? GAME_CONFIG.ROADS
+  const roads = cities
+    ? createRoads(seed, { cities, params: roadParams })
+    : null
+
+  /**
+   * O leito (m, a partir da água) com o vau: fundo demais sob a estrada,
+   * sobe até `FORD_DEPTH`.
+   */
+  function withFord(x, z, height) {
+    if (!roads || height >= -roadParams.FORD_DEPTH) return height
+    const ford = roads.fordAt(x, z)
+    return height + ford * (-roadParams.FORD_DEPTH - height)
+  }
+
+  const biomeMap = createBiomeSampler(seed, {
+    params,
+    biomes: biomeList,
+    cities,
+  })
   const reliefs = biomeList.map((biome) =>
     createReliefSampler(
       createNoise2D(createRng(deriveSeed(seed, `relief:${biome.id}`))),
@@ -132,10 +175,6 @@ export function createTerrainSampler(seed, recipe = currentTerrainRecipe()) {
     ),
   )
   const weights = new Float64Array(biomeList.length)
-  const waterBodies = createWaterBodies(
-    seed,
-    recipe.waterBodies ?? GAME_CONFIG.WATER_BODIES,
-  )
   const waterShare = { rivers: 0, lakes: 0 }
 
   /**
@@ -153,7 +192,8 @@ export function createTerrainSampler(seed, recipe = currentTerrainRecipe()) {
       waterShare.rivers += weightsOut[i] * (biomeList[i].water?.rivers ?? 0)
       waterShare.lakes += weightsOut[i] * (biomeList[i].water?.lakes ?? 0)
     }
-    return terrain.WATER_LEVEL + waterBodies.carveAt(x, z, height, waterShare)
+    const carved = waterBodies.carveAt(x, z, height, waterShare)
+    return terrain.WATER_LEVEL + withFord(x, z, carved)
   }
 
   return {
@@ -161,6 +201,11 @@ export function createTerrainSampler(seed, recipe = currentTerrainRecipe()) {
     sample,
     heightAt: (x, z) => sample(x, z),
     biomeAt: biomeMap.biomeAt,
+    // As cidades da seed (`null` sem o bioma da cidade): a mais próxima de
+    // um ponto e a distância até ela (`citySites.js`).
+    cities,
+    // As estradas entre elas (`roads.js`; `null` sem cidades).
+    roads,
     // Correnteza dos rios (só visual — `waterBodies.flowAt`).
     flowAt: waterBodies.flowAt,
   }

@@ -3,21 +3,20 @@ import { WEATHER_TYPES } from './weatherMap'
 
 /**
  * Força do vento que balança a vegetação (docs/features/049-vegetacao-
- * e-floresta.md): a de cada clima (`WIND.STRENGTH`) misturada pela força
- * atual de cada tipo no `LocalWeather` — na troca de clima, o vento muda
- * aos poucos junto com ele. Sem força nenhuma (antes do primeiro tick), a
- * do tempo limpo.
+ * e-floresta.md): a do tempo limpo (`WIND.STRENGTH.clear`) puxada para a de
+ * cada clima pela força atual dele no `LocalWeather` — uma chuva fraca
+ * venta pouco mais que o limpo, só a cheia venta o `STRENGTH` inteiro. Na
+ * troca de clima, o vento muda aos poucos junto com ele.
  *
  * @param {Record<string, number>} levels - força de cada tipo (0 a 1)
  * @returns {number}
  */
 export function windStrengthOf(levels, params = GAME_CONFIG.WIND) {
-  let weighted = 0
-  let total = 0
+  const calm = params.STRENGTH.clear
+  let strength = calm
   for (const type of WEATHER_TYPES) {
-    const level = levels[type] ?? 0
-    weighted += level * params.STRENGTH[type]
-    total += level
+    if (type === 'clear') continue
+    strength += (levels[type] ?? 0) * (params.STRENGTH[type] - calm)
   }
-  return total > 0 ? weighted / total : params.STRENGTH.clear
+  return strength
 }

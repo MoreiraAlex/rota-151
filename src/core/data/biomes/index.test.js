@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { CLIMATE_AXES } from '../../terrain/biomeMap'
+import { GAME_CONFIG } from '../../gameConfig'
 import { WEATHER_TYPES } from '../../weather/weatherMap'
 import { BIOME_REGISTRY, getBiome, listBiomes } from '.'
 
@@ -22,12 +23,36 @@ describe('registro de biomas', () => {
     expect(getBiome('nao-existe')).toBeNull()
   })
 
-  it.each(listBiomes())('$id tem nome e tamanho', (biome) => {
+  // A cidade não disputa pelo clima: é posta pela seed (core/town/
+  // citySites.js), no raio do porte.
+  const climateBiomes = listBiomes().filter(({ town }) => !town)
+  const townBiomes = listBiomes().filter(({ town }) => town)
+
+  it.each(listBiomes())('$id tem nome', (biome) => {
     expect(biome.name).toEqual(expect.any(String))
+  })
+
+  it.each(climateBiomes)('$id tem tamanho', (biome) => {
     expect(biome.size).toBeGreaterThan(0)
   })
 
-  it.each(listBiomes())('$id: faixas de clima dentro de 0 a 1', (biome) => {
+  it.each(townBiomes)(
+    '$id: portes com peso, raio e prédios únicos',
+    (biome) => {
+      const { sizes, landmarks } = biome.town
+      expect(sizes.length).toBeGreaterThan(0)
+      const models = landmarks.map(({ model }) => model)
+      for (const size of sizes) {
+        expect(size.name).toEqual(expect.any(String))
+        expect(size.weight).toBeGreaterThan(0)
+        expect(size.radius).toBeGreaterThan(0)
+        for (const model of size.landmarks) expect(models).toContain(model)
+      }
+      expect(sizes.map(({ id }) => id)).toContain(GAME_CONFIG.CITIES.FIRST_SIZE)
+    },
+  )
+
+  it.each(climateBiomes)('$id: faixas de clima dentro de 0 a 1', (biome) => {
     for (const [axis, range] of Object.entries(biome.climate)) {
       expect(CLIMATE_AXES).toContain(axis)
       const [min, max] = range

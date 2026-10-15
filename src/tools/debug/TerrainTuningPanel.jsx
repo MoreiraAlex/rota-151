@@ -53,10 +53,18 @@ const BIOME_CONTROLS = {
 }
 const isBiomeSize = (key) => key === 'size'
 const biomeTarget = (biome, key) => (isBiomeSize(key) ? biome : biome.relief)
+// Os controles do bioma: a cidade não tem `size` (é posta pela seed,
+// docs/features/058-ajuste-dos-biomas.md).
+const biomeControlsOf = (biome) =>
+  Object.fromEntries(
+    Object.entries(BIOME_CONTROLS).filter(
+      ([key]) => !(biome.town && isBiomeSize(key)),
+    ),
+  )
 
 const biomeTuning = (biome) =>
   Object.fromEntries(
-    Object.keys(BIOME_CONTROLS).map((key) => [
+    Object.keys(biomeControlsOf(biome)).map((key) => [
       key,
       // Campo opcional (`ridges`) ausente vale 0.
       biomeTarget(biome, key)[key] ?? 0,
@@ -406,7 +414,7 @@ export function TerrainTuningPanel() {
     const showBiome = () => {
       biomeControllers.forEach((controller) => controller.destroy())
       const biome = BIOME_REGISTRY[choice.id]
-      biomeControllers = Object.entries(BIOME_CONTROLS).map(
+      biomeControllers = Object.entries(biomeControlsOf(biome)).map(
         ([key, { label, range }]) => {
           const target = biomeTarget(biome, key)
           // O lil-gui não cria controle para campo ausente: o opcional

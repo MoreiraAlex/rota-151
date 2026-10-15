@@ -29,14 +29,59 @@ function standingY(trainer, x, z) {
   return body ? ground + verticalClearance(body) : ground
 }
 
+// Passo (m) da busca por um lugar livre em volta da posição salva, e
+// quantas direções cada volta testa.
+const FREE_SPOT_STEP = 1
+const FREE_SPOT_DIRECTIONS = 16
+
+/**
+ * `(x, z)`, ou — se o corpo (de raio `radius`) ficou dentro de um objeto
+ * sólido que agora existe ali (um prédio de cidade nova, docs/features/
+ * 058-ajuste-dos-biomas.md) — o lugar livre mais perto, em voltas cada vez
+ * maiores até `reach` m. Sem lugar livre, fica onde está.
+ */
+export function freeSpotNear(footprintsAround, x, z, radius, reach) {
+  const circles = footprintsAround(x, z, reach + radius)
+  const isFree = (px, pz) =>
+    circles.every(
+      (circle) =>
+        Math.hypot(px - circle.x, pz - circle.z) >= circle.radius + radius,
+    )
+  if (isFree(x, z)) return { x, z }
+  for (
+    let distance = FREE_SPOT_STEP;
+    distance <= reach;
+    distance += FREE_SPOT_STEP
+  ) {
+    for (let i = 0; i < FREE_SPOT_DIRECTIONS; i++) {
+      const angle = (i / FREE_SPOT_DIRECTIONS) * Math.PI * 2
+      const px = x + Math.cos(angle) * distance
+      const pz = z + Math.sin(angle) * distance
+      if (isFree(px, pz)) return { x: px, z: pz }
+    }
+  }
+  return { x, z }
+}
+
 // A posição salva, ou — se ela ficou dentro do relevo — a mesma x/z com os
 // pés acima do chão (cai até pousar, como ao entrar no mundo). Em água funda
 // além de onde o corpo entra (docs/features/057-lagos-e-rios.md), vai para
-// a margem mais perto.
+// a margem mais perto; dentro de um prédio que agora existe ali, para fora
+// dele (`freeSpotNear`).
 function liftAboveGround(trainer, saved) {
   const body = trainer.get(CharacterController)
   const limit = body ? wadeLimit(verticalClearance(body) * 2) : undefined
-  const { x, z } = shoreNear(levelWaterDepthAt, saved.x, saved.z, limit)
+  const shore = shoreNear(levelWaterDepthAt, saved.x, saved.z, limit)
+  const { terrain } = TEST_LEVEL
+  const { x, z } = terrain.footprintsAround
+    ? freeSpotNear(
+        terrain.footprintsAround,
+        shore.x,
+        shore.z,
+        body?.capsuleRadius ?? 0,
+        GAME_CONFIG.SAVE.FREE_SPOT_REACH,
+      )
+    : shore
   const y = x === saved.x && z === saved.z ? saved.y : -Infinity
   const lowest = standingY(trainer, x, z)
   if (y >= lowest) return { x, y, z }

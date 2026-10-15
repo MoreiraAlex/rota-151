@@ -30,9 +30,31 @@ function worldIndex(seed = SEED) {
         return weights.reduce((sum, w, i) => sum + (isTown[i] ? w : 0), 0)
       },
       heightAt: (x, z) => sampler.sample(x, z),
+      sites: sampler.cities,
     }),
   }
 }
+
+// Os modelos dos prédios únicos que o porte da cidade pede.
+const expectedLandmarks = ({ size, theme }) =>
+  [
+    ...CITY.town.landmarks.filter(({ model }) =>
+      size.landmarks.includes(model),
+    ),
+    size.special ? theme.special : null,
+  ]
+    .filter(Boolean)
+    .map(({ model }) => model)
+    .sort()
+
+const landmarkModels = (city) =>
+  [...city.landmarks.values()].map(({ model }) => model).sort()
+
+// O quarteirão do meio de uma cidade da seed.
+const blockAt = (x, z) => [
+  Math.floor(x / CITY.town.blockSize),
+  Math.floor(z / CITY.town.blockSize),
+]
 
 // Os quarteirões da primeira cidade achada numa volta em espiral da origem.
 function firstCity(cities) {
@@ -42,7 +64,7 @@ function firstCity(cities) {
       for (let bz = -ring; bz <= ring; bz++) {
         if (Math.max(Math.abs(bx), Math.abs(bz)) !== ring) continue
         const city = cities.cityOf(bx, bz)
-        if (!city || city.landmarks.size < CITY.town.landmarks.length + 1) {
+        if (!city || city.landmarks.size === 0) {
           continue
         }
         // Todos os quarteirões dela (os vizinhos com o mesmo id).
@@ -142,7 +164,7 @@ describe.runIf(CITY)('createCityIndex', () => {
     const count = new Map()
     const { theme } = found.city
     const houses = theme.houses.map(({ model }) => model)
-    const unique = [...town.landmarks, theme.special].filter(Boolean)
+    const unique = expectedLandmarks(found.city).map((model) => ({ model }))
     for (const key of solidBlocks) {
       const [bx, bz] = key.split(',').map(Number)
       const chunk = generateTerrainChunk(sampler, bx, bz, {
@@ -170,6 +192,37 @@ describe.runIf(CITY)('createCityIndex', () => {
       (model) => !unique.some((landmark) => landmark.model === model),
     )
     for (const model of others) expect(houses).toContain(model)
+  })
+
+  it('o id e o porte são os da cidade da seed', () => {
+    const { sampler, cities: index } = worldIndex()
+    for (let cell = -2; cell <= 2; cell++) {
+      const site = sampler.cities.cityAt(cell, 1)
+      const city = index.cityOf(...blockAt(site.x, site.z))
+      expect(city.id).toBe(site.id)
+      expect(city.size).toBe(site.size)
+    }
+  })
+
+  it('o porte decide os prédios únicos', () => {
+    const { sampler, cities: index } = worldIndex()
+    const seen = new Set()
+    for (let i = 0; i < 25 && seen.size < CITY.town.sizes.length; i++) {
+      const site = sampler.cities.cityAt((i % 5) - 2, Math.floor(i / 5) - 2)
+      const city = index.cityOf(...blockAt(site.x, site.z))
+      expect(landmarkModels(city)).toEqual(expectedLandmarks(city))
+      seen.add(city.size.id)
+    }
+    expect(seen.size).toBe(CITY.town.sizes.length)
+  })
+
+  it('o treinador nasce numa rua da primeira cidade, do primeiro porte', () => {
+    const { sampler, cities: index } = worldIndex()
+    expect(sampler.biomeAt(0, 0)).toBe(CITY)
+    expect(streetStrengthAt(CITY.town, 0, 0)).toBe(1)
+    const city = index.cityOf(0, 0)
+    expect(city.id).toBe(sampler.cities.cityAt(0, 0).id)
+    expect(city.size.id).toBe(GAME_CONFIG.CITIES.FIRST_SIZE)
   })
 
   it('cada cidade segue um tema da lista, o mesmo de qualquer quarteirão', () => {
