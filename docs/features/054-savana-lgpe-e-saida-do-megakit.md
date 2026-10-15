@@ -215,12 +215,13 @@ savana segue essa receita, e o tom seco da vegetação vem da tinta (ver
       alto de encontro (+ testes).
 - [x] Saída do MegaKit (core, view, assets, conversor, dados) (+ testes).
 - [x] Conferir no jogo (bancada): savana e planície.
-- [ ] Teste no jogo pelo usuário e ajustes.
-- [ ] Desempenho na Intel UHD (no fechamento, depois dos ajustes).
-- [ ] Limpeza: props que nenhum bioma usa saem do conversor.
-- [ ] Wiki: página "O mundo" (savana; montanha some).
-- [ ] Roadmap: 054 para "Já feito".
-- [ ] Gates: `npm test` inteiro, `npm run lint` e build.
+- [x] Teste no jogo pelo usuário e ajustes (+ tinta "puxar para a cor" e
+      lagoas na savana).
+- [x] Desempenho na Intel UHD (no fechamento, depois dos ajustes).
+- [x] Limpeza: os props testados e descartados saem do conversor.
+- [x] Wiki: página "O mundo" (savana; montanha some).
+- [x] Roadmap: 054 para "Já feito".
+- [x] Gates: `npm test` inteiro, `npm run lint` e build.
 
 ---
 
@@ -295,20 +296,43 @@ savana segue essa receita, e o tom seco da vegetação vem da tinta (ver
   LGPE foram para `lgpeModels.test.js`.
 - **Conferido no jogo** (bancada, meio-dia): savana em dois pontos e a
   planície na origem (igual). Sem erro novo no console.
+- **Ajustes do usuário** (F2): tinta mais forte nas plantas da savana
+  (grama, mato alto e tufos no máximo; árvores e arbustos um pouco menos)
+  e sem flores.
+- **Limpeza** (fechamento): saíram do conversor os props testados e
+  descartados — os pinheiros das Rotas 9 e 4 (`dry-tree`, `dry-tree-b`,
+  `dark-tree`), a moita baixa da Rota 10 (placa achatada), o monte de
+  grama (placa larga) e a pedra de Força (um bloco em pé) — com os `.glb`,
+  as texturas só deles e os cascos. Os outros sem uso (flores, árvore de
+  Corte, capim, tronco alto) ficam como opção do F2; o jogo só carrega o
+  que algum bioma usa.
+- **Desempenho** (bancada na Intel UHD, fechamento): produção da 0.0.53
+  (o commit anterior) contra a 054, intercaladas em três rodadas, 1920 ×
+  1080, meio-dia. Medido (não fictício), em proporção:
+  - **Savana** (o mesmo ponto é savana nas duas versões): FPS igual
+    (perto do teto de 60) e tempo de GPU igual dentro do ruído (cerca de
+    2% a mais na 054, menos que a variação entre rodadas); cerca de 13% a
+    mais de triângulos e 7% a mais de desenhos por quadro (o mato alto de
+    encontro, que a savana não tinha).
+  - **Planície** (na origem, controle): igual nas duas.
+  - O carregamento ficou mais leve: o MegaKit (11 MB de modelos e
+    texturas) não é mais baixado.
 
 ---
 
 ## Critérios de Conclusão
 
-- [ ] A savana usa só modelos e texturas do LGPE.
-- [ ] Mato alto de encontro no miolo dos conjuntos de grama da savana.
-- [ ] A montanha não aparece no mundo (só pelo F2).
-- [ ] Nenhum arquivo, modelo ou material do MegaKit no jogo.
-- [ ] Floresta e planície iguais.
-- [ ] Mesmo mundo para a mesma seed; árvores e pedras colidem (pela malha).
-- [ ] Desempenho na Intel UHD na savana no nível de hoje ou melhor.
-- [ ] `npm run build`, `npm run lint` e `npm test` passando.
-- [ ] Wiki atualizada.
+- [x] A savana usa só modelos e texturas do LGPE.
+- [x] Mato alto de encontro no miolo dos conjuntos de grama da savana.
+- [x] A montanha não aparece no mundo (só pelo F2).
+- [x] Nenhum arquivo, modelo ou material do MegaKit no jogo.
+- [x] Floresta e planície iguais (a planície medida e conferida na
+      origem).
+- [x] Mesmo mundo para a mesma seed; árvores e pedras colidem (pela malha).
+- [x] Desempenho na Intel UHD na savana no nível de hoje ou melhor (igual
+      dentro do ruído).
+- [x] `npm run build`, `npm run lint` e `npm test` passando.
+- [x] Wiki atualizada.
 
 ---
 
