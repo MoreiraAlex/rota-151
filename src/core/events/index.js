@@ -21,6 +21,10 @@ export const EVENT_TYPES = {
   CAPTURE_ESCAPED: 'captureEscaped',
   CAPTURE_BALL_BROKE: 'captureBallBroke',
   LIGHTNING_STRUCK: 'lightningStruck',
+  WORLD_ITEM_PICKED: 'worldItemPicked',
+  BERRIES_HARVESTED: 'berriesHarvested',
+  FORAGED_NOTHING: 'foragedNothing',
+  INVENTORY_FULL: 'inventoryFull',
 }
 
 /**
@@ -531,4 +535,62 @@ export function captureBallBroke({ itemId, position }) {
  */
 export function lightningStruck({ thunderDelay, strength }) {
   return { type: EVENT_TYPES.LIGHTNING_STRUCK, thunderDelay, strength }
+}
+
+/**
+ * O treinador pegou um item do chão (docs/features/055-itens-no-mundo.md).
+ *
+ * - Quem emite: `pegarItemDoMundo` (`core/actions/worldItems.js`).
+ * - Quem consome: a view (som, `worldItemFeedbackSystem`; aviso no log,
+ *   `battleLogSystem`). Sem consumidor, some.
+ *
+ * @returns {{ type: 'worldItemPicked', itemId: string, amount: number, position: {x:number,y:number,z:number} }}
+ */
+export function worldItemPicked({ itemId, amount, position }) {
+  return { type: EVENT_TYPES.WORLD_ITEM_PICKED, itemId, amount, position }
+}
+
+/**
+ * O treinador vasculhou um arbusto ou uma árvore (`source`) e achou frutas
+ * (docs/features/055-itens-no-mundo.md).
+ *
+ * - Quem emite: `vasculhar` (`core/actions/worldItems.js`).
+ * - Quem consome: a view (som e aviso no log). Sem consumidor, some.
+ *
+ * @returns {{ type: 'berriesHarvested', itemId: string, amount: number, source: 'bush' | 'tree', position: {x:number,y:number,z:number} }}
+ */
+export function berriesHarvested({ itemId, amount, source, position }) {
+  return {
+    type: EVENT_TYPES.BERRIES_HARVESTED,
+    itemId,
+    amount,
+    source,
+    position,
+  }
+}
+
+/**
+ * O treinador vasculhou um arbusto ou uma árvore (`source`) e não achou
+ * nada (docs/features/055-itens-no-mundo.md).
+ *
+ * - Quem emite: `vasculhar`.
+ * - Quem consome: a view (som e aviso no log). Sem consumidor, some.
+ *
+ * @returns {{ type: 'foragedNothing', source: 'bush' | 'tree', position: {x:number,y:number,z:number} }}
+ */
+export function foragedNothing({ source, position }) {
+  return { type: EVENT_TYPES.FORAGED_NOTHING, source, position }
+}
+
+/**
+ * O treinador tentou pegar ou vasculhar, mas o item não cabe no inventário
+ * (docs/features/055-itens-no-mundo.md).
+ *
+ * - Quem emite: `pegarItemDoMundo`/`vasculhar`.
+ * - Quem consome: a view (aviso no log). Sem consumidor, some.
+ *
+ * @returns {{ type: 'inventoryFull', itemId: string }}
+ */
+export function inventoryFull({ itemId }) {
+  return { type: EVENT_TYPES.INVENTORY_FULL, itemId }
 }

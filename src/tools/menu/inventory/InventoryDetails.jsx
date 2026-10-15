@@ -30,7 +30,6 @@ import { MoveList } from '../pokedex/TeamTab'
 // Nome da categoria pro jogador (o dado guarda o id da categoria).
 const CATEGORY_LABELS = {
   throwable: 'Arremessável',
-  consumable: 'Poção',
   berry: 'Fruta',
   pokeball: 'Pokébola',
   scanner: 'Scanner',
@@ -70,8 +69,6 @@ export function InventoryDetails({ selection, itemCount, heldItemId }) {
 function ItemDetails({ itemId, count, inHand }) {
   const item = getItem(itemId)
   const effects = [
-    item?.consumable?.healAmount != null &&
-      `Cura ${item.consumable.healAmount} de vida na hora`,
     item?.berry &&
       `Cura ${item.berry.healAmount} de vida enquanto é comida (${item.berry.duration} s)`,
     item?.pokeball?.captureMultiplier != null &&

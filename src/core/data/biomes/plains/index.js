@@ -121,6 +121,24 @@ export const PLAINS = {
       colors: { a: '#ffffff', b: '#fff2c0' },
     },
   ],
+  // Pokébolas no chão (docs/features/055-itens-no-mundo.md).
+  worldItems: {
+    chance: 0.05,
+    maxPerChunk: 1,
+    refillMinutes: 120,
+    table: [
+      { itemId: 'poke-ball', weight: 10 },
+      { itemId: 'great-ball', weight: 1 },
+      { itemId: 'ultra-ball', weight: 0.5 },
+    ],
+  },
+  // A fruta da vegetação (docs/features/055-itens-no-mundo.md): todo
+  // arbusto e toda árvore podem ter, sorteado a cada dia.
+  forage: {
+    itemId: 'nanab-berry',
+    bush: { chance: 0.15, min: 1, max: 2 },
+    tree: { chance: 0.25, min: 1, max: 3 },
+  },
   tags: ['grassland', 'temperate'],
   weather: { clear: 4, sun: 2, rain: 3, storm: 1, snow: 0 },
 }

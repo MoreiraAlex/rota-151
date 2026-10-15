@@ -33,6 +33,9 @@ import {
   SaveClock,
   WorldClock,
   LocalWeather,
+  WorldItemsMemory,
+  WorldItemChunks,
+  InteractionTarget,
 } from '../traits'
 
 export const world = createWorld()
@@ -41,6 +44,10 @@ export const world = createWorld()
 // do MUNDO, não de uma entidade. O horário salvo volta no
 // `prepararTreinador`.
 world.add(WorldClock, LocalWeather)
+// O que o jogador mexeu nos itens do mundo, os chunks com eles já em
+// entidade e o alvo do F (docs/features/055-itens-no-mundo.md). O salvo
+// volta no `prepararTreinador`.
+world.add(WorldItemsMemory, WorldItemChunks, InteractionTarget)
 
 // Jogador é só mais uma entrada do registro de espécies — corpo (cápsula) e
 // movimento (velocidades) vêm de lá, não são constante global. PLAYER_SPECIES_ID

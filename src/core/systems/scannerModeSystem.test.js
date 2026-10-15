@@ -114,7 +114,7 @@ describe('scannerModeSystem', () => {
     tick({ secondaryHeld: true })
     expect(player.get(ScanMode).active).toBe(true)
 
-    player.set(HeldItem, { itemId: 'potion' })
+    player.set(HeldItem, { itemId: 'poke-ball' })
     tick({ secondaryHeld: true }) // ainda "segurando" fisicamente, mas o item mudou
 
     expect(player.get(ScanMode).active).toBe(false)

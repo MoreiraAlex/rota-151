@@ -5,7 +5,6 @@
 // (`tools/menu/InventoryPanel.jsx`) — uma cor só, não duas divergindo.
 export const ITEM_COLORS = {
   throwable: '#d97706',
-  consumable: '#7c3aed',
   scanner: '#dc2626',
   pokeball: '#e11d48',
   berry: '#16a34a',

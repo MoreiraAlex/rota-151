@@ -148,7 +148,6 @@ function buildItems() {
       category: item.category,
       sprite: item.sprite?.path ?? null,
       stackable: isStackableItem(item),
-      heal: item.consumable?.healAmount ?? null,
       berryHeal: item.berry?.healAmount ?? null,
       berryDuration: item.berry?.duration ?? null,
       captureMultiplier: item.pokeball?.captureMultiplier ?? null,
@@ -561,6 +560,9 @@ function buildWorld() {
     )
     return {
       name: biome.name,
+      // A fruta que arbustos e árvores dão (docs/features/055-itens-no-
+      // mundo.md).
+      berry: biome.forage ? (getItem(biome.forage.itemId)?.name ?? null) : null,
       chances: Object.fromEntries(
         weatherTypes.map((type) => [type, (biome.weather[type] ?? 0) / total]),
       ),

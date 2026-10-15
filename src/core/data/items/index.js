@@ -1,8 +1,8 @@
 /**
  * Registro de itens. Mesma forma de `core/data/species/index.js`: o
  * mecanismo (este arquivo, `getItem`/`listItems`, `_template/`) e os itens
- * da beta (docs/features/042-itens-da-beta.md) — Pokébolas, poções, frutas
- * e a Pokédex.
+ * da beta (docs/features/042-itens-da-beta.md) — Pokébolas, frutas e a
+ * Pokédex. As poções saíram na 055 (docs/features/055-itens-no-mundo.md).
  *
  * Pra adicionar um item:
  * 1) copia `_template/` pra `<id>/`
@@ -13,9 +13,6 @@ import { POKEDEX } from './pokedex'
 import { POKE_BALL } from './poke-ball'
 import { GREAT_BALL } from './great-ball'
 import { ULTRA_BALL } from './ultra-ball'
-import { POTION } from './potion'
-import { SUPER_POTION } from './super-potion'
-import { HYPER_POTION } from './hyper-potion'
 import { RAZZ_BERRY } from './razz-berry'
 import { NANAB_BERRY } from './nanab-berry'
 import { PINAP_BERRY } from './pinap-berry'
@@ -25,9 +22,6 @@ export const ITEM_REGISTRY = {
   [POKE_BALL.id]: POKE_BALL,
   [GREAT_BALL.id]: GREAT_BALL,
   [ULTRA_BALL.id]: ULTRA_BALL,
-  [POTION.id]: POTION,
-  [SUPER_POTION.id]: SUPER_POTION,
-  [HYPER_POTION.id]: HYPER_POTION,
   [RAZZ_BERRY.id]: RAZZ_BERRY,
   [NANAB_BERRY.id]: NANAB_BERRY,
   [PINAP_BERRY.id]: PINAP_BERRY,
@@ -37,18 +31,13 @@ export const ITEM_REGISTRY = {
  * Ordem das categorias quando o Inventário é organizado (botão
  * "Organizar", `organizarInventario`). Categoria fora da lista vai pro fim.
  */
-export const ITEM_CATEGORY_ORDER = [
-  'scanner',
-  'pokeball',
-  'consumable',
-  'berry',
-]
+export const ITEM_CATEGORY_ORDER = ['scanner', 'pokeball', 'berry']
 
 /**
  * Categorias que o treinador pode usar NUM Pokémon (menu de ações,
- * `usarItemNaCriatura`) — poção cura na hora, fruta a criatura come.
+ * `usarItemNaCriatura`) — a fruta, que a criatura come.
  */
-export const CREATURE_USABLE_CATEGORIES = ['consumable', 'berry']
+export const CREATURE_USABLE_CATEGORIES = ['berry']
 
 /**
  * Pokébola de quem não foi capturado com outra — os Pokémon iniciais (ver

@@ -23,8 +23,8 @@ import { WorldSoundsView } from '../audio/WorldSoundsView'
 import { PokeballVfxView } from './PokeballVfxView'
 import { SummonFlashesView } from './SummonFlashView'
 import { RecallBeamsView } from './RecallBeamView'
-import { ConsumeEffectsView } from './ConsumeEffectView'
 import { DroppedFoodsView } from './DroppedFoodView'
+import { WorldItemsView } from './WorldItemsView'
 import { EatingFoodsView } from './EatingFoodView'
 import { EatingVfxView } from './EatingVfxView'
 import { AttackEffectsView } from './AttackEffectView'
@@ -82,7 +82,7 @@ function TestLevelView() {
       {GAME_CONFIG.FAR_TERRAIN.ENABLED && <FarTerrainView />}
       {/* Grama, flores e árvores (049). */}
       <VegetationView />
-      {/* Superfície da água, só visual (049; a de verdade é da 060). */}
+      {/* Superfície da água, só visual (049; a de verdade é da 059). */}
       <WaterView />
 
       {obstacles.map((obstacle) => (
@@ -148,8 +148,9 @@ export function GameScene({ children }) {
       <GroundBallsView />
       <SummonFlashesView />
       <RecallBeamsView />
-      <ConsumeEffectsView />
       <DroppedFoodsView />
+      {/* Itens no chão, arbustos com item e frutas nas árvores (055). */}
+      <WorldItemsView />
       <EatingFoodsView />
       <EatingVfxView />
       <AttackEffectsView />

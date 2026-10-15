@@ -9,6 +9,9 @@ import { lightningSystem } from '@/view/systems/lightningSystem'
 import { weatherAudioSystem } from '@/view/systems/weatherAudioSystem'
 import { chunkFreezeSystem } from '@/core/systems/chunkFreezeSystem'
 import { chunkObjectCleanupSystem } from '@/core/systems/chunkObjectCleanupSystem'
+import { worldItemsStreamingSystem } from '@/core/systems/worldItemsStreamingSystem'
+import { worldItemRefillSystem } from '@/core/systems/worldItemRefillSystem'
+import { interactionSystem } from '@/core/systems/interactionSystem'
 import { cameraControlSystem } from '@/core/systems/cameraControlSystem'
 import { vitalsRegenSystem } from '@/core/systems/vitalsRegenSystem'
 import { movementSystem } from '@/core/systems/movementSystem'
@@ -41,7 +44,6 @@ import { partyBehaviorSystem } from '@/core/systems/partyBehaviorSystem'
 import { partyReactionSystem } from '@/core/systems/partyReactionSystem'
 import { trainerBattleSystem } from '@/core/systems/trainerBattleSystem'
 import { projectileSystem } from '@/core/systems/projectileSystem'
-import { consumeEffectSystem } from '@/core/systems/consumeEffectSystem'
 import { eatingSystem } from '@/core/systems/eatingSystem'
 import { eatingInterruptSystem } from '@/core/systems/eatingInterruptSystem'
 import { droppedFoodSystem } from '@/core/systems/droppedFoodSystem'
@@ -64,6 +66,7 @@ import { captureAimViewSystem } from '@/view/systems/captureAimViewSystem'
 import { summonBallViewSystem } from '@/view/systems/summonBallViewSystem'
 import { handBallViewSystem } from '@/view/systems/handBallViewSystem'
 import { pokeballFeedbackSystem } from '@/view/systems/pokeballFeedbackSystem'
+import { worldItemFeedbackSystem } from '@/view/systems/worldItemFeedbackSystem'
 import { tailFireSystem } from '@/view/systems/tailFireSystem'
 import { audioListenerSystem } from '@/view/systems/audioListenerSystem'
 import { footstepAudioSystem } from '@/view/systems/footstepAudioSystem'
@@ -151,14 +154,12 @@ let registered = false
  * exclusão mútua), sem dependência real de ordem entre os dois (nunca é a
  * mesma entidade — um só processa o treinador via `HeldItem`, o outro só
  * uma `SummonedCreature`). `attackEffectSystem` (conta o `lifetime` do
- * `AttackEffect` que ele spawna) fica perto de `consumeEffectSystem`,
- * mesma família visual.
+ * `AttackEffect` que ele spawna) fica perto dos outros efeitos visuais.
  *
  * `partySummonSystem`/`creatureFollowSystem`/`projectileSystem`/
- * `consumeEffectSystem`/`summonEffectsSystem` (este último conta o
- * `lifetime` de `SummonFlash`/`RecallBeam`, ver docs/features/024-esfera-
- * de-invocar.md — mesma família de `consumeEffectSystem`, puramente
- * visual, sem dependência de ordem com mais ninguém) são independentes
+ * `summonEffectsSystem` (este último conta o `lifetime` de
+ * `SummonFlash`/`RecallBeam`, ver docs/features/024-esfera-de-invocar.md
+ * — mesma família de `attackEffectSystem`, puramente visual, sem dependência de ordem com mais ninguém) são independentes
  * do resto (não leem nem escrevem
  * `Velocity`/`Grounded` do treinador) — a posição exata deles na fase
  * simulation não importa, ficam perto de `playerActionSystem` (quem spawna
@@ -200,6 +201,12 @@ export function registerGameSystems() {
   // tick); ninguém da simulação depende deles ainda.
   registerSystem(GAME_PHASES.SIMULATION, worldClockSystem)
   registerSystem(GAME_PHASES.SIMULATION, weatherSystem)
+  // Itens do chão (docs/features/055-itens-no-mundo.md): seguem os chunks
+  // deste tick e repõem pelo relógio já andado; o F pega e vasculha antes
+  // das ações do treinador (que ocupam ele).
+  registerSystem(GAME_PHASES.SIMULATION, worldItemsStreamingSystem)
+  registerSystem(GAME_PHASES.SIMULATION, worldItemRefillSystem)
+  registerSystem(GAME_PHASES.SIMULATION, interactionSystem)
   registerSystem(GAME_PHASES.SIMULATION, cameraControlSystem)
   // Mira da Pokébola (043): com a órbita deste tick, antes do movimento
   // (que vira o corpo pra mira) e do arremesso (que usa a mira).
@@ -236,7 +243,6 @@ export function registerGameSystems() {
   // A Pokébola de captura (docs/features/043-captura.md) — depois do
   // desmaio (quem desmaiou na bola já está desmaiado ao resolver).
   registerSystem(GAME_PHASES.SIMULATION, captureBallSystem)
-  registerSystem(GAME_PHASES.SIMULATION, consumeEffectSystem)
   registerSystem(GAME_PHASES.SIMULATION, droppedFoodSystem)
   registerSystem(GAME_PHASES.SIMULATION, attackEffectSystem)
   registerSystem(GAME_PHASES.SIMULATION, statStageSystem)
@@ -311,6 +317,7 @@ export function registerGameSystems() {
   registerSystem(GAME_PHASES.PRESENTATION, attackAudioSystem)
   // Sons e partículas da Pokébola (043): captura, invocar e recolher.
   registerSystem(GAME_PHASES.PRESENTATION, pokeballFeedbackSystem)
+  registerSystem(GAME_PHASES.PRESENTATION, worldItemFeedbackSystem)
   // Brilho em quem tomou dano — consome `attackResolved` de
   // `context.frameEvents` (ver `GameLoop.jsx`).
   registerSystem(GAME_PHASES.PRESENTATION, hitFlashSystem)

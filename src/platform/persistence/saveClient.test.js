@@ -11,6 +11,7 @@ const VALID_SAVE = {
     pokedex: { speciesIds: [], history: [] },
   },
   pokemon: [],
+  worldItems: { chunks: {}, foraged: {} },
 }
 
 function respond(status, data) {

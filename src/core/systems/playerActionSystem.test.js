@@ -10,7 +10,6 @@ import {
   HeldItem,
   Inventory,
   Projectile,
-  ConsumeEffect,
   Eating,
   Grounded,
   InputState,
@@ -23,20 +22,20 @@ import {
   resolveMovementCosts,
 } from '@/core/traits'
 import { GAME_CONFIG } from '@/core/gameConfig'
-import { ITEM_REGISTRY, getItem, listItems } from '@/core/data/items'
+import { ITEM_REGISTRY, listItems } from '@/core/data/items'
 import { getSpecies, getPlayerSpecies } from '@/core/data/species'
 import { computeAimRay } from '@/core/camera/orbitCamera'
 import { resolveDashCost } from '../actions/stamina'
 import { playerActionSystem, resolveDashSpeed } from './playerActionSystem'
 import { dashCooldownSystem } from './dashCooldownSystem'
 
-// DASH continua global (GAME_CONFIG) — THROW/CONSUME são exclusivos do
+// DASH continua global (GAME_CONFIG) — THROW é exclusivo do
 // treinador (`getPlayerSpecies().actions`, ver docs/features/018-troca-
 // de-controle-treinador-criatura.md), sempre a espécie do treinador de
 // verdade, não a que este arquivo usa pro player de teste (ver
 // `test/makeWorld.js`).
 const { DURATION, SPEED, COOLDOWN } = GAME_CONFIG.PLAYER_ACTIONS.dash
-const { throw: THROW, consume: CONSUME } = getPlayerSpecies().actions
+const { throw: THROW } = getPlayerSpecies().actions
 // Custo do dash do player de teste — por entidade desde a 035
 // (`Vitals.dashStaminaCost`, `resolveMovementCosts`).
 const DASH_COST = resolveMovementCosts(getSpecies('boy')).dashStaminaCost
@@ -78,11 +77,10 @@ afterAll(() => {
 })
 
 // Itens do catálogo, pela categoria (sem fixar id).
-const POTION = listItems().find((item) => item.category === 'consumable').id
 const BERRY = listItems().find((item) => item.category === 'berry')
 const POKEBALL = listItems().find((item) => item.category === 'pokeball').id
 
-// Poção e fruta não são usadas com a vida cheia: deixa o player ferido.
+// Fruta não é usada com a vida cheia: deixa o player ferido.
 function hurt(player) {
   const vitals = player.get(Vitals)
   player.set(Vitals, { ...vitals, hp: vitals.maxHp / 2 })
@@ -608,115 +606,13 @@ describe('playerActionSystem — arremesso (item throwable)', () => {
   })
 })
 
-describe('playerActionSystem — uso (item consumable)', () => {
+describe('playerActionSystem — itens da beta (042)', () => {
   it('não dispara sem item em mãos', () => {
     const { world, player } = spawnWorld()
 
     tick(world, { primary: true })
 
     expect(player.get(ActionState).current).toBe(null)
-  })
-
-  it('dispara com item consumable equipado', () => {
-    const { world, player } = spawnWorld()
-    hurt(player)
-    player.set(HeldItem, { itemId: POTION })
-
-    tick(world, { primary: true })
-
-    expect(player.get(ActionState).current).toBe('consume')
-  })
-
-  it('cura no instante de efeito, uma vez só', () => {
-    const { world, player } = spawnWorld()
-    player.set(Vitals, { hp: 50, maxHp: 100 })
-    hurt(player)
-    player.set(HeldItem, { itemId: POTION })
-
-    tick(world, { primary: true })
-
-    const ticksUntilEffect = Math.ceil(CONSUME.effectAt / (1 / 60))
-    for (let i = 0; i < ticksUntilEffect - 1; i++) {
-      tick(world, {})
-      expect(player.get(Vitals).hp).toBe(50)
-    }
-
-    tick(world, {}) // cruza o instante de efeito
-    const healed = 50 + getItem(POTION).consumable.healAmount
-    expect(player.get(Vitals).hp).toBeCloseTo(healed)
-
-    // continuar a ação não cura de novo
-    tick(world, {})
-    expect(player.get(Vitals).hp).toBeCloseTo(healed)
-  })
-
-  it('encerra sozinho depois da duração e devolve o controle', () => {
-    const { world, player } = spawnWorld()
-    hurt(player)
-    player.set(HeldItem, { itemId: POTION })
-
-    tick(world, { primary: true })
-    const steps = Math.ceil(CONSUME.duration / (1 / 60)) + 1
-    for (let i = 0; i < steps; i++) tick(world, {})
-
-    expect(player.get(ActionState).current).toBe(null)
-  })
-
-  it('remove uma unidade do item do inventário ao usar, e desequipa (estoque zerou)', () => {
-    const { world, player } = spawnWorld()
-    hurt(player)
-    player.set(HeldItem, { itemId: POTION })
-    player.set(Inventory, { counts: { [POTION]: 1 } })
-
-    tick(world, { primary: true })
-    const ticksUntilEffect = Math.ceil(CONSUME.effectAt / (1 / 60))
-    for (let i = 0; i < ticksUntilEffect; i++) tick(world, {})
-
-    expect(player.get(Inventory).counts).toEqual({})
-    expect(player.get(HeldItem).itemId).toBe(null)
-  })
-
-  it('spawna um ConsumeEffect no instante de efeito, na posição do jogador', () => {
-    const { world, player } = spawnWorld()
-    hurt(player)
-    player.set(HeldItem, { itemId: POTION })
-
-    tick(world, { primary: true })
-    const ticksUntilEffect = Math.ceil(CONSUME.effectAt / (1 / 60))
-    for (let i = 0; i < ticksUntilEffect - 1; i++) {
-      tick(world, {})
-      expect(world.query(ConsumeEffect).length).toBe(0)
-    }
-
-    tick(world, {}) // cruza o instante de efeito
-    expect(world.query(ConsumeEffect).length).toBe(1)
-  })
-
-  it('tendo mais de uma unidade, usar consome só uma (a pilha continua) e não desequipa', () => {
-    const { world, player } = spawnWorld()
-    hurt(player)
-    player.set(HeldItem, { itemId: POTION })
-    player.set(Inventory, { counts: { [POTION]: 2 } })
-
-    tick(world, { primary: true })
-    const ticksUntilEffect = Math.ceil(CONSUME.effectAt / (1 / 60))
-    for (let i = 0; i < ticksUntilEffect; i++) tick(world, {})
-
-    expect(player.get(Inventory).counts).toEqual({ [POTION]: 1 })
-    expect(player.get(HeldItem).itemId).toBe(POTION)
-  })
-})
-
-describe('playerActionSystem — itens da beta (042)', () => {
-  it('poção com a vida cheia não é usada nem gasta', () => {
-    const { world, player } = spawnWorld()
-    player.set(HeldItem, { itemId: POTION })
-    player.set(Inventory, { counts: { [POTION]: 1 } })
-
-    tick(world, { primary: true })
-
-    expect(player.get(ActionState).current).toBe(null)
-    expect(player.get(Inventory).counts).toEqual({ [POTION]: 1 })
   })
 
   it('fruta na mão: começa a comer e gasta a unidade na hora', () => {

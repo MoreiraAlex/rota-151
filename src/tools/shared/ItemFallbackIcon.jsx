@@ -47,22 +47,6 @@ function PokeballGlyph() {
   )
 }
 
-function PotionGlyph() {
-  return (
-    <>
-      <rect x="8" y="2.5" width="4" height="3" rx="0.6" fill="#f5f5f5" />
-      <path
-        d="M7.5 5.5h5v2.2l2.3 3.3a4.2 4.2 0 0 1-3.5 6.5H8.7a4.2 4.2 0 0 1-3.5-6.5l2.3-3.3z"
-        fill="#f5f5f5"
-      />
-      <path
-        d="M5.4 12h9.2a4.2 4.2 0 0 1-3.3 5.5H8.7A4.2 4.2 0 0 1 5.4 12z"
-        fill="#c084fc"
-      />
-    </>
-  )
-}
-
 function BerryGlyph() {
   return (
     <>
@@ -97,7 +81,6 @@ function GenericGlyph() {
 
 const GLYPHS = {
   pokeball: PokeballGlyph,
-  consumable: PotionGlyph,
   berry: BerryGlyph,
   scanner: ScannerGlyph,
 }

@@ -77,9 +77,9 @@ describe('comer — actions', () => {
 
   it('item que não é fruta não começa', () => {
     const { eater } = setup()
-    const potion = listItems().find((item) => item.category === 'consumable')
+    const pokeball = listItems().find((item) => item.category === 'pokeball')
 
-    expect(comecarAComer(eater, potion)).toBe(false)
+    expect(comecarAComer(eater, pokeball)).toBe(false)
     expect(isEating(eater)).toBe(false)
   })
 

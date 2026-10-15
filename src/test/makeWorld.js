@@ -31,6 +31,9 @@ import {
   SaveClock,
   OwnedBy,
   WorldClock,
+  WorldItemsMemory,
+  WorldItemChunks,
+  InteractionTarget,
   LocalWeather,
 } from '@/core/traits'
 
@@ -107,6 +110,8 @@ export function makeWorld({
   // pegaria chuva (que mexe no dano de Água e Fogo). `weather: null` = o do
   // mapa.
   world.add(WorldClock, LocalWeather({ forced: weather }))
+  // Itens do mundo (docs/features/055-itens-no-mundo.md), como no singleton.
+  world.add(WorldItemsMemory, WorldItemChunks, InteractionTarget)
 
   const player = spawnTrainer(world, {
     position: playerPosition,

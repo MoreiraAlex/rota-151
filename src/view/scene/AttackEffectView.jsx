@@ -63,7 +63,7 @@ export function AttackEffectView({
 /**
  * Renderiza uma `AttackEffectView` por `AttackEffect` ativo — `useQuery` é
  * reativo (koota/react), monta/desmonta sozinho ao entrar/sair do
- * resultado, mesmo padrão de `ConsumeEffectsView`.
+ * resultado, mesmo padrão de `ProjectilesView`.
  */
 export function AttackEffectsView() {
   const effects = useQuery(AttackEffect, Position, Rotation)

@@ -20,9 +20,9 @@ import { scatterArea } from './vegetationScatter'
  * nada no chunk); os modelos vêm de `useVegetationModels`.
  */
 
-// Separa os sorteios do sub-bosque (`scatterArea`).
+// Separa os sorteios do sub-bosque (`scatterArea`; o dos arbustos é do
+// core, `BUSH_SALT`).
 const SALTS = {
-  bush: 201,
   fern: 301,
   'leafy-plant': 501,
   pebble: 601,
@@ -59,15 +59,15 @@ export function buildTreeMeshes(chunk, models) {
 
 /**
  * Sub-bosque de um tipo (`bush`, `fern`, `leafy-plant`, `pebble`) no
- * chunk inteiro: pontos com as clareiras e as manchas e fora das pegadas
+ * chunk inteiro (os arbustos já vêm sorteados do core, `chunk.bushes`): pontos com as clareiras e as manchas e fora das pegadas
  * dos sólidos, o tamanho das plantas do LGPE (`lgpePlantScale`) e o tom
  * de cada planta. Com LOD (`buildLodKindMeshes`):
  * `setNear` diz quais plantas desenhar (as de perto).
  */
 export function buildUndergrowthMeshes(chunk, kind, models) {
+  if (kind === 'bush') return buildBushMeshes(chunk, models)
   const { GRASS, TERRAIN, VEGETATION_QUALITY, TREES } = GAME_CONFIG
   const spec = {
-    bush: GAME_CONFIG.BUSHES,
     fern: GAME_CONFIG.FERNS,
     'leafy-plant': GAME_CONFIG.LEAFY_PLANTS,
     pebble: GAME_CONFIG.PEBBLES,
@@ -100,6 +100,26 @@ export function buildUndergrowthMeshes(chunk, kind, models) {
       ...tintOf(x, z),
     }
   })
+  return buildPlantMeshes(chunk, kind, instances, models)
+}
+
+/**
+ * Os arbustos do bloco (os do core, `bushes` do relevo do bloco — os mesmos
+ * que o F vasculha nos chunks dele, docs/features/055-itens-no-mundo.md):
+ * todos, em qualquer qualidade (um arbusto que não aparece não pode dar
+ * fruta).
+ */
+function buildBushMeshes(chunk, models) {
+  const tintOf = createTint(chunk, 'bush', GAME_CONFIG.TREES.TINT_VARIATION)
+  const instances = (chunk.bushes ?? []).map((bush) => ({
+    ...bush,
+    ...tintOf(bush.x, bush.z),
+  }))
+  return buildPlantMeshes(chunk, 'bush', instances, models)
+}
+
+// As malhas de plantas do sub-bosque já sorteadas, por bioma.
+function buildPlantMeshes(chunk, kind, instances, models) {
   // Por bioma: os modelos dele e o tamanho (`scale` da entrada). De
   // longe, nada (`far` vazio): só desenha perto da câmera.
   const sets = [...groupByBiome(chunk, instances, kind)].map(

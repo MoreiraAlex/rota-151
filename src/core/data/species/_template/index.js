@@ -200,8 +200,8 @@ export const SPECIES_TEMPLATE = {
     // Custo de stamina do pulo, descontado uma vez no disparo.
     jumpStaminaCost: 3,
   },
-  // `actions.throw`/`.consume`/`.summon`/`.recall` e `party` (arremesso,
-  // consumo, invocar/recolher, distâncias de seguir o time) são exclusivos
+  // `actions.throw`/`.summon`/`.recall` e `party` (arremesso, invocar/
+  // recolher, distâncias de seguir o time) são exclusivos
   // do TREINADOR — não declare isso aqui pra uma criatura nova. Ver
   // `../boy/index.js` se algum dia existir uma segunda espécie `kind:
   // 'trainer'`.

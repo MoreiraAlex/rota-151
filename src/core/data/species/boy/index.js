@@ -171,19 +171,9 @@ export const BOY = {
       // simplesmente não dispara.
       staminaCost: 2,
     },
-    consume: {
-      // Duração total da ação (segundos).
-      duration: 0.4,
-      // Instante em que o efeito do item (cura, ver `item.consumable`) é
-      // de fato aplicado.
-      effectAt: 0.2,
-      // Quanto tempo o efeito visual de partículas (ConsumeEffect) fica na
-      // cena depois de spawnado — independente da duração da ação em si.
-      effectVisualDuration: 0.6,
-    },
     // Invocar/recolher criatura de time (ver `partySummonSystem.js` e
     // docs/features/017-locomocao-e-recolhimento-de-criaturas.md) — mesmo
-    // padrão de ação com duração/efeito-no-meio de dash/throw/consume.
+    // padrão de ação com duração/efeito-no-meio de dash/throw.
     summon: {
       // Duração total da ação (segundos) — trava movimento e qualquer
       // outra ação até terminar.

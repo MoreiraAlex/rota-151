@@ -154,7 +154,36 @@ export const BIOME_TEMPLATE = {
       colors: { a: '#ffffff', b: '#fff2c0' },
     },
   ],
-  // Tags que o spawn (059) usa nas condições de cada espécie.
+  // Opcional: itens no chão (docs/features/055-itens-no-mundo.md) — por
+  // enquanto, as Pokébolas. Sem ele, nenhum item nasce no chão aqui.
+  // - `chance` (0 a 1) e `maxPerChunk`: a cada vez que o chunk enche (a
+  //   primeira visita e cada verificação da reposição), ele sorteia se quer
+  //   ter item (`chance`) e, querendo, quantos (de um até o teto,
+  //   `maxPerChunk`); só completa o que faltar — o que já está no chão fica.
+  //   Com teto 1, `chance` é a fração dos chunks com item.
+  // - `refillMinutes`: minutos de jogo entre uma verificação e outra.
+  // - `table`: `{ itemId, weight }` — os itens que nascem aqui (id do
+  //   catálogo) e a chance relativa de cada um.
+  // worldItems: {
+  //   chance: 0.05,
+  //   maxPerChunk: 1,
+  //   refillMinutes: 60,
+  //   table: [
+  //     { itemId: 'poke-ball', weight: 10 },
+  //     { itemId: 'great-ball', weight: 3 },
+  //   ],
+  // },
+  // Opcional: a fruta da vegetação (docs/features/055-itens-no-mundo.md).
+  // Todo arbusto e toda árvore podem ser vasculhados com F; a cada dia de
+  // jogo, cada um sorteia se tem (`chance`, 0 a 1) e quantas (entre `min` e
+  // `max`). `itemId`: a fruta (id do catálogo). Sem `bush` ou `tree`, aquele
+  // tipo não dá nada aqui; sem `forage`, nada dá fruta.
+  // forage: {
+  //   itemId: 'razz-berry',
+  //   bush: { chance: 0.15, min: 1, max: 2 },
+  //   tree: { chance: 0.25, min: 1, max: 3 },
+  // },
+  // Tags que o spawn (058) usa nas condições de cada espécie.
   tags: ['grassland'],
   // Chances relativas de cada clima (docs/features/048-dia-noite-e-
   // clima.md): a cada período, cada região sorteia um tipo por estes pesos.

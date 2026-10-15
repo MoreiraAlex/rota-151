@@ -44,6 +44,7 @@ describe('keyboardInput', () => {
       switchSlot2: false,
       switchSlot3: false,
       returnToBot: false,
+      interact: false,
     })
   })
 
@@ -152,6 +153,7 @@ describe('keyboardInput', () => {
       switchSlot2: false,
       switchSlot3: false,
       returnToBot: false,
+      interact: false,
     })
   })
 
@@ -279,6 +281,15 @@ describe('keyboardInput', () => {
     press('Digit4')
     expect(keyboard.snapshot().returnToBot).toBe(true)
     expect(keyboard.snapshot().returnToBot).toBe(false)
+  })
+
+  it('KeyF mapeia para o pulso de interact, drenado no snapshot', () => {
+    const keyboard = createKeyboardInput()
+    keyboard.start()
+
+    press('KeyF')
+    expect(keyboard.snapshot().interact).toBe(true)
+    expect(keyboard.snapshot().interact).toBe(false)
   })
 
   it('segurar Digit1 (auto-repeat do SO) não gera novo pulso de switchSlot1', () => {

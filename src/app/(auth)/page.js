@@ -57,6 +57,7 @@ import { StatusHud } from '@/tools/hud/StatusHud'
 import { PokedexVisorHud } from '@/tools/hud/PokedexVisorHud'
 import { BattleLogHud } from '@/tools/hud/BattleLogHud'
 import { CaptureAimHud } from '@/tools/hud/CaptureAimHud'
+import { InteractionHud } from '@/tools/hud/InteractionHud'
 
 /**
  * HUD de jogo (normal ou visor da Pokédex) — extraído do corpo de
@@ -124,6 +125,7 @@ function GameHud({ onScanned, onMenuOpenRequested, onTrainerControlChange }) {
       <ActionSlotHud />
       <BattleLogHud />
       <CaptureAimHud />
+      <InteractionHud />
     </>
   )
 }

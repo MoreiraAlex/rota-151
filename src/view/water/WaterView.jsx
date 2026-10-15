@@ -49,7 +49,7 @@ function WaterChunkView({ chunk, material }) {
 /**
  * A água (docs/features/049-vegetacao-e-floresta.md): uma superfície por
  * chunk carregado onde o chão fica abaixo do nível da água — só visual, sem
- * nadar nem colidir (a água de verdade é da 060). Um material para todos.
+ * nadar nem colidir (a água de verdade é da 059). Um material para todos.
  *
  * `useFrame` aqui é a exceção das regras (3.4): só visual (as ondinhas e o
  * céu refletido), que só LÊ o ECS (a hora e o clima).

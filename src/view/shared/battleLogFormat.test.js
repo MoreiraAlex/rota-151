@@ -4,13 +4,18 @@ import {
   attackFailed,
   attackResolved,
   attackUsed,
+  berriesHarvested,
   burnApplied,
   burnDamaged,
   creatureFainted,
   experienceGained,
+  foragedNothing,
+  inventoryFull,
   moveLearned,
   statStageChanged,
+  worldItemPicked,
 } from '@/core/events'
+import { listItems } from '@/core/data/items'
 import { listSkills } from '@/core/data/skills'
 import { Party, Pokemon, SummonedCreature, WildCreature } from '@/core/traits'
 import { formatSpeciesName } from './formatName'
@@ -193,5 +198,35 @@ describe('formatBattleLogEvent', () => {
 
   it('evento desconhecido não entra', () => {
     expect(formatBattleLogEvent({ type: 'outro' })).toEqual([])
+  })
+})
+
+describe('formatBattleLogEvent — itens no mundo (055)', () => {
+  const [item] = listItems()
+  const position = { x: 0, y: 0, z: 0 }
+
+  it('pegar, colher e inventário cheio viram uma linha com o nome do item', () => {
+    const events = [
+      worldItemPicked({ itemId: item.id, amount: 1, position }),
+      berriesHarvested({
+        itemId: item.id,
+        amount: 2,
+        source: 'bush',
+        position,
+      }),
+      inventoryFull({ itemId: item.id }),
+    ]
+    for (const event of events) {
+      const lines = formatBattleLogEvent(event)
+      expect(lines).toHaveLength(1)
+      expect(lines[0].text).toContain(item.name)
+    }
+  })
+
+  it('vasculhar sem achar nada vira uma linha', () => {
+    const lines = formatBattleLogEvent(
+      foragedNothing({ source: 'tree', position }),
+    )
+    expect(lines).toHaveLength(1)
   })
 })

@@ -56,7 +56,7 @@ const TRAINING_BLOCK_TEXT = {
 const ITEM_BLOCK_TEXT = {
   'trainer-eating': 'Termine de comer primeiro.',
   'not-summoned': 'Invoque o Pokémon para usar um item.',
-  fainted: 'Desmaiado — poção não reanima.',
+  fainted: 'Desmaiado — não dá para comer.',
   'full-hp': 'A vida já está cheia.',
   eating: 'Já está comendo.',
   busy: 'Ocupado — espere terminar o que está fazendo.',
@@ -76,7 +76,7 @@ const REFRESH_MS = 250
  *   com a barra de domínio e "Treinar" enquanto não estiver dominado (o
  *   treino no objeto também sobe o domínio).
  * - **Golpes** — os 3 slots (Q/E/R), com setas pra reordenar.
- * - **Itens** — poções e frutas do treinador, pra usar na criatura invocada
+ * - **Itens** — as frutas do treinador, pra dar à criatura invocada
  *   (docs/features/042-itens-da-beta.md, `usarItemNaCriatura`).
  *
  * Só lê traits e chama actions do core; quem fecha é o X, o Esc ou travar o
@@ -175,9 +175,7 @@ function ItemList({ world, trainer, slot }) {
   )
 
   if (usable.length === 0) {
-    return (
-      <p className="text-xs text-white/50">Você não tem poções nem frutas.</p>
-    )
+    return <p className="text-xs text-white/50">Você não tem frutas.</p>
   }
 
   // O motivo geral (sem criatura, desmaiada...) é o mesmo pra todo item: o

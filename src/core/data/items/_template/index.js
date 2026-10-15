@@ -1,13 +1,13 @@
 /**
  * Molde de um item. Copia esta pasta inteira pra `<id>/` (ex.: `poke-ball/`)
- * — um `index.js` com os dados abaixo. Ver `../potion/` ou `../razz-berry/`
+ * — um `index.js` com os dados abaixo. Ver `../poke-ball/` ou `../razz-berry/`
  * como exemplos completos.
  *
  * `category` decide o que o item faz quando usado (botão `primary`, ver
  * docs/features/011-slots-de-acao.md e a implementação em
  * docs/features/014-arremessar-usar-e-invocar.md). Config de comportamento
- * é opcional e por categoria: `consumable.healAmount` existe porque cura é
- * claramente por item (uma poção melhor cura mais); velocidade de arremesso
+ * é opcional e por categoria: `berry.healAmount` existe porque cura é
+ * claramente por item (uma fruta melhor cura mais); velocidade de arremesso
  * (`throwable`) ainda é global (`gameConfig.PLAYER_ACTIONS.throw.SPEED`) —
  * vira por item só quando um segundo `throwable` precisar de valor
  * diferente, mesmo caminho já percorrido por `body`/`movement` de espécie.
@@ -27,12 +27,10 @@ export const ITEM_TEMPLATE = {
   // hoje:
   // - 'throwable' — clique primário arremessa (`playerActionSystem.js`).
   //   Nenhum item da beta usa (o caminho fica pra Pokébola da 043).
-  // - 'consumable' — poção: cura na hora (`consumable.healAmount` abaixo).
-  //   Clique primário cura o treinador; pelo menu de ações, a criatura
-  //   invocada (`usarItemNaCriatura`).
   // - 'berry' — fruta: quem come cura aos poucos e fica parado enquanto
   //   come (`berry` abaixo, `core/actions/eating.js`). Clique primário o
-  //   treinador come; pelo menu de ações, a criatura invocada.
+  //   treinador come; pelo menu de ações, a criatura invocada
+  //   (`usarItemNaCriatura`). As poções (cura na hora) saíram na 055.
   // - 'pokeball' — só catálogo por enquanto (`pokeball` abaixo); usar não
   //   faz nada, a captura é a 043.
   // - 'scanner' (ex.: `pokedex`) — SEGURAR o botão SECUNDÁRIO (direito)
@@ -46,14 +44,10 @@ export const ITEM_TEMPLATE = {
   // mesmo fallback gracioso de sempre; nova categoria = decidir ONDE ela
   // se encaixa (primary, secondary, ou nenhum) quando o primeiro item
   // dela existir, não antes.
-  category: 'consumable',
+  category: 'berry',
   // Opcional — `false` pra item que não acumula (ex.: a Pokédex): o
   // inventário não mostra a quantidade. Sem o campo, acumula.
   stackable: true,
-  // Só pra category: 'consumable'. Omite se a categoria for outra.
-  consumable: {
-    healAmount: 30,
-  },
   // Só pra category: 'berry'. `healAmount` é a cura TOTAL, espalhada pela
   // `duration` (segundos que leva pra comer).
   berry: {

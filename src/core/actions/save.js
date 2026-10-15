@@ -1,4 +1,4 @@
-import { restorePokemon, restoreTrainer } from '../save'
+import { restorePokemon, restoreTrainer, restoreWorldItems } from '../save'
 import { SaveRequested, TrainerReady } from '../traits'
 import { darKitInicial } from './startingKit'
 import { definirHorario } from './environment'
@@ -28,7 +28,8 @@ export function prepararTreinador(world, trainer, save) {
 
 /**
  * Devolve ao `trainer` (sem nenhum Pokémon ainda) o estado do `save`: itens,
- * item na mão, Pokédex e os Pokémon, cada um no lugar salvo. Em campo não
+ * item na mão, Pokédex, os itens do mundo que ele mexeu e os Pokémon, cada
+ * um no lugar salvo. Em campo não
  * volta ninguém: todos voltam na bola.
  */
 export function aplicarSave(world, trainer, save) {
@@ -37,6 +38,7 @@ export function aplicarSave(world, trainer, save) {
   if (save.trainer.worldTime != null) {
     definirHorario(world, save.trainer.worldTime)
   }
+  restoreWorldItems(world, save.worldItems)
   // Time primeiro; o inventário por célula, pra cada um nascer (na primeira
   // célula livre) antes da célula salva de quem vem depois.
   const party = save.pokemon.filter((saved) => saved.location.kind === 'party')

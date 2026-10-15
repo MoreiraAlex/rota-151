@@ -91,6 +91,14 @@ export function hasFreeCell(world, trainer) {
 }
 
 /**
+ * Se `itemId` cabe no inventário do `trainer`: já tem a pilha dele na grade,
+ * ou ainda há célula livre.
+ */
+export function cabeNoInventario(world, trainer, itemId) {
+  return countVisibleItem(trainer, itemId) > 0 || hasFreeCell(world, trainer)
+}
+
+/**
  * Põe as posições dos itens em dia: item sem unidade visível larga a célula;
  * com `world`, item visível sem célula ganha a primeira livre (sem `world`,
  * só larga — quem só gasta não precisa achar célula).

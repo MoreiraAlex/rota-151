@@ -175,6 +175,45 @@ export function WorldPage({ data, version }) {
         </p>
       </Section>
 
+      <Section id="itens" title="Itens pelo mundo">
+        <p>Além dos itens com que você começa, o mundo tem itens pra achar.</p>
+        <ul>
+          <li>
+            <strong>Pokébolas no chão</strong>: de vez em quando aparece uma
+            Pokébola caída por aí — às vezes uma Grande Bola ou, mais rara, uma
+            Ultra Bola. Chegue perto pra pegar.
+          </li>
+          <li>
+            Com o tempo, novas Pokébolas aparecem, nunca bem do seu lado. Sair
+            de um lugar e voltar logo não faz aparecer mais.
+          </li>
+          <li>
+            <strong>Frutas na vegetação</strong>: qualquer arbusto e qualquer
+            árvore podem ser vasculhados. Nem todos têm fruta, e nada mostra
+            quais têm — é procurar.
+          </li>
+          <li>
+            Cada arbusto e cada árvore sorteia de novo a cada dia do jogo se tem
+            fruta. Depois de colhido, ele não dá mais nada até o dia seguinte.
+          </li>
+          <li>
+            Com o inventário cheio, você não consegue pegar: abra espaço
+            primeiro.
+          </li>
+          <li>
+            O que você pegou e colheu fica guardado no seu progresso: ao voltar,
+            o item pego não está mais lá.
+          </li>
+        </ul>
+        {world ? (
+          <DataTable
+            head={['Bioma', 'Fruta da vegetação']}
+            rows={world.biomes.map(({ name, berry }) => [name, berry ?? '—'])}
+            caption="A fruta que os arbustos e as árvores de cada bioma dão."
+          />
+        ) : null}
+      </Section>
+
       <Section id="tamanho" title="Tamanho">
         <p>
           O mundo <strong>não tem fim</strong>: dá pra andar em qualquer direção
@@ -188,8 +227,10 @@ export function WorldPage({ data, version }) {
             quando você volta.
           </li>
           <li>
-            Coisas largadas no chão (comida derrubada, Pokébola caída) somem de
-            vez quando você se afasta muito delas.
+            Coisas largadas no chão (comida derrubada, a Pokébola com uma
+            criatura capturada quando o inventário estava cheio) somem de vez
+            quando você se afasta muito delas. As Pokébolas achadas pelo mundo,
+            não: ficam no lugar.
           </li>
         </ul>
       </Section>

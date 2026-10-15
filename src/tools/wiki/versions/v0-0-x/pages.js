@@ -45,7 +45,7 @@ const PAGES = {
   mundo: {
     title: 'O mundo',
     summary:
-      'Relevo, biomas, dia e noite, clima, tamanho do mundo e o que ainda vai chegar.',
+      'Relevo, biomas, itens pelo mundo, dia e noite, clima, tamanho do mundo e o que ainda vai chegar.',
     Component: WorldPage,
   },
   'criaturas/status': {
@@ -141,7 +141,7 @@ const PAGES = {
   'catalogo/golpes': { title: 'Golpes', Component: MoveListPage },
   'catalogo/itens': {
     title: 'Itens',
-    summary: 'Pokébolas, poções e frutas: como usar e o que cada uma faz.',
+    summary: 'Pokébolas e frutas: onde achar, como usar e o que cada uma faz.',
     Component: ItemsPage,
   },
   calculadora: {

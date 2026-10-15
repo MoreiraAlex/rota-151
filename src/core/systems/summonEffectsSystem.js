@@ -3,7 +3,7 @@ import { SummonFlash, RecallBeam, SummonBallOpen } from '../traits'
 /**
  * Conta o `lifetime` de todo `SummonFlash`/`RecallBeam` ativo pra baixo,
  * destruindo a entidade ao chegar a zero — mesmo padrão de
- * `consumeEffectSystem.js` (efeito puramente visual, sem posição pra
+ * `attackEffectSystem.js` (efeito puramente visual, sem posição pra
  * integrar). Os dois efeitos moram no mesmo system (não em dois
  * separados, ao contrário de audio/registries de outras features) porque
  * a lógica é idêntica e nasceram juntos, na mesma feature (ver

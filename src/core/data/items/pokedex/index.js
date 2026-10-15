@@ -8,7 +8,7 @@
  * pelo visor (`PokedexVisorHud.jsx`); soltar desliga e confirma o que
  * estiver na mira. Sem efeito nenhum no clique `primary` enquanto
  * segurando — `playerActionSystem.js` ignora categorias que não sejam
- * `throwable`/`consumable`, mesmo fallback gracioso de sempre.
+ * `throwable`/`pokeball`/`berry`, mesmo fallback gracioso de sempre.
  *
  * `sprite.path` — ícone de verdade no inventário/HUD (`SlotPreview.jsx`),
  * pedido do usuário: "quero a possibilidade de colocar img nos ícones

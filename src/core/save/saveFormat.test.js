@@ -12,6 +12,7 @@ function minimalSave(overrides = {}) {
       pokedex: { speciesIds: [], history: [] },
     },
     pokemon: [],
+    worldItems: { chunks: {}, foraged: {} },
     ...overrides,
   }
 }
@@ -79,5 +80,53 @@ describe('migrateSave', () => {
     const result = migrateSave(minimalSave({ version: 1 }), migrations)
     expect(result.ok).toBe(true)
     expect(calls).toEqual(Object.keys(migrations).map(Number))
+  })
+})
+
+describe('migração 1 → 2 (itens do mundo, 055)', () => {
+  it('save da versão 1 chega à atual com os itens do mundo vazios', () => {
+    const { worldItems, ...old } = minimalSave({ version: 1 })
+
+    const result = migrateSave(old)
+
+    expect(worldItems).toBeTruthy()
+    expect(result.ok).toBe(true)
+    expect(result.save.worldItems).toEqual({ chunks: {}, foraged: {} })
+  })
+
+  it('recusa um item do mundo sem id', () => {
+    const save = minimalSave({
+      worldItems: {
+        chunks: {
+          '1,2': {
+            items: [{ itemId: 'x', x: 0, y: 0, z: 0 }],
+            lastRefill: 0,
+            nextIndex: 0,
+          },
+        },
+        foraged: {},
+      },
+    })
+    expect(validateSave(save).ok).toBe(false)
+  })
+
+  it('save do primeiro desenho da 055 (sem `foraged`) ainda carrega', () => {
+    const save = minimalSave({
+      worldItems: {
+        chunks: {
+          '1,2': {
+            items: [
+              { id: '1,2:0', itemId: 'x', x: 0, y: 0, z: 0, hidden: true },
+            ],
+            lastRefill: 0,
+            nextIndex: 0,
+          },
+        },
+        trees: {},
+      },
+    })
+    const result = validateSave(save)
+    expect(result.ok).toBe(true)
+    expect(result.save.worldItems.foraged).toEqual({})
   })
 })

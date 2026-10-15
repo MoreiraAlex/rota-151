@@ -49,9 +49,10 @@ describe('item registry — catálogo', () => {
     }
   })
 
-  it('toda poção tem cura configurada', () => {
-    for (const item of listItems().filter((i) => i.category === 'consumable')) {
-      expect(item.consumable?.healAmount, item.id).toBeGreaterThan(0)
+  it('nenhuma poção no catálogo (saíram da beta, 055)', () => {
+    for (const item of listItems()) {
+      expect(item.category, item.id).not.toBe('consumable')
+      expect(item.consumable, item.id).toBeUndefined()
     }
   })
 

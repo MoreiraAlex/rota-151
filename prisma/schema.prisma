@@ -85,6 +85,8 @@ model Trainer {
   position    Json?
   heldItemId  String?
   worldTime   Float?
+  // Itens do mundo que o jogador mexeu (docs/features/055-itens-no-mundo.md).
+  worldItems  Json?
   inventory   Json
   pokedex     Json
   pokemon     Pokemon[]

@@ -44,7 +44,6 @@ describe('buildWikiData', () => {
         .sort(),
     )
     for (const item of data.items) {
-      if (item.category === 'consumable') expect(item.heal).toBeGreaterThan(0)
       if (item.category === 'berry') {
         expect(item.berryHeal).toBeGreaterThan(0)
         expect(item.berryDuration).toBeGreaterThan(0)

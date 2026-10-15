@@ -41,6 +41,8 @@ const EDGE_KEY_MAP = {
   Digit2: 'switchSlot2',
   Digit3: 'switchSlot3',
   Digit4: 'returnToBot',
+  // Pegar item do chão e colher fruta (docs/features/055-itens-no-mundo.md).
+  KeyF: 'interact',
 }
 
 // Botões de ataque que TAMBÉM expõem estado contínuo ("está segurando"),
@@ -110,6 +112,7 @@ export function createKeyboardInput() {
         switchSlot2: justPressed.has('switchSlot2'),
         switchSlot3: justPressed.has('switchSlot3'),
         returnToBot: justPressed.has('returnToBot'),
+        interact: justPressed.has('interact'),
       }
       justPressed.clear()
       return snapshot

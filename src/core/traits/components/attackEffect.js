@@ -16,8 +16,7 @@ export const DEFAULT_ATTACK_EFFECT_GROUP = 'punch'
 
 /**
  * Efeito visual passageiro do ataque de uma criatura (ver
- * docs/features/025-ataque-comum-de-criatura.md) — mesmo formato trivial de
- * `ConsumeEffect`: `Position`/`Rotation` cuidam de onde/pra onde aparece,
+ * docs/features/025-ataque-comum-de-criatura.md): `Position`/`Rotation` cuidam de onde/pra onde aparece,
  * `lifetime` é quanto tempo (segundos) falta até desaparecer sozinho. Sem
  * movimento, sem gravidade — fica parado no lugar em que nasceu (o CENTRO
  * da área efetiva do ataque, não a posição da criatura — ver

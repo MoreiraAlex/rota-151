@@ -92,10 +92,10 @@ import {
  * skill, escalada pelo `speed` DESTA criatura (IV sorteado por indivíduo) —
  * duas criaturas da mesma espécie atacam em ritmos diferentes.
  *
- * Mesmo mecanismo genérico de `ActionState` que dash/arremesso/uso/summon/
+ * Mesmo mecanismo genérico de `ActionState` que dash/arremesso/summon/
  * recall já usam: trava `current` no disparo, o efeito de verdade só
  * acontece no instante `effectAt`, e `current` volta a `null` em
- * `duration`. Não é dono de `'dash'`/`'throw'`/`'consume'`/`'summon'`/
+ * `duration`. Não é dono de `'dash'`/`'throw'`/`'summon'`/
  * `'recall'` — outros systems progridem essas; este só entende `'attack'`,
  * mesmo padrão de exclusão mútua já usado por `playerActionSystem.js`/
  * `partySummonSystem.js`. Isso também significa que os três slots

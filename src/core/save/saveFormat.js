@@ -10,7 +10,7 @@ import { PARTY_SLOT_IDS } from '../traits'
  * O schema é a fronteira: o adapter (cliente) e a rota da API (servidor)
  * validam com ele antes de o dado entrar no jogo ou no banco.
  */
-export const SAVE_VERSION = 1
+export const SAVE_VERSION = 2
 
 const numberRecord = z.record(z.string(), z.number())
 
@@ -72,17 +72,47 @@ export const trainerSaveSchema = z.object({
   }),
 })
 
+// Os itens do mundo que o jogador mexeu (docs/features/055-itens-no-
+// mundo.md, `WorldItemsMemory`): os que restam no chão de cada chunk mexido
+// e os arbustos e árvores colhidos hoje.
+const worldItemSaveSchema = z.object({
+  id: z.string().min(1).max(64),
+  itemId: z.string().min(1),
+  x: z.number(),
+  y: z.number(),
+  z: z.number(),
+})
+
+export const worldItemsSaveSchema = z.object({
+  chunks: z.record(
+    z.string().max(32),
+    z.object({
+      items: z.array(worldItemSaveSchema).max(64),
+      lastRefill: z.number(),
+      nextIndex: z.number().int().min(0),
+    }),
+  ),
+  // Opcional: os saves do primeiro desenho da 055 não têm.
+  foraged: z.record(z.string().max(64), z.number().int()).default({}),
+})
+
 export const saveSchema = z.object({
   version: z.literal(SAVE_VERSION),
   trainer: trainerSaveSchema,
   pokemon: z.array(pokemonSaveSchema),
+  worldItems: worldItemsSaveSchema,
 })
 
 /**
  * Migrações por versão de origem: `MIGRATIONS[n]` leva um save da versão `n`
- * pra `n + 1`. Vazio enquanto só existe a versão 1.
+ * pra `n + 1`.
+ *
+ * - 1 → 2 (docs/features/055-itens-no-mundo.md): entram os itens do mundo,
+ *   começando sem nada mexido.
  */
-const MIGRATIONS = {}
+const MIGRATIONS = {
+  1: (save) => ({ ...save, worldItems: { chunks: {}, foraged: {} } }),
+}
 
 /**
  * Leva um save (já lido do banco, sem validar) até a versão atual e valida.

@@ -1,3 +1,4 @@
+import { placeChunkBushes } from '../vegetation/bushPlacement'
 import { placeChunkSolids } from '../vegetation/solidPlacement'
 import { carveTrails, chunkTrails } from './trails'
 import {
@@ -20,7 +21,9 @@ import {
  * vêm das actions `carregarChunk`/`descarregarChunk`
  * (`core/actions/chunks.js`).
  *
- * Cada chunk carregado leva também os objetos sólidos dele (`solids`:
+ * Cada chunk carregado leva também os arbustos dele (`bushes`,
+ * `placeChunkBushes`, sorteados por bloco como os sólidos — o F vasculha,
+ * docs/features/055-itens-no-mundo.md), os objetos sólidos dele (`solids`:
  * árvores e pedras — `placeChunkSolids`,
  * docs/features/049-vegetacao-e-floresta.md) — o colisor e a grade de
  * navegação saem deles, e a view os desenha — e a seed da vegetação
@@ -95,12 +98,15 @@ import {
 
 // O que de um bloco cai num chunk: os objetos de centro dentro dele e as
 // pegadas (de qualquer um do bloco) que tocam o chunk.
+// O ponto `(x, z)` está dentro do chunk?
+const isInsideChunk = ({ x, z }, chunk) =>
+  x >= chunk.minX &&
+  x < chunk.minX + chunk.size &&
+  z >= chunk.minZ &&
+  z < chunk.minZ + chunk.size
+
 function solidsOfChunk(blockSolids, chunk) {
-  const isInside = ({ x, z }) =>
-    x >= chunk.minX &&
-    x < chunk.minX + chunk.size &&
-    z >= chunk.minZ &&
-    z < chunk.minZ + chunk.size
+  const isInside = (point) => isInsideChunk(point, chunk)
   return {
     trees: blockSolids.trees.filter(isInside),
     rocks: blockSolids.rocks.filter(isInside),
@@ -183,6 +189,10 @@ export function createTerrainChunkSet({
         terrain: recipe.terrain,
         params: recipe.solids,
       })
+      // Os arbustos, que o F vasculha (docs/features/055-itens-no-mundo.md),
+      // no bloco inteiro como os sólidos (a view desenha o bloco) e depois
+      // deles, fora das pegadas.
+      ground.bushes = placeChunkBushes(ground, { biomeList: recipe.biomeList })
       blocks.set(key, {
         key,
         blockX,
@@ -232,6 +242,9 @@ export function createTerrainChunkSet({
       block.chunkKeys.add(key)
       chunk.solidsBlock = block.key
       chunk.solids = solidsOfChunk(block.solids, chunk)
+      chunk.bushes = block.ground.bushes.filter((bush) =>
+        isInsideChunk(bush, chunk),
+      )
       chunks.set(key, chunk)
       notify()
       return chunk

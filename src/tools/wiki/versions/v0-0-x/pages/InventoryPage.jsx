@@ -39,9 +39,9 @@ export function InventoryPage({ data, version }) {
         <ul>
           <li>
             Cada item e cada criatura ocupa um espaço da grade. Itens que se
-            acumulam (Pokébolas, poções, frutas) mostram a quantidade; a Pokédex
-            e as criaturas, não. Cada criatura aparece como a Pokébola em que
-            foi capturada. <strong>Arraste</strong> pra qualquer espaço — pode
+            acumulam (Pokébolas, frutas) mostram a quantidade; a Pokédex e as
+            criaturas, não. Cada criatura aparece como a Pokébola em que foi
+            capturada. <strong>Arraste</strong> pra qualquer espaço — pode
             deixar espaços vazios no meio.
           </li>
           <li>Soltando sobre um espaço ocupado, os dois trocam de lugar.</li>

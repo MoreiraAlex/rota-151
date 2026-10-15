@@ -19,7 +19,6 @@ function itemsOf(data, category) {
 
 export function ItemsPage({ data, version }) {
   const balls = itemsOf(data, 'pokeball')
-  const potions = itemsOf(data, 'consumable')
   const berries = itemsOf(data, 'berry')
 
   return (
@@ -31,18 +30,28 @@ export function ItemsPage({ data, version }) {
             inventário
           </WikiLink>
           . Pra usar um item no treinador, coloque ele <strong>na mão</strong> e
-          use. Pra usar numa criatura do time, abra o{' '}
+          use. Pra dar uma fruta a uma criatura do time, abra o{' '}
           <WikiLink version={version} to="criaturas/seu-time#menu-de-acoes">
             menu de ações
           </WikiLink>{' '}
-          dela e escolha o item na aba <strong>Itens</strong>.
+          dela e escolha a fruta na aba <strong>Itens</strong>.
+        </p>
+        <p>
+          Além dos itens com que você começa, dá pra achar mais pelo mundo:
+          Pokébolas no chão e frutas nos arbustos e nas árvores (
+          <WikiLink version={version} to="mundo#itens">
+            Itens pelo mundo
+          </WikiLink>
+          ).
         </p>
         <ul>
           <li>
             Só dá pra usar item numa criatura que está <strong>em campo</strong>{' '}
             e acordada — na bola ou desmaiada, não.
           </li>
-          <li>Com a vida cheia o item não é usado, pra não ser gasto à toa.</li>
+          <li>
+            Com a vida cheia a fruta não é comida, pra não ser gasta à toa.
+          </li>
           <li>
             Criaturas não seguram itens: quem usa é sempre o treinador, nele
             mesmo ou numa criatura.
@@ -74,28 +83,16 @@ export function ItemsPage({ data, version }) {
         />
       </Section>
 
-      <Section id="pocoes" title="Poções">
-        <p>
-          A poção cura <strong>na hora</strong>: o treinador, com ela na mão, ou
-          a criatura em campo, pelo menu de ações. Poção não reanima criatura
-          desmaiada.
-        </p>
-        <DataTable
-          head={['Poção', 'Cura', 'Descrição']}
-          align={[null, 'right', null]}
-          rows={potions.map((item) => [
-            <ItemName key="name" item={item} />,
-            `${formatNumber(item.heal, 0)} de vida`,
-            item.description ?? '—',
-          ])}
-        />
-      </Section>
-
       <Section id="frutas" title="Frutas">
         <p>
           A fruta cura <strong>aos poucos, enquanto é comida</strong>. O
           treinador come a fruta da mão; a criatura em campo come a que o
-          treinador der pelo menu de ações.
+          treinador der pelo menu de ações. As frutas se acham vasculhando
+          arbustos e árvores, e cada bioma tem a sua (
+          <WikiLink version={version} to="mundo#itens">
+            Itens pelo mundo
+          </WikiLink>
+          ).
         </p>
         <ul>
           <li>

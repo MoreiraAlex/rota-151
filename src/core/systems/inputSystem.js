@@ -21,6 +21,7 @@ const SCAN_BLOCKED_FLAGS = [
   'secondary1Held', // Q/E/R segurados (ataque canalizado)
   'secondary2Held',
   'secondary3Held',
+  'interact', // F — pegar item / colher fruta
 ]
 
 /**

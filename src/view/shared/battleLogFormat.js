@@ -1,5 +1,6 @@
 import { EVENT_TYPES } from '@/core/events'
 import { GAME_CONFIG } from '@/core/gameConfig'
+import { getItem } from '@/core/data/items'
 import { getSkill } from '@/core/data/skills'
 import { Pokemon, WildCreature, resolveCreatureSpeciesId } from '@/core/traits'
 import { formatSpeciesName } from './formatName'
@@ -8,7 +9,8 @@ import { resolveFeedbackColor, resolveSide } from '../vfx/feedbackColors'
 /**
  * Texto do log de batalha (docs/features/039-tipos-e-combate-classico.md): cada
  * evento de combate vira zero ou mais linhas `{ text, color }`, no estilo dos
- * jogos de turno ("Charmander usou Ember!"). Puro — quem guarda e mostra é
+ * jogos de turno ("Charmander usou Ember!"). Os avisos dos itens no mundo
+ * (docs/features/055-itens-no-mundo.md) também passam por aqui. Puro — quem guarda e mostra é
  * `battleLogSystem.js` + `tools/hud/BattleLogHud.jsx`.
  */
 
@@ -262,7 +264,33 @@ export function formatBattleLogEvent(event) {
         ),
       ]
     }
+    case EVENT_TYPES.WORLD_ITEM_PICKED:
+      return [
+        line(
+          `Pegou ${formatItemName(event.itemId)}!`,
+          FEEDBACK.ITEM_NOTICE_COLOR,
+        ),
+      ]
+    case EVENT_TYPES.BERRIES_HARVESTED:
+      return [
+        line(
+          `Colheu ${event.amount}× ${formatItemName(event.itemId)}!`,
+          FEEDBACK.ITEM_NOTICE_COLOR,
+        ),
+      ]
+    case EVENT_TYPES.FORAGED_NOTHING:
+      return [line('Não achou nada.', FEEDBACK.FAIL_COLOR)]
+    case EVENT_TYPES.INVENTORY_FULL:
+      return [
+        line(
+          `Inventário cheio — não cabe ${formatItemName(event.itemId)}.`,
+          FEEDBACK.INVENTORY_FULL_COLOR,
+        ),
+      ]
     default:
       return []
   }
 }
+
+// Nome do item para o jogador (o `name` do catálogo).
+const formatItemName = (itemId) => getItem(itemId)?.name ?? itemId

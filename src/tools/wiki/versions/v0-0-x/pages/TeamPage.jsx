@@ -75,8 +75,8 @@ export function TeamPage({ data, version }) {
             <strong>Golpes</strong> — trocar a ordem dos três golpes dela.
           </li>
           <li>
-            <strong>Itens</strong> — dar uma poção ou uma fruta pra ela, se
-            estiver em campo (
+            <strong>Itens</strong> — dar uma fruta pra ela, se estiver em campo
+            (
             <WikiLink version={version} to="catalogo/itens#como-usar">
               Itens
             </WikiLink>

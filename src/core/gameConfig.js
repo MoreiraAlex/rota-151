@@ -35,7 +35,7 @@ export const GAME_CONFIG = {
   TERRAIN: {
     // Identifica a receita do relevo; subir quando a geração mudar.
     GENERATION_VERSION: 14,
-    // Altura (m) da superfície da água: o que fica abaixo vira lago na 060.
+    // Altura (m) da superfície da água: o que fica abaixo vira lago na 059.
     // O relevo dos biomas é medido a partir dela (`relief.baseHeight`).
     WATER_LEVEL: -2,
     // Lado (m) de um chunk — sempre um vértice por metro (o do Minecraft).
@@ -174,7 +174,7 @@ export const GAME_CONFIG = {
   },
   // Água (view/water/, docs/features/049-vegetacao-e-floresta.md): só a
   // superfície no `TERRAIN.WATER_LEVEL`, onde o chão fica abaixo dela — sem
-  // nadar nem colidir (a água de verdade é da 060).
+  // nadar nem colidir (a água de verdade é da 059).
   WATER: {
     // Cor na margem e no fundo; profundidade (m) em que a cor é a do fundo.
     SHALLOW_COLOR: '#4fa7a0',
@@ -368,6 +368,10 @@ export const GAME_CONFIG = {
     FAIL_COLOR: '#c9b8a6',
     // Cor dos avisos de golpe: "Pode aprender X!", "Aprendeu X!".
     MOVE_NOTICE_COLOR: '#b9f6ca',
+    // Cores dos avisos dos itens no mundo (docs/features/055-itens-no-
+    // mundo.md): "Pegou X!" / "Colheu N X!" e "Inventário cheio".
+    ITEM_NOTICE_COLOR: '#ffe9a8',
+    INVENTORY_FULL_COLOR: '#ff9e80',
     // Cores dos textos de efetividade de tipo (docs/features/039-tipos-e-combate-classico.md), iguais pros dois lados: "Super efetivo!", "Pouco
     // efetivo…" e "Não afeta…".
     // Cor do selo de cada condição de status (HUD/etiqueta) e do texto dela
@@ -607,6 +611,38 @@ export const GAME_CONFIG = {
       // ela só assenta.
       LANDING_MIN_SPEED: 1,
     },
+  },
+  // Itens no mundo (docs/features/055-itens-no-mundo.md). O que nasce no
+  // chão de cada bioma (teto por chunk, reposição) fica no `worldItems` do
+  // bioma, e a fruta da vegetação no `forage`; aqui, o que vale para todos.
+  // - INTERACT_RADIUS (m): até onde F pega o item ou vasculha o arbusto e
+  //   a árvore (da borda deles).
+  // - BUSH_REACH (m): o raio de um arbusto para o F.
+  // - SPAWN_MIN_DISTANCE (m): a reposição não põe item mais perto que isso
+  //   do treinador (não aparece do nada na frente dele).
+  // - ITEM_SPACING (m): distância mínima entre dois itens do chão.
+  // - SOLID_CLEARANCE (m): folga da pegada de árvore e pedra.
+  // - BORDER_GAP (m): folga da borda do chunk.
+  // - MAX_SLOPE (rad) e SHORE_GAP (m): sem item em encosta íngreme nem
+  //   perto da água.
+  // - SPOT_ATTEMPTS: tentativas de achar um ponto livre antes de desistir.
+  // - DRAW_DISTANCE (m): até onde da câmera o item do chão é desenhado (ele
+  //   é pequeno: de longe não aparece, e cada um custa desenhos e sombra).
+  // - REFILL_CHECK_SECONDS (s): de quanto em quanto tempo a reposição confere
+  //   os chunks (a reposição é de minutos de jogo; conferir todo passo é
+  //   desperdício).
+  WORLD_ITEMS: {
+    INTERACT_RADIUS: 1.6,
+    BUSH_REACH: 0.5,
+    SPAWN_MIN_DISTANCE: 25,
+    ITEM_SPACING: 4,
+    SOLID_CLEARANCE: 0.6,
+    BORDER_GAP: 1,
+    MAX_SLOPE: 0.4,
+    SHORE_GAP: 0.6,
+    SPOT_ATTEMPTS: 24,
+    REFILL_CHECK_SECONDS: 1,
+    DRAW_DISTANCE: 45,
   },
   // Grade do inventário (docs/features/041-inventario-de-itens-e-pokemon.md).
   INVENTORY: {

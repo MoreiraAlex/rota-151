@@ -53,7 +53,6 @@ export { Burn, BurnedBy } from './components/burn'
 export { Inventory } from './components/inventory'
 export { Party, SummonPulse, RecallPulse } from './components/party'
 export { Projectile } from './components/projectile'
-export { ConsumeEffect } from './components/consumeEffect'
 export { Eating, DroppedFood } from './components/eating'
 export {
   AttackEffect,
@@ -99,3 +98,9 @@ export { PathState } from './components/pathfinding'
 export { WanderState } from './components/wander'
 export { SaveClock, SaveRequested, TrainerReady } from './components/save'
 export { WorldClock, LocalWeather } from './components/environment'
+export {
+  WorldItemsMemory,
+  WorldItemChunks,
+  GroundItem,
+  InteractionTarget,
+} from './components/worldItems'

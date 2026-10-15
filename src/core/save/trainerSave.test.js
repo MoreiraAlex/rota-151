@@ -123,6 +123,27 @@ describe('serializeTrainer / restoreTrainer', () => {
     expect(target.player.get(Inventory).positions['nao-existe']).toBeUndefined()
   })
 
+  it('save com poção (saíram na 055) carrega sem ela, nem na mão', () => {
+    const { world, player } = setup()
+    fillTrainer(world, player)
+    const saved = serializeTrainer(player)
+    // Os ids que os saves de antes da 055 guardavam.
+    const oldPotions = ['potion', 'super-potion', 'hyper-potion']
+    oldPotions.forEach((id, index) => {
+      saved.inventory.counts[id] = 2
+      saved.inventory.positions[id] = 40 + index
+    })
+    saved.heldItemId = 'potion'
+
+    const target = setup()
+    restoreTrainer(target.player, saved)
+
+    for (const id of oldPotions) {
+      expect(target.player.get(Inventory).counts[id]).toBeUndefined()
+    }
+    expect(target.player.get(HeldItem).itemId).toBe(null)
+  })
+
   it('item na mão sem unidade no inventário não volta pra mão', () => {
     const { world, player } = setup()
     const { item } = fillTrainer(world, player)

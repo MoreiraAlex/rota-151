@@ -507,15 +507,16 @@ export function VegetationPanel() {
     addTreeSpecies(treeFolder, 'Morta', DEAD_TREES)
     addBiomeDensities(treeFolder, TREE_KINDS, regenerate, manifest)
 
-    // Sub-bosque: uma subpasta por planta (refaz ao soltar).
+    // Sub-bosque: uma subpasta por planta (refaz ao soltar). Os arbustos
+    // saem do core com o chunk (o F vasculha, 055): refazem com o terreno.
     const undergrowthFolder = folderOf.undergrowth
-    for (const [title, config, maxPerM2] of [
-      ['Arbustos', BUSHES, 0.2],
-      ['Samambaias', FERNS, 0.4],
-      ['Plantas', LEAFY_PLANTS, 0.3],
+    for (const [title, config, maxPerM2, onChange] of [
+      ['Arbustos', BUSHES, 0.2, regenerate],
+      ['Samambaias', FERNS, 0.4, rebuildVegetation],
+      ['Plantas', LEAFY_PLANTS, 0.3, rebuildVegetation],
     ]) {
       const folder = undergrowthFolder.addFolder(title)
-      addControls(folder, config, perM2Controls(maxPerM2), rebuildVegetation)
+      addControls(folder, config, perM2Controls(maxPerM2), onChange)
     }
     addBiomeDensities(
       undergrowthFolder,

@@ -24,13 +24,11 @@ import {
   InputState,
   MovementStats,
   Projectile,
-  ConsumeEffect,
   PhysicsBody,
   CaptureAim,
   CaptureBall,
   OwnedBy,
   Party,
-  applyHeal,
 } from '../traits'
 
 /**
@@ -126,17 +124,16 @@ function resolveDashExitSpeed(entity) {
  *
  * Dash e arremesso custam stamina, descontada uma vez no disparo — sem
  * stamina suficiente, a ação simplesmente não dispara (mesma forma que a
- * precondição de `Grounded` já bloqueia o dash). Uso de consumível não
- * custa stamina. Quem decide se `primary` dispara algo é a categoria do
- * item em `HeldItem` (`throwable` → arremesso reto; `pokeball` → arremesso
- * em arco da bola de captura, só o treinador; `consumable` → uso, só com
- * a vida abaixo do máximo; `berry` → começa a comer, ver
- * `core/actions/eating.js`; sem item ou outra → nada). `primary` (clique esquerdo) dispara sozinho —
+ * precondição de `Grounded` já bloqueia o dash). Quem decide se `primary`
+ * dispara algo é a categoria do item em `HeldItem` (`throwable` →
+ * arremesso reto; `pokeball` → arremesso em arco da bola de captura, só o
+ * treinador; `berry` → começa a comer, ver `core/actions/eating.js`; sem
+ * item ou outra → nada). `primary` (clique esquerdo) dispara sozinho —
  * não precisa mais segurar o botão direito antes (mira removida, ver
  * docs/features/029-*.md).
  *
- * Cada ação com efeito no meio da duração (arremesso spawna o projétil, uso
- * aplica a cura) detecta o instante comparando o `elapsed` antes/depois do
+ * A ação com efeito no meio da duração (arremesso spawna o projétil)
+ * detecta o instante comparando o `elapsed` antes/depois do
  * `delta` deste tick cruzar `EFFECT_AT` — dispara exatamente uma vez, sem
  * precisar de um campo "já disparei" extra no trait.
  *
@@ -145,7 +142,7 @@ function resolveDashExitSpeed(entity) {
  * criaturas.md) — as duas fontes só iniciam uma ação nova quando
  * `current` já está `null`, então nunca se sobrepõem. Este system
  * explicitamente ignora (retorna sem tocar `elapsed`) qualquer
- * `action.current` que não seja `'dash'`/`'throw'`/`'consume'` — sem
+ * `action.current` que não seja `'dash'`/`'throw'` — sem
  * isso, o incremento de `elapsed` (incondicional, mais abaixo) dobraria a
  * velocidade de uma ação de invocar/recolher já em andamento, que
  * `partySummonSystem.js` avança por conta própria.
@@ -167,11 +164,11 @@ export function playerActionSystem(context) {
   // O dash (`core/actions/dash.js`, `PLAYER_ACTIONS.dash`) é global —
   // funciona igual pra qualquer entidade controlada; o custo é da entidade
   // × vida (`resolveDashCost`) e a recarga é a mesma pra todos
-  // (`isDashReady`/`travarRecargaDoDash`, 035). `THROW`/`CONSUME` são
-  // exclusivos do treinador (`getPlayerSpecies().actions`, ver
+  // (`isDashReady`/`travarRecargaDoDash`, 035). `THROW` é exclusivo do
+  // treinador (`getPlayerSpecies().actions`, ver
   // docs/features/018-troca-de-controle-treinador-criatura.md) — só ele
-  // arremessa/consome de verdade (item real só existe nele).
-  const { throw: THROW, consume: CONSUME } = getPlayerSpecies().actions
+  // arremessa de verdade (item real só existe nele).
+  const { throw: THROW } = getPlayerSpecies().actions
 
   world
     .query(
@@ -226,18 +223,6 @@ export function playerActionSystem(context) {
             rot.y = Math.atan2(velocity.x, velocity.z)
             vitals.stamina -= THROW.staminaCost
             vitals.staminaRegenDelay = vitals.staminaRegenDelayAfterUse
-          } else if (
-            item?.category === 'consumable' &&
-            vitals.hp < vitals.maxHp
-          ) {
-            // Com a vida cheia não usa (não gasta a poção à toa).
-            action.current = 'consume'
-            action.elapsed = 0
-            // Ver docstring de `ActionState.animationSpeed` — o
-            // clipe de consumo toca nesta velocidade em vez de um
-            // `speed` fixo no JSON do clipe.
-            action.animationSpeed =
-              CONSUME.duration > 0 ? 1 / CONSUME.duration : 1
           } else if (item?.category === 'berry' && podeComer(entity, action)) {
             // Fruta: começa a comer (a ação `'eat'`, avançada pelo
             // `eatingSystem`) e já gasta — interrompido, ela cai no chão.
@@ -259,13 +244,7 @@ export function playerActionSystem(context) {
       // `elapsed` abaixo (incondicional) rodaria em cima de uma ação que
       // já está sendo avançada por outro system, dobrando a velocidade
       // com que ela progride.
-      if (
-        action.current !== 'dash' &&
-        action.current !== 'throw' &&
-        action.current !== 'consume'
-      ) {
-        return
-      }
+      if (action.current !== 'dash' && action.current !== 'throw') return
 
       if (action.current === 'dash') {
         // No tick do fim, já deixa a velocidade de saída — o
@@ -310,29 +289,6 @@ export function playerActionSystem(context) {
         }
 
         if (action.elapsed >= THROW.duration) {
-          action.current = null
-        }
-        return
-      }
-
-      if (action.current === 'consume') {
-        if (
-          previousElapsed < CONSUME.effectAt &&
-          action.elapsed >= CONSUME.effectAt
-        ) {
-          const item = heldItem.itemId ? getItem(heldItem.itemId) : null
-          if (item?.consumable) {
-            vitals.hp = applyHeal(vitals, item.consumable.healAmount).hp
-          }
-          world.spawn(
-            Position({ x: pos.x, y: pos.y + 1, z: pos.z }),
-            Rotation, // exigido por syncTransformSystem — sem uso real (partículas)
-            ConsumeEffect({ lifetime: CONSUME.effectVisualDuration }),
-          )
-          spendHeldItem(entity, heldItem)
-        }
-
-        if (action.elapsed >= CONSUME.duration) {
           action.current = null
         }
       }

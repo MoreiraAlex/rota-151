@@ -2,9 +2,8 @@ import { trait } from 'koota'
 
 /**
  * Efeito visual passageiro de "a esfera se abre com um clarão de luz e a
- * criatura aparece" (ver docs/features/024-esfera-de-invocar.md) — mesmo
- * formato trivial de `ConsumeEffect` (`Position`/`Rotation` já existentes
- * cuidam de onde aparece; `lifetime` conta em segundos até desaparecer
+ * criatura aparece" (ver docs/features/024-esfera-de-invocar.md) —
+ * `Position`/`Rotation` (já existentes) cuidam de onde aparece; `lifetime` conta em segundos até desaparecer
  * sozinho; sem movimento, parado no ponto em que a `SummonBall` pousou).
  *
  * Dono de escrita: `summonBallSystem` (spawna, no exato ponto/tick em que

@@ -18,8 +18,8 @@ const FLASH_COLOR = '#fff3c4'
  * o mesmo fade, dando o "clarão" no instante exato em que a criatura
  * nasce.
  *
- * Anima via `useFrame` (relógio do R3F, não o tick da simulação) — mesmo
- * espírito de `ConsumeEffectView` delegando a animação pra fora do ECS:
+ * Anima via `useFrame` (relógio do R3F, não o tick da simulação),
+ * delegando a animação pra fora do ECS:
  * é um efeito cosmético de curta duração, não precisa ser determinístico/
  * sincronizado a mais nada. `FLASH_DURATION` é só a duração da ANIMAÇÃO
  * visual — o `lifetime` de verdade (quando a entidade morre de fato,
@@ -65,7 +65,7 @@ export function SummonFlashView({ entity }) {
 
 /**
  * Renderiza uma `SummonFlashView` por `SummonFlash` ativo — mesmo padrão
- * de `ConsumeEffectsView`/`ProjectilesView`.
+ * de `AttackEffectsView`/`ProjectilesView`.
  */
 export function SummonFlashesView() {
   const flashes = useQuery(SummonFlash, Position, Rotation)
