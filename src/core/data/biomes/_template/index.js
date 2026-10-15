@@ -11,6 +11,10 @@ export const BIOME_TEMPLATE = {
   // Largura típica (m) de uma mancha deste bioma — entre biomas do mesmo
   // clima, o de `size` maior ocupa manchas maiores.
   size: 600,
+  // Opcional (0 a 1): fração do clima do bioma que as manchas dele cobrem
+  // (sem ele, `GAME_CONFIG.BIOMES.PATCH_COVERAGE`) — menor = bioma raro
+  // (a cidade, docs/features/056-bioma-cidade.md).
+  // coverage: 0.12,
   // Faixa de cada eixo do clima (0 a 1, a fração do mundo abaixo daquele
   // valor — ver `GAME_CONFIG.BIOMES`) em que o bioma vive. Eixo omitido =
   // qualquer valor. Fora da faixa ele perde a disputa aos poucos
@@ -182,6 +186,24 @@ export const BIOME_TEMPLATE = {
   //   itemId: 'razz-berry',
   //   bush: { chance: 0.15, min: 1, max: 2 },
   //   tree: { chance: 0.25, min: 1, max: 3 },
+  // },
+  // Opcional: a cidade (docs/features/056-bioma-cidade.md,
+  // core/town/townPlan.js) — ruas em grade (no canal das trilhas: o chão
+  // pinta com `palette.trail` e `ground.colors.trail`) e quarteirões com
+  // prédios e objetos de rua do Let's Go (ids do manifesto): cada cidade
+  // segue um tema (`themes`: casas, prédio especial, rua), com um de cada
+  // `landmarks`. Ver os campos
+  // em core/data/biomes/city/.
+  // town: {
+  //   blockSize: 40, streetWidth: 6, streetEdge: 1, minShare: 0.6,
+  //   lotsPerSide: 2, setback: 2.5, sink: 0.3, scale: 1.6,
+  //   landmarks: [{ model: 'pokecenter', bench: true }, { model: 'gym' }],
+  //   centralLots: 6,
+  //   themes: [{ id: 'pewter', name: 'Pewter', weight: 1,
+  //     street: 'lgpe-pewter-tile',
+  //     special: { model: 'pewter-museum', scale: 0.95 },
+  //     houses: [{ model: 'house-pewter', weight: 1, fence: true }] }],
+  //   props: { lamp: 'street-lamp', fence: 'fence-wood', bench: 'bench' },
   // },
   // Tags que o spawn (058) usa nas condições de cada espécie.
   tags: ['grassland'],

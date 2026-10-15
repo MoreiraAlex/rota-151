@@ -90,3 +90,32 @@ describe("modelos do Let's Go nos biomas", () => {
     }
   })
 })
+
+// docs/features/056-bioma-cidade.md
+describe('cidades', () => {
+  const towns = listBiomes()
+    .map(({ town }) => town)
+    .filter(Boolean)
+
+  it('os materiais pintados do ginásio existem no modelo dele', () => {
+    for (const town of towns) {
+      for (const { model, paint } of town.landmarks) {
+        if (!paint) continue
+        const materials = Object.keys(manifest.props[model].materials)
+        for (const name of paint.materials) expect(materials).toContain(name)
+      }
+    }
+  })
+
+  it('todo tema tem cor de ginásio válida e modelos que existem', () => {
+    for (const town of towns) {
+      for (const theme of town.themes) {
+        expect(theme.gymColor).toMatch(HEX_COLOR)
+        const models = [theme.special, ...theme.houses]
+          .filter(Boolean)
+          .map(({ model }) => model)
+        for (const id of models) expect(manifest.props[id]).toBeDefined()
+      }
+    }
+  })
+})

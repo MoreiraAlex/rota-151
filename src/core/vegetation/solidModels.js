@@ -56,6 +56,8 @@ export const modelIndexOf = (variant, count) =>
  * @returns {{ points: number[], reach: number } | null}
  */
 export function lgpeColliderOf(solid) {
+  // Os da cidade já dizem o modelo.
+  if (solid.model) return LGPE_COLLIDERS[solid.model] ?? null
   const ids = entryOf(solid.biome, solid.kind)?.models
   if (!ids?.length) return null
   return LGPE_COLLIDERS[ids[modelIndexOf(solid.variant, ids.length)]] ?? null

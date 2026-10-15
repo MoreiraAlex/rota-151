@@ -37,12 +37,17 @@ import { clusterObjects, piecesOf, sizeSignature } from './splitObjects.js'
  *
  * Uso:
  *   node scripts/lgpe/pack-lgpe.js --field <pasta>/field
+ *
+ * `--extra <arquivo.json>`: props a mais (a mesma forma de `MAP_PROPS`),
+ * para olhar candidatos sem mexer na lista — com `--out` numa pasta à
+ * parte.
  */
 
 const { values: args } = parseArgs({
   options: {
     field: { type: 'string' },
     out: { type: 'string', default: 'public/assets/vegetation/lgpe' },
+    extra: { type: 'string' },
   },
 })
 if (!args.field) throw new Error('faltou --field <pasta field/ extraída>')
@@ -63,6 +68,27 @@ const ROUTE_22 = { map: 'area02/road022_00.gfbmdl', folder: 'area02' }
 // pedras na terra da savana.
 const ROUTE_4 = { map: 'area03/road004_1_00.gfbmdl', folder: 'area03' }
 const ROUTE_9 = { map: 'area04/road009_00.gfbmdl', folder: 'area04' }
+// Cidades (docs/features/056-bioma-cidade.md): os prédios e os objetos de
+// rua. Os prédios vêm em nós próprios (com filhos: telhado, janela, placa),
+// tirados inteiros (`whole`); a porta fica do lado +Z do modelo.
+const PALLET = { map: 'area02/town001_00.gfbmdl', folder: 'area02' }
+const PEWTER = { map: 'area03/town003_00.gfbmdl', folder: 'area03' }
+// Os temas das cidades (um tema por cidade de Kanto): as casas, o prédio
+// especial e o poste de cada uma. Nas cidades em que as casas vêm fundidas
+// num nó, `object` diz qual delas.
+const CERULEAN = { map: 'area04/town004_00.gfbmdl', folder: 'area04' }
+const VERMILION = { map: 'area09/town006_00.gfbmdl', folder: 'area09' }
+const LAVENDER = { map: 'area08/town005_00.gfbmdl', folder: 'area08' }
+// Um objeto de um nó fundido (`object`, docs/features/056-bioma-cidade.md):
+// os grandes (prédios), da esquerda para a direita e de trás para a frente.
+const BUILDING_MIN_WIDTH = 200
+const BUILDING_MIN_HEIGHT = 150
+// Folga (cm) em que as peças de um prédio ainda são o mesmo objeto (o
+// telhado solto da parede).
+const BUILDING_MARGIN = 30
+// Quanto (m) para cada lado do buraco da porta conta como a parede em
+// volta dele (a frente onde a porta encaixa).
+const DOOR_WALL_REACH = 1
 const MAP_PROPS = [
   {
     id: 'round-tree',
@@ -226,6 +252,151 @@ const MAP_PROPS = [
     ...ROUTE_4,
     node: 'road004_1_00_rock/road004_1_00_rock04',
   },
+  {
+    id: 'pokecenter',
+    label: 'Pokécenter',
+    category: 'building',
+    ...PEWTER,
+    node: 'bldg_pc',
+    door: { model: 'combldg_pc_door01' },
+    whole: true,
+  },
+  {
+    id: 'poke-mart',
+    label: 'Loja',
+    category: 'building',
+    ...PEWTER,
+    node: 'bldg_shop',
+    door: { model: 'combldg_shop_door01' },
+    whole: true,
+  },
+  {
+    id: 'gym',
+    label: 'Ginásio',
+    category: 'building',
+    ...PEWTER,
+    node: 'bldg_gym',
+    door: { model: 'combldg_gym_door01' },
+    whole: true,
+  },
+  {
+    id: 'house-lab',
+    label: 'Laboratório (Pallet)',
+    category: 'building',
+    ...PALLET,
+    node: 'masaratown_house_labo',
+    whole: true,
+  },
+  {
+    id: 'house-pewter',
+    label: 'Casa de pedra (Pewter)',
+    category: 'building',
+    ...PEWTER,
+    node: 'bldg_nibi_minka01',
+    door: { model: 'town003_door02' },
+    whole: true,
+  },
+  {
+    id: 'house-pewter-b',
+    label: 'Casa de pedra 2 (Pewter)',
+    category: 'building',
+    ...PEWTER,
+    node: 'bldg_nibi_minka02',
+    door: { model: 'town003_door02' },
+    whole: true,
+  },
+  {
+    id: 'pewter-museum',
+    label: 'Museu (Pewter)',
+    category: 'building',
+    ...PEWTER,
+    node: 'bldg_nibi_museum',
+    whole: true,
+  },
+  // As duas últimas não têm porta na frente (casas fechadas no jogo).
+  ...[2, 3, 5, 6].map((object, index) => ({
+    id: `cerulean-house-${'abcd'[index]}`,
+    label: `Casa ${index + 1} (Cerulean)`,
+    category: 'building',
+    ...CERULEAN,
+    node: 'house',
+    object,
+    ...(index < 2 && { door: { model: 'town004_door01' } }),
+  })),
+  {
+    id: 'cerulean-bike-shop',
+    label: 'Loja de bicicleta (Cerulean)',
+    category: 'building',
+    ...CERULEAN,
+    node: 'house',
+    object: 1,
+    door: { model: 'town004_door01' },
+  },
+  {
+    id: 'cerulean-lamp',
+    label: 'Poste (Cerulean)',
+    category: 'street',
+    ...CERULEAN,
+    node: 'lamp',
+  },
+  // A segunda não tem porta na frente (casa fechada no jogo).
+  ...[0, 2].map((object, index) => ({
+    id: `vermilion-house-${'ab'[index]}`,
+    label: `Casa ${index + 1} (Vermilion)`,
+    category: 'building',
+    ...VERMILION,
+    node: 'bldg_minka',
+    object,
+    ...(index === 0 && { door: { model: 'town006_door01' } }),
+  })),
+  {
+    id: 'vermilion-fan-club',
+    label: 'Fã-clube (Vermilion)',
+    category: 'building',
+    ...VERMILION,
+    node: 'bldg_minka',
+    object: 1,
+    door: { model: 'town006_door02' },
+  },
+  {
+    id: 'lavender-house',
+    label: 'Casa (Lavender)',
+    category: 'building',
+    ...LAVENDER,
+    node: 'bldg_minka005_00',
+    door: { model: 'town005_door01', x: 0 },
+    whole: true,
+  },
+  {
+    id: 'lavender-tower',
+    label: 'Torre Pokémon (Lavender)',
+    category: 'building',
+    ...LAVENDER,
+    node: 'tower005_00',
+    whole: true,
+  },
+  {
+    id: 'fence-wood',
+    label: 'Cerca de madeira (Pallet)',
+    category: 'street',
+    ...PALLET,
+    node: 'fence02',
+    whole: true,
+  },
+  {
+    id: 'bench',
+    label: 'Banco (Pewter)',
+    category: 'street',
+    ...PEWTER,
+    node: 'benchi_1',
+  },
+  {
+    id: 'street-lamp',
+    label: 'Poste (Pewter)',
+    category: 'street',
+    ...PEWTER,
+    node: 'lamp01',
+  },
 ]
 
 // Props soltos (`buildmodel/<arquivo>.gfbmdl`).
@@ -379,8 +550,17 @@ const GROUND_TEXTURES = {
     'sand01_com',
     'sand02_com',
     'cliff01_area02',
+    // Calçamento das ruas das cidades (docs/features/056-bioma-cidade.md).
+    'roadtile01_area02',
+    'roadtile02_area02',
+    'asphalt01_area02',
+    'tile02_01_area02',
   ],
-  area04: ['cliff02_com'],
+  area03: ['tile01_01_area03'],
+  area04: ['cliff02_com', 'tile01_01_area04'],
+  // As ruas dos temas de Vermilion e Lavender.
+  area09: ['tile02_01_area09'],
+  area08: ['asphalt01_area08'],
 }
 const TOON_TABLES = ['shadowtable01_t', 'shadowtable02_t', 'lighttable01_t']
 
@@ -525,11 +705,13 @@ function buildPrimitives(model, meshes, keepVertex) {
 const props = {}
 function saveProp(spec, model, folder, { parts, size }, extra = {}) {
   const materials = {}
-  for (const { material } of parts) {
+  // A parte pode vir de outro modelo (`source`: a porta encaixada no
+  // prédio, `withDoor`).
+  for (const { material, source = { model, folder } } of parts) {
     materials[material] ??= materialEntry(
-      model,
-      model.materials.find(({ name }) => name === material),
-      folder,
+      source.model,
+      source.model.materials.find(({ name }) => name === material),
+      source.folder,
     )
   }
   writeFileSync(join(out, 'props', `${spec.id}.glb`), writeGlb(spec.id, parts))
@@ -550,23 +732,127 @@ function saveProp(spec, model, folder, { parts, size }, extra = {}) {
   )
 }
 
+// A caixa `[minX, minY, minZ, maxX, maxY, maxZ]` dos vértices das partes.
+function boxOfParts(parts) {
+  const box = [Infinity, Infinity, Infinity, -Infinity, -Infinity, -Infinity]
+  for (const { position } of parts) {
+    for (let i = 0; i < position.length; i += 3) {
+      for (let c = 0; c < 3; c++) {
+        box[c] = Math.min(box[c], position[i + c])
+        box[c + 3] = Math.max(box[c + 3], position[i + c])
+      }
+    }
+  }
+  return box
+}
+
+/**
+ * A porta do prédio (docs/features/056-bioma-cidade.md): no Let's Go ela é
+ * um modelo à parte da `buildmodel/` (`spec.door.model`), posto pelo mapa;
+ * no prédio só fica o vão escuro (material `doorway`). Encaixa a porta na
+ * boca do vão (o meio dele em X, o chão dele, a frente dele em Z) — ou,
+ * sem vão (a porta é um buraco na parede), em `spec.door.x`, na frente da
+ * parede ali. A porta entra como mais partes do prédio (`source`: os
+ * materiais vêm do modelo dela).
+ */
+function withDoor(spec, built) {
+  if (!spec.door) return built
+  const door = parseGfbmdl(
+    readFileSync(join(args.field, 'buildmodel', `${spec.door.model}.gfbmdl`)),
+  )
+  const doorParts = buildPrimitives(
+    door,
+    door.meshes.map((mesh, meshIndex) => ({
+      meshIndex,
+      decoded: decodeVertices(mesh),
+    })),
+    () => true,
+  )
+  const doorways = built.parts.filter(({ material }) =>
+    /doorway/i.test(material),
+  )
+  let at
+  if (doorways.length > 0) {
+    const box = boxOfParts(doorways)
+    at = [(box[0] + box[3]) / 2, box[1], box[5]]
+  } else {
+    // A frente da parede em volta do buraco (sem o telhado, que avança).
+    const x = spec.door.x
+    const near = built.parts.map(({ position }) => {
+      const kept = []
+      for (let i = 0; i < position.length; i += 3) {
+        const isNear =
+          Math.abs(position[i] - x) < DOOR_WALL_REACH &&
+          position[i + 1] < doorParts.size[1]
+        if (isNear) kept.push(position[i], position[i + 1], position[i + 2])
+      }
+      return { position: kept }
+    })
+    at = [x, 0, boxOfParts(near)[5]]
+  }
+  const [x, y, z] = [at[0], at[1], at[2] - doorParts.size[2] / 2]
+  for (const part of doorParts.parts) {
+    for (let i = 0; i < part.position.length; i += 3) {
+      part.position[i] += x
+      part.position[i + 1] += y
+      part.position[i + 2] += z
+    }
+    part.source = { model: door, folder: 'buildmodel' }
+  }
+  return { parts: [...built.parts, ...doorParts.parts], size: built.size }
+}
+
 // Dos mapas: o objeto mais comum do nó.
+const extraProps = args.extra
+  ? JSON.parse(readFileSync(args.extra, 'utf8'))
+  : []
 const maps = new Map()
 const mapOf = (path) => {
   if (!maps.has(path))
     maps.set(path, parseGfbmdl(readFileSync(join(args.field, path))))
   return maps.get(path)
 }
-for (const spec of MAP_PROPS) {
+// O `n`-ésimo objeto grande (prédio) de um nó fundido, pela posição.
+function nthBuildingOf(objectBoxes, n) {
+  const buildings = objectBoxes
+    .map((box, index) => ({ box, index }))
+    .filter(
+      ({ box }) =>
+        box[3] - box[0] >= BUILDING_MIN_WIDTH &&
+        box[4] - box[1] >= BUILDING_MIN_HEIGHT,
+    )
+    .sort((a, b) => a.box[0] - b.box[0] || a.box[2] - b.box[2])
+  if (!buildings[n]) throw new Error(`não há o prédio ${n} no nó`)
+  return buildings[n].index
+}
+
+// O nó (ou, com `whole` ou `object`, o nó e os filhos dele).
+const isNodeOf = (spec, path) =>
+  path === spec.node ||
+  ((spec.whole || spec.object != null) && path.startsWith(`${spec.node}/`))
+for (const spec of [...MAP_PROPS, ...extraProps]) {
   const map = mapOf(spec.map)
   const meshes = map.groups
-    .filter(({ boneIndex }) => bonePath(map, boneIndex) === spec.node)
+    .filter(({ boneIndex }) => isNodeOf(spec, bonePath(map, boneIndex)))
     .map(({ meshIndex }) => ({
       meshIndex,
       decoded: decodeVertices(map.meshes[meshIndex]),
     }))
   if (meshes.length === 0)
     throw new Error(`nó ${spec.node} não achado em ${spec.map}`)
+  // Inteiro: o prédio é um objeto só (telhado, janela e placa juntos).
+  if (spec.whole) {
+    saveProp(
+      spec,
+      map,
+      spec.folder,
+      withDoor(
+        spec,
+        buildPrimitives(map, meshes, () => true),
+      ),
+    )
+    continue
+  }
   const boxes = []
   const pieceOffset = new Map()
   const vertexPieces = new Map()
@@ -579,7 +865,10 @@ for (const spec of MAP_PROPS) {
     vertexPieces.set(meshIndex, vertexPiece)
     boxes.push(...own)
   }
-  const { pieceObject, objectBoxes } = clusterObjects(boxes)
+  const { pieceObject, objectBoxes } = clusterObjects(
+    boxes,
+    spec.object == null ? 0 : BUILDING_MARGIN,
+  )
   const counts = new Map()
   objectBoxes.forEach((box, i) => {
     const signature = sizeSignature(box)
@@ -589,7 +878,8 @@ for (const spec of MAP_PROPS) {
   const [, objects] = [...counts.entries()].sort(
     (a, b) => b[1].length - a[1].length,
   )[0]
-  const chosen = objects[0]
+  const chosen =
+    spec.object == null ? objects[0] : nthBuildingOf(objectBoxes, spec.object)
   const objectOf = (meshIndex, vertex) =>
     pieceObject[
       pieceOffset.get(meshIndex) + vertexPieces.get(meshIndex)[vertex]
@@ -598,10 +888,13 @@ for (const spec of MAP_PROPS) {
     spec,
     map,
     spec.folder,
-    buildPrimitives(
-      map,
-      meshes,
-      (meshIndex, vertex) => objectOf(meshIndex, vertex) === chosen,
+    withDoor(
+      spec,
+      buildPrimitives(
+        map,
+        meshes,
+        (meshIndex, vertex) => objectOf(meshIndex, vertex) === chosen,
+      ),
     ),
     { copiesInMap: objects.length },
   )
@@ -634,7 +927,7 @@ writeFileSync(
   JSON.stringify(
     {
       source:
-        "Pokémon Let's Go Pikachu/Eevee — forest001_00, road001_00, road003_00, road022_00, road004_1_00, road009_00 e buildmodel",
+        "Pokémon Let's Go Pikachu/Eevee — forest001_00, road001_00, road003_00, road022_00, road004_1_00, road009_00, town001_00, town003_00 e buildmodel",
       props,
       ground,
       toonTables: TOON_TABLES,

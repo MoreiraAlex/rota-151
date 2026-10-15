@@ -1,5 +1,5 @@
 {
-  "source": "Pokémon Let's Go Pikachu/Eevee — forest001_00, road001_00, road003_00, road022_00, road004_1_00, road009_00 e buildmodel",
+  "source": "Pokémon Let's Go Pikachu/Eevee — forest001_00, road001_00, road003_00, road022_00, road004_1_00, road009_00, town001_00, town003_00 e buildmodel",
   "props": {
     "round-tree": {
       "label": "Árvore redonda (Rota 1)",
@@ -1244,6 +1244,2617 @@
       },
       "copiesInMap": 2
     },
+    "pokecenter": {
+      "label": "Pokécenter",
+      "category": "building",
+      "file": "props/pokecenter.glb",
+      "size": [
+        5.2,
+        3.671,
+        4.14
+      ],
+      "materials": {
+        "doorway01_com": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "doorway01_com",
+            "LightMask_uv1": "doorway02_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.5787135362625122,
+            0.9225112795829773,
+            1.0000240802764893
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": [
+            1.0000240802764893,
+            0.24618622660636902,
+            0.033104002475738525
+          ],
+          "greenColor": null
+        },
+        "bldg_pc_floor01_com": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "bldg_pc_floor01_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.24087679386138916,
+            0.36472880840301514,
+            0.39312171936035156
+          ],
+          "rimColor": [
+            0.47857099771499634,
+            0.47857099771499634,
+            0.47857099771499634
+          ],
+          "rim": [
+            0.6049379706382751,
+            1,
+            0.4135800004005432
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "bldg_pc_window01_com": {
+          "shader": "FieldWindowShader",
+          "maps": {
+            "TextureMap01": "bldg_pc_window01_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.06372489035129547,
+            0.39975085854530334,
+            0.4479812979698181
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "bldg_pc_roof01_01_com": {
+          "shader": "FieldDefaultShader",
+          "maps": {
+            "HighlightMap": "bldg_pc_roof01_01_com",
+            "Texture01": "bldg_pc_roof01_01_com",
+            "Texture02": "bldg_pc_roof01_02_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.24087679386138916,
+            0.36472880840301514,
+            0.39312171936035156
+          ],
+          "rimColor": [
+            1.0000239610671997,
+            0.6288610100746155,
+            0.33154401183128357
+          ],
+          "rim": [
+            0.5003809928894043,
+            1,
+            1
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "bldg_pc_sign01_com": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "bldg_pc_sign01_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.24087679386138916,
+            0.3647318482398987,
+            0.39312171936035156
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "bldg_pc_wall01_com": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "bldg_pc_wall01_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.24087679386138916,
+            0.3647265136241913,
+            0.39312171936035156
+          ],
+          "rimColor": [
+            0.4784694314002991,
+            0.4784694314002991,
+            0.4784694314002991
+          ],
+          "rim": [
+            0.6049379706382751,
+            1,
+            0.4135800004005432
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "bldg_pc_door01_com2": {
+          "shader": "FieldWindowShader",
+          "maps": {
+            "TextureMap01": "bldg_pc_door01_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.06372489035129547,
+            0.39975085854530334,
+            0.4479812979698181
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "bldg_pc_door01_com": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "bldg_pc_door01_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23301899433135986,
+            0.3538161516189575,
+            0.3800566494464874
+          ],
+          "rimColor": [
+            0.47857099771499634,
+            0.47857099771499634,
+            0.47857099771499634
+          ],
+          "rim": [
+            0.6049379706382751,
+            1,
+            0.4135800004005432
+          ],
+          "lightColor": null,
+          "greenColor": null
+        }
+      }
+    },
+    "poke-mart": {
+      "label": "Loja",
+      "category": "building",
+      "file": "props/poke-mart.glb",
+      "size": [
+        4.484,
+        2.66,
+        3.033
+      ],
+      "materials": {
+        "doorway01_com": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "doorway01_com",
+            "LightMask_uv1": "doorway02_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.5787135362625122,
+            0.9225112795829773,
+            1.0000240802764893
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": [
+            1.0000240802764893,
+            0.24618622660636902,
+            0.033104002475738525
+          ],
+          "greenColor": null
+        },
+        "bldg_shop_roof02_01_com": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "bldg_shop_roof02_01_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23454800248146057,
+            0.3613100051879883,
+            0.3915709853172302
+          ],
+          "rimColor": [
+            0.47857099771499634,
+            0.47857099771499634,
+            0.47857099771499634
+          ],
+          "rim": [
+            0.6049379706382751,
+            1,
+            0.4135800004005432
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "bldg_shop_wall01_com": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "bldg_shop_wall01_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.24087679386138916,
+            0.3647318482398987,
+            0.39312171936035156
+          ],
+          "rimColor": [
+            0.47857099771499634,
+            0.47857099771499634,
+            0.47857099771499634
+          ],
+          "rim": [
+            0.6049379706382751,
+            1,
+            0.4135800004005432
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "bldg_shop_roof01_01_com": {
+          "shader": "FieldDefaultShader",
+          "maps": {
+            "Texture01": "bldg_shop_roof01_01_com",
+            "Texture02": "bldg_shop_roof01_02_com",
+            "HighlightMap": "bldg_shop_roof01_01_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.24087679386138916,
+            0.3647318482398987,
+            0.39312171936035156
+          ],
+          "rimColor": [
+            1.0000239610671997,
+            0.6288610100746155,
+            0.33154401183128357
+          ],
+          "rim": [
+            0.5003809928894043,
+            1,
+            1
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "bldg_shop_window01_com": {
+          "shader": "FieldWindowShader",
+          "maps": {
+            "TextureMap01": "bldg_shop_window01_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.06372489035129547,
+            0.39975085854530334,
+            0.4479812979698181
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "bldg_shop_door01_com": {
+          "shader": "FieldWindowShader",
+          "maps": {
+            "TextureMap01": "bldg_shop_door01_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.06372489035129547,
+            0.39975085854530334,
+            0.4479812979698181
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "bldg_shop_door01_com1": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "bldg_shop_door01_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23301899433135986,
+            0.35264772176742554,
+            0.3800566494464874
+          ],
+          "rimColor": [
+            0.47857099771499634,
+            0.47857099771499634,
+            0.47857099771499634
+          ],
+          "rim": [
+            0.6049379706382751,
+            1,
+            0.4135800004005432
+          ],
+          "lightColor": null,
+          "greenColor": null
+        }
+      }
+    },
+    "gym": {
+      "label": "Ginásio",
+      "category": "building",
+      "file": "props/gym.glb",
+      "size": [
+        7.144,
+        4.008,
+        4.262
+      ],
+      "materials": {
+        "doorway01_com": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "doorway01_com",
+            "LightMask_uv1": "doorway02_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.5787135362625122,
+            0.9225112795829773,
+            1.0000240802764893
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": [
+            1.0000240802764893,
+            0.24618622660636902,
+            0.033104002475738525
+          ],
+          "greenColor": null
+        },
+        "bldg_gym_wall01_com": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "bldg_gym_wall01_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23454800248146057,
+            0.3613100051879883,
+            0.3915709853172302
+          ],
+          "rimColor": [
+            0.5568627715110779,
+            0.5568627715110779,
+            0.5568627715110779
+          ],
+          "rim": [
+            0.30000001192092896,
+            1,
+            0.5
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "bldg_gym_wall02_com": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "bldg_gym_wall02_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23454800248146057,
+            0.3613100051879883,
+            0.3915709853172302
+          ],
+          "rimColor": [
+            0.1568627506494522,
+            0.1568627506494522,
+            0.13725490868091583
+          ],
+          "rim": [
+            0,
+            1,
+            1
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "bldg_gym_roof01_com": {
+          "shader": "FieldDefaultShader",
+          "maps": {
+            "Texture01": "bldg_gym_roof02_com",
+            "Texture02": "bldg_gym_roof01_com",
+            "HighlightMap": "bldg_gym_roof01_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23454800248146057,
+            0.3613100051879883,
+            0.3915709853172302
+          ],
+          "rimColor": [
+            1.0000239610671997,
+            0.6288610100746155,
+            0.33154401183128357
+          ],
+          "rim": [
+            0.5003809928894043,
+            1,
+            1
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "bldg_gym_window01_com": {
+          "shader": "FieldWindowShader",
+          "maps": {
+            "TextureMap01": "bldg_gym_window01_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.06372489035129547,
+            0.39975085854530334,
+            0.4479812979698181
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "bldg_gym_door01_com": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "bldg_gym_door01_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23301899433135986,
+            0.35010960698127747,
+            0.3800566494464874
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "bldg_gym_door01_com1": {
+          "shader": "FieldWindowShader",
+          "maps": {
+            "TextureMap01": "bldg_gym_door01_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.06372489035129547,
+            0.39975085854530334,
+            0.4479812979698181
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        }
+      }
+    },
+    "house-lab": {
+      "label": "Laboratório (Pallet)",
+      "category": "building",
+      "file": "props/house-lab.glb",
+      "size": [
+        5.278,
+        4.522,
+        3.933
+      ],
+      "materials": {
+        "window01_com": {
+          "shader": "FieldWindowShader",
+          "maps": {
+            "TextureMap01": "window01_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "house02_01_area02": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "house02_01_area02"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": [
+            0.806448757648468,
+            0.8071428537368774,
+            0.7038286328315735
+          ],
+          "rim": [
+            0.548697292804718,
+            1,
+            1
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "rooftile03_01_area02": {
+          "shader": "FieldDefaultShader",
+          "maps": {
+            "Texture01": "rooftile03_01_area02",
+            "Texture02": "rooftile03_02_area02",
+            "ParallaxTexture01": "rooftile03_01_area02",
+            "Mask_texture": "rooftile03_01_area02"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": [
+            1.0000240802764893,
+            0.628860592842102,
+            0.33154428005218506
+          ],
+          "rim": [
+            0.50038081407547,
+            1,
+            1
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "house02_02_area02": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "house02_02_area02",
+            "ParallaxMap": "house02_02_area02",
+            "Mask_texture": "house02_02_area02"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": [
+            0.40197500586509705,
+            0.4851408004760742,
+            0.4969223141670227
+          ],
+          "rim": [
+            0,
+            1,
+            1
+          ],
+          "lightColor": null,
+          "greenColor": null
+        }
+      }
+    },
+    "house-pewter": {
+      "label": "Casa de pedra (Pewter)",
+      "category": "building",
+      "file": "props/house-pewter.glb",
+      "size": [
+        4.993,
+        3.331,
+        3
+      ],
+      "materials": {
+        "window01_com": {
+          "shader": "FieldWindowShader",
+          "maps": {
+            "TextureMap01": "window01_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0,
+            0.5686269998550415,
+            0.6941180229187012
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "wall01_01_area03": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "wall01_01_area03"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23301899433135986,
+            0.35266101360321045,
+            0.3800566494464874
+          ],
+          "rimColor": [
+            0.2706455588340759,
+            0.2706455588340759,
+            0.2706455588340759
+          ],
+          "rim": [
+            0.30000001192092896,
+            1,
+            0.5
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "roof01_01_area03": {
+          "shader": "FieldDefaultShader",
+          "maps": {
+            "Texture01": "roof01_01_area03",
+            "Texture02": "roof01_02_area03",
+            "HighlightMap": "roof01_01_area03"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23301899433135986,
+            0.35263457894325256,
+            0.3800566494464874
+          ],
+          "rimColor": [
+            1.0000239610671997,
+            0.6288610100746155,
+            0.33154401183128357
+          ],
+          "rim": [
+            0.5003809928894043,
+            1,
+            1
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "doorway01_com": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "doorway01_com",
+            "LightMask_uv1": "doorway02_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.5787135362625122,
+            0.9225112795829773,
+            1.0000240802764893
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": [
+            1.0000240802764893,
+            0.24618622660636902,
+            0.033104002475738525
+          ],
+          "greenColor": null
+        },
+        "town003_door02_window": {
+          "shader": "FieldWindowShader",
+          "maps": {
+            "TextureMap01": "window01_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.06319000571966171,
+            0.40681901574134827,
+            0.4449999928474426
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "town003_door02_01": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "town003_door02_01"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23454800248146057,
+            0.3613100051879883,
+            0.3915709853172302
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        }
+      }
+    },
+    "house-pewter-b": {
+      "label": "Casa de pedra 2 (Pewter)",
+      "category": "building",
+      "file": "props/house-pewter-b.glb",
+      "size": [
+        4.993,
+        3.331,
+        3
+      ],
+      "materials": {
+        "wall01_01_area03": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "wall01_01_area03"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23301899433135986,
+            0.35266101360321045,
+            0.3800566494464874
+          ],
+          "rimColor": [
+            0.2706455588340759,
+            0.2706455588340759,
+            0.2706455588340759
+          ],
+          "rim": [
+            0.30000001192092896,
+            1,
+            0.5
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "window01_com": {
+          "shader": "FieldWindowShader",
+          "maps": {
+            "TextureMap01": "window01_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0,
+            0.5686269998550415,
+            0.6941180229187012
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "roof01_01_area03": {
+          "shader": "FieldDefaultShader",
+          "maps": {
+            "Texture01": "roof01_01_area03",
+            "Texture02": "roof01_02_area03",
+            "HighlightMap": "roof01_01_area03"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23301899433135986,
+            0.35263457894325256,
+            0.3800566494464874
+          ],
+          "rimColor": [
+            1.0000239610671997,
+            0.6288610100746155,
+            0.33154401183128357
+          ],
+          "rim": [
+            0.5003809928894043,
+            1,
+            1
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "doorway01_com": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "doorway01_com",
+            "LightMask_uv1": "doorway02_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.5787135362625122,
+            0.9225112795829773,
+            1.0000240802764893
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": [
+            1.0000240802764893,
+            0.24618622660636902,
+            0.033104002475738525
+          ],
+          "greenColor": null
+        },
+        "town003_door02_window": {
+          "shader": "FieldWindowShader",
+          "maps": {
+            "TextureMap01": "window01_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.06319000571966171,
+            0.40681901574134827,
+            0.4449999928474426
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "town003_door02_01": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "town003_door02_01"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23454800248146057,
+            0.3613100051879883,
+            0.3915709853172302
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        }
+      }
+    },
+    "pewter-museum": {
+      "label": "Museu (Pewter)",
+      "category": "building",
+      "file": "props/pewter-museum.glb",
+      "size": [
+        16.348,
+        6.3,
+        6.151
+      ],
+      "materials": {
+        "tile01_03_area03": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "tile01_03_area03"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23454800248146057,
+            0.3613100051879883,
+            0.3915709853172302
+          ],
+          "rimColor": [
+            0.47857099771499634,
+            0.47857099771499634,
+            0.47857099771499634
+          ],
+          "rim": [
+            0.6049379706382751,
+            1,
+            0.4135800004005432
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "wall02_02_area03": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "wall02_02_area03"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23454800248146057,
+            0.3613100051879883,
+            0.3915709853172302
+          ],
+          "rimColor": [
+            0.47857099771499634,
+            0.47857099771499634,
+            0.47857099771499634
+          ],
+          "rim": [
+            0.6049379706382751,
+            1,
+            0.4135800004005432
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "wall02_01_area03": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "wall02_01_area03"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23454786837100983,
+            0.36131009459495544,
+            0.39157116413116455
+          ],
+          "rimColor": [
+            0.47857099771499634,
+            0.47857099771499634,
+            0.47857099771499634
+          ],
+          "rim": [
+            0.4805896282196045,
+            0.6388888955116272,
+            0.39060333371162415
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "roof02_01_area03": {
+          "shader": "FieldDefaultShader",
+          "maps": {
+            "Texture01": "roof02_01_area03",
+            "Texture02": "roof02_02_area03",
+            "HighlightMap": "roof02_01_area03"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23454786837100983,
+            0.36131009459495544,
+            0.39157116413116455
+          ],
+          "rimColor": [
+            1.0000239610671997,
+            0.6288610100746155,
+            0.33154401183128357
+          ],
+          "rim": [
+            0.5003809928894043,
+            1,
+            1
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "window01_com": {
+          "shader": "FieldWindowShader",
+          "maps": {
+            "TextureMap01": "window01_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0,
+            0.5686269998550415,
+            0.6941180229187012
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "doorway01_com": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "doorway01_com",
+            "LightMask_uv1": "doorway02_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.5787135362625122,
+            0.9225112795829773,
+            1.0000240802764893
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": [
+            1.0000240802764893,
+            0.24618622660636902,
+            0.033104002475738525
+          ],
+          "greenColor": null
+        }
+      }
+    },
+    "cerulean-house-a": {
+      "label": "Casa 1 (Cerulean)",
+      "category": "building",
+      "file": "props/cerulean-house-a.glb",
+      "size": [
+        6.984,
+        3.426,
+        3.264
+      ],
+      "materials": {
+        "window01_com": {
+          "shader": "FieldWindowShader",
+          "maps": {
+            "TextureMap01": "window01_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23454800248146057,
+            0.3613100051879883,
+            0.3915709853172302
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "wall01_01_area04": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "wall01_01_area04"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23454800248146057,
+            0.3613100051879883,
+            0.3915709853172302
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "wall01_02_area04": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "wall01_02_area04"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23454800248146057,
+            0.3613100051879883,
+            0.3915709853172302
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "roof01_area04": {
+          "shader": "FieldDefaultShader",
+          "maps": {
+            "Texture01": "roof01_area04",
+            "Texture02": "roof02_area04",
+            "HighlightMap": "roof01_area04"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.24087679386138916,
+            0.3647318482398987,
+            0.39312171936035156
+          ],
+          "rimColor": [
+            1,
+            1,
+            1
+          ],
+          "rim": [
+            0.6049379706382751,
+            1,
+            0.7716050148010254
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "doorway01_com": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "doorway01_com",
+            "LightMask_uv1": "doorway02_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.5787135362625122,
+            0.9225112795829773,
+            1.0000240802764893
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": [
+            1.0000240802764893,
+            0.24618622660636902,
+            0.033104002475738525
+          ],
+          "greenColor": null
+        },
+        "town004_door01_window": {
+          "shader": "FieldWindowShader",
+          "maps": {
+            "TextureMap01": "window01_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.10946149379014969,
+            0.21585622429847717,
+            0.23073691129684448
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "town004_door01_01": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "town004_door01_01"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23454800248146057,
+            0.3613100051879883,
+            0.3915709853172302
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        }
+      },
+      "copiesInMap": 2
+    },
+    "cerulean-house-b": {
+      "label": "Casa 2 (Cerulean)",
+      "category": "building",
+      "file": "props/cerulean-house-b.glb",
+      "size": [
+        5.984,
+        3.426,
+        3.264
+      ],
+      "materials": {
+        "window01_com": {
+          "shader": "FieldWindowShader",
+          "maps": {
+            "TextureMap01": "window01_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23454800248146057,
+            0.3613100051879883,
+            0.3915709853172302
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "wall01_01_area04": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "wall01_01_area04"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23454800248146057,
+            0.3613100051879883,
+            0.3915709853172302
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "wall01_02_area04": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "wall01_02_area04"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23454800248146057,
+            0.3613100051879883,
+            0.3915709853172302
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "roof01_area04": {
+          "shader": "FieldDefaultShader",
+          "maps": {
+            "Texture01": "roof01_area04",
+            "Texture02": "roof02_area04",
+            "HighlightMap": "roof01_area04"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.24087679386138916,
+            0.3647318482398987,
+            0.39312171936035156
+          ],
+          "rimColor": [
+            1,
+            1,
+            1
+          ],
+          "rim": [
+            0.6049379706382751,
+            1,
+            0.7716050148010254
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "doorway01_com": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "doorway01_com",
+            "LightMask_uv1": "doorway02_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.5787135362625122,
+            0.9225112795829773,
+            1.0000240802764893
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": [
+            1.0000240802764893,
+            0.24618622660636902,
+            0.033104002475738525
+          ],
+          "greenColor": null
+        },
+        "town004_door01_window": {
+          "shader": "FieldWindowShader",
+          "maps": {
+            "TextureMap01": "window01_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.10946149379014969,
+            0.21585622429847717,
+            0.23073691129684448
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "town004_door01_01": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "town004_door01_01"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23454800248146057,
+            0.3613100051879883,
+            0.3915709853172302
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        }
+      },
+      "copiesInMap": 2
+    },
+    "cerulean-house-c": {
+      "label": "Casa 3 (Cerulean)",
+      "category": "building",
+      "file": "props/cerulean-house-c.glb",
+      "size": [
+        4.995,
+        3.031,
+        3
+      ],
+      "materials": {
+        "window01_com": {
+          "shader": "FieldWindowShader",
+          "maps": {
+            "TextureMap01": "window01_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23454800248146057,
+            0.3613100051879883,
+            0.3915709853172302
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "wall01_01_area04": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "wall01_01_area04"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23454800248146057,
+            0.3613100051879883,
+            0.3915709853172302
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "wall01_02_area04": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "wall01_02_area04"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23454800248146057,
+            0.3613100051879883,
+            0.3915709853172302
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "roof01_area04": {
+          "shader": "FieldDefaultShader",
+          "maps": {
+            "Texture01": "roof01_area04",
+            "Texture02": "roof02_area04",
+            "HighlightMap": "roof01_area04"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.24087679386138916,
+            0.3647318482398987,
+            0.39312171936035156
+          ],
+          "rimColor": [
+            1,
+            1,
+            1
+          ],
+          "rim": [
+            0.6049379706382751,
+            1,
+            0.7716050148010254
+          ],
+          "lightColor": null,
+          "greenColor": null
+        }
+      },
+      "copiesInMap": 2
+    },
+    "cerulean-house-d": {
+      "label": "Casa 4 (Cerulean)",
+      "category": "building",
+      "file": "props/cerulean-house-d.glb",
+      "size": [
+        5.995,
+        3.031,
+        3
+      ],
+      "materials": {
+        "window01_com": {
+          "shader": "FieldWindowShader",
+          "maps": {
+            "TextureMap01": "window01_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23454800248146057,
+            0.3613100051879883,
+            0.3915709853172302
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "wall01_01_area04": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "wall01_01_area04"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23454800248146057,
+            0.3613100051879883,
+            0.3915709853172302
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "wall01_02_area04": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "wall01_02_area04"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23454800248146057,
+            0.3613100051879883,
+            0.3915709853172302
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "roof01_area04": {
+          "shader": "FieldDefaultShader",
+          "maps": {
+            "Texture01": "roof01_area04",
+            "Texture02": "roof02_area04",
+            "HighlightMap": "roof01_area04"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.24087679386138916,
+            0.3647318482398987,
+            0.39312171936035156
+          ],
+          "rimColor": [
+            1,
+            1,
+            1
+          ],
+          "rim": [
+            0.6049379706382751,
+            1,
+            0.7716050148010254
+          ],
+          "lightColor": null,
+          "greenColor": null
+        }
+      },
+      "copiesInMap": 2
+    },
+    "cerulean-bike-shop": {
+      "label": "Loja de bicicleta (Cerulean)",
+      "category": "building",
+      "file": "props/cerulean-bike-shop.glb",
+      "size": [
+        4.874,
+        3.434,
+        3.307
+      ],
+      "materials": {
+        "window01_com": {
+          "shader": "FieldWindowShader",
+          "maps": {
+            "TextureMap01": "window01_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23454800248146057,
+            0.3613100051879883,
+            0.3915709853172302
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "wall01_01_area04": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "wall01_01_area04"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23454800248146057,
+            0.3613100051879883,
+            0.3915709853172302
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "wall01_02_area04": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "wall01_02_area04"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23454800248146057,
+            0.3613100051879883,
+            0.3915709853172302
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "roof01_area04": {
+          "shader": "FieldDefaultShader",
+          "maps": {
+            "Texture01": "roof01_area04",
+            "Texture02": "roof02_area04",
+            "HighlightMap": "roof01_area04"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.24087679386138916,
+            0.3647318482398987,
+            0.39312171936035156
+          ],
+          "rimColor": [
+            1,
+            1,
+            1
+          ],
+          "rim": [
+            0.6049379706382751,
+            1,
+            0.7716050148010254
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "signboard01_03_area04": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "signboard01_03_area04"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23454800248146057,
+            0.3613100051879883,
+            0.3915709853172302
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "doorway01_com": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "doorway01_com",
+            "LightMask_uv1": "doorway02_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.5787135362625122,
+            0.9225112795829773,
+            1.0000240802764893
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": [
+            1.0000240802764893,
+            0.24618622660636902,
+            0.033104002475738525
+          ],
+          "greenColor": null
+        },
+        "town004_door01_window": {
+          "shader": "FieldWindowShader",
+          "maps": {
+            "TextureMap01": "window01_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.10946149379014969,
+            0.21585622429847717,
+            0.23073691129684448
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "town004_door01_01": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "town004_door01_01"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23454800248146057,
+            0.3613100051879883,
+            0.3915709853172302
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        }
+      },
+      "copiesInMap": 2
+    },
+    "cerulean-lamp": {
+      "label": "Poste (Cerulean)",
+      "category": "street",
+      "file": "props/cerulean-lamp.glb",
+      "size": [
+        1.504,
+        2.7,
+        0.51
+      ],
+      "materials": {
+        "streetlamp01_02_area04_2": {
+          "shader": "FieldObjectShader_Emission",
+          "maps": {
+            "Reflection_tex": "light01_com",
+            "Texture01": "streetlamp01_02_area04",
+            "EmissionMap": "streetlamp01_03_area04"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.27049973607063293,
+            0.417880654335022,
+            0.45640355348587036
+          ],
+          "rimColor": [
+            0.607715904712677,
+            0.18675129115581512,
+            0.7369529604911804
+          ],
+          "rim": [
+            0.3333333432674408,
+            1,
+            1
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "streetlamp01_01_area05": {
+          "shader": "FieldObjectShader_Emission",
+          "maps": {
+            "Texture01": "streetlamp01_01_area04"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.27049973607063293,
+            0.417880654335022,
+            0.45640355348587036
+          ],
+          "rimColor": [
+            0.6142857074737549,
+            0.6142857074737549,
+            0.6142857074737549
+          ],
+          "rim": [
+            0.29629629850387573,
+            1,
+            0.7839506268501282
+          ],
+          "lightColor": null,
+          "greenColor": null
+        }
+      },
+      "copiesInMap": 10
+    },
+    "vermilion-house-a": {
+      "label": "Casa 1 (Vermilion)",
+      "category": "building",
+      "file": "props/vermilion-house-a.glb",
+      "size": [
+        4,
+        3.475,
+        3.4
+      ],
+      "materials": {
+        "doorway01_com": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "doorway01_com",
+            "LightMask_uv1": "doorway02_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.5787135362625122,
+            0.9225112795829773,
+            1.0000240802764893
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": [
+            1.0000240802764893,
+            0.24618622660636902,
+            0.033104002475738525
+          ],
+          "greenColor": null
+        },
+        "window01_com": {
+          "shader": "FieldWindowShader",
+          "maps": {
+            "TextureMap01": "window01_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.06372489035129547,
+            0.39975085854530334,
+            0.4479812979698181
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "wall01_01_area09": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "house01_01_area09"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.2788977324962616,
+            0.4232623279094696,
+            0.4620693325996399
+          ],
+          "rimColor": [
+            0.021219586953520775,
+            0.02125205472111702,
+            0.016733471304178238
+          ],
+          "rim": [
+            0,
+            1,
+            1
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "wall01_02_area09": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "house01_02_area09"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.2788977324962616,
+            0.4232623279094696,
+            0.4620693325996399
+          ],
+          "rimColor": [
+            0.035328030586242676,
+            0.035328030586242676,
+            0.035328030586242676
+          ],
+          "rim": [
+            0,
+            1,
+            1
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "roof01_01_area09": {
+          "shader": "FieldDefaultShader",
+          "maps": {
+            "Texture01": "roof01_01_area09",
+            "Texture02": "roof01_02_area09",
+            "HighlightMap": "lighttable01_t"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.2788977324962616,
+            0.4232623279094696,
+            0.4620693325996399
+          ],
+          "rimColor": [
+            0.9714285731315613,
+            0.3982506990432739,
+            0.15107028186321259
+          ],
+          "rim": [
+            0.6049379706382751,
+            1,
+            0.7716050148010254
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "town006_door01_01": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "town006_door01_01"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23049789667129517,
+            0.3521061837673187,
+            0.3800566494464874
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        }
+      },
+      "copiesInMap": 3
+    },
+    "vermilion-house-b": {
+      "label": "Casa 2 (Vermilion)",
+      "category": "building",
+      "file": "props/vermilion-house-b.glb",
+      "size": [
+        4,
+        3.237,
+        3.2
+      ],
+      "materials": {
+        "window01_com": {
+          "shader": "FieldWindowShader",
+          "maps": {
+            "TextureMap01": "window01_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.06372489035129547,
+            0.39975085854530334,
+            0.4479812979698181
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "wall01_01_area09": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "house01_01_area09"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.2788977324962616,
+            0.4232623279094696,
+            0.4620693325996399
+          ],
+          "rimColor": [
+            0.021219586953520775,
+            0.02125205472111702,
+            0.016733471304178238
+          ],
+          "rim": [
+            0,
+            1,
+            1
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "wall01_02_area09": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "house01_02_area09"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.2788977324962616,
+            0.4232623279094696,
+            0.4620693325996399
+          ],
+          "rimColor": [
+            0.035328030586242676,
+            0.035328030586242676,
+            0.035328030586242676
+          ],
+          "rim": [
+            0,
+            1,
+            1
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "roof01_01_area09": {
+          "shader": "FieldDefaultShader",
+          "maps": {
+            "Texture01": "roof01_01_area09",
+            "Texture02": "roof01_02_area09",
+            "HighlightMap": "lighttable01_t"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.2788977324962616,
+            0.4232623279094696,
+            0.4620693325996399
+          ],
+          "rimColor": [
+            0.9714285731315613,
+            0.3982506990432739,
+            0.15107028186321259
+          ],
+          "rim": [
+            0.6049379706382751,
+            1,
+            0.7716050148010254
+          ],
+          "lightColor": null,
+          "greenColor": null
+        }
+      },
+      "copiesInMap": 3
+    },
+    "vermilion-fan-club": {
+      "label": "Fã-clube (Vermilion)",
+      "category": "building",
+      "file": "props/vermilion-fan-club.glb",
+      "size": [
+        5,
+        3.567,
+        3.2
+      ],
+      "materials": {
+        "window01_area09": {
+          "shader": "FieldWindowShader",
+          "maps": {
+            "TextureMap01": "window01_area09"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.06372489035129547,
+            0.39975085854530334,
+            0.4479812979698181
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "house02_01_area09": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "house02_01_area09"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.2788977324962616,
+            0.4232623279094696,
+            0.4620693325996399
+          ],
+          "rimColor": [
+            0.47857099771499634,
+            0.47857099771499634,
+            0.47857099771499634
+          ],
+          "rim": [
+            0.6049379706382751,
+            1,
+            0.4135800004005432
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "doorway01_com": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "doorway01_com",
+            "LightMask_uv1": "doorway02_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.5787135362625122,
+            0.9225112795829773,
+            1.0000240802764893
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": [
+            1.0000240802764893,
+            0.24618622660636902,
+            0.033104002475738525
+          ],
+          "greenColor": null
+        },
+        "window01_com": {
+          "shader": "FieldWindowShader",
+          "maps": {
+            "TextureMap01": "window01_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.06372489035129547,
+            0.39975085854530334,
+            0.4479812979698181
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "wall01_01_area09": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "house01_01_area09"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.2788977324962616,
+            0.4232623279094696,
+            0.4620693325996399
+          ],
+          "rimColor": [
+            0.021219586953520775,
+            0.02125205472111702,
+            0.016733471304178238
+          ],
+          "rim": [
+            0,
+            1,
+            1
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "wall01_02_area09": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "house01_02_area09"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.2788977324962616,
+            0.4232623279094696,
+            0.4620693325996399
+          ],
+          "rimColor": [
+            0.035328030586242676,
+            0.035328030586242676,
+            0.035328030586242676
+          ],
+          "rim": [
+            0,
+            1,
+            1
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "roof01_01_area09": {
+          "shader": "FieldDefaultShader",
+          "maps": {
+            "Texture01": "roof01_01_area09",
+            "Texture02": "roof01_02_area09",
+            "HighlightMap": "lighttable01_t"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.2788977324962616,
+            0.4232623279094696,
+            0.4620693325996399
+          ],
+          "rimColor": [
+            0.9714285731315613,
+            0.3982506990432739,
+            0.15107028186321259
+          ],
+          "rim": [
+            0.6049379706382751,
+            1,
+            0.7716050148010254
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "town006_door02_window": {
+          "shader": "FieldWindowShader",
+          "maps": {
+            "TextureMap01": "window01_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.06372489035129547,
+            0.39975085854530334,
+            0.4479812979698181
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "town006_door02_01": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "town006_door02_01"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.2788977324962616,
+            0.4232623279094696,
+            0.4620693325996399
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        }
+      },
+      "copiesInMap": 3
+    },
+    "lavender-house": {
+      "label": "Casa (Lavender)",
+      "category": "building",
+      "file": "props/lavender-house.glb",
+      "size": [
+        5.066,
+        3.283,
+        3.05
+      ],
+      "materials": {
+        "house01_02_area08": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "house01_02_area08"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": [
+            0.4714289903640747,
+            0.4714289903640747,
+            0.4714289903640747
+          ],
+          "rim": [
+            0.6049379706382751,
+            1,
+            0.4135800004005432
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "roof01_area08": {
+          "shader": "FieldDefaultShader",
+          "maps": {
+            "Texture01": "roof01_01_area08",
+            "Texture02": "roof01_02_area08",
+            "HighlightMap": "roof01_01_area08"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": [
+            0.22857142984867096,
+            0.22857142984867096,
+            0.22857142984867096
+          ],
+          "rim": [
+            0.6049379706382751,
+            1,
+            0.7716050148010254
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "window01_com": {
+          "shader": "FieldWindowShader",
+          "maps": {
+            "TextureMap01": "window01_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "house01_01_area08": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "house01_01_area08"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": [
+            0.4714289903640747,
+            0.4714289903640747,
+            0.4714289903640747
+          ],
+          "rim": [
+            0.6049379706382751,
+            1,
+            0.4135800004005432
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "town005_door01_01": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "town005_door01_01"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23301899433135986,
+            0.35264480113983154,
+            0.3800566494464874
+          ],
+          "rimColor": [
+            0.47857099771499634,
+            0.47857099771499634,
+            0.47857099771499634
+          ],
+          "rim": [
+            0.6049379706382751,
+            1,
+            0.4135800004005432
+          ],
+          "lightColor": null,
+          "greenColor": null
+        }
+      }
+    },
+    "lavender-tower": {
+      "label": "Torre Pokémon (Lavender)",
+      "category": "building",
+      "file": "props/lavender-tower.glb",
+      "size": [
+        7.111,
+        13.684,
+        8.18
+      ],
+      "materials": {
+        "tower03_area08": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "tower03_area08"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": [
+            0.47857099771499634,
+            0.47857099771499634,
+            0.47857099771499634
+          ],
+          "rim": [
+            0.6049379706382751,
+            1,
+            0.4135800004005432
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "tower02_area08": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "tower02_area08"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": [
+            0.47857099771499634,
+            0.47857099771499634,
+            0.47857099771499634
+          ],
+          "rim": [
+            0.6049379706382751,
+            1,
+            0.4135800004005432
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "window01_area08_01": {
+          "shader": "FieldWindowShader",
+          "maps": {
+            "TextureMap01": "window01_area08"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "window01_tower01": {
+          "shader": "FieldWindowShader",
+          "maps": {
+            "TextureMap01": "window01_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "tower01_area08": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "tower01_area08"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": [
+            0.47857099771499634,
+            0.47857099771499634,
+            0.47857099771499634
+          ],
+          "rim": [
+            0.6049379706382751,
+            1,
+            0.4135800004005432
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "block01_area08": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "block01_area08"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        }
+      }
+    },
+    "fence-wood": {
+      "label": "Cerca de madeira (Pallet)",
+      "category": "street",
+      "file": "props/fence-wood.glb",
+      "size": [
+        2.73,
+        0.768,
+        0.18
+      ],
+      "materials": {
+        "fence01_01_area02": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "fence01_01_area02"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": [
+            0.7519084215164185,
+            0.7519084215164185,
+            0.7519084215164185
+          ],
+          "rim": [
+            0.5,
+            1,
+            0.4000000059604645
+          ],
+          "lightColor": null,
+          "greenColor": null
+        }
+      }
+    },
+    "bench": {
+      "label": "Banco (Pewter)",
+      "category": "street",
+      "file": "props/bench.glb",
+      "size": [
+        1.9,
+        0.921,
+        0.686
+      ],
+      "materials": {
+        "roadbench02_area07": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "roadbench02_area07"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23454800248146057,
+            0.3613100051879883,
+            0.3915709853172302
+          ],
+          "rimColor": [
+            0.47857099771499634,
+            0.47857099771499634,
+            0.47857099771499634
+          ],
+          "rim": [
+            0.6049379706382751,
+            1,
+            0.4135800004005432
+          ],
+          "lightColor": null,
+          "greenColor": null
+        }
+      },
+      "copiesInMap": 3
+    },
+    "street-lamp": {
+      "label": "Poste (Pewter)",
+      "category": "street",
+      "file": "props/street-lamp.glb",
+      "size": [
+        0.611,
+        2.671,
+        0.611
+      ],
+      "materials": {
+        "lamp_glass01_area03_2": {
+          "shader": "FieldWindowShader",
+          "maps": {
+            "TextureMap01": "lamp_glass01_area03"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.3966267704963684,
+            0.7643930912017822,
+            0.815401554107666
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "lamp01_town03_land03_2": {
+          "shader": "FieldObjectShader_Emission",
+          "maps": {
+            "Reflection_tex": "light01_com",
+            "Texture01": "lamp01_town03_land03",
+            "HighlightMap": "lamp01_02_town03_land03"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.27049973607063293,
+            0.417880654335022,
+            0.45640355348587036
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        }
+      },
+      "copiesInMap": 7
+    },
     "tall-grass": {
       "label": "Mato alto",
       "category": "tall-grass",
@@ -2173,7 +4784,15 @@
     "sand01_com",
     "sand02_com",
     "cliff01_area02",
-    "cliff02_com"
+    "roadtile01_area02",
+    "roadtile02_area02",
+    "asphalt01_area02",
+    "tile02_01_area02",
+    "tile01_01_area03",
+    "cliff02_com",
+    "tile01_01_area04",
+    "tile02_01_area09",
+    "asphalt01_area08"
   ],
   "toonTables": [
     "shadowtable01_t",
@@ -2411,6 +5030,420 @@
     },
     "soil01_com": {
       "file": "textures/soil01_com.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "doorway01_com": {
+      "file": "textures/doorway01_com.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "doorway02_com": {
+      "file": "textures/doorway02_com.png",
+      "width": 128,
+      "height": 128,
+      "alpha": false
+    },
+    "bldg_pc_floor01_com": {
+      "file": "textures/bldg_pc_floor01_com.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "bldg_pc_window01_com": {
+      "file": "textures/bldg_pc_window01_com.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "bldg_pc_roof01_01_com": {
+      "file": "textures/bldg_pc_roof01_01_com.png",
+      "width": 512,
+      "height": 512,
+      "alpha": true
+    },
+    "bldg_pc_roof01_02_com": {
+      "file": "textures/bldg_pc_roof01_02_com.png",
+      "width": 512,
+      "height": 512,
+      "alpha": true
+    },
+    "bldg_pc_sign01_com": {
+      "file": "textures/bldg_pc_sign01_com.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "bldg_pc_wall01_com": {
+      "file": "textures/bldg_pc_wall01_com.png",
+      "width": 512,
+      "height": 512,
+      "alpha": false
+    },
+    "bldg_pc_door01_com": {
+      "file": "textures/bldg_pc_door01_com.png",
+      "width": 128,
+      "height": 256,
+      "alpha": false
+    },
+    "bldg_shop_roof02_01_com": {
+      "file": "textures/bldg_shop_roof02_01_com.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "bldg_shop_wall01_com": {
+      "file": "textures/bldg_shop_wall01_com.png",
+      "width": 512,
+      "height": 512,
+      "alpha": false
+    },
+    "bldg_shop_roof01_01_com": {
+      "file": "textures/bldg_shop_roof01_01_com.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "bldg_shop_roof01_02_com": {
+      "file": "textures/bldg_shop_roof01_02_com.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "bldg_shop_window01_com": {
+      "file": "textures/bldg_shop_window01_com.png",
+      "width": 256,
+      "height": 128,
+      "alpha": false
+    },
+    "bldg_shop_door01_com": {
+      "file": "textures/bldg_shop_door01_com.png",
+      "width": 128,
+      "height": 256,
+      "alpha": false
+    },
+    "bldg_gym_wall01_com": {
+      "file": "textures/bldg_gym_wall01_com.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "bldg_gym_wall02_com": {
+      "file": "textures/bldg_gym_wall02_com.png",
+      "width": 512,
+      "height": 512,
+      "alpha": false
+    },
+    "bldg_gym_roof02_com": {
+      "file": "textures/bldg_gym_roof02_com.png",
+      "width": 512,
+      "height": 512,
+      "alpha": false
+    },
+    "bldg_gym_roof01_com": {
+      "file": "textures/bldg_gym_roof01_com.png",
+      "width": 512,
+      "height": 512,
+      "alpha": false
+    },
+    "bldg_gym_window01_com": {
+      "file": "textures/bldg_gym_window01_com.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "bldg_gym_door01_com": {
+      "file": "textures/bldg_gym_door01_com.png",
+      "width": 128,
+      "height": 256,
+      "alpha": false
+    },
+    "window01_com": {
+      "file": "textures/window01_com.png",
+      "width": 128,
+      "height": 128,
+      "alpha": false
+    },
+    "house02_01_area02": {
+      "file": "textures/house02_01_area02.png",
+      "width": 512,
+      "height": 512,
+      "alpha": false
+    },
+    "rooftile03_01_area02": {
+      "file": "textures/rooftile03_01_area02.png",
+      "width": 256,
+      "height": 256,
+      "alpha": true
+    },
+    "rooftile03_02_area02": {
+      "file": "textures/rooftile03_02_area02.png",
+      "width": 256,
+      "height": 256,
+      "alpha": true
+    },
+    "house02_02_area02": {
+      "file": "textures/house02_02_area02.png",
+      "width": 256,
+      "height": 256,
+      "alpha": true
+    },
+    "wall01_01_area03": {
+      "file": "textures/wall01_01_area03.png",
+      "width": 512,
+      "height": 512,
+      "alpha": false
+    },
+    "roof01_01_area03": {
+      "file": "textures/roof01_01_area03.png",
+      "width": 512,
+      "height": 512,
+      "alpha": true
+    },
+    "roof01_02_area03": {
+      "file": "textures/roof01_02_area03.png",
+      "width": 512,
+      "height": 512,
+      "alpha": true
+    },
+    "town003_door02_01": {
+      "file": "textures/town003_door02_01.png",
+      "width": 128,
+      "height": 256,
+      "alpha": false
+    },
+    "tile01_03_area03": {
+      "file": "textures/tile01_03_area03.png",
+      "width": 512,
+      "height": 512,
+      "alpha": false
+    },
+    "wall02_02_area03": {
+      "file": "textures/wall02_02_area03.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "wall02_01_area03": {
+      "file": "textures/wall02_01_area03.png",
+      "width": 512,
+      "height": 512,
+      "alpha": false
+    },
+    "roof02_01_area03": {
+      "file": "textures/roof02_01_area03.png",
+      "width": 512,
+      "height": 512,
+      "alpha": false
+    },
+    "roof02_02_area03": {
+      "file": "textures/roof02_02_area03.png",
+      "width": 512,
+      "height": 512,
+      "alpha": false
+    },
+    "wall01_01_area04": {
+      "file": "textures/wall01_01_area04.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "wall01_02_area04": {
+      "file": "textures/wall01_02_area04.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "roof01_area04": {
+      "file": "textures/roof01_area04.png",
+      "width": 512,
+      "height": 512,
+      "alpha": false
+    },
+    "roof02_area04": {
+      "file": "textures/roof02_area04.png",
+      "width": 512,
+      "height": 512,
+      "alpha": false
+    },
+    "town004_door01_01": {
+      "file": "textures/town004_door01_01.png",
+      "width": 128,
+      "height": 256,
+      "alpha": false
+    },
+    "signboard01_03_area04": {
+      "file": "textures/signboard01_03_area04.png",
+      "width": 512,
+      "height": 512,
+      "alpha": false
+    },
+    "light01_com": {
+      "file": "textures/light01_com.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "streetlamp01_02_area04": {
+      "file": "textures/streetlamp01_02_area04.png",
+      "width": 128,
+      "height": 128,
+      "alpha": false
+    },
+    "streetlamp01_03_area04": {
+      "file": "textures/streetlamp01_03_area04.png",
+      "width": 128,
+      "height": 128,
+      "alpha": false
+    },
+    "streetlamp01_01_area04": {
+      "file": "textures/streetlamp01_01_area04.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "house01_01_area09": {
+      "file": "textures/house01_01_area09.png",
+      "width": 512,
+      "height": 512,
+      "alpha": false
+    },
+    "house01_02_area09": {
+      "file": "textures/house01_02_area09.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "roof01_01_area09": {
+      "file": "textures/roof01_01_area09.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "roof01_02_area09": {
+      "file": "textures/roof01_02_area09.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "lighttable01_t": {
+      "file": "textures/lighttable01_t.png",
+      "width": 512,
+      "height": 8,
+      "alpha": false
+    },
+    "town006_door01_01": {
+      "file": "textures/town006_door01_01.png",
+      "width": 128,
+      "height": 256,
+      "alpha": false
+    },
+    "window01_area09": {
+      "file": "textures/window01_area09.png",
+      "width": 128,
+      "height": 128,
+      "alpha": false
+    },
+    "house02_01_area09": {
+      "file": "textures/house02_01_area09.png",
+      "width": 512,
+      "height": 256,
+      "alpha": false
+    },
+    "town006_door02_01": {
+      "file": "textures/town006_door02_01.png",
+      "width": 128,
+      "height": 256,
+      "alpha": false
+    },
+    "house01_02_area08": {
+      "file": "textures/house01_02_area08.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "roof01_01_area08": {
+      "file": "textures/roof01_01_area08.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "roof01_02_area08": {
+      "file": "textures/roof01_02_area08.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "house01_01_area08": {
+      "file": "textures/house01_01_area08.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "town005_door01_01": {
+      "file": "textures/town005_door01_01.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "tower03_area08": {
+      "file": "textures/tower03_area08.png",
+      "width": 512,
+      "height": 512,
+      "alpha": false
+    },
+    "tower02_area08": {
+      "file": "textures/tower02_area08.png",
+      "width": 512,
+      "height": 128,
+      "alpha": false
+    },
+    "window01_area08": {
+      "file": "textures/window01_area08.png",
+      "width": 128,
+      "height": 128,
+      "alpha": false
+    },
+    "tower01_area08": {
+      "file": "textures/tower01_area08.png",
+      "width": 256,
+      "height": 512,
+      "alpha": false
+    },
+    "block01_area08": {
+      "file": "textures/block01_area08.png",
+      "width": 512,
+      "height": 512,
+      "alpha": false
+    },
+    "fence01_01_area02": {
+      "file": "textures/fence01_01_area02.png",
+      "width": 128,
+      "height": 128,
+      "alpha": false
+    },
+    "roadbench02_area07": {
+      "file": "textures/roadbench02_area07.png",
+      "width": 512,
+      "height": 256,
+      "alpha": false
+    },
+    "lamp_glass01_area03": {
+      "file": "textures/lamp_glass01_area03.png",
+      "width": 64,
+      "height": 64,
+      "alpha": false
+    },
+    "lamp01_town03_land03": {
+      "file": "textures/lamp01_town03_land03.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "lamp01_02_town03_land03": {
+      "file": "textures/lamp01_02_town03_land03.png",
       "width": 256,
       "height": 256,
       "alpha": false
@@ -2667,10 +5700,58 @@
       "height": 128,
       "alpha": false
     },
+    "roadtile01_area02": {
+      "file": "textures/roadtile01_area02.png",
+      "width": 512,
+      "height": 512,
+      "alpha": false
+    },
+    "roadtile02_area02": {
+      "file": "textures/roadtile02_area02.png",
+      "width": 512,
+      "height": 512,
+      "alpha": false
+    },
+    "asphalt01_area02": {
+      "file": "textures/asphalt01_area02.png",
+      "width": 512,
+      "height": 512,
+      "alpha": false
+    },
+    "tile02_01_area02": {
+      "file": "textures/tile02_01_area02.png",
+      "width": 512,
+      "height": 512,
+      "alpha": false
+    },
+    "tile01_01_area03": {
+      "file": "textures/tile01_01_area03.png",
+      "width": 512,
+      "height": 512,
+      "alpha": false
+    },
     "cliff02_com": {
       "file": "textures/cliff02_com.png",
       "width": 512,
       "height": 128,
+      "alpha": false
+    },
+    "tile01_01_area04": {
+      "file": "textures/tile01_01_area04.png",
+      "width": 512,
+      "height": 512,
+      "alpha": false
+    },
+    "tile02_01_area09": {
+      "file": "textures/tile02_01_area09.png",
+      "width": 512,
+      "height": 512,
+      "alpha": false
+    },
+    "asphalt01_area08": {
+      "file": "textures/asphalt01_area08.png",
+      "width": 512,
+      "height": 512,
       "alpha": false
     },
     "shadowtable01_t": {
@@ -2682,12 +5763,6 @@
     "shadowtable02_t": {
       "file": "textures/shadowtable02_t.png",
       "width": 256,
-      "height": 8,
-      "alpha": false
-    },
-    "lighttable01_t": {
-      "file": "textures/lighttable01_t.png",
-      "width": 512,
       "height": 8,
       "alpha": false
     }

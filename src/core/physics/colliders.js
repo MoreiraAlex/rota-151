@@ -68,6 +68,9 @@ function lgpeHullOf(solid) {
  * - árvore (qualquer espécie): cilindro em pé no tronco, do tamanho da
  *   espécie (`trunkOf`);
  * - pedra: cilindro afundado um pouco no chão.
+ *
+ * Os prédios e objetos de rua das cidades (docs/features/056-bioma-
+ * cidade.md) sempre têm modelo do LGPE: o casco dele, na base.
  */
 function addSolidColliders(chunk, body) {
   if (!chunk.solids) return
@@ -95,6 +98,10 @@ function addSolidColliders(chunk, body) {
       tree.y + height / 2,
       tree.z,
     )
+  }
+  for (const building of chunk.solids.buildings ?? []) {
+    const hull = lgpeHullOf(building)
+    if (hull) add(hull, building.x, building.y, building.z)
   }
   for (const rock of chunk.solids.rocks) {
     const hull = lgpeHullOf(rock)

@@ -493,7 +493,7 @@ biomas são os dele).
 ## Fora de escopo
 
 - **Itens no servidor** (cada item pego some para todos) — 072.
-- **Estruturas e Pokécenter** — 056.
+- **Estruturas e Pokécenter** — 056 (virou "Bioma cidade"; o Pokécenter funcionando foi para a 086).
 - **Loja e dinheiro** — depois da beta.
 - **Criatura pegar item** — não pega; só o treinador.
 - **Condição dos itens** (estragar, fruta derrubada voltar a ser pegável) —

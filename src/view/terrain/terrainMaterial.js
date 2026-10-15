@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import {
+  COLOR_WEIGHT_GROUPS,
   MAX_COLOR_LAYERS,
   MAX_TERRAIN_LAYERS,
   TERRAIN_COLOR_LAYERS,
@@ -16,20 +17,20 @@ const TEXTURE_ANISOTROPY = 8
 // médio, normal reta.
 const NEUTRAL_TEXEL = [128, 128, 128, 255]
 
+// Uma linha de GLSL por grupo de quatro pesos de camada de cor.
+const colorGroups = (line) =>
+  Array.from({ length: COLOR_WEIGHT_GROUPS }, (_, i) => line(i)).join('\n')
+
 const VERTEX_HEADER = /* glsl */ `
 attribute vec4 groundLayers0;
 attribute vec4 groundLayers1;
 attribute float groundDetail;
-attribute vec4 groundColors0;
-attribute vec4 groundColors1;
-attribute vec4 groundColors2;
+${colorGroups((i) => `attribute vec4 groundColors${i};`)}
 attribute float groundTextureShare;
 varying vec4 vGroundLayers0;
 varying vec4 vGroundLayers1;
 varying float vGroundDetail;
-varying vec4 vGroundColors0;
-varying vec4 vGroundColors1;
-varying vec4 vGroundColors2;
+${colorGroups((i) => `varying vec4 vGroundColors${i};`)}
 varying float vGroundTextureShare;
 varying vec3 vTerrainWorld;
 varying vec3 vTerrainNormal;
@@ -38,7 +39,7 @@ varying vec3 vTerrainNormal;
 const FRAGMENT_HEADER = /* glsl */ `
 uniform sampler2DArray uGroundLayers;
 uniform sampler2DArray uColorLayers;
-uniform float uColorTextureSize;
+uniform float uColorLayerSizes[${MAX_COLOR_LAYERS}];
 uniform float uTextureSize;
 uniform float uNormalStrength;
 uniform float uTextureDetail;
@@ -48,12 +49,18 @@ uniform float uGrainStrength;
 varying vec4 vGroundLayers0;
 varying vec4 vGroundLayers1;
 varying float vGroundDetail;
-varying vec4 vGroundColors0;
-varying vec4 vGroundColors1;
-varying vec4 vGroundColors2;
+${colorGroups((i) => `varying vec4 vGroundColors${i};`)}
 varying float vGroundTextureShare;
 varying vec3 vTerrainWorld;
 varying vec3 vTerrainNormal;
+
+// O peso da camada de cor \`layer\` no fragmento.
+float colorWeightOf(int layer) {
+  int group = layer / 4;
+  int slot = layer - group * 4;
+${colorGroups((i) => `  if (group == ${i}) return vGroundColors${i}[slot];`)}
+  return 0.0;
+}
 
 float terrainHash(vec2 p) {
   p = fract(p * vec2(123.34, 456.21));
@@ -120,9 +127,7 @@ const VERTEX_WORLD = /* glsl */ `
 vGroundLayers0 = groundLayers0;
 vGroundLayers1 = groundLayers1;
 vGroundDetail = groundDetail;
-vGroundColors0 = groundColors0;
-vGroundColors1 = groundColors1;
-vGroundColors2 = groundColors2;
+${colorGroups((i) => `vGroundColors${i} = groundColors${i};`)}
 vGroundTextureShare = groundTextureShare;
 vTerrainWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;
 `
@@ -158,12 +163,10 @@ for (int layer = 0; layer < ${MAX_TERRAIN_LAYERS}; layer++) {
 if (vGroundTextureShare > 0.001) {
   vec3 textured = vec3(0.0);
   float texturedTotal = 0.0;
-  vec2 colorUv = vTerrainWorld.xz / uColorTextureSize;
   for (int layer = 0; layer < ${MAX_COLOR_LAYERS}; layer++) {
-    float weight = layer < 4
-      ? vGroundColors0[layer]
-      : layer < 8 ? vGroundColors1[layer - 4] : vGroundColors2[layer - 8];
+    float weight = colorWeightOf(layer);
     if (weight < 0.002) continue;
+    vec2 colorUv = vTerrainWorld.xz / uColorLayerSizes[layer];
     textured += texture(uColorLayers, vec3(colorUv, float(layer))).rgb * weight;
     texturedTotal += weight;
   }
@@ -268,13 +271,17 @@ function copyLayer(texture, index, image) {
  * de `GAME_CONFIG.TERRAIN_LOOK` (`applyTerrainLook`). Um material para todos
  * os chunks; quem cria chama `dispose()` (regra 5.3).
  */
+// Tamanho de cada camada de cor, compartilhado pelos materiais do relevo.
+const colorLayerSizes = new Float32Array(MAX_COLOR_LAYERS).fill(1)
+
 export function createTerrainMaterial() {
   const layers = createLayerArray()
   const colorLayers = createColorArray()
   const uniforms = {
     uGroundLayers: { value: layers },
     uColorLayers: { value: colorLayers },
-    uColorTextureSize: { value: 1 },
+    // O mesmo array em todos os materiais (`setColorLayerSizes`).
+    uColorLayerSizes: { value: colorLayerSizes },
     uTextureSize: { value: 1 },
     uNormalStrength: { value: 0 },
     uTextureDetail: { value: 0 },
@@ -319,13 +326,25 @@ export function createTerrainMaterial() {
 }
 
 /**
+ * Tamanho (m) de uma repetição de cada camada de cor: o próprio dela
+ * (`COLOR_LAYER_SIZES`) ou o de todas (`COLOR_TEXTURE_SIZE`). Vale na hora
+ * (o painel do debug chama de novo ao mexer).
+ */
+export function setColorLayerSizes(look) {
+  TERRAIN_COLOR_LAYERS.forEach(([layer], index) => {
+    colorLayerSizes[index] =
+      look.COLOR_LAYER_SIZES?.[layer] ?? look.COLOR_TEXTURE_SIZE
+  })
+}
+
+/**
  * Passa os números do desenho do chão (`GAME_CONFIG.TERRAIN_LOOK`) para o
  * material.
  */
 export function applyTerrainLook(material, look) {
   const uniforms = material.userData.terrainUniforms
   uniforms.uTextureSize.value = look.TEXTURE_SIZE
-  uniforms.uColorTextureSize.value = look.COLOR_TEXTURE_SIZE
+  setColorLayerSizes(look)
   uniforms.uNormalStrength.value = look.NORMAL_STRENGTH
   uniforms.uTextureDetail.value = look.TEXTURE_DETAIL
   uniforms.uPatchStrength.value = look.PATCH_STRENGTH

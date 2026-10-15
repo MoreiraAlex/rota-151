@@ -20,6 +20,7 @@ import { useTerrainChunks } from '@/view/hooks/useTerrainChunks'
 import { loadedFogRange } from '@/view/terrain/fogRange'
 import { resolveSkyLook } from '@/view/weather/skyLook'
 import {
+  buildBuildingMeshes,
   buildRockMeshes,
   buildTreeMeshes,
   buildUndergrowthMeshes,
@@ -115,7 +116,7 @@ function GrassTile({ chunk, tile, models, showGrass, showFlowers }) {
 /**
  * A vegetação de um bloco de sólidos (`loadedBlocks` do conjunto de chunks,
  * `SOLIDS_BLOCK_SIZE` m — vários chunks, para não multiplicar as malhas):
- * árvores e pedras (os do core) e o sub-bosque (arbustos,
+ * árvores, pedras e prédios das cidades (os do core) e o sub-bosque (arbustos,
  * samambaias, plantas, seixos), sorteados sobre o relevo do
  * bloco inteiro (`ground`). Pela distância da câmera
  * (`VEGETATION_QUALITY`): `showSolids` (até `treeDistance`), `showDetail`
@@ -143,6 +144,7 @@ function BlockVegetation({
       plants: undergrowth('leafy-plant'),
       pebbles: undergrowth('pebble'),
       rocks: () => buildRockMeshes(chunk, options),
+      buildings: () => buildBuildingMeshes(chunk, options),
     }
   }, [chunk, models, castCanopyShadow])
 
@@ -172,6 +174,9 @@ function BlockVegetation({
       )}
       {settings.rocks && (
         <MeshesOf build={builds.rocks} castShadows={castShadows} />
+      )}
+      {settings.buildings && (
+        <MeshesOf build={builds.buildings} castShadows={castShadows} />
       )}
     </>
   )

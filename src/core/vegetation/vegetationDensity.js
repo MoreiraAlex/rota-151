@@ -1,7 +1,7 @@
 import { GAME_CONFIG } from '../gameConfig'
 import { clamp } from '../math'
 import { chunkHeightAt, heightIndex } from '../terrain/terrainChunk'
-import { trailAt } from '../terrain/trails'
+import { naturalTrailAt, trailAt } from '../terrain/trails'
 import { clearingNoiseAt, opennessOf } from './clearings'
 import { createGrassClusterField } from './grassClusters'
 import { patchAt } from './patches'
@@ -146,13 +146,13 @@ export function createKindDensity(
         createGrassClusterField(seed, entry.clusters, opennessAt),
     }
   })
-  // O que é de trilha (`place: 'trail'`, os seixos) só nasce nela; o
-  // resto, fora dela.
+  // O que é de trilha (`place: 'trail'`, os seixos) só nasce nela — não
+  // na rua das cidades; o resto, fora das duas.
   const isTrailKind = biomeList.some(
     (biome) => vegetationEntryOf(biome, kind)?.place === 'trail',
   )
   const offTrail = isTrailKind
-    ? (x, z) => trailAt(chunk, x, z)
+    ? (x, z) => naturalTrailAt(chunk, x, z)
     : (x, z) => 1 - trailAt(chunk, x, z)
   if (isEmpty || shaping.every((item) => !item)) {
     return {

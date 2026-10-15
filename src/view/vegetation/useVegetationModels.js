@@ -25,6 +25,7 @@ import { getReadyLgpeIds, subscribeLgpeChoices } from './lgpeChoices'
  * @property {'toon' | 'toon-low'} kind - com e sem sombra
  * @property {THREE.BufferGeometry} geometry
  * @property {THREE.Material} material
+ * @property {string} [materialName] - o material do jogo original
  *
  * @typedef {{ name: string, category?: string, parts: ModelPart[],
  *   far?: VegetationModel }} VegetationModel

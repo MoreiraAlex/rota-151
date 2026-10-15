@@ -1,6 +1,7 @@
 import { GAME_CONFIG } from '../gameConfig'
 import { createRng, deriveSeed } from '../rng'
 import { chunkHeightAt } from '../terrain/terrainChunk'
+import { placeTown } from '../town/townPlan'
 import { dominantBiomeAt, largestReachOf, lgpeColliderOf } from './solidModels'
 import { createKindDensity, densityAt, slopeAt } from './vegetationDensity'
 import { vegetationEntryOf } from './vegetationEntry'
@@ -59,6 +60,10 @@ const isStandingTree = (kind) => STANDING_TREE_KINDS.includes(kind)
  * @property {number} variant - qual modelo, 0 a 1
  * @property {string} biome - o bioma dos modelos dele (`dominantBiomeAt`,
  *   o mesmo da view)
+ * @property {string} [model] - o modelo do LGPE, nos da cidade (prédios e
+ *   objetos de rua, core/town/townPlan.js — o resto escolhe pelo bioma)
+ * @property {string} [theme] - o tema da cidade, nos prédios (`id` de
+ *   `town.themes`)
  */
 
 /** @typedef {{ x: number, z: number, radius: number }} Footprint */
@@ -270,14 +275,16 @@ function placeKind(
  * @property {SolidPlacement[]} trees - as árvores em pé de todas as
  *   espécies (`kind` de cada uma)
  * @property {SolidPlacement[]} rocks
+ * @property {SolidPlacement[]} buildings - prédios e objetos de rua das
+ *   cidades (`placeTown`, docs/features/056-bioma-cidade.md)
  * @property {Footprint[]} footprints - de todos, pelo modelo
  *   (`solidFootprintOf` — pathfinding e sub-bosque)
  */
 
 /**
- * Os objetos sólidos do chunk: árvores primeiro (na ordem de
- * `STANDING_TREE_KINDS`), depois pedras, cada uma sem
- * encostar nos de antes.
+ * Os objetos sólidos do chunk: a cidade primeiro (prédios e objetos de rua,
+ * `placeTown`), depois árvores (na ordem de `STANDING_TREE_KINDS`) e
+ * pedras, cada uma sem encostar nos de antes.
  *
  * @param {import('../terrain/terrainChunk').TerrainChunk} chunk
  * @param {object} options
@@ -287,23 +294,33 @@ function placeKind(
  * @param {object} [options.params] - `{ trees, rocks, clearings,
  *   patches, altitude }`, formas de `GAME_CONFIG.TREES`/`ROCKS`/
  *   `CLEARINGS`/`VEGETATION_PATCHES`/`VEGETATION_ALTITUDE`
+ * @param {import('../town/cityIndex').CityIndex} [options.cities] - o
+ *   índice de cidades do mundo (`placeTown`)
  * @returns {ChunkSolids}
  */
 export function placeChunkSolids(
   chunk,
-  { seed, biomeList, terrain = GAME_CONFIG.TERRAIN, params = solidParams() },
+  {
+    seed,
+    biomeList,
+    terrain = GAME_CONFIG.TERRAIN,
+    params = solidParams(),
+    cities,
+  },
 ) {
-  const taken = []
+  const town = placeTown(chunk, { seed, biomeList, terrain, cities })
+  const taken = [...town.footprints]
   const crowns = []
   const options = { seed, biomeList, terrain, params, taken, crowns }
   const trees = STANDING_TREE_KINDS.flatMap((kind) =>
     placeKind(chunk, kind, options),
   )
   const rocks = placeKind(chunk, ROCK_KIND, options)
-  const footprints = [...trees, ...rocks].map((solid) =>
-    solidFootprintOf(solid, params),
-  )
-  return { trees, rocks, footprints }
+  const footprints = [
+    ...town.footprints,
+    ...[...trees, ...rocks].map((solid) => solidFootprintOf(solid, params)),
+  ]
+  return { trees, rocks, buildings: town.buildings, footprints }
 }
 
 /** Os números dos objetos sólidos agora (`GAME_CONFIG`). */

@@ -42,17 +42,23 @@ function setup() {
   return made
 }
 
+// Faixas do mundo do jogo onde procurar (mais de uma: uma cidade — sem
+// itens, docs/features/056-bioma-cidade.md — pode cobrir uma faixa inteira).
+const SEARCH_ROWS = [3, -6, 12, -15]
+
 // Um chunk do mundo do jogo com itens no chão (carregado).
 function loadChunkWithItems() {
-  for (let chunkX = 2; chunkX <= 12; chunkX++) {
-    carregarChunk(chunkX, 3)
-    const chunk = TEST_LEVEL.terrain
-      .loadedChunks()
-      .find((c) => c.chunkX === chunkX && c.chunkZ === 3)
-    if (chunkItemRulesOf(chunk) && rollChunkItems(chunk).length > 1) {
-      return chunk
+  for (const chunkZ of SEARCH_ROWS) {
+    for (let chunkX = 2; chunkX <= 12; chunkX++) {
+      carregarChunk(chunkX, chunkZ)
+      const chunk = TEST_LEVEL.terrain
+        .loadedChunks()
+        .find((c) => c.chunkX === chunkX && c.chunkZ === chunkZ)
+      if (chunkItemRulesOf(chunk) && rollChunkItems(chunk).length > 1) {
+        return chunk
+      }
+      descarregarChunk(chunkX, chunkZ)
     }
-    descarregarChunk(chunkX, 3)
   }
   throw new Error('nenhum chunk com itens')
 }

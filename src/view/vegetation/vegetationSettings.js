@@ -1,8 +1,8 @@
 /**
  * O que o debug (F2, painel "Vegetação") mexe na vegetação
  * (docs/features/049-vegetacao-e-floresta.md): ligar e desligar grama,
- * flores, árvores, sub-bosque (arbustos, samambaias, plantas, cogumelos) e
- * pedras (para medir o FPS) e refazer os blocos de grama
+ * flores, árvores, sub-bosque (arbustos, samambaias, plantas, cogumelos),
+ * pedras e prédios das cidades (para medir o FPS) e refazer os blocos de grama
  * e flores depois de mudar densidade, cores ou qualidade no `GAME_CONFIG`.
  * Os números de material (vento, cor da folha) o `VegetationView` lê a cada
  * quadro e não precisam disto.
@@ -13,6 +13,7 @@ let state = {
   trees: true,
   undergrowth: true,
   rocks: true,
+  buildings: true,
   revision: 0,
 }
 const listeners = new Set()
@@ -25,7 +26,7 @@ export const getVegetationSettings = () => state
 
 /**
  * Liga ou desliga uma parte (`grass`, `flowers`, `trees`, `undergrowth`,
- * `rocks`).
+ * `rocks`, `buildings`).
  */
 export function setVegetationVisible(part, isVisible) {
   state = { ...state, [part]: isVisible }

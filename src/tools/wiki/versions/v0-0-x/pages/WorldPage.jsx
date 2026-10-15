@@ -46,7 +46,8 @@ export function WorldPage({ data, version }) {
       <Section id="biomas" title="Biomas">
         <p>
           O mundo é dividido em <strong>biomas</strong>, cada um com o próprio
-          chão, cores, plantas e formato de terreno. Por enquanto existem três:
+          chão, cores, plantas e formato de terreno. Por enquanto existem
+          quatro:
         </p>
         <ul>
           <li>
@@ -58,6 +59,10 @@ export function WorldPage({ data, version }) {
           </li>
           <li>
             <strong>Savana</strong>: campo seco e quente, com ondulações largas.
+          </li>
+          <li>
+            <strong>Cidade</strong>: chão quase plano, com ruas e casas. É rara
+            e pequena — achar uma é uma surpresa no caminho.
           </li>
         </ul>
         <p>
@@ -173,6 +178,50 @@ export function WorldPage({ data, version }) {
           desviam delas; arbustos e mato dá pra atravessar. O vento balança o
           capim e as copas do mesmo jeito.
         </p>
+      </Section>
+
+      <Section id="cidades" title="As cidades">
+        <p>
+          De vez em quando o campo dá lugar a uma <strong>cidade</strong>: ruas
+          calçadas em quadras, postes nas esquinas e casas de frente para a rua,
+          com jardim, flores e algumas árvores.
+        </p>
+        <p>
+          Cada cidade segue o jeito de uma cidade de Kanto — as casas, o
+          calçamento da rua e um prédio que só ela tem:
+        </p>
+        <ul>
+          <li>
+            <strong>Pewter</strong>: casas de pedra, ruas de lajota e o museu.
+          </li>
+          <li>
+            <strong>Cerulean</strong>: casas de telhado azul e a loja de
+            bicicleta.
+          </li>
+          <li>
+            <strong>Vermilion</strong>: casas de telhado laranja, ruas de
+            ladrilho e o fã-clube.
+          </li>
+          <li>
+            <strong>Lavender</strong>: casas roxas, ruas de asfalto e a Torre
+            Pokémon.
+          </li>
+        </ul>
+        <p>
+          Toda cidade tem um <strong>Pokécenter</strong>, uma{' '}
+          <strong>loja</strong> e um <strong>ginásio</strong>, perto do meio
+          dela. O ginásio tem a cor da cidade.
+        </p>
+        <ul>
+          <li>
+            Os prédios são sólidos: dá pra contornar, mas ainda não dá pra
+            entrar.
+          </li>
+          <li>
+            Na cidade não aparecem itens no chão, e as plantas do jardim não dão
+            fruta.
+          </li>
+        </ul>
       </Section>
 
       <Section id="itens" title="Itens pelo mundo">
@@ -333,10 +382,10 @@ export function WorldPage({ data, version }) {
 
       <Notice tone="soon">
         <p>
-          Ainda vão chegar ao mundo: água de verdade em lagos e rios, itens pelo
-          chão e o Pokécenter. Os Pokémon de cada bioma, horário e clima também
-          chegam depois. A montanha e as cavernas ficam para depois desta
-          versão.
+          Ainda vão chegar ao mundo: água de verdade em lagos e rios, entrar nos
+          prédios das cidades e o Pokécenter curando o time. Os Pokémon de cada
+          bioma, horário e clima também chegam depois. A montanha e as cavernas
+          ficam para depois desta versão.
         </p>
       </Notice>
     </>

@@ -13,6 +13,7 @@ import {
   terrainColorAt,
 } from './terrainGeometry'
 import {
+  COLOR_WEIGHT_GROUPS,
   MAX_COLOR_LAYERS,
   MAX_TERRAIN_LAYERS,
   TERRAIN_LAYERS,
@@ -129,9 +130,9 @@ describe('camadas de desenho do chão', () => {
     const geometry = buildTerrainChunkGeometry(chunk, WATER_LEVEL)
     const layers0 = geometry.getAttribute('groundLayers0')
     const layers1 = geometry.getAttribute('groundLayers1')
-    const colors0 = geometry.getAttribute('groundColors0')
-    const colors1 = geometry.getAttribute('groundColors1')
-    const colors2 = geometry.getAttribute('groundColors2')
+    const colors = Array.from({ length: COLOR_WEIGHT_GROUPS }, (_, g) =>
+      geometry.getAttribute(`groundColors${g}`),
+    )
     const share = geometry.getAttribute('groundTextureShare')
     const detail = geometry.getAttribute('groundDetail')
     const details = listBiomes().map(({ ground }) => ground.detail)
@@ -147,7 +148,7 @@ describe('camadas de desenho do chão', () => {
       // desenho de sempre.
       const textured = share.getX(i)
       expect(sumOf(i, layers0, layers1) + textured).toBeCloseTo(1, 5)
-      expect(sumOf(i, colors0, colors1, colors2)).toBeCloseTo(textured, 5)
+      expect(sumOf(i, ...colors)).toBeCloseTo(textured, 5)
       expect(detail.getX(i)).toBeGreaterThanOrEqual(
         Math.min(...details) * (1 - textured) - 1e-6,
       )

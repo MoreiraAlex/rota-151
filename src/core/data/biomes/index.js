@@ -26,6 +26,7 @@ import { DESERT } from './desert'
 import { MOUNTAIN } from './mountain'
 import { VOLCANIC } from './volcanic'
 import { TUNDRA } from './tundra'
+import { CITY } from './city'
 
 export const BIOME_REGISTRY = {
   [OCEAN.id]: OCEAN,
@@ -39,6 +40,7 @@ export const BIOME_REGISTRY = {
   [MOUNTAIN.id]: MOUNTAIN,
   [VOLCANIC.id]: VOLCANIC,
   [TUNDRA.id]: TUNDRA,
+  [CITY.id]: CITY,
 }
 
 export function getBiome(id, registry = BIOME_REGISTRY) {

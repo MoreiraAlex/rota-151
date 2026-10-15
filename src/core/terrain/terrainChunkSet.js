@@ -1,4 +1,6 @@
 import { placeChunkBushes } from '../vegetation/bushPlacement'
+import { createCityIndex } from '../town/cityIndex'
+import { chunkStreets, withStreets } from '../town/townPlan'
 import { placeChunkSolids } from '../vegetation/solidPlacement'
 import { carveTrails, chunkTrails } from './trails'
 import {
@@ -24,7 +26,7 @@ import {
  * Cada chunk carregado leva também os arbustos dele (`bushes`,
  * `placeChunkBushes`, sorteados por bloco como os sólidos — o F vasculha,
  * docs/features/055-itens-no-mundo.md), os objetos sólidos dele (`solids`:
- * árvores e pedras — `placeChunkSolids`,
+ * árvores, pedras e os prédios das cidades — `placeChunkSolids`,
  * docs/features/049-vegetacao-e-floresta.md) — o colisor e a grade de
  * navegação saem deles, e a view os desenha — e a seed da vegetação
  * (`vegetationSeed`, para a view sortear a vegetação só visual com as
@@ -110,6 +112,7 @@ function solidsOfChunk(blockSolids, chunk) {
   return {
     trees: blockSolids.trees.filter(isInside),
     rocks: blockSolids.rocks.filter(isInside),
+    buildings: (blockSolids.buildings ?? []).filter(isInside),
     footprints: blockSolids.footprints.filter((circle) =>
       touchesRect(
         circle,
@@ -130,6 +133,33 @@ const touchesRect = (circle, minX, maxX, minZ, maxZ) =>
 
 const NO_STATUS = { pending: [], kept: [] }
 
+/**
+ * O índice de cidades do mundo (core/town/cityIndex.js) pela receita e o
+ * relevo da seed — `null` sem bioma de cidade. Um por `sampler`: as
+ * cidades achadas ficam guardadas até a seed ou a receita mudar.
+ */
+function worldCityIndex(seed, recipe, sampler) {
+  const { biomeList, terrain } = recipe
+  const town = biomeList.find((biome) => biome.town)?.town
+  if (!town) return null
+  const isTown = biomeList.map((biome) => Boolean(biome.town))
+  const weights = new Float64Array(biomeList.length)
+  return createCityIndex({
+    seed,
+    town,
+    terrain,
+    shareAt(x, z) {
+      sampler.sample(x, z, weights)
+      let share = 0
+      for (let i = 0; i < weights.length; i++) {
+        if (isTown[i]) share += weights[i]
+      }
+      return share
+    },
+    heightAt: (x, z) => sampler.sample(x, z),
+  })
+}
+
 const sameKeys = (a, b) =>
   a.length === b.length && a.every((key, index) => key === b[index])
 
@@ -144,6 +174,7 @@ export function createTerrainChunkSet({
   let recipe = copyTerrainRecipe(initialRecipe)
   let vegetationSeed = seed
   let sampler = createTerrainSampler(seed, recipe)
+  let cities = worldCityIndex(seed, recipe, sampler)
   const chunks = new Map()
   const blocks = new Map()
   let status = NO_STATUS
@@ -172,6 +203,8 @@ export function createTerrainChunkSet({
       waterLevel: recipe.terrain.WATER_LEVEL,
     })
     carveTrails(ground, ground.trails, recipe.trails)
+    ground.streets = chunkStreets(ground, { biomeList: recipe.biomeList })
+    ground.trails = withStreets(ground.trails, ground.streets)
     return ground
   }
 
@@ -188,6 +221,7 @@ export function createTerrainChunkSet({
         biomeList: recipe.biomeList,
         terrain: recipe.terrain,
         params: recipe.solids,
+        cities,
       })
       // Os arbustos, que o F vasculha (docs/features/055-itens-no-mundo.md),
       // no bloco inteiro como os sólidos (a view desenha o bloco) e depois
@@ -238,6 +272,19 @@ export function createTerrainChunkSet({
         waterLevel: recipe.terrain.WATER_LEVEL,
       })
       carveTrails(chunk, chunk.trails, recipe.trails)
+      // As ruas das cidades no mesmo canal, depois de afundar as trilhas:
+      // pintam o chão e afastam a vegetação, sem afundar.
+      // `streets` fica também à parte: o que é só de trilha (os seixos) não
+      // nasce na rua.
+      chunk.streets = chunkStreets(chunk, { biomeList: recipe.biomeList })
+      chunk.trails = withStreets(chunk.trails, chunk.streets)
+      // A rua da cidade pinta com o calçamento do tema dela
+      // (docs/features/056-bioma-cidade.md).
+      chunk.streetLayer =
+        cities?.themeNear(
+          chunk.minX + chunk.size / 2,
+          chunk.minZ + chunk.size / 2,
+        )?.street ?? null
       const block = blockOf(chunk)
       block.chunkKeys.add(key)
       chunk.solidsBlock = block.key
@@ -301,6 +348,7 @@ export function createTerrainChunkSet({
       blocks.clear()
       vegetationSeed = newSeed
       sampler = createTerrainSampler(newSeed, recipe)
+      cities = worldCityIndex(newSeed, recipe, sampler)
       status = NO_STATUS
       notify()
     },

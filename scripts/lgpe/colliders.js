@@ -12,6 +12,10 @@ import { readGlbPositions } from './glb.js'
  * carregar modelo.
  *
  * - **Pedra**: o casco da pedra inteira.
+ * - **Prédio e objeto de rua** (docs/features/056-bioma-cidade.md): o casco
+ *   do modelo inteiro, sem as peças achatadas (`FLAT`, o piso da entrada
+ *   — senão o casco vira rampa até a parede), e a caixa dele no chão
+ *   (`box`: a pegada retangular).
  * - **Árvore**: só o tronco — os vértices abaixo da copa (a copa começa no
  *   vértice mais baixo longe do eixo, `CROWN_REACH`, acima das raízes) —,
  *   com a ponta dele
@@ -22,8 +26,9 @@ import { readGlbPositions } from './glb.js'
  * `DIRECTIONS` direções (todos vértices do casco de verdade).
  *
  * Grava `src/core/data/lgpeColliders.json`: id →
- * `{ points: [x, y, z, ...], reach }` (m, no tamanho do modelo; `reach` é
- * o maior afastamento do eixo no chão — a pegada).
+ * `{ points: [x, y, z, ...], reach, box? }` (m, no tamanho do modelo;
+ * `reach` é o maior afastamento do eixo no chão — a pegada; `box`, só nos
+ * prédios e objetos de rua, é `[minX, minZ, maxX, maxZ]`).
  *
  * Uso:
  *   node scripts/lgpe/colliders.js
@@ -46,7 +51,11 @@ const TRUNK_TOP = 0.5
 const DIRECTIONS = 96
 const DECIMALS = 3
 
-const SOLID_CATEGORIES = new Set(['tree', 'rock'])
+const SOLID_CATEGORIES = new Set(['tree', 'rock', 'building', 'street'])
+// Os da cidade: casco inteiro e caixa no chão.
+const BOX_CATEGORIES = new Set(['building', 'street'])
+// Altura (m) abaixo da qual uma peça é achatada (piso) e não colide.
+const FLAT = 0.1
 
 // Direções espalhadas por igual na esfera (espiral de Fibonacci).
 function sphereDirections(count) {
@@ -104,7 +113,37 @@ function pointsOf(primitives) {
 
 const round = (value) => Number(value.toFixed(DECIMALS))
 
+// Sem as peças achatadas (o piso da entrada dos prédios).
+function standingParts(primitives) {
+  return primitives.filter(({ position }) => {
+    let min = Infinity
+    let max = -Infinity
+    for (let i = 1; i < position.length; i += 3) {
+      min = Math.min(min, position[i])
+      max = Math.max(max, position[i])
+    }
+    return max - min >= FLAT
+  })
+}
+
+function boxColliderOf(primitives) {
+  const hull = hullPoints(pointsOf(standingParts(primitives)))
+  const xs = hull.map(([x]) => x)
+  const zs = hull.map(([, , z]) => z)
+  return {
+    points: hull.flat().map(round),
+    reach: round(Math.max(...hull.map(([x, , z]) => Math.hypot(x, z)))),
+    box: [
+      Math.min(...xs),
+      Math.min(...zs),
+      Math.max(...xs),
+      Math.max(...zs),
+    ].map(round),
+  }
+}
+
 function colliderOf(prop, primitives) {
+  if (BOX_CATEGORIES.has(prop.category)) return boxColliderOf(primitives)
   const points = pointsOf(primitives)
   const top = Math.max(...points.map(([, y]) => y))
   const solid = prop.category === 'tree' ? trunkPoints(points, top) : points

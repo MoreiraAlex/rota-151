@@ -107,6 +107,23 @@ export function chunkTrails(
   return isEmpty ? null : trails
 }
 
+/**
+ * O bioma pinta o canal das trilhas (`chunk.trails`)? Os com `trails` e as
+ * cidades (`town`, que põem as ruas nele — docs/features/056-bioma-
+ * cidade.md).
+ */
+export const paintsTrails = (biome) => Boolean(biome?.trails || biome?.town)
+
+/**
+ * Força da trilha de verdade (0 a 1) em `(x, z)` do chunk: o canal sem as
+ * ruas das cidades (`chunk.streets`, docs/features/056-bioma-cidade.md).
+ */
+export function naturalTrailAt(chunk, x, z) {
+  const trail = trailAt(chunk, x, z)
+  if (!chunk.streets) return trail
+  return Math.max(0, trail - chunkFieldAt(chunk, chunk.streets, x, z))
+}
+
 /** Força da trilha (0 a 1) em `(x, z)` do chunk — 0 sem trilha. */
 export function trailAt(chunk, x, z) {
   return chunk.trails ? chunkFieldAt(chunk, chunk.trails, x, z) : 0

@@ -49,13 +49,40 @@ export function lgpeChoicesOf(manifest, kind) {
   )
 }
 
-/** Os ids do LGPE que algum bioma usa (`models` das entradas). */
+/**
+ * Os modelos da cidade de um bioma (`town`, docs/features/056-bioma-
+ * cidade.md): os prédios e os objetos de rua.
+ */
+export function townModelIds(town) {
+  if (!town) return []
+  const { lamp, fence, bench } = town.props
+  const themed = town.themes.flatMap((theme) => [
+    ...[theme.special, ...theme.houses]
+      .filter(Boolean)
+      .map(({ model }) => model),
+    theme.lamp,
+    theme.fence,
+  ])
+  return [
+    ...town.landmarks.map(({ model }) => model),
+    ...themed,
+    lamp,
+    fence,
+    bench,
+  ].filter(Boolean)
+}
+
+/**
+ * Os ids do LGPE que algum bioma usa (`models` das entradas e os da
+ * cidade).
+ */
 export function usedLgpeIds(biomes = listBiomes()) {
   const ids = new Set()
-  for (const { vegetation } of biomes) {
+  for (const { vegetation, town } of biomes) {
     for (const entry of vegetation) {
       for (const id of entry.models ?? []) ids.add(id)
     }
+    for (const id of townModelIds(town)) ids.add(id)
   }
   return [...ids]
 }
@@ -99,7 +126,13 @@ export const lgpePushOf = (category) => PUSH_BY_CATEGORY[category] ?? false
 export const lgpeSwayOf = (category) => SWAY_BY_CATEGORY[category] ?? null
 // Categorias que fazem sombra (planta baixa e flor não: pequenas, e a
 // sombra desenha tudo de novo).
-const SHADOW_CATEGORIES = new Set(['tree', 'rock', 'bush'])
+const SHADOW_CATEGORIES = new Set([
+  'tree',
+  'rock',
+  'bush',
+  'building',
+  'street',
+])
 // Brilho médio abaixo do qual a cor por vértice não é cor: nas árvores
 // redondas o canal vem quase preto (o jogo guarda outro dado nele).
 const MIN_VERTEX_COLOR = 0.15
@@ -192,6 +225,8 @@ function buildPart(mesh, prop, textureOf, disposables) {
     kind: SHADOW_CATEGORIES.has(prop.category) ? 'toon' : 'toon-low',
     geometry,
     material,
+    // O material do jogo original (a cor do ginásio pinta só alguns).
+    materialName: mesh.material.name,
   }
 }
 

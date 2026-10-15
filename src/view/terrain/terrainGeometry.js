@@ -2,8 +2,10 @@ import * as THREE from 'three'
 import { getBiome } from '@/core/data/biomes'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import { heightIndex } from '@/core/terrain/terrainChunk'
+import { paintsTrails } from '@/core/terrain/trails'
 import { clearingNoiseAt, opennessOf } from '@/core/vegetation/clearings'
 import {
+  COLOR_WEIGHT_GROUPS,
   MAX_COLOR_LAYERS,
   MAX_TERRAIN_LAYERS,
   terrainColorLayerIndex,
@@ -86,16 +88,32 @@ function vertexColor(chunk, vertexIndex, heightAboveWater, normalY, target) {
 }
 
 /**
+ * O bioma com o calçamento do tema da cidade do chunk (`chunk.streetLayer`,
+ * docs/features/056-bioma-cidade.md) no lugar da textura da trilha — só
+ * nos biomas de cidade com cor por textura.
+ */
+function withStreetLayer(biome, chunk) {
+  if (!chunk.streetLayer || !biome.town || !biome.ground.colors) return biome
+  return {
+    ...biome,
+    ground: {
+      ...biome.ground,
+      colors: { ...biome.ground.colors, trail: chunk.streetLayer },
+    },
+  }
+}
+
+/**
  * A trilha num vértice (`chunk.trails`, core/terrain/trails.js): a força
- * dela (0 a 1) e a parte de cada bioma com trilha (o peso dele entre os
- * que têm). Sem trilha ali, `null`.
+ * dela (0 a 1) e a parte de cada bioma com trilha ou rua (`paintsTrails`,
+ * o peso dele entre os que têm). Sem trilha ali, `null`.
  */
 function trailShareAt(chunk, biomes, vertexIndex) {
   const strength = chunk.trails?.[vertexIndex] ?? 0
   if (strength <= 0) return null
   const count = chunk.biomeIds.length
   const shares = biomes.map((biome, index) =>
-    biome.trails ? chunk.biomeWeights[vertexIndex * count + index] : 0,
+    paintsTrails(biome) ? chunk.biomeWeights[vertexIndex * count + index] : 0,
   )
   const total = shares.reduce((sum, share) => sum + share, 0)
   if (total === 0) return null
@@ -222,16 +240,17 @@ export function addColorLayers(
  */
 function groundAttributes(chunk, side, vertex, positions, normals, waterLevel) {
   const { biomeIds, biomeWeights, resolution } = chunk
-  const biomes = biomeIds.map((id) => getBiome(id))
+  const biomes = biomeIds.map((id) => withStreetLayer(getBiome(id), chunk))
   const layers0 = new Float32Array(side * side * 4)
   const layers1 = new Float32Array(side * side * 4)
   const detail = new Float32Array(side * side)
   const layerWeights = new Float32Array(MAX_TERRAIN_LAYERS)
   // Cor por textura (biomas com `ground.colors`): os pesos das camadas de
   // cor e o quanto do vértice é desses biomas.
-  const colors0 = new Float32Array(side * side * 4)
-  const colors1 = new Float32Array(side * side * 4)
-  const colors2 = new Float32Array(side * side * 4)
+  const colors = Array.from(
+    { length: COLOR_WEIGHT_GROUPS },
+    () => new Float32Array(side * side * 4),
+  )
   const textureShare = new Float32Array(side * side)
   const colorWeights = new Float32Array(MAX_COLOR_LAYERS)
   const hasColors = biomes.some(({ ground }) => ground.colors)
@@ -258,7 +277,7 @@ function groundAttributes(chunk, side, vertex, positions, normals, waterLevel) {
       for (let biome = 0; biome < biomeIds.length; biome++) {
         const weight = biomeWeights[first + biome] / total
         if (weight === 0) continue
-        const { ground, clearings, trails } = biomes[biome]
+        const { ground, clearings } = biomes[biome]
         if (ground.colors) {
           const amount = clearings?.amount ?? 0
           addColorLayers(
@@ -267,7 +286,7 @@ function groundAttributes(chunk, side, vertex, positions, normals, waterLevel) {
               heightAboveWater,
               normalY: normals.getY(i),
               shade: amount > 0 ? 1 - opennessOf(noise, amount) : 0,
-              trail: trails ? strength : 0,
+              trail: paintsTrails(biomes[biome]) ? strength : 0,
             },
             weight,
             colorWeights,
@@ -302,12 +321,18 @@ function groundAttributes(chunk, side, vertex, positions, normals, waterLevel) {
       }
       layers0.set(layerWeights.subarray(0, 4), i * 4)
       layers1.set(layerWeights.subarray(4, 8), i * 4)
-      colors0.set(colorWeights.subarray(0, 4), i * 4)
-      colors1.set(colorWeights.subarray(4, 8), i * 4)
-      colors2.set(colorWeights.subarray(8, 12), i * 4)
+      colors.forEach((group, g) =>
+        group.set(colorWeights.subarray(g * 4, g * 4 + 4), i * 4),
+      )
     }
   }
-  return { layers0, layers1, detail, colors0, colors1, colors2, textureShare }
+  return {
+    layers0,
+    layers1,
+    detail,
+    colors,
+    textureShare,
+  }
 }
 
 /**
@@ -393,17 +418,11 @@ export function buildTerrainChunkGeometry(chunk, waterLevel) {
     'groundDetail',
     new THREE.BufferAttribute(ground.detail, 1),
   )
-  geometry.setAttribute(
-    'groundColors0',
-    new THREE.BufferAttribute(ground.colors0, 4),
-  )
-  geometry.setAttribute(
-    'groundColors1',
-    new THREE.BufferAttribute(ground.colors1, 4),
-  )
-  geometry.setAttribute(
-    'groundColors2',
-    new THREE.BufferAttribute(ground.colors2, 4),
+  ground.colors.forEach((group, g) =>
+    geometry.setAttribute(
+      `groundColors${g}`,
+      new THREE.BufferAttribute(group, 4),
+    ),
   )
   geometry.setAttribute(
     'groundTextureShare',

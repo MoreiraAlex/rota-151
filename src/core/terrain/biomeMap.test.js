@@ -164,4 +164,29 @@ describe('createBiomeSampler', () => {
 
     expect(runsWith(600)).toBeGreaterThan(runsWith(200) * 1.5)
   })
+
+  it('um bioma de coverage menor ocupa menos do mundo', () => {
+    const shareWith = (coverage) => {
+      const sampler = createBiomeSampler(5, {
+        params: { ...PARAMS, BLEND_CELL: 50 },
+        biomes: [
+          { ...sandboxBiome('patch', 300), coverage },
+          sandboxBiome('ground', 4000),
+        ],
+      })
+      let count = 0
+      let total = 0
+      for (let x = -6000; x <= 6000; x += 50) {
+        for (let z = -3000; z <= 3000; z += 50) {
+          total += 1
+          if (sampler.biomeAt(x, z).id === 'patch') count += 1
+        }
+      }
+      return count / total
+    }
+
+    expect(shareWith(PARAMS.PATCH_COVERAGE / 4)).toBeLessThan(
+      shareWith(PARAMS.PATCH_COVERAGE) / 2,
+    )
+  })
 })

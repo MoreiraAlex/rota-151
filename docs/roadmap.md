@@ -2,7 +2,7 @@
 
 ---
 
-# ✅ Já feito (0.0.1 – 0.0.55)
+# ✅ Já feito (0.0.1 – 0.0.56)
 
 O que já foi entregue, por tema. Detalhes de cada uma em `docs/features/`.
 
@@ -57,6 +57,7 @@ O que já foi entregue, por tema. Detalhes de cada uma em `docs/features/`.
 - [x] **053 — Planície com assets do LGPE**
 - [x] **054 — Savana com assets do LGPE e saída do MegaKit**
 - [x] **055 — Itens no mundo**
+- [x] **056 — Bioma cidade**
 
 ### Combate
 - [x] **025 — Ataque comum de criatura**
@@ -104,8 +105,8 @@ Concluído: a 044 (salvar o jogo) fechou o ciclo offline.
 ## Marco 2 — Mundo procedural
 
 **Objetivo:** um mundo infinito gerado por seed, em chunks, com biomas, dia e
-noite, clima e água. Há itens para achar, as 7 espécies selvagens
-aparecem conforme bioma, horário e clima, e há um Pokécenter para curar o time.
+noite, clima e água. Há itens para achar, cidades, e as 7 espécies selvagens
+aparecem conforme bioma, horário e clima.
 
 **Biomas da beta:** os 11 biomas existem na seed (cobrem os 151), mas só os
 que as 7 espécies selvagens usam são refinados e aparecem no jogo —
@@ -117,7 +118,6 @@ só aparecem pelo F2. A montanha foi adiada: na beta não teria espécie
 exclusiva (o Spearow já mora na savana). Os 3 iniciais não nascem no mundo:
 vêm só no kit inicial (065).
 
-- [ ] **056 — Estruturas e Pokécenter** — sistema para colocar construções pré-modeladas no mundo procedural (posição pela seed, terreno aplainado). Primeiro: o Pokécenter, que cura o time (com o som de cura) e é o ponto de reaparecimento.
 - [ ] **057 — As 10 espécies** — Bulbasaur, Charmander, Squirtle, Caterpie, Weedle, Pidgey, Rattata, Spearow, Ekans e Pikachu (7 novas, as selvagens; os 3 iniciais já existem e só vêm no kit inicial): modelo, status, golpes, sons e animações. Sons mapeados em `docs/reference/audio.md`.
 - [ ] **058 — Spawn estilo Cobblemon** — limite por jogador ativo, nascer fora da vista, despawn dos distantes; condições por espécie: bioma, tags, horário, clima, faixa de nível e raridade. Só as 7 selvagens têm spawn; os 3 iniciais não nascem no mundo.
 - [ ] **059 — Água** — lagos e rios; parte rasa andável (com respingo visual e sonoro), parte funda bloqueia treinador e criaturas; IA desvia da água funda; shader simples. Tag "perto de água" para o spawn. Só nos biomas visíveis (o oceano continua escondido).
@@ -138,7 +138,7 @@ aprende a jogar com um tutorial curto e controla um treinador com animações e
 ações completas.
 
 - [ ] **061 — Animações e ações do treinador** — revisar e completar o que o treinador faz *(detalhar quando chegar)*.
-- [ ] **062 — Derrota do treinador** — cai ao chegar a 0 de HP e reaparece no último Pokécenter com o time curado.
+- [ ] **062 — Derrota do treinador** — cai ao chegar a 0 de HP e reaparece no último Pokécenter com o time curado (depende da 086).
 - [ ] **063 — Criação do treinador** — escolha entre menino e menina e cores de cada parte (pele, cabelo, boné, blusa, calça, sapatos, mochila, olhos), aproveitando os materiais separados do modelo. Salvo com a conta.
 - [ ] **064 — Áudio do treinador e da treinadora** — voz, passos, dash/rolamento, pulo, invocar/recolher, arremesso, dano e derrota para os dois modelos, mais os sons das ações revisadas na 061. Ver `docs/reference/audio.md`.
 - [ ] **065 — Início do jogo e escolha do inicial** — primeira entrada: login → criação do treinador → escolha entre Bulbasaur, Charmander e Squirtle → mundo, com o kit inicial de itens (definido aqui; até lá o kit é de teste, ver 042). Quem já tem treinador vai direto para o mundo.
@@ -181,12 +181,13 @@ item entra aqui quando for identificado e vira feature quando chegar a vez.
 - [ ] **077 — Revisão da wiki** — rever a wiki inteira *(detalhar quando chegar)*.
 - [ ] **078 — Limpeza de código sem uso** — achar e remover código que ficou de testes ou de ideias descartadas (systems, traits, componentes, dados, assets e configs que nada mais usa) *(detalhar quando chegar)*.
 - [ ] **079 — Revisão do diagrama ER** — com todos os requisitos da beta conhecidos (save, mundo, multiplayer, troca, duelo), rever as tabelas do banco desenhadas na 044 e montar um diagrama ER melhor *(detalhar quando chegar)*.
-- [ ] **080 — Chão plano no relevo** — o Rapier erra parte dos raios (bola, comida, câmera, mira) em células PLANAS do heightfield do relevo (medido na 045; o relevo por ruído não tem célula plana, então hoje não aparece). Resolver antes de aplainar terreno (estruturas na 056, chão da água na 059) — ex.: colisor próprio pra área plana *(detalhar quando chegar)*.
+- [ ] **080 — Chão plano no relevo** — o Rapier erra parte dos raios (bola, comida, câmera, mira) em células PLANAS do heightfield do relevo (medido na 045; o relevo por ruído não tem célula plana, então hoje não aparece). Resolver antes de aplainar terreno (chão da cidade e dos prédios, 056; chão da água, 059) — ex.: colisor próprio pra área plana *(detalhar quando chegar)*.
 - [ ] **081 — Rotação das entidades no relevo** — rever como o corpo acompanha a inclinação do terreno: subindo um morro o corpo continua reto, e às vezes as skills saem da cabeça do personagem *(detalhar quando chegar)*.
 - [ ] **082 — Luz no estilo BotW por hora** — sol mais quente, sombra azulada e névoa leve nas cores de cada hora (`DAY_CYCLE.KEYFRAMES`, 048). Mexer na luz muda a cor da grama, então junto vem um novo ajuste das cores da grama e da floresta (a 049 casou tudo com a luz de hoje) *(detalhar quando chegar)*.
 - [ ] **083 — Desempenho no celular** — medir no celular na qualidade baixa (a 049 só mediu na Intel UHD do PC: a mata densa fica perto do limite de 30 FPS) e cortar o que pesar — copas, grama, sombra, raio; se as flores pesarem, trocar pelas moitas mais leves do Ultimate (`Flower_*_Clump`, 050). A planície da 053 (mato alto do Let's Go bem denso) custa cerca de um quarto a mais de GPU que a da 052 na Intel UHD, ainda no teto de 60 FPS no PC — conferir no celular. Desde a 055 os arbustos não são mais cortados pela metade na qualidade baixa (todos podem ser vasculhados): medir esse custo e, se pesar, cortar em outro lugar *(detalhar quando chegar)*.
 - [ ] **084 — Ambiente da floresta** — névoa um pouco mais fechada dentro da mata; partículas (folhas caindo de dia, vaga-lumes à noite); som ambiente por bioma (pássaros de dia, grilos e coruja à noite) *(detalhar quando chegar)*.
 - [ ] **085 — Detalhes da floresta** — cogumelo-prateleira (o do MegaKit saiu na 054: achar um no LGPE), musgo nos troncos caídos e grama mais rala sob a copa fechada *(detalhar quando chegar)*.
+- [ ] **086 — Pokécenter funcionando** — o Pokécenter da cidade (056) cura o time (com o som de cura) e vira o ponto de reaparecimento; base para a derrota do treinador (062) *(detalhar quando chegar)*.
 
 ---
 
@@ -194,6 +195,7 @@ item entra aqui quando for identificado e vira feature quando chegar a vez.
 
 - Refinar os biomas escondidos (oceano, praia, selva, pântano, deserto, vulcânico, tundra e montanha — vegetação e ajuste visual) quando as espécies deles entrarem. A montanha chegou a ser a 055, antes da renumeração (achar no LGPE pedra, penhasco, pinheiros e neve e trocar a vegetação e o chão dela); volta quando entrarem Geodude, Onix, Machop etc.
 - Cavernas (era a 061): camada subterrânea gerada pela seed (túneis e salões com malha, colisor e grade de navegação próprios, por chunk), sem mexer na superfície; boca numa encosta de montanha. Save e spawn passam a saber em que camada a entidade está. Volta junto da montanha, com as espécies de caverna (Zubat, Geodude, Onix etc.)
+- Cidades (056): entrar nos prédios (interiores e portas abrindo), loja funcionando, um ginásio próprio por tema e mais temas de Kanto (Viridian, Celadon, Saffron, Fuchsia, Cinnabar — os modelos já foram levantados na 056).
 - PC/caixa de Pokémon
 - Evolução
 - Nado

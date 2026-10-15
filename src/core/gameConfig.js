@@ -34,7 +34,7 @@ export const GAME_CONFIG = {
   // (docs/features/047-biomas.md).
   TERRAIN: {
     // Identifica a receita do relevo; subir quando a geração mudar.
-    GENERATION_VERSION: 14,
+    GENERATION_VERSION: 15,
     // Altura (m) da superfície da água: o que fica abaixo vira lago na 059.
     // O relevo dos biomas é medido a partir dela (`relief.baseHeight`).
     WATER_LEVEL: -2,
@@ -127,6 +127,17 @@ export const GAME_CONFIG = {
     // Tamanho (m) de uma repetição das texturas de cor (as do Let's Go, nos
     // biomas com `ground.colors` — docs/features/052-*.md).
     COLOR_TEXTURE_SIZE: 6,
+    // Tamanho (m) próprio de algumas camadas de cor (nome da camada em
+    // view/terrain/terrainLayers.js → m): as outras usam o de cima. O
+    // calçamento das ruas da cidade (docs/features/056-bioma-cidade.md)
+    // fica menor que a grama.
+    COLOR_LAYER_SIZES: {
+      'lgpe-street': 3,
+      'lgpe-pewter-tile': 3,
+      'lgpe-cerulean-tile': 3,
+      'lgpe-vermilion-tile': 3,
+      'lgpe-lavender-asphalt': 3,
+    },
     // Força do relevo de luz do mapa de normal (0 = liso).
     NORMAL_STRENGTH: 0.8,
     // Quanto do claro e escuro da textura entra, para todos os biomas (vezes
@@ -171,6 +182,39 @@ export const GAME_CONFIG = {
     DETAIL: 1,
     // Sem trilha abaixo da água + esta folga (m).
     SHORE_GAP: 0.3,
+  },
+  // Cidades (docs/features/056-bioma-cidade.md, core/town/townPlan.js): a
+  // grade, os prédios e os objetos de rua de cada uma vêm do `town` do
+  // bioma; aqui ficam os números de todas.
+  TOWN: {
+    // Faixa (no peso da cidade, 0 a 1) abaixo do `minShare` do bioma em que
+    // a rua some aos poucos na borda.
+    SHARE_FADE: 0.1,
+    // Sem lote abaixo da água + esta folga (m).
+    SHORE_GAP: 0.5,
+    // Sem prédio nem objeto até esta distância (m) da origem (onde o
+    // treinador nasce).
+    SPAWN_CLEAR_RADIUS: 12,
+    // Folga (m) entre o prédio e a divisa do lote.
+    LOT_MARGIN: 0.5,
+    // Lado (m) máximo de cada círculo da pegada retangular (prédio, cerca):
+    // menor = contorno mais justo e mais círculos.
+    FOOTPRINT_CELL: 1.5,
+    // Cerca das casas: quanto (m) fica para dentro da divisa da rua e a
+    // largura (m) do portão na frente da porta.
+    FENCE_INSET: 0.6,
+    GATE_WIDTH: 3,
+    // Poste: quanto (m) fica para dentro da esquina do quarteirão.
+    LAMP_INSET: 1,
+    // Banco: quanto (m) fica à frente e ao lado da porta do prédio.
+    DOOR_GAP: 0.8,
+    // Teto de quarteirões de uma cidade na busca (core/town/cityIndex.js):
+    // só uma trava contra cidade sem fim (um mundo só de cidade).
+    MAX_CITY_BLOCKS: 2000,
+    // Lotes abertos mínimos para um pedaço de cidade ter Pokécenter, loja,
+    // ginásio e o especial: abaixo disso (lascas na borda da mancha), só
+    // casas.
+    MIN_CITY_LOTS: 8,
   },
   // Água (view/water/, docs/features/049-vegetacao-e-floresta.md): só a
   // superfície no `TERRAIN.WATER_LEVEL`, onde o chão fica abaixo dela — sem

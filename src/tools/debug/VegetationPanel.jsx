@@ -8,6 +8,8 @@ import { GAME_CONFIG } from '@/core/gameConfig'
 import { WEATHER_TYPES } from '@/core/weather/weatherMap'
 import { world } from '@/core/world/world'
 import { notifyRenderSettingsChanged } from '@/view/scene/renderSettings'
+import { TERRAIN_COLOR_LAYERS } from '@/view/terrain/terrainLayers'
+import { setColorLayerSizes } from '@/view/terrain/terrainMaterial'
 import { requestLgpeModels } from '@/view/vegetation/lgpeChoices'
 import { LGPE_MANIFEST_PATH, lgpeChoicesOf } from '@/view/vegetation/lgpeModels'
 import {
@@ -43,6 +45,26 @@ const scaleControls = (range) => ({
 const SOLID_CONTROLS = {
   SPACING: { label: 'Espaçamento (m)', range: [2, 40, 0.5] },
   CHANCE: { label: 'Chance por célula', range: [0, 1, 0.01] },
+}
+// A planta das cidades (`town` do bioma, core/town/townPlan.js): muda com
+// o terreno refeito. O quarteirão tem que dividir o bloco de sólidos.
+const TOWN_CONTROLS = {
+  scale: { label: 'Tamanho dos modelos', range: [0.5, 3, 0.05] },
+  streetWidth: { label: 'Largura da rua (m)', range: [2, 12, 0.5] },
+  lotsPerSide: { label: 'Lotes por lado', range: [1, 3, 1] },
+  setback: { label: 'Recuo da rua (m)', range: [0, 6, 0.1] },
+  sink: { label: 'Base no chão (m)', range: [0, 1, 0.05] },
+  minShare: { label: 'Borda (peso da cidade)', range: [0.1, 0.95, 0.01] },
+  centralLots: {
+    label: 'Pokécenter, loja e ginásio: entre os N lotes do meio',
+    range: [3, 20, 1],
+  },
+}
+// As texturas que a rua de um tema pode usar (as camadas de cor do chão).
+const STREET_LAYER_OPTIONS = TERRAIN_COLOR_LAYERS.map(([name]) => name)
+const TOWN_SHAPE_CONTROLS = {
+  size: { label: 'Tamanho das manchas (m)', range: [100, 1200, 10] },
+  coverage: { label: 'Cobertura', range: [0.01, 0.4, 0.01] },
 }
 // O que nasce por m² (sub-bosque): muda com a vegetação refeita.
 const perM2Controls = (max) => ({
@@ -102,6 +124,28 @@ const COLOR_LABELS = {
 }
 
 const regenerate = () => regenerarTerreno(world)
+
+// O tamanho (m) da textura da rua de um tema de cidade: o próprio da
+// camada que ela usa (`TERRAIN_LOOK.COLOR_LAYER_SIZES`) ou o de todas.
+function streetTextureSizeOf(theme) {
+  const look = GAME_CONFIG.TERRAIN_LOOK
+  const layer = () => theme.street
+  return {
+    get size() {
+      return look.COLOR_LAYER_SIZES[layer()] ?? look.COLOR_TEXTURE_SIZE
+    },
+    set size(value) {
+      if (!layer()) return
+      look.COLOR_LAYER_SIZES[layer()] = value
+      setColorLayerSizes(look)
+    },
+  }
+}
+
+// Os lados de quarteirão que dividem a metade do bloco de sólidos (os
+// blocos vão de -metade a +metade: nenhum quarteirão fica em dois).
+const quarterSizesOf = ({ SOLIDS_BLOCK_SIZE }) =>
+  [8, 4, 2].map((parts) => SOLIDS_BLOCK_SIZE / parts)
 
 // `apply` (ao soltar): `rebuildVegetation` ou `regenerate`; o controle com
 // `rebuild` refaz a vegetação mesmo sem `apply`. Sem nenhum, vale na hora
@@ -252,6 +296,7 @@ const PARTS = [
   ['trees', 'Árvores'],
   ['undergrowth', 'Arbustos, samambaias e plantas'],
   ['rocks', 'Pedras'],
+  ['buildings', 'Cidade'],
 ]
 const TREE_KINDS = [
   'broadleaf-tree',
@@ -535,6 +580,50 @@ export function VegetationPanel() {
       regenerate,
     )
     addBiomeDensities(rockFolder, ['rock', 'pebble'], regenerate, manifest)
+
+    // Cidade (docs/features/056-bioma-cidade.md): a planta e as manchas
+    // vêm do terreno (refaz ao soltar).
+    const cityFolder = folderOf.buildings
+    for (const biome of listBiomes().filter(({ town }) => town)) {
+      const folder = cityFolder.addFolder(biome.name)
+      addControls(folder, biome, TOWN_SHAPE_CONTROLS, regenerate)
+      addControls(folder, biome.town, TOWN_CONTROLS, regenerate)
+      folder
+        .add(biome.town, 'blockSize', quarterSizesOf(GAME_CONFIG.TERRAIN))
+        .name('Quarteirão (m)')
+        .onFinishChange(regenerate)
+      // Um tema por pasta: o peso no sorteio e a rua (a textura refaz o
+      // terreno; o tamanho dela vale na hora).
+      for (const theme of biome.town.themes) {
+        const themeFolder = folder.addFolder(`Tema: ${theme.name}`)
+        themeFolder
+          .add(theme, 'weight', 0, 5, 0.1)
+          .name('Peso no sorteio')
+          .onFinishChange(regenerate)
+        themeFolder
+          .add(theme, 'street', STREET_LAYER_OPTIONS)
+          .name('Rua')
+          .onFinishChange(regenerate)
+        themeFolder
+          .add(streetTextureSizeOf(theme), 'size', 0.5, 12, 0.1)
+          .name('Textura da rua (m)')
+        // A cor do ginásio: refaz só as malhas.
+        if (theme.gymColor) {
+          themeFolder
+            .addColor(theme, 'gymColor')
+            .name('Cor do ginásio')
+            .onFinishChange(rebuildVegetation)
+        }
+      }
+      // A força da cor do tema no ginásio (todos os temas).
+      for (const landmark of biome.town.landmarks) {
+        if (!landmark.paint) continue
+        folder
+          .add(landmark.paint, 'amount', 0, 1, 0.01)
+          .name('Força da cor do ginásio')
+          .onFinishChange(rebuildVegetation)
+      }
+    }
 
     // Modelos do Let's Go (docs/features/052-*.md): o material toon muda
     // na hora; o mato alto refaz ao soltar.

@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import { describe, expect, it } from 'vitest'
-import { buildLodKindMeshes, finishMesh } from './instancing'
+import { buildLodKindMeshes, buildModelMeshes, finishMesh } from './instancing'
 
 // Um modelo de uma parte, com a versão de longe.
 function makeModel() {
@@ -76,5 +76,37 @@ describe('finishMesh', () => {
     )
     expect(mesh.matrixAutoUpdate).toBe(false)
     expect(mesh.matrix.equals(new THREE.Matrix4())).toBe(true)
+  })
+})
+
+describe('buildModelMeshes', () => {
+  const recolorOf = (mesh) =>
+    Array.from(mesh.geometry.getAttribute('aRecolor').array.slice(0, 4))
+  const twoParts = {
+    name: 'two',
+    parts: ['roof', 'wall'].map((materialName) => ({
+      kind: 'toon',
+      geometry: new THREE.BoxGeometry(),
+      material: new THREE.MeshBasicMaterial(),
+      materialName,
+    })),
+  }
+  const tint = [0.2, 0.4, 0.8, 0.5]
+  // A tinta como fica no atributo (float32).
+  const stored = Array.from(Float32Array.from(tint))
+
+  it('sem recolorOf, a tinta da instância vai em todas as partes', () => {
+    const meshes = buildModelMeshes(twoParts, [
+      { ...instances[0], recolor: tint },
+    ])
+    for (const mesh of meshes) expect(recolorOf(mesh)).toEqual(stored)
+  })
+
+  it('com recolorOf, cada parte leva a própria tinta (ou nenhuma)', () => {
+    const meshes = buildModelMeshes(twoParts, [instances[0]], {
+      recolorOf: (part) => (part.materialName === 'roof' ? tint : undefined),
+    })
+    expect(recolorOf(meshes[0])).toEqual(stored)
+    expect(recolorOf(meshes[1])).toEqual([0, 0, 0, 0])
   })
 })

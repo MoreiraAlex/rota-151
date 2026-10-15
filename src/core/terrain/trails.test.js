@@ -8,7 +8,13 @@ import {
   createTerrainSampler,
   currentTerrainRecipe,
 } from './terrainHeight'
-import { carveTrails, chunkTrails, trailAt } from './trails'
+import {
+  carveTrails,
+  chunkTrails,
+  naturalTrailAt,
+  paintsTrails,
+  trailAt,
+} from './trails'
 
 const withTrails = listBiomes().find(({ trails }) => trails)
 const without = listBiomes().find(({ trails }) => !trails)
@@ -166,5 +172,39 @@ describe.runIf(without)('chunkTrails — bioma sem trilhas', () => {
     ]) {
       expect(chunkOf(recipe, 7, chunkX, chunkZ).trails).toBeNull()
     }
+  })
+})
+
+describe('paintsTrails', () => {
+  it('pintam o canal os biomas com trilha e as cidades (as ruas)', () => {
+    for (const biome of listBiomes()) {
+      expect(paintsTrails(biome)).toBe(Boolean(biome.trails || biome.town))
+    }
+    expect(paintsTrails({ trails: false })).toBe(false)
+    expect(paintsTrails({ town: {} })).toBe(true)
+    expect(paintsTrails(null)).toBe(false)
+  })
+})
+
+describe('naturalTrailAt', () => {
+  // Um chunk de 1 célula com o canal das trilhas e as ruas à parte.
+  const chunk = {
+    minX: 0,
+    minZ: 0,
+    size: 1,
+    resolution: 1,
+    trails: Float32Array.from([1, 1, 0.5, 0]),
+    streets: Float32Array.from([1, 0.25, 0, 0]),
+  }
+
+  it('é o canal sem a rua (nunca abaixo de 0)', () => {
+    expect(naturalTrailAt(chunk, 0, 0)).toBeCloseTo(0)
+    expect(naturalTrailAt(chunk, 0, 1)).toBeCloseTo(0.75)
+    expect(naturalTrailAt(chunk, 1, 0)).toBeCloseTo(0.5)
+  })
+
+  it('sem rua, é a trilha', () => {
+    const plain = { ...chunk, streets: null }
+    expect(naturalTrailAt(plain, 0, 1)).toBeCloseTo(trailAt(plain, 0, 1))
   })
 })

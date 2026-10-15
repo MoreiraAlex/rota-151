@@ -1,4 +1,5 @@
-import { listBiomes } from '@/core/data/biomes'
+import * as THREE from 'three'
+import { getBiome, listBiomes } from '@/core/data/biomes'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import { createKindDensity } from '@/core/vegetation/vegetationDensity'
 import {
@@ -7,7 +8,11 @@ import {
   rockBaseY,
 } from '@/core/vegetation/solidPlacement'
 import { createTint } from './biomeColor'
-import { buildKindMeshes, buildLodKindMeshes } from './instancing'
+import {
+  buildKindMeshes,
+  buildLodKindMeshes,
+  buildModelMeshes,
+} from './instancing'
 import { entryOf, groupByBiome, lgpePlantScale, modelsOf } from './biomeModels'
 import { scatterArea } from './vegetationScatter'
 
@@ -164,4 +169,48 @@ export function buildRockMeshes(chunk, models) {
     ([biomeId, group]) =>
       buildKindMeshes(modelsOf(models, ROCK_KIND, biomeId), group),
   )
+}
+
+/**
+ * Prédios e objetos de rua das cidades do chunk (os do core,
+ * docs/features/056-bioma-cidade.md): cada um no próprio modelo do LGPE
+ * (`model`), uma malha instanciada por modelo e tema. O prédio com `paint`
+ * (o ginásio) leva a cor do tema da cidade (`gymColor`) só nas partes de
+ * `paint.materials`. Modelo ainda não carregado: nada.
+ */
+export function buildBuildingMeshes(chunk, models) {
+  const groups = new Map()
+  for (const building of chunk.solids?.buildings ?? []) {
+    const key = `${building.model}:${building.theme ?? ''}`
+    if (!groups.has(key)) groups.set(key, [])
+    groups.get(key).push(building)
+  }
+  return [...groups.values()].flatMap((group) => {
+    const [first] = group
+    const model = models.lgpe[first.model]
+    if (!model) return []
+    const paint = paintOf(first)
+    return buildModelMeshes(model, group, {
+      recolorOf: (part) =>
+        paint && paint.materials.includes(part.materialName)
+          ? paint.recolor
+          : undefined,
+    })
+  })
+}
+
+// A tinta do ginásio de um prédio da cidade (a cor do tema dele), ou `null`.
+const scratchColor = new THREE.Color()
+function paintOf(building) {
+  const town = getBiome(building.biome)?.town
+  const paint = town?.landmarks.find(
+    ({ model }) => model === building.model,
+  )?.paint
+  const color = town?.themes.find(({ id }) => id === building.theme)?.gymColor
+  if (!paint || !color) return null
+  scratchColor.set(color)
+  return {
+    materials: paint.materials,
+    recolor: [scratchColor.r, scratchColor.g, scratchColor.b, paint.amount],
+  }
 }

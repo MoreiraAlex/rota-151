@@ -243,6 +243,48 @@ describe('colisor pelo modelo do LGPE', () => {
     const side = lgpeColliderOf(tree).reach * tree.scale + 0.05
     expect(ray(tree, tree.y + 2, side)).toBeNull()
   })
+
+  // docs/features/056-bioma-cidade.md
+  it('o prédio da cidade colide pelo casco do modelo; ao lado, nada', () => {
+    const town = listBiomes().find((biome) => biome.town)?.town
+    if (!town) return
+    const chunk = generateTerrainChunk(createTerrainSampler(5), 0, 0)
+    chunk.heights.fill(0)
+    const x = chunk.minX + chunk.size / 2
+    const z = chunk.minZ + chunk.size / 2
+    const building = {
+      kind: 'building',
+      model: town.landmarks[0].model,
+      x,
+      y: 0,
+      z,
+      yaw: 0,
+      scale: town.scale,
+      variant: 0,
+    }
+    chunk.solids = {
+      trees: [],
+      rocks: [],
+      buildings: [building],
+      footprints: [],
+    }
+    createTerrainChunkCollider(chunk)
+    stepPhysics()
+
+    const { box } = lgpeColliderOf(building)
+    const reach = 20
+    const ray = (offsetX) =>
+      castRay(
+        { x: x + offsetX, y: 1, z: z - reach },
+        { x: 0, y: 0, z: 1 },
+        reach,
+      )
+    const hit = ray(0)
+    expect(hit).not.toBeNull()
+    // Bate na parede de trás da caixa (a frente é +Z).
+    expect(z - reach + hit.distance).toBeCloseTo(z + box[1] * town.scale, 0)
+    expect(ray(box[2] * town.scale + 0.5)).toBeNull()
+  })
 })
 
 describe('debugRenderWithoutTerrain', () => {

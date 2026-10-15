@@ -102,7 +102,7 @@ function cubicBSpline(t, out) {
  *   do bioma (`climate`), ele perde `CLIMATE_SHARPNESS` por unidade — o
  *   clima mantém a vizinhança coerente;
  * - as **manchas próprias** do bioma (`patchScore`), do tamanho do `size`
- *   dele, cobrindo `PATCH_COVERAGE` do mundo e pesando
+ *   dele, cobrindo `PATCH_COVERAGE` do mundo (ou o `coverage` dele) e pesando
  *   `PRESENCE_STRENGTH` — decidem entre biomas do mesmo clima, como
  *   camadas: o menor bioma fica por cima, e onde nenhuma mancha cobre vale
  *   o maior (o fundo). Assim cada bioma tem o próprio tamanho.
@@ -154,7 +154,11 @@ export function createBiomeSampler(
   const priorities = biomes.map(({ size }) =>
     sizes.length > 1 ? sizes.indexOf(size) / (sizes.length - 1) : 0,
   )
-  const patchThreshold = 1 - PATCH_COVERAGE
+  // A fração coberta pelas manchas de cada bioma: a dele (`coverage` —
+  // a cidade, rara) ou a de todos.
+  const patchThresholds = biomes.map(
+    ({ coverage }) => 1 - (coverage ?? PATCH_COVERAGE),
+  )
 
   // Rascunho reaproveitado a cada ponto (sem alocar no laço quente).
   const climate = new Float64Array(CLIMATE_AXES.length)
@@ -174,8 +178,8 @@ export function createBiomeSampler(
       layeredNoise(presenceNoises[i], x, z, biomes[i].size),
     )
     const inside = smoothstep(
-      patchThreshold - PATCH_EDGE,
-      patchThreshold + PATCH_EDGE,
+      patchThresholds[i] - PATCH_EDGE,
+      patchThresholds[i] + PATCH_EDGE,
       presence,
     )
     return (2 * inside - 1) * (1 + priorities[i])

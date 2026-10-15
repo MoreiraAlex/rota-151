@@ -134,13 +134,18 @@ const SHADOW_BY_PART = {
  * (`shareGeometry`), a origem e o giro de cada uma (`aWind`, o vento e o
  * empurrão — quem decide se usa é o material), o tom (cor por instância)
  * e a tinta do bioma (`aRecolor`). `castShadow`: se a parte faz sombra (a qualidade); planta
- * baixa nunca faz.
+ * baixa nunca faz. `recolorOf(part, item)`: a tinta de cada parte (sem ele,
+ * a da instância em todas — a cor do ginásio pinta só algumas).
  *
  * @param {import('./useVegetationModels').VegetationModel} model
  * @param {ModelInstance[]} instances
  * @returns {THREE.InstancedMesh[]}
  */
-export function buildModelMeshes(model, instances, { castShadow = true } = {}) {
+export function buildModelMeshes(
+  model,
+  instances,
+  { castShadow = true, recolorOf = (part, item) => item.recolor } = {},
+) {
   return model.parts.map((part) => {
     const geometry = shareGeometry(part.geometry)
     const mesh = new THREE.InstancedMesh(
@@ -151,7 +156,8 @@ export function buildModelMeshes(model, instances, { castShadow = true } = {}) {
     const wind = new Float32Array(instances.length * 4)
     const recolor = new Float32Array(instances.length * 4)
     instances.forEach((item, index) => {
-      if (item.recolor) recolor.set(item.recolor, index * 4)
+      const tint = recolorOf(part, item)
+      if (tint) recolor.set(tint, index * 4)
       setInstance(mesh, index, item.x, item.y, item.z, item.yaw, item.scale)
       mesh.setColorAt(index, item.tint ?? WHITE)
       wind.set(
