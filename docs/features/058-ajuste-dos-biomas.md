@@ -288,7 +288,16 @@ Mostrar a cidade mais próxima, o porte e a distância; os números de
 - [x] Névoa fechada com as serras do fundo (a bruma e o relevo distante saem).
 - [x] Desenho dos objetos do bioma (junto da névoa: tudo inteiro até ela).
 - [x] Detalhes levantados na abertura.
-- [ ] Desempenho na Intel UHD (antes e depois).
+- [x] Desempenho na Intel UHD (antes e depois): A/B de produção contra a
+      0.0.57, 3 rodadas intercaladas (ABAB) por cena, mesmas coordenadas.
+      FPS e GPU no mesmo nível (dentro do ruído); a 058 desenha mais vezes
+      por quadro (tudo inteiro até a névoa, mais as serras), sem pesar.
+
+      | Cena | FPS 0.0.57 → 0.0.58 | GPU média (ms) | Desenhos/quadro |
+      |---|---|---|---|
+      | Origem (vila), parado | 52,8 → 54,7 | 13,4 → 13,2 | 327 → 426 |
+      | Mata (-57, -57), parado | 56,5 → 57,7 | 12,8 → 12,5 | 301 → 398 |
+      | Origem, andando | 45,1 → 44,5 | 12,6 → 11,9 | 352 → 460 |
 - [x] Wiki: página "O mundo".
 - [x] Roadmap: 058 para "Já feito".
 - [x] Gates: `npm test` inteiro, `npm run lint` e build.
@@ -305,7 +314,7 @@ Mostrar a cidade mais próxima, o porte e a distância; os números de
 - [x] Névoa sem borda visível do mundo carregado e no tom combinado.
 - [x] Objetos do bioma sem pop-in incômodo, na distância combinada.
 - [x] Mesma seed, mesmo mapa.
-- [ ] Desempenho na Intel UHD no nível de hoje (dentro do ruído).
+- [x] Desempenho na Intel UHD no nível de hoje (dentro do ruído).
 - [x] `npm run build`, `npm run lint` e `npm test` passando.
 - [x] Wiki atualizada.
 
