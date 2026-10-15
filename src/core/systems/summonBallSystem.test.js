@@ -26,7 +26,9 @@ import {
   Position,
   Velocity,
   PhysicsBody,
+  WaterSplash,
 } from '@/core/traits'
+import { withDeepWater } from '@/test/deepWater'
 import {
   initPhysics,
   disposePhysics,
@@ -401,5 +403,65 @@ describe('summonBallSystem — colisão com o mundo', () => {
     // Ainda voando — não resolveu no primeiro tick contra o próprio corpo.
     expect(world.query(SummonBall).length).toBe(1)
     expect(ball.get(Position).x).toBeGreaterThan(0)
+  })
+})
+
+describe('água funda (docs/features/057-lagos-e-rios.md)', () => {
+  it('mergulhando na água funda, afunda sem invocar: o Pokémon fica no time', () => {
+    const { world, player } = makeWorld()
+    spawnedWorlds.push(world)
+    const { slot1: pokemon } = givePartyPokemon(world, player, {
+      slot1: 'bulbasaur',
+    })
+    const { WATER_LEVEL } = GAME_CONFIG.TERRAIN
+    world.spawn(
+      Position({ x: 0, y: WATER_LEVEL + 1, z: 0 }),
+      Velocity({ x: 4, y: -2, z: 0 }),
+      SummonBall({
+        slot: 'slot1',
+        speciesId: 'bulbasaur',
+        maxDistance: 20,
+        traveled: 0,
+      }),
+      ...ownedByPlayer(world),
+      SummonedFrom(pokemon),
+    )
+
+    withDeepWater(() => {
+      for (let i = 0; i < 120; i++) tick(world)
+    })
+
+    expect(world.query(SummonBall).length).toBe(0)
+    expect(world.query(SummonedCreature).length).toBe(0)
+    const [splash] = world.query(WaterSplash, Position)
+    expect(splash.get(Position).y).toBeCloseTo(WATER_LEVEL)
+  })
+
+  it('parando no ar em cima da água funda, também não invoca', () => {
+    const { world, player } = makeWorld()
+    spawnedWorlds.push(world)
+    const { slot1: pokemon } = givePartyPokemon(world, player, {
+      slot1: 'bulbasaur',
+    })
+    const { WATER_LEVEL } = GAME_CONFIG.TERRAIN
+    world.spawn(
+      Position({ x: 0, y: WATER_LEVEL + 5, z: 0 }),
+      Velocity({ x: 10, y: 0, z: 0 }),
+      SummonBall({
+        slot: 'slot1',
+        speciesId: 'bulbasaur',
+        maxDistance: 2,
+        traveled: 0,
+      }),
+      ...ownedByPlayer(world),
+      SummonedFrom(pokemon),
+    )
+
+    withDeepWater(() => {
+      for (let i = 0; i < 60; i++) tick(world)
+    })
+
+    expect(world.query(SummonedCreature).length).toBe(0)
+    expect(world.query(WaterSplash).length).toBe(1)
   })
 })

@@ -4,6 +4,7 @@ import { listItems } from '../data/items'
 import { listSpecies } from '../data/species'
 import { adicionarItem } from '../actions/inventory'
 import {
+  CharacterController,
   HeldItem,
   Inventory,
   PokedexEntries,
@@ -12,6 +13,9 @@ import {
   ScanHistory,
 } from '../traits'
 import { TEST_LEVEL } from '../data/testLevel'
+import { GAME_CONFIG } from '../gameConfig'
+import { wadeLimit } from '../terrain/water'
+import { verticalClearance } from '../physics/capsule'
 import { trainerSaveSchema } from './saveFormat'
 import { restoreTrainer, serializeTrainer } from './trainerSave'
 
@@ -94,6 +98,50 @@ describe('serializeTrainer / restoreTrainer', () => {
     const { x, y, z } = target.player.get(Position)
     expect({ x, z }).toEqual({ x: 3, z: -4 })
     expect(y).toBeGreaterThan(ground)
+  })
+
+  // docs/features/057-lagos-e-rios.md
+  const { WATER_LEVEL } = GAME_CONFIG.TERRAIN
+  const depthAt = (x, z) => WATER_LEVEL - TEST_LEVEL.terrain.heightAt(x, z)
+  const trainerLimit = (player) =>
+    wadeLimit(verticalClearance(player.get(CharacterController)) * 2)
+  // Um ponto do mundo da seed com a profundidade entre `min` e `max`.
+  const waterPoint = (min, max) => {
+    for (let x = 100; x < 3000; x += 3) {
+      for (let z = -1500; z < 1500; z += 3) {
+        const depth = depthAt(x, z)
+        if (depth > min && depth < max) return { x, z }
+      }
+    }
+    return null
+  }
+  const restoreAt = (point) => {
+    const { player } = setup()
+    player.set(Position, { x: point.x, y: WATER_LEVEL, z: point.z })
+    const saved = serializeTrainer(player)
+    const target = setup()
+    restoreTrainer(target.player, saved)
+    return target.player
+  }
+
+  it('posição salva além de onde o treinador entra vai para a margem (057)', () => {
+    const limit = trainerLimit(setup().player)
+    const deep = waterPoint(limit * 1.5, Infinity)
+    expect(deep).not.toBeNull()
+
+    const player = restoreAt(deep)
+    const { x, y, z } = player.get(Position)
+    expect(depthAt(x, z)).toBeLessThanOrEqual(0)
+    expect(y).toBeGreaterThan(TEST_LEVEL.terrain.heightAt(x, z))
+  })
+
+  it('posição salva na água onde o treinador entra fica onde está (057)', () => {
+    const limit = trainerLimit(setup().player)
+    const shallow = waterPoint(limit * 0.3, limit * 0.8)
+    expect(shallow).not.toBeNull()
+
+    const { x, z } = restoreAt(shallow).get(Position)
+    expect({ x, z }).toEqual(shallow)
   })
 
   it('save sem posição (de antes dela entrar) fica no ponto inicial', () => {

@@ -46,6 +46,12 @@ import {
 import { resolveAppealActionState } from './creatureAppealSystem'
 import { resolveOwner } from '../actions/owner'
 import { devolverCondicoes } from '../actions/conditions'
+import {
+  levelWaterDepthAt,
+  mergulhoNoTrajeto,
+  respingarAgua,
+} from '../actions/water'
+import { overDeepWater } from '../terrain/water'
 
 /**
  * Spawna a `SummonedCreature` de verdade (mesma composição de traits que
@@ -185,6 +191,16 @@ function resolveBall(world, trainer, ballEntity, ball, pos, touchedSurface) {
 
   const species = getSpecies(ball.speciesId)
   if (!species) return
+  // Parou no ar em cima da água funda (docs/features/057-lagos-e-rios.md):
+  // a criatura cairia nela — a esfera afunda e o Pokémon fica no time.
+  if (!touchedSurface && overDeepWater(levelWaterDepthAt, pos.x, pos.z)) {
+    respingarAgua(world, {
+      x: pos.x,
+      y: GAME_CONFIG.TERRAIN.WATER_LEVEL,
+      z: pos.z,
+    })
+    return
+  }
 
   const spawnPosition = { x: pos.x, y: pos.y, z: pos.z }
   if (touchedSurface) {
@@ -309,6 +325,20 @@ export function summonBallSystem(context) {
       const hit = castRay(pos, { x: dirX, y: dirY, z: dirZ }, segLength, {
         excludeColliderHandle,
       })
+
+      // Mergulhou na água funda antes de bater em algo
+      // (docs/features/057-lagos-e-rios.md): afunda sem invocar — o Pokémon
+      // fica no time, como quando a invocação não vale.
+      const dive = mergulhoNoTrajeto(
+        pos,
+        { x: dirX * segLength, y: dirY * segLength, z: dirZ * segLength },
+        hit?.point,
+      )
+      if (dive) {
+        respingarAgua(world, dive)
+        entity.destroy()
+        return
+      }
 
       if (hit) {
         pos.x = hit.point.x

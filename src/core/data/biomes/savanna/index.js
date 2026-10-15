@@ -24,6 +24,9 @@ export const SAVANNA = {
     roughness: 0.15,
     flatness: 1.2,
   },
+  // Rios e lagos (docs/features/057-lagos-e-rios.md): menos que nos biomas
+  // úmidos — os bebedouros dos vales já fazem parte da água.
+  water: { rivers: 0.6, lakes: 0.7 },
   // A paleta casa com as texturas do Let's Go (a média delas): é a cor do
   // relevo distante — de perto, a cor vem das texturas (`ground.colors`).
   // O chão baixo e alto é a mistura da terra com as manchas de grama; a
@@ -50,7 +53,7 @@ export const SAVANNA = {
     colors: {
       base: 'lgpe-soil',
       shade: 'lgpe-sand',
-      shore: 'lgpe-soil',
+      shore: 'lgpe-sand',
     },
   },
   // As manchas de grama no meio da terra (as clareiras pintam o chão de

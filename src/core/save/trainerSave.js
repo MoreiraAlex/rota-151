@@ -3,6 +3,8 @@ import { getSpecies } from '../data/species'
 import { TEST_LEVEL } from '../data/testLevel'
 import { GAME_CONFIG } from '../gameConfig'
 import { verticalClearance } from '../physics/capsule'
+import { shoreNear, wadeLimit } from '../terrain/water'
+import { levelWaterDepthAt } from '../actions/water'
 import {
   CharacterController,
   HeldItem,
@@ -28,8 +30,14 @@ function standingY(trainer, x, z) {
 }
 
 // A posição salva, ou — se ela ficou dentro do relevo — a mesma x/z com os
-// pés acima do chão (cai até pousar, como ao entrar no mundo).
-function liftAboveGround(trainer, { x, y, z }) {
+// pés acima do chão (cai até pousar, como ao entrar no mundo). Em água funda
+// além de onde o corpo entra (docs/features/057-lagos-e-rios.md), vai para
+// a margem mais perto.
+function liftAboveGround(trainer, saved) {
+  const body = trainer.get(CharacterController)
+  const limit = body ? wadeLimit(verticalClearance(body) * 2) : undefined
+  const { x, z } = shoreNear(levelWaterDepthAt, saved.x, saved.z, limit)
+  const y = x === saved.x && z === saved.z ? saved.y : -Infinity
   const lowest = standingY(trainer, x, z)
   if (y >= lowest) return { x, y, z }
   return { x, y: lowest + GAME_CONFIG.TERRAIN.SPAWN_HEIGHT, z }
@@ -62,7 +70,9 @@ export function serializeTrainer(trainer) {
  * posição salva exata — ela vem da física, então não está dentro do chão (salvo
  * no meio de um pulo, só cai); sem posição salva, fica no ponto inicial. Se o
  * relevo mudou e a posição ficou dentro dele (save do chão plano, antes da
- * docs/features/045-terreno-de-um-chunk.md), sobe para a superfície.
+ * docs/features/045-terreno-de-um-chunk.md), sobe para a superfície; se
+ * ficou em água funda (docs/features/057-lagos-e-rios.md), vai para a
+ * margem.
  */
 export function restoreTrainer(trainer, saved) {
   if (saved.position) {

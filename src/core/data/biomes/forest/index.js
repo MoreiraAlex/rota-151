@@ -20,6 +20,8 @@ export const FOREST = {
     roughness: 0.25,
     flatness: 1.2,
   },
+  // Rios e lagos (docs/features/057-lagos-e-rios.md).
+  water: { rivers: 1, lakes: 0.8 },
   // A paleta casa com as texturas do Let's Go (a média delas): é a cor do
   // relevo distante — de perto, a cor vem das texturas (`ground.colors`).
   palette: {

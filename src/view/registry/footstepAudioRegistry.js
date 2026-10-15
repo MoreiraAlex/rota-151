@@ -11,13 +11,19 @@
  * estado que o system usa pra detectar a TROCA de fase do ciclo de
  * passada (toca só na transição, não todo frame) — ver docstring de
  * `footstepAudioSystem.js`.
+ *
+ * `waterBuffers` é o mesmo para o passo no raso (`WATER_SOUNDS.step`,
+ * docs/features/057-lagos-e-rios.md); `volume` é o do passo da espécie
+ * (o system troca pelo da água e volta).
  */
 const entries = new Map()
 
-export function registerFootstepAudio(entity, audio) {
+export function registerFootstepAudio(entity, audio, volume = 1) {
   entries.set(entity, {
     audio,
+    volume,
     buffers: { walk: [], run: [] },
+    waterBuffers: { walk: [], run: [] },
     previousBeat: -1,
   })
 }

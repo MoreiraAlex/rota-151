@@ -19,7 +19,9 @@ import {
   Position,
   Rotation,
   Velocity,
+  WaterSplash,
 } from '@/core/traits'
+import { withDeepWater } from '@/test/deepWater'
 import { captureBallSystem, resolveAbsorbHop } from './captureBallSystem'
 
 const DELTA = 1 / 60
@@ -194,5 +196,19 @@ describe('resolveAbsorbHop', () => {
     expect(half).toBeGreaterThan(ABSORB_HOP_HEIGHT / 2)
     expect(resolveAbsorbHop(ABSORB_HOP_TIME)).toBeCloseTo(ABSORB_HOP_HEIGHT)
     expect(resolveAbsorbHop(ABSORB_HOP_TIME * 3)).toBeCloseTo(ABSORB_HOP_HEIGHT)
+  })
+})
+
+describe('água funda (docs/features/057-lagos-e-rios.md)', () => {
+  it('a bola que cai na água funda afunda: some com respingo, sem quebrar', () => {
+    const { WATER_LEVEL } = GAME_CONFIG.TERRAIN
+    const from = { x: 0, y: WATER_LEVEL + 1.5, z: 0 }
+    const ball = throwAt({ x: 6, y: WATER_LEVEL - 1, z: 0 }, from)
+
+    withDeepWater(() => run(3))
+
+    expect(stateOf(ball)).toBe('gone')
+    expect(world.query(WaterSplash).length).toBe(1)
+    expect(emitted(EVENT_TYPES.CAPTURE_BALL_BROKE)).toEqual([])
   })
 })

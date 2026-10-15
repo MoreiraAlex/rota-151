@@ -1,12 +1,12 @@
 import { compileGradient, sampleCurve } from './particleSimulation'
-import { DASH_TEXTURE_PATHS } from './dashVfx'
 
 /**
  * Poeira do PULO — um anel de nuvens que estoura no chão e se espalha pros
  * lados, na decolagem e na aterrissagem (`jumpDustManager.js` decide quando e
- * com que força). Usa a mesma fumaça do dash (`big_smoke`, 12 quadros na
+ * com que força). Usa a fumaça do Quick Attack (`big_smoke`, 12 quadros na
  * vertical — do `quickattack_dust` do Cobblemon), mas é um efeito próprio: o
- * Cobblemon não tem poeira de pulo.
+ * Cobblemon não tem poeira de pulo. O dash usa esta mesma poeira na saída
+ * (`dashVfx.js`).
  *
  * Os emissores nascem no MUNDO, na posição dos pés (`anchor: 'impact'` = a
  * origem do sistema, posta nos pés por quem cria), em espaço sem `frame`: cada
@@ -14,8 +14,9 @@ import { DASH_TEXTURE_PATHS } from './dashVfx'
  * esvaziando. Cor de poeira clara; sem colisão com o chão.
  */
 
+// A fumaça do Quick Attack, a mesma do dash (que usa esta poeira na saída).
 export const JUMP_DUST_TEXTURE_PATHS = {
-  smoke: DASH_TEXTURE_PATHS.smoke,
+  smoke: '/assets/effects/dash/big_smoke.png',
 }
 
 const DUST_TINT = compileGradient([

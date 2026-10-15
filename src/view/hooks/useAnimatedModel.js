@@ -7,6 +7,7 @@ import { SummonedCreature, Mood } from '@/core/traits'
 import { resolveEyeState } from '@/view/shared/eyeState'
 import { resolveBones } from '@/core/animation/resolveBones'
 import { resolveFootstepSound } from '@/core/data/audio/footstepGroups'
+import { WATER_SOUNDS } from '@/core/data/audio/waterSounds'
 import {
   resolveVoiceSound,
   DEFAULT_VOICE_MIN_INTERVAL,
@@ -608,10 +609,11 @@ export function useAnimatedModel(entity, species) {
 
     const listener = getAudioListener()
     const audio = new THREE.PositionalAudio(listener)
-    audio.setVolume(footstep.volume ?? DEFAULT_FOOTSTEP_VOLUME)
+    const volume = footstep.volume ?? DEFAULT_FOOTSTEP_VOLUME
+    audio.setVolume(volume)
     audio.setRefDistance(footstep.refDistance ?? DEFAULT_FOOTSTEP_REF_DISTANCE)
     groupRef.current.add(audio)
-    registerFootstepAudio(entity, audio)
+    registerFootstepAudio(entity, audio, volume)
 
     // Carrega cada variação (`walk`/`run`, array) em paralelo e preenche o
     // registry IN PLACE conforme cada uma termina — `footstepAudioSystem.js`
@@ -620,13 +622,18 @@ export function useAnimatedModel(entity, species) {
     // empurrar buffer pra dentro de um registry já desregistrado (entidade
     // desmontou — ex.: criatura recolhida — antes do carregamento terminar).
     let cancelled = false
-    for (const gait of ['walk', 'run']) {
-      for (const path of footstep[gait] ?? []) {
-        loadAudioBuffer(path).then((buffer) => {
-          if (cancelled || !buffer) return
-          const entry = getFootstepAudioEntry(entity)
-          entry?.buffers[gait].push(buffer)
-        })
+    // O passo no raso é o mesmo para todos (docs/features/057-lagos-e-
+    // rios.md).
+    const sources = { buffers: footstep, waterBuffers: WATER_SOUNDS.step }
+    for (const [target, sound] of Object.entries(sources)) {
+      for (const gait of ['walk', 'run']) {
+        for (const path of sound[gait] ?? []) {
+          loadAudioBuffer(path).then((buffer) => {
+            if (cancelled || !buffer) return
+            const entry = getFootstepAudioEntry(entity)
+            entry?.[target][gait].push(buffer)
+          })
+        }
       }
     }
 

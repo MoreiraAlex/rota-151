@@ -49,6 +49,7 @@ import { eatingInterruptSystem } from '@/core/systems/eatingInterruptSystem'
 import { droppedFoodSystem } from '@/core/systems/droppedFoodSystem'
 import { autosaveSystem } from '@/core/systems/autosaveSystem'
 import { summonEffectsSystem } from '@/core/systems/summonEffectsSystem'
+import { waterSplashSystem } from '@/core/systems/waterSplashSystem'
 import { characterPhysicsSystem } from '@/core/systems/characterPhysicsSystem'
 import { physicsStepSystem } from '@/core/systems/physicsStepSystem'
 import { syncPhysicsSystem } from '@/core/systems/syncPhysicsSystem'
@@ -247,6 +248,7 @@ export function registerGameSystems() {
   registerSystem(GAME_PHASES.SIMULATION, attackEffectSystem)
   registerSystem(GAME_PHASES.SIMULATION, statStageSystem)
   registerSystem(GAME_PHASES.SIMULATION, summonEffectsSystem)
+  registerSystem(GAME_PHASES.SIMULATION, waterSplashSystem)
   registerSystem(GAME_PHASES.SIMULATION, partySummonSystem)
   registerSystem(GAME_PHASES.SIMULATION, summonBallSystem)
   // Logo depois do spawn: a recém-invocada começa a apresentação no mesmo

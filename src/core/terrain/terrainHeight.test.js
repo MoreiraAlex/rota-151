@@ -14,12 +14,18 @@ const POINTS = Array.from({ length: 50 }, (_, i) => [
   i * -51.1 + 900,
 ])
 
-// O ponto mais alto e o mais baixo que algum bioma alcança.
+// O ponto mais alto e o mais baixo que algum bioma alcança — o mais baixo
+// abaixo do leito mais fundo dos lagos e rios (docs/features/057-lagos-e-
+// rios.md): a fundura, o ruído do fundo e a curva do encontro com o relevo.
 const reliefLimits = () => {
   const biomes = listBiomes()
+  const { RIVER, LAKE, BED_ROUGHNESS, BLEND } = GAME_CONFIG.WATER_BODIES
+  const deepestBed =
+    Math.max(RIVER.DEPTH, LAKE.DEPTH) + BED_ROUGHNESS + BLEND / 4
   return {
     lowest: Math.min(
       ...biomes.map(({ relief }) => relief.baseHeight - relief.hillHeight),
+      -deepestBed,
     ),
     highest: Math.max(
       ...biomes.map(({ relief }) => relief.baseHeight + relief.hillHeight),
@@ -71,7 +77,9 @@ describe('createTerrainSampler', () => {
   })
 
   it('um bioma mais alto deixa o chão dele mais alto', () => {
+    // Sem lagos e rios: o fundo deles não segue o relevo de cima.
     const recipe = copyTerrainRecipe(currentTerrainRecipe())
+    for (const biome of recipe.biomeList) delete biome.water
     const before = createTerrainSampler(10, recipe)
     const [x, z] = POINTS[7]
     const biome = before.biomeAt(x, z)
@@ -81,6 +89,56 @@ describe('createTerrainSampler', () => {
     const after = createTerrainSampler(10, raised)
 
     expect(after.heightAt(x, z)).toBeGreaterThan(before.heightAt(x, z))
+  })
+})
+
+describe('lagos e rios (docs/features/057-lagos-e-rios.md)', () => {
+  // A receita sem `water` em nenhum bioma: o relevo sem lago nem rio.
+  const dryRecipe = () => {
+    const recipe = copyTerrainRecipe(currentTerrainRecipe())
+    for (const biome of recipe.biomeList) delete biome.water
+    return recipe
+  }
+  const GRID = []
+  for (let x = -2000; x < 2000; x += 25) {
+    for (let z = -2000; z < 2000; z += 25) GRID.push([x, z])
+  }
+
+  it('só cavam: nunca levantam o chão, e cavam em algum lugar', () => {
+    const wet = createTerrainSampler(10)
+    const dry = createTerrainSampler(10, dryRecipe())
+    let carved = false
+    for (const [x, z] of GRID) {
+      const difference = wet.heightAt(x, z) - dry.heightAt(x, z)
+      expect(difference).toBeLessThanOrEqual(1e-9)
+      if (difference < -0.5) carved = true
+    }
+    expect(carved).toBe(true)
+  })
+
+  it('bioma sem `water` não ganha lago nem rio', () => {
+    const recipe = currentTerrainRecipe()
+    const withoutWater = recipe.biomeList.filter(({ water }) => !water)
+    if (withoutWater.length === 0) return
+    const wet = createTerrainSampler(10)
+    const dry = createTerrainSampler(10, dryRecipe())
+    for (const [x, z] of GRID) {
+      const weights = new Float64Array(wet.biomes.length)
+      wet.sample(x, z, weights)
+      // Só no meio do bioma sem água (na fronteira vale a média).
+      const own = wet.biomes.findIndex(({ water }) => !water)
+      if (weights[own] < 1 - 1e-9) continue
+      expect(wet.heightAt(x, z)).toBe(dry.heightAt(x, z))
+    }
+  })
+
+  it('a cidade não tem lago nem rio', () => {
+    expect(listBiomes().find(({ id }) => id === 'city').water).toBeUndefined()
+  })
+
+  it('a origem fica em terra', () => {
+    const sampler = createTerrainSampler(GAME_CONFIG.WORLD.SEED)
+    expect(sampler.heightAt(0, 0)).toBeGreaterThan(WATER_LEVEL)
   })
 })
 

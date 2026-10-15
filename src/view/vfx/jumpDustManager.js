@@ -11,34 +11,47 @@
  *   (força total).
  *
  * `creatures` (um por criatura, a cada frame): `{ entity, grounded, vy,
- * position: [x, y, z] }` — `position` nos PÉS. Criatura vista pela primeira vez
- * só registra o estado (não solta nada). `createSystem({ strength, kind })`
+ * position: [x, y, z], water }` — `position` nos PÉS (na superfície, se
+ * estiverem na água); `water` = pés na água (docs/features/057-lagos-e-
+ * rios.md: respingo no lugar da poeira, quem decide é o `createSystem`).
+ * Criatura vista pela primeira vez só registra o estado (não solta nada).
+ * `createSystem({ strength, kind, water })`
  * devolve um sistema de partículas que `{ group, update(delta), isDone(),
  * dispose() }`; a posição dos pés é posta em `group.position`. `root` é o
- * grupo da cena (espaço do mundo).
+ * grupo da cena (espaço do mundo). `onBurst({ kind, strength, water,
+ * position })` (opcional) avisa cada vez que solta — o anel na água, que não
+ * é partícula.
  */
 export function createJumpDustManager({
   createSystem,
   root,
   minSpeed = 2,
   maxSpeed = 10,
+  onBurst,
 }) {
   // criatura → { grounded, fall (maior velocidade de queda no ar) }
   const states = new Map()
   const systems = new Set()
 
-  function burst(kind, strength, position) {
-    const system = createSystem({ kind, strength })
+  function burst(kind, strength, position, water) {
+    const system = createSystem({ kind, strength, water })
     system.group.position.set(position[0], position[1], position[2])
     root.add(system.group)
     systems.add(system)
+    onBurst?.({ kind, strength, water, position })
   }
 
   return {
     update(creatures, delta) {
       const seen = new Set()
 
-      for (const { entity, grounded, vy, position } of creatures) {
+      for (const {
+        entity,
+        grounded,
+        vy,
+        position,
+        water = false,
+      } of creatures) {
         seen.add(entity)
         const state = states.get(entity)
         if (!state) {
@@ -47,7 +60,7 @@ export function createJumpDustManager({
         }
 
         if (state.grounded && !grounded && vy > 0) {
-          burst('takeoff', 0.5, position)
+          burst('takeoff', 0.5, position, water)
         }
         if (!grounded) state.fall = Math.max(state.fall, -vy)
         if (!state.grounded && grounded) {
@@ -56,7 +69,7 @@ export function createJumpDustManager({
               (state.fall - minSpeed) / (maxSpeed - minSpeed),
               1,
             )
-            burst('landing', strength, position)
+            burst('landing', strength, position, water)
           }
           state.fall = 0
         }

@@ -307,6 +307,32 @@ describe('objetos sólidos da vegetação (pegadas)', () => {
   })
 })
 
+// docs/features/057-lagos-e-rios.md
+describe('água', () => {
+  const { WATER_LEVEL } = GAME_CONFIG.TERRAIN
+  const { NAV_DEPTH } = GAME_CONFIG.WATER
+  // Uma faixa de água em x de -4 a 4: rasa na beira (|x| > 2), funda no
+  // meio. Fundo de declive suave (não vira penhasco).
+  const depthAt = (x) =>
+    Math.abs(x) > 4 ? -1 : Math.abs(x) > 2 ? NAV_DEPTH / 2 : NAV_DEPTH * 2
+  const nav = createNavigation({
+    bounds: { minX: -10, maxX: 10, minZ: -10, maxZ: 10 },
+    obstacles: [],
+    terrain: { heightAt: (x) => WATER_LEVEL - depthAt(x) },
+  })
+
+  it('fora do trecho de raso da navegação não é andável; dentro dele é', () => {
+    expect(nav.inspectCell(0.5, 0.5).walkable).toBe(false)
+    expect(nav.inspectCell(-1.5, 0.5).walkable).toBe(false)
+    expect(nav.inspectCell(-2.5, 0.5).walkable).toBe(true)
+    expect(nav.isWalkableAt(-6, 0)).toBe(true)
+  })
+
+  it('não há caminho atravessando a água funda', () => {
+    expect(nav.findPath({ x: -7, z: 0 }, { x: 7, z: 0 })).toEqual([])
+  })
+})
+
 describe('nível do jogo (TEST_LEVEL)', () => {
   beforeAll(() => carregarChunk(0, 0))
   afterAll(() => descarregarTodosOsChunks())

@@ -37,8 +37,8 @@ export function WorldPage({ data, version }) {
             outro caminho em volta dela.
           </li>
           <li>
-            Os vales mais fundos ficam cheios de água. Por enquanto dá pra
-            atravessar os lagos andando pelo fundo.
+            Os vales mais fundos ficam cheios de água: são os{' '}
+            <a href="#lagos-e-rios">lagos e rios</a>.
           </li>
         </ul>
       </Section>
@@ -178,6 +178,41 @@ export function WorldPage({ data, version }) {
           desviam delas; arbustos e mato dá pra atravessar. O vento balança o
           capim e as copas do mesmo jeito.
         </p>
+      </Section>
+
+      <Section id="lagos-e-rios" title="Lagos e rios">
+        <p>
+          A floresta, a planície e a savana têm <strong>lagos</strong> e{' '}
+          <strong>rios</strong> que atravessam o campo. As cidades ficam secas,
+          e o lugar onde você começa o jogo também.
+        </p>
+        <ul>
+          <li>
+            A beira é rasa: dá pra entrar andando, cada vez mais devagar
+            conforme a água fica mais funda. Cada criatura entra até uma parte
+            da própria altura — o treinador vai mais longe que uma criatura
+            pequena. Mais fundo que isso, a água barra a passagem.
+          </li>
+          <li>
+            As criaturas selvagens e as do time ficam só na beirada e contornam
+            a água para chegar do outro lado.
+          </li>
+          <li>
+            Andando, pulando ou correndo na água, ela respinga e faz marolinhas.
+          </li>
+          <li>
+            O que é arremessado e cai na parte funda afunda e some. A esfera de
+            invocar não abre: o Pokémon continua no time.
+          </li>
+          <li>
+            A água dos rios corre, e na beira dos lagos e rios as ondas vão e
+            voltam na areia.
+          </li>
+          <li>
+            Se você sair do jogo dentro da água mais funda do que consegue
+            ficar, volta na margem mais perto.
+          </li>
+        </ul>
       </Section>
 
       <Section id="cidades" title="As cidades">
@@ -382,10 +417,10 @@ export function WorldPage({ data, version }) {
 
       <Notice tone="soon">
         <p>
-          Ainda vão chegar ao mundo: água de verdade em lagos e rios, entrar nos
-          prédios das cidades e o Pokécenter curando o time. Os Pokémon de cada
-          bioma, horário e clima também chegam depois. A montanha e as cavernas
-          ficam para depois desta versão.
+          Ainda vão chegar ao mundo: nadar, entrar nos prédios das cidades e o
+          Pokécenter curando o time. Os Pokémon de cada bioma, horário e clima
+          também chegam depois. A montanha e as cavernas ficam para depois desta
+          versão.
         </p>
       </Notice>
     </>

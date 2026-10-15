@@ -16,6 +16,17 @@ import {
   JUMP_DUST_TEXTURE_PATHS,
 } from '@/view/vfx/jumpDustVfx'
 import { createJumpDustManager } from '@/view/vfx/jumpDustManager'
+import {
+  buildWaterSplashEmitters,
+  WATER_SPLASH_TEXTURE_PATHS,
+} from '@/view/vfx/waterSplashVfx'
+import { levelWaterDepthAt } from '@/core/actions/water'
+import { addFootRipple } from '@/view/water/footRipples'
+
+const TEXTURE_PATHS = {
+  ...JUMP_DUST_TEXTURE_PATHS,
+  ...WATER_SPLASH_TEXTURE_PATHS,
+}
 
 // Passo máximo da simulação — um frame longo não pode virar um salto das partículas.
 const MAX_STEP = 1 / 20
@@ -27,6 +38,9 @@ const MAX_STEP = 1 / 20
  * `createJumpDustManager` decidir quando soltar e com que força — `useFrame`
  * aqui é a exceção documentada de componente puramente visual, igual a
  * `DashEffectsView`. `GAME_CONFIG.FEEDBACK.JUMP_DUST` liga/desliga e ajusta.
+ * Com os pés na água (docs/features/057-lagos-e-rios.md), sai um respingo
+ * na superfície no lugar da poeira (`waterSplashVfx.js`), com as mesmas
+ * contas de quantidade e força.
  */
 export function JumpDustView() {
   const {
@@ -38,7 +52,7 @@ export function JumpDustView() {
     LANDING_COUNT_MIN,
     LANDING_COUNT_MAX,
   } = GAME_CONFIG.FEEDBACK.JUMP_DUST
-  const textures = useTexture(JUMP_DUST_TEXTURE_PATHS)
+  const textures = useTexture(TEXTURE_PATHS)
   const rootRef = useRef()
   const managerRef = useRef(null)
 
@@ -47,9 +61,20 @@ export function JumpDustView() {
       root: rootRef.current,
       minSpeed: MIN_FALL_SPEED,
       maxSpeed: MAX_FALL_SPEED,
-      createSystem: ({ kind, strength }) =>
+      // Na água, um anel na superfície junto do respingo.
+      onBurst: ({ strength, water, position }) => {
+        if (!water) return
+        const { RING_SIZE } = GAME_CONFIG.FEEDBACK.WATER_SPLASH
+        addFootRipple(
+          position[0],
+          GAME_CONFIG.TERRAIN.WATER_LEVEL,
+          position[2],
+          RING_SIZE * (0.6 + strength * 0.8),
+        )
+      },
+      createSystem: ({ kind, strength, water }) =>
         createParticleSystem({
-          emitters: buildJumpDustEmitters({
+          emitters: (water ? buildWaterSplashEmitters : buildJumpDustEmitters)({
             count:
               kind === 'takeoff'
                 ? TAKEOFF_COUNT
@@ -90,12 +115,19 @@ export function JumpDustView() {
     world.query(Position, Velocity, CharacterController).forEach((entity) => {
       const pos = entity.get(Position)
       const clearance = verticalClearance(entity.get(CharacterController))
+      const water = levelWaterDepthAt(pos.x, pos.z) > 0
+      const feetY = pos.y - clearance
       creatures.push({
         entity,
         grounded: entity.has(Grounded),
         vy: entity.get(Velocity).y,
-        // nos pés
-        position: [pos.x, pos.y - clearance, pos.z],
+        water,
+        // nos pés — na água, na superfície
+        position: [
+          pos.x,
+          water ? Math.max(feetY, GAME_CONFIG.TERRAIN.WATER_LEVEL) : feetY,
+          pos.z,
+        ],
       })
     })
 
@@ -105,4 +137,4 @@ export function JumpDustView() {
   return <group ref={rootRef} />
 }
 
-useTexture.preload(Object.values(JUMP_DUST_TEXTURE_PATHS))
+useTexture.preload(Object.values(TEXTURE_PATHS))

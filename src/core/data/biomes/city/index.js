@@ -20,7 +20,7 @@ export const CITY = {
     continent: [0.4, 1],
     relief: [0, 0.6],
   },
-  // Quase plana e lisa (o chão perfeitamente plano fica para a 080).
+  // Quase plana e lisa (o chão perfeitamente plano fica para a 081).
   relief: {
     baseHeight: 3.5,
     hillHeight: 0.8,

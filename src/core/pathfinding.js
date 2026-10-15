@@ -2,6 +2,7 @@ import PF from 'pathfinding'
 import { GAME_CONFIG } from './gameConfig'
 import { TEST_LEVEL } from './data/testLevel'
 import { clamp } from './math'
+import { isDeepWater } from './terrain/water'
 
 /**
  * Grade de navegação (plano XZ, com elevação — ver "Elevação (heightmap)"
@@ -157,11 +158,17 @@ function bakeNavRegion(level, { minCol, minRow, cols, rows }) {
     }
   }
 
-  // Passada 0: o relevo.
+  // Passada 0: o relevo — e a água funda (docs/features/057-lagos-e-
+  // rios.md), que bloqueia como um sólido; o raso continua andável.
+  const hasTerrain = Boolean(level.terrain)
   for (let col = 0; col < frameCols; col++) {
     for (let row = 0; row < frameRows; row++) {
       const { x, z } = cellCenter(col, row)
-      elevation[index(col, row)] = groundAt(x, z)
+      const ground = groundAt(x, z)
+      elevation[index(col, row)] = ground
+      if (hasTerrain && isDeepWater(GAME_CONFIG.TERRAIN.WATER_LEVEL - ground)) {
+        blocked[index(col, row)] = 1
+      }
     }
   }
 

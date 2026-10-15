@@ -11,6 +11,7 @@ import { world } from '@/core/world/world'
 import { useTerrainChunks } from '@/view/hooks/useTerrainChunks'
 import { resolveSkyLook } from '@/view/weather/skyLook'
 import { buildWaterChunkGeometry } from './waterGeometry'
+import { SHORE_REACH } from './shoreWave'
 import {
   applyWaterLook,
   createWaterMaterial,
@@ -38,7 +39,13 @@ function reflectedSky() {
 /** A água de um chunk; a geometria sai ao desmontar (regra 5.3). */
 function WaterChunkView({ chunk, material }) {
   const geometry = useMemo(
-    () => buildWaterChunkGeometry(chunk, GAME_CONFIG.TERRAIN.WATER_LEVEL),
+    () =>
+      buildWaterChunkGeometry(
+        chunk,
+        GAME_CONFIG.TERRAIN.WATER_LEVEL,
+        TEST_LEVEL.terrain.flowAt,
+        SHORE_REACH,
+      ),
     [chunk],
   )
   useEffect(() => () => geometry?.dispose(), [geometry])
@@ -47,9 +54,11 @@ function WaterChunkView({ chunk, material }) {
 }
 
 /**
- * A água (docs/features/049-vegetacao-e-floresta.md): uma superfície por
- * chunk carregado onde o chão fica abaixo do nível da água — só visual, sem
- * nadar nem colidir (a água de verdade é da 059). Um material para todos.
+ * A água (docs/features/049-vegetacao-e-floresta.md, docs/features/057-
+ * lagos-e-rios.md): uma superfície por chunk carregado onde o chão fica
+ * abaixo do nível da água, com a correnteza dos rios. Só o desenho — quem
+ * barra e atrasa é o core (`core/terrain/water.js`). Um material para
+ * todos (o estilo toon, `waterMaterial.js`).
  *
  * `useFrame` aqui é a exceção das regras (3.4): só visual (as ondinhas e o
  * céu refletido), que só LÊ o ECS (a hora e o clima).

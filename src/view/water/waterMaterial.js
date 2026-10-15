@@ -1,19 +1,31 @@
 import * as THREE from 'three'
 import { GAME_CONFIG } from '@/core/gameConfig'
+import {
+  applyShoreWave,
+  createShoreWaveUniforms,
+  SHORE_WAVE_FRAGMENT_HEADER,
+  SHORE_WAVE_VERTEX,
+  SHORE_WAVE_VERTEX_HEADER,
+} from './shoreWave'
 
 const VERTEX_HEADER = /* glsl */ `
+${SHORE_WAVE_VERTEX_HEADER}
 attribute float waterDepth;
+attribute vec2 waterFlow;
 varying float vWaterDepth;
+varying vec2 vWaterFlow;
 varying vec3 vWaterWorld;
 `
 
 const VERTEX_WORLD = /* glsl */ `
 #include <begin_vertex>
 vWaterDepth = waterDepth;
+vWaterFlow = waterFlow;
 vWaterWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;
-`
+${SHORE_WAVE_VERTEX}`
 
 const FRAGMENT_HEADER = /* glsl */ `
+${SHORE_WAVE_FRAGMENT_HEADER}
 uniform vec3 uShallowColor;
 uniform vec3 uDeepColor;
 uniform float uDeepDepth;
@@ -28,7 +40,10 @@ uniform float uWaveStrength;
 uniform float uReflection;
 uniform float uTime;
 uniform vec3 uSkyColor;
+uniform float uFlowSpeed;
+uniform float uFlowCycle;
 varying float vWaterDepth;
+varying vec2 vWaterFlow;
 varying vec3 vWaterWorld;
 
 float waterHash(vec2 p) {
@@ -53,21 +68,38 @@ float waterWaves(vec2 p) {
   return waterNoise(p + vec2(t, t * 0.6))
     + waterNoise(p * 1.9 - vec2(t * 0.7, -t)) * 0.5;
 }
+
+// As ondinhas levadas pela correnteza do rio (flow map de duas fases: cada
+// fase anda um ciclo e volta, uma some enquanto a outra aparece — o desenho
+// não estica com o tempo). Fora do rio a correnteza é zero e as duas fases
+// são iguais.
+float flowingWaves(vec2 p) {
+  vec2 drift = vWaterFlow * uFlowSpeed * uFlowCycle / uWaveSize;
+  float phase0 = fract(uTime / uFlowCycle);
+  float phase1 = fract(phase0 + 0.5);
+  float blend = abs(1.0 - 2.0 * phase0);
+  return mix(
+    waterWaves(p - drift * phase0),
+    waterWaves(p - drift * phase1 + 0.37),
+    blend);
+}
 `
 
 // Cor pela profundidade (margem clara, fundo escuro), espuma na beira e a
 // transparência (na margem dá para ver o chão).
 const FRAGMENT_COLOR = /* glsl */ `
 #include <color_fragment>
-if (vWaterDepth <= 0.0) discard;
+// A profundidade com a onda da margem (shoreWave.js).
+float waterDepth = vWaterDepth + vSwash;
+if (waterDepth <= 0.0) discard;
 vec2 wavePoint = vWaterWorld.xz / uWaveSize;
-float waveHeight = waterWaves(wavePoint);
-vec3 waterColor = mix(uShallowColor, uDeepColor, smoothstep(0.0, uDeepDepth, vWaterDepth));
+float waveHeight = flowingWaves(wavePoint);
+vec3 waterColor = mix(uShallowColor, uDeepColor, smoothstep(0.0, uDeepDepth, waterDepth));
 float foam = 1.0 - smoothstep(0.0, uFoamWidth,
-  vWaterDepth + (waveHeight - 0.75) * uFoamWidth);
+  waterDepth + (waveHeight - 0.75) * uFoamWidth);
 diffuseColor.rgb = mix(waterColor, uFoamColor, foam * 0.85);
 diffuseColor.a = max(
-  mix(uShoreOpacity, uDeepOpacity, smoothstep(0.0, uOpacityDepth, vWaterDepth)),
+  mix(uShoreOpacity, uDeepOpacity, smoothstep(0.0, uOpacityDepth, waterDepth)),
   foam * 0.9);
 `
 
@@ -75,8 +107,8 @@ diffuseColor.a = max(
 const FRAGMENT_NORMAL = /* glsl */ `
 #include <normal_fragment_maps>
 float waveStep = 0.08;
-float waveX = waterWaves(wavePoint + vec2(waveStep, 0.0));
-float waveZ = waterWaves(wavePoint + vec2(0.0, waveStep));
+float waveX = flowingWaves(wavePoint + vec2(waveStep, 0.0));
+float waveZ = flowingWaves(wavePoint + vec2(0.0, waveStep));
 vec3 waveNormal = normalize(vec3(
   (waveHeight - waveX) / waveStep * uWaveStrength,
   1.0,
@@ -94,11 +126,12 @@ totalEmissiveRadiance += uSkyColor * (0.3 + 0.7 * waterFresnel) * uReflection
 `
 
 /**
- * Material da água (docs/features/049-vegetacao-e-floresta.md) — uma
- * representação simples até a água de verdade (059): `MeshStandardMaterial`
- * transparente (recebe sol, sombra e névoa do jogo) com a cor pela
- * profundidade (`waterDepth` da geometria), espuma na beira, ondinhas que
- * pegam o brilho do sol e o céu refletido. Os números são de
+ * Material da água no estilo "toon" (docs/features/049-vegetacao-e-
+ * floresta.md; o escolhido na docs/features/057-lagos-e-rios.md):
+ * `MeshStandardMaterial` transparente (recebe sol, sombra e névoa do jogo)
+ * com a cor pela profundidade (`waterDepth` da geometria), espuma na beira,
+ * ondinhas que pegam o brilho do sol e andam com a correnteza do rio
+ * (`waterFlow`) e o céu refletido. Os números são de
  * `GAME_CONFIG.WATER` (`applyWaterLook`); a hora e a cor do céu,
  * `updateWater`. Um material para todos os chunks; quem cria chama
  * `dispose()`.
@@ -119,12 +152,15 @@ export function createWaterMaterial() {
     uReflection: { value: 0 },
     uTime: { value: 0 },
     uSkyColor: { value: new THREE.Color() },
+    uFlowSpeed: { value: 0 },
+    uFlowCycle: { value: 1 },
   }
   const material = new THREE.MeshStandardMaterial({
     transparent: true,
     depthWrite: false,
     metalness: 0,
   })
+  Object.assign(uniforms, createShoreWaveUniforms())
   material.userData.waterUniforms = uniforms
   material.onBeforeCompile = (shader) => {
     Object.assign(shader.uniforms, uniforms)
@@ -157,6 +193,9 @@ export function applyWaterLook(material, water = GAME_CONFIG.WATER) {
   uniforms.uWaveSpeed.value = water.WAVE_SPEED
   uniforms.uWaveStrength.value = water.WAVE_STRENGTH
   uniforms.uReflection.value = water.REFLECTION
+  uniforms.uFlowSpeed.value = water.FLOW_SPEED
+  uniforms.uFlowCycle.value = water.FLOW_CYCLE
+  applyShoreWave(uniforms, water)
   material.roughness = water.ROUGHNESS
 }
 
@@ -164,5 +203,6 @@ export function applyWaterLook(material, water = GAME_CONFIG.WATER) {
 export function updateWater(material, delta, skyColor) {
   const uniforms = material.userData.waterUniforms
   uniforms.uTime.value += delta
+  uniforms.uShoreTime.value = uniforms.uTime.value
   if (skyColor) uniforms.uSkyColor.value.copy(skyColor)
 }

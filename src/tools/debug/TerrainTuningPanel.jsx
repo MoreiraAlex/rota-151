@@ -111,6 +111,93 @@ const TRAIL_CONTROLS = {
   SHORE_GAP: { label: 'Folga da água (m)', range: [0, 2, 0.05] },
 }
 
+// Lagos e rios (`GAME_CONFIG.WATER_BODIES`, core/terrain/waterBodies.js,
+// docs/features/057-lagos-e-rios.md): mudam o relevo, refazem o terreno ao
+// soltar.
+const WATER_BODY_CONTROLS = {
+  RIVER: {
+    SIZE: { label: 'Distância entre rios (m)', range: [100, 3000, 10] },
+    WARP: { label: 'Serpenteio (m)', range: [0, 300, 1] },
+    WARP_SIZE: { label: 'Tamanho das curvas (m)', range: [20, 800, 5] },
+    WIDTH: { label: 'Largura (m)', range: [1, 40, 0.5] },
+    DEPTH: { label: 'Fundura (m)', range: [0.2, 6, 0.1] },
+    SHORE_SLOPE: { label: 'Descida da margem', range: [0.02, 2, 0.01] },
+  },
+  LAKE: {
+    SIZE: { label: 'Tamanho das manchas (m)', range: [40, 1500, 10] },
+    COVERAGE: { label: 'Cobertura (0 a 1)', range: [0, 0.6, 0.01] },
+    DEPTH: { label: 'Fundura (m)', range: [0.2, 8, 0.1] },
+    SHORE_SLOPE: { label: 'Descida da margem', range: [0.02, 2, 0.01] },
+  },
+  BANK_SLOPE: { label: 'Encosta do vale', range: [0.02, 2, 0.01] },
+  BLEND: { label: 'Curva do encontro (m)', range: [0.1, 6, 0.1] },
+  BED_ROUGHNESS: { label: 'Ruído do fundo (m)', range: [0, 1, 0.01] },
+  BED_SIZE: { label: 'Tamanho do ruído do fundo (m)', range: [1, 30, 0.5] },
+  SPAWN_CLEAR_RADIUS: { label: 'Sem água na origem (m)', range: [0, 300, 5] },
+}
+
+// O desenho da água e o raso/fundo (`GAME_CONFIG.WATER`,
+// docs/features/057-lagos-e-rios.md): valem na hora. `color` = seletor de
+// cor; `regenerate` = refaz o terreno ao soltar (a grade de navegação sabe
+// do fundo).
+const WATER_CONTROLS = {
+  WADE_FRACTION: {
+    label: 'Entra até (fração da altura)',
+    range: [0.05, 1, 0.01],
+  },
+  NAV_DEPTH: {
+    label: 'Raso da navegação (m)',
+    range: [0, 1.5, 0.01],
+    regenerate: true,
+  },
+  SHALLOW_MIN_SPEED: {
+    label: 'Velocidade no limite',
+    range: [0.1, 1, 0.01],
+  },
+  FLOW_SPEED: { label: 'Correnteza (m/s)', range: [0, 5, 0.05] },
+  FLOW_CYCLE: { label: 'Ciclo da correnteza (s)', range: [0.5, 10, 0.1] },
+  DEEP_DEPTH: { label: 'Cor do fundo a partir de (m)', range: [0.2, 8, 0.1] },
+  OPACITY_DEPTH: {
+    label: 'Opacidade do fundo a partir de (m)',
+    range: [0.1, 5, 0.05],
+  },
+}
+const TOON_WATER_CONTROLS = {
+  SHALLOW_COLOR: { label: 'Cor da margem', color: true },
+  DEEP_COLOR: { label: 'Cor do fundo', color: true },
+  SHORE_OPACITY: { label: 'Opacidade na margem', range: [0, 1, 0.01] },
+  DEEP_OPACITY: { label: 'Opacidade no fundo', range: [0, 1, 0.01] },
+  FOAM_COLOR: { label: 'Cor da espuma', color: true },
+  FOAM_WIDTH: { label: 'Espuma (m)', range: [0, 1, 0.01] },
+  WAVE_SIZE: { label: 'Tamanho das ondas (m)', range: [0.2, 10, 0.1] },
+  WAVE_SPEED: { label: 'Velocidade das ondas', range: [0, 2, 0.01] },
+  WAVE_STRENGTH: { label: 'Força das ondas', range: [0, 2, 0.01] },
+  REFLECTION: { label: 'Reflexo do céu', range: [0, 1, 0.01] },
+}
+
+const SHORE_WAVE_CONTROLS = {
+  HEIGHT: { label: 'Altura (m)', range: [0, 1, 0.01] },
+  SPEED: { label: 'Ondas por segundo', range: [0, 1.5, 0.01] },
+  SIZE: { label: 'Trechos da margem (m)', range: [1, 60, 0.5] },
+  DEPTH: { label: 'Até a profundidade (m)', range: [0.1, 3, 0.05] },
+}
+const RIPPLE_CONTROLS = {
+  SIZE: { label: 'Tamanho (m)', range: [0.1, 2, 0.05] },
+  OPACITY: { label: 'Opacidade', range: [0, 1, 0.01] },
+  DURATION: { label: 'Duração (s)', range: [0.2, 3, 0.05] },
+}
+
+// Quanto cada bioma aceita de rio e de lago (`water`, 0 a 1).
+const waterTuning = ({ water }) => ({
+  rivers: water?.rivers ?? 0,
+  lakes: water?.lakes ?? 0,
+})
+
+function applyWaterTuning(biome, tuning) {
+  if (tuning.rivers === 0 && tuning.lakes === 0) delete biome.water
+  else biome.water = { ...tuning }
+}
+
 // O que cada bioma tem de trilha (core/data/biomes/): se tem e a cor dela
 // e da margem da água (a de longe — de perto vale a textura da área).
 const trailTuning = ({ trails, palette }) => ({
@@ -130,6 +217,11 @@ const INITIAL = {
   seed: GAME_CONFIG.WORLD.SEED,
   terrain: { ...GAME_CONFIG.TERRAIN },
   trails: { ...GAME_CONFIG.TRAILS },
+  waterBodies: structuredClone(GAME_CONFIG.WATER_BODIES),
+  water: structuredClone(GAME_CONFIG.WATER),
+  biomeWaters: Object.fromEntries(
+    listBiomes().map((biome) => [biome.id, waterTuning(biome)]),
+  ),
   pebbles: GAME_CONFIG.PEBBLES.PER_M2,
   biomeGrounds: Object.fromEntries(
     listBiomes().map((biome) => [biome.id, groundTuning(biome)]),
@@ -161,6 +253,11 @@ const configAsText = () =>
       ),
     `TRAILS: ${JSON.stringify(GAME_CONFIG.TRAILS, null, 2)}`,
     `PEBBLES.PER_M2: ${GAME_CONFIG.PEBBLES.PER_M2}`,
+    `WATER_BODIES: ${JSON.stringify(GAME_CONFIG.WATER_BODIES, null, 2)}`,
+    `WATER: ${JSON.stringify(GAME_CONFIG.WATER, null, 2)}`,
+    ...listBiomes()
+      .filter(({ water }) => water)
+      .map(({ id, water }) => `${id} (water): ${JSON.stringify(water)}`),
     ...listBiomes()
       .filter(({ trails }) => trails)
       .map(
@@ -189,7 +286,8 @@ const configAsText = () =>
  * "Biomas no mundo" esconde biomas (`BIOMES.HIDDEN`) para olhar um só;
  * "Trilhas" (docs/features/049-vegetacao-e-floresta.md) ajusta a forma e o
  * relevo das trilhas, os seixos e a cor da trilha e da margem de cada
- * bioma.
+ * bioma; "Lagos e rios" (docs/features/057-lagos-e-rios.md), a forma deles
+ * e quanto cada bioma aceita.
  *
  * A seed aqui só muda o relevo e o que depende dele: o RNG de gameplay já
  * foi criado com a seed do início.
@@ -367,6 +465,87 @@ export function TerrainTuningPanel() {
       .add({ all: () => showOnly(() => true) }, 'all')
       .name('Mostrar todos')
 
+    const waterFolder = gui.addFolder('Lagos e rios (refaz ao soltar)')
+    const addWaterControls = (folder, target, controls) => {
+      for (const [key, control] of Object.entries(controls)) {
+        if (!control.label) {
+          addWaterControls(
+            folder.addFolder(key === 'RIVER' ? 'Rios' : 'Lagos'),
+            target[key],
+            control,
+          )
+          continue
+        }
+        folder
+          .add(target, key, ...control.range)
+          .name(control.label)
+          .onFinishChange(regenerate)
+      }
+    }
+    addWaterControls(waterFolder, GAME_CONFIG.WATER_BODIES, WATER_BODY_CONTROLS)
+    // O desenho da água, na hora.
+    const addLookControls = (folder, target, controls) => {
+      for (const [key, control] of Object.entries(controls)) {
+        let controller
+        if (control.color) controller = folder.addColor(target, key)
+        else controller = folder.add(target, key, ...control.range)
+        controller.name(control.label)
+        if (control.regenerate) controller.onFinishChange(regenerate)
+      }
+    }
+    const lookFolder = gui.addFolder('Água (desenho)')
+    addLookControls(lookFolder, GAME_CONFIG.WATER, WATER_CONTROLS)
+    addLookControls(
+      lookFolder.addFolder('Cores e ondas'),
+      GAME_CONFIG.WATER,
+      TOON_WATER_CONTROLS,
+    )
+    addLookControls(
+      lookFolder.addFolder('Ondas na margem'),
+      GAME_CONFIG.WATER.SHORE_WAVE,
+      SHORE_WAVE_CONTROLS,
+    )
+    addLookControls(
+      lookFolder.addFolder('Marolinha dos passos'),
+      GAME_CONFIG.WATER.RIPPLE,
+      RIPPLE_CONTROLS,
+    )
+
+    // Quanto cada bioma aceita, um por vez.
+    const waterChoice = { id: listBiomes()[0].id }
+    const waterTunings = Object.fromEntries(
+      listBiomes().map((biome) => [biome.id, waterTuning(biome)]),
+    )
+    let waterControllers = []
+    const showWaterBiome = () => {
+      waterControllers.forEach((controller) => controller.destroy())
+      const biome = BIOME_REGISTRY[waterChoice.id]
+      const tuning = waterTunings[biome.id]
+      const apply = () => {
+        applyWaterTuning(biome, tuning)
+        regenerate()
+      }
+      waterControllers = [
+        waterFolder
+          .add(tuning, 'rivers', 0, 1, 0.05)
+          .name('Rios no bioma')
+          .onFinishChange(apply),
+        waterFolder
+          .add(tuning, 'lakes', 0, 1, 0.05)
+          .name('Lagos no bioma')
+          .onFinishChange(apply),
+      ]
+    }
+    waterFolder
+      .add(
+        waterChoice,
+        'id',
+        Object.fromEntries(listBiomes().map(({ id, name }) => [name, id])),
+      )
+      .name('Bioma')
+      .onChange(showWaterBiome)
+    showWaterBiome()
+
     gui
       .add(
         {
@@ -384,6 +563,23 @@ export function TerrainTuningPanel() {
             Object.assign(GAME_CONFIG.TERRAIN, INITIAL.terrain)
             Object.assign(GAME_CONFIG.BIOMES, INITIAL.biomeMap)
             Object.assign(GAME_CONFIG.TRAILS, INITIAL.trails)
+            // No lugar: os controles do F2 apontam para `RIVER` e `LAKE`.
+            const { RIVER, LAKE, ...waterRest } = INITIAL.waterBodies
+            Object.assign(GAME_CONFIG.WATER_BODIES.RIVER, RIVER)
+            Object.assign(GAME_CONFIG.WATER_BODIES.LAKE, LAKE)
+            Object.assign(GAME_CONFIG.WATER_BODIES, waterRest)
+            const { RIPPLE, SHORE_WAVE, ...waterLook } = INITIAL.water
+            Object.assign(GAME_CONFIG.WATER.SHORE_WAVE, SHORE_WAVE)
+            Object.assign(GAME_CONFIG.WATER.RIPPLE, RIPPLE)
+            Object.assign(GAME_CONFIG.WATER, waterLook)
+            for (const biome of listBiomes()) {
+              Object.assign(
+                waterTunings[biome.id],
+                INITIAL.biomeWaters[biome.id],
+              )
+              applyWaterTuning(biome, waterTunings[biome.id])
+            }
+            showWaterBiome()
             GAME_CONFIG.PEBBLES.PER_M2 = INITIAL.pebbles
             for (const biome of listBiomes()) {
               applyTrailTuning(biome, INITIAL.biomeTrails[biome.id])

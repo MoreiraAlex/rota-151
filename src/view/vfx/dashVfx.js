@@ -1,10 +1,17 @@
 import { compileGradient, sampleCurve } from './particleSimulation'
+import { buildJumpDustEmitters, JUMP_DUST_TEXTURE_PATHS } from './jumpDustVfx'
+import {
+  buildWaterSplashEmitters,
+  WATER_SPLASH_TEXTURE_PATHS,
+} from './waterSplashVfx'
 
 /**
  * Efeito de DASH — linhas de velocidade enquanto dura o dash e poeira no chão
- * na saída. Tradução manual de `quickattack_dashlines.particle.json` e
- * `quickattack_dust.particle.json` do Cobblemon (`.exemple/Coblemon/assets/
- * cobblemon/bedrock/particles/moves/quickattack/`). Mesmo contrato de
+ * na saída. As linhas são tradução manual de `quickattack_dashlines.particle.
+ * json` do Cobblemon (`.exemple/Coblemon/assets/cobblemon/bedrock/particles/
+ * moves/quickattack/`); a poeira é a mesma do pulo (`jumpDustVfx.js` — pedido
+ * do usuário na docs/features/057-lagos-e-rios.md) e, com os pés na água, o
+ * respingo (`waterSplashVfx.js`). Mesmo contrato de
  * `ctx`/`rnd` de `emberVfx.js`, mas aqui o sistema roda em espaço do MUNDO,
  * com um quadro que segue a criatura (`system.setFrame`, ver
  * `particleEmitter.js`): os specs falam no referencial dela — +Z = pra onde
@@ -12,7 +19,8 @@ import { compileGradient, sampleCurve } from './particleSimulation'
  * anda.
  *
  *   - `lines`  — contínuo: linhas de velocidade ao redor do corpo
- *   - `dust`   — nuvens de poeira no chão, na saída (`DASH_EFFECT.DUST_COUNT`)
+ *   - `dust`   — o anel de poeira do pulo na saída (`DASH_EFFECT.DUST_COUNT`
+ *     nuvens) — ou, na água, `foam` e `drops` (o respingo)
  *
  * Não existe efeito de dash PARA MOVIMENTO no Cobblemon (é o mod por turnos
  * do Minecraft): estes vêm do golpe Quick Attack e foram adaptados — as linhas
@@ -25,8 +33,15 @@ import { compileGradient, sampleCurve } from './particleSimulation'
 
 export const DASH_TEXTURE_PATHS = {
   lines: '/assets/effects/dash/dashlines.png',
-  smoke: '/assets/effects/dash/big_smoke.png',
+  ...JUMP_DUST_TEXTURE_PATHS,
+  ...WATER_SPLASH_TEXTURE_PATHS,
 }
+
+// A poeira (ou o respingo) da saída tem a forma da decolagem do pulo
+// (`JumpDustView.jsx`, força média): o quanto se espalha (m/s) e o tamanho
+// das nuvens (m), antes da escala.
+const GROUND_SPEED = 1.8
+const GROUND_SIZE = 0.475
 
 // Valores de PARTIDA dos números de ajuste (a config do jogo, `GAME_CONFIG.
 // FEEDBACK.DASH_EFFECT`, manda: `buildDashEmitters` recebe os dela). O original
@@ -38,16 +53,14 @@ const DEFAULTS = {
   lineThickness: 0.05,
   dustCount: 12,
 }
-// Raio (m, antes da escala) da nuvem de linhas ao redor do corpo e da poeira.
+// Raio (m, antes da escala) da nuvem de linhas ao redor do corpo.
 const LINE_RADIUS = 1
-const DUST_RADIUS = 1
 
 const LINE_TINT = compileGradient([
   { at: 0.17, color: '#b4feff' },
   { at: 0.5, color: '#ffffff' },
   { at: 0.86, color: '#b7feff' },
 ])
-const DUST_TINT = compileGradient([{ at: 0, color: '#ad945b' }])
 
 // `variable.qsquish`: a linha nasce curta, estica e some (nós por vida).
 const LINE_SQUISH = [0, 1, 1, 0]
@@ -68,15 +81,28 @@ function pointInSphere(rnd, radius) {
 }
 
 /**
- * Os dois emissores do dash. `lineRate` (linhas por segundo), `lineLength` e
+ * Os emissores do dash. `lineRate` (linhas por segundo), `lineLength` e
  * `lineThickness` (metros, antes da escala) e `dustCount` (nuvens de poeira
- * na saída) vêm da config; o que faltar usa o padrão acima.
+ * na saída) vêm da config; o que faltar usa o padrão acima. `water`: os pés
+ * na água (respingo no lugar da poeira). `groundScale`: quanto a poeira
+ * cresce para ficar do tamanho da do pulo (a escala do pulo dividida pela
+ * do dash — o sistema do dash tem a escala dele).
  */
 export function buildDashEmitters(options = {}) {
-  const { lineRate, lineLength, lineThickness, dustCount } = {
-    ...DEFAULTS,
-    ...options,
-  }
+  const { lineRate, lineLength, lineThickness, dustCount, water, groundScale } =
+    {
+      ...DEFAULTS,
+      water: false,
+      groundScale: 1,
+      ...options,
+    }
+  const ground = (water ? buildWaterSplashEmitters : buildJumpDustEmitters)({
+    count: dustCount,
+    speed: GROUND_SPEED * groundScale,
+    size: GROUND_SIZE * groundScale,
+  }).map((emitter) =>
+    emitter.id === 'ring' ? { ...emitter, id: 'dust' } : emitter,
+  )
 
   return [
     // quickattack_dashlines.particle.json — esfera de raio 1 centrada 1 m à
@@ -107,32 +133,7 @@ export function buildDashEmitters(options = {}) {
       spin: false,
       tint: LINE_TINT,
     },
-    // quickattack_dust.particle.json — 12 nuvens num disco no chão, que sobem e
-    // derivam pra trás; textura `big_smoke` (12 quadros na vertical).
-    {
-      id: 'dust',
-      texture: 'smoke',
-      strip: 12,
-      vertical: true,
-      frames: { first: 0, count: 12, step: 1, stretch: true },
-      blending: 'normal',
-      start: 0,
-      burst: dustCount,
-      anchor: 'impact',
-      offset: (ctx, rnd) => {
-        const angle = rnd[4] * Math.PI * 2
-        const r = DUST_RADIUS * Math.sqrt(rnd[5])
-        return [Math.cos(angle) * r, 0, Math.sin(angle) * r]
-      },
-      direction: () => [0, 0, -1],
-      speed: () => 4,
-      accel: () => [0, 2, -1],
-      drag: () => 1,
-      lifetime: (ctx, rnd) => 0.5 + rnd[8] * 0.7,
-      size: () => 0.5,
-      spin: false,
-      tint: DUST_TINT,
-    },
+    ...ground,
   ]
 }
 

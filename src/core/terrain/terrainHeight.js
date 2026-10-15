@@ -4,6 +4,7 @@ import { GAME_CONFIG } from '../gameConfig'
 import { createRng, deriveSeed } from '../rng'
 import { solidParams } from '../vegetation/solidPlacement'
 import { createBiomeSampler } from './biomeMap'
+import { createWaterBodies } from './waterBodies'
 
 // Cada camada de ondulação tem metade do tamanho da anterior (o padrão da
 // técnica)...
@@ -47,6 +48,8 @@ export function countLayers(hillSize) {
  *   docs/features/049-vegetacao-e-floresta.md)
  * @property {object} trails - forma de `GAME_CONFIG.TRAILS` (core/terrain/
  *   trails.js)
+ * @property {object} waterBodies - forma de `GAME_CONFIG.WATER_BODIES`
+ *   (core/terrain/waterBodies.js)
  * @property {object[]} biomeList - biomas (`core/data/biomes/`), na ordem
  *   do registro
  */
@@ -56,6 +59,7 @@ export function currentTerrainRecipe() {
     biomes: GAME_CONFIG.BIOMES,
     solids: solidParams(),
     trails: GAME_CONFIG.TRAILS,
+    waterBodies: GAME_CONFIG.WATER_BODIES,
     biomeList: listBiomes().filter(
       ({ id }) => !GAME_CONFIG.BIOMES.HIDDEN.includes(id),
     ),
@@ -111,7 +115,8 @@ function createReliefSampler(noise2D, relief) {
  * pesos dos biomas (`biomeMap.js`). A altura é a média do relevo de cada
  * bioma pelo peso dele — na fronteira, um vira o outro aos poucos, sem
  * degrau. Alturas a partir de `WATER_LEVEL` (o chão médio de cada bioma é
- * medido da água). Mesma seed e mesma receita, mesmo relevo em todo ponto;
+ * medido da água). Depois da média, os lagos e rios cavam o relevo onde os
+ * biomas aceitam (`water`, docs/features/057-lagos-e-rios.md). Mesma seed e mesma receita, mesmo relevo em todo ponto;
  * ruído embaralhado pelo PRNG seedado, nunca `Math.random()`.
  *
  * @param {number} seed
@@ -127,6 +132,11 @@ export function createTerrainSampler(seed, recipe = currentTerrainRecipe()) {
     ),
   )
   const weights = new Float64Array(biomeList.length)
+  const waterBodies = createWaterBodies(
+    seed,
+    recipe.waterBodies ?? GAME_CONFIG.WATER_BODIES,
+  )
+  const waterShare = { rivers: 0, lakes: 0 }
 
   /**
    * Altura em `(x, z)`; os pesos dos biomas ficam em `weightsOut` (na ordem
@@ -135,11 +145,15 @@ export function createTerrainSampler(seed, recipe = currentTerrainRecipe()) {
   function sample(x, z, weightsOut = weights) {
     biomeMap.weightsAt(x, z, weightsOut)
     let height = 0
+    waterShare.rivers = 0
+    waterShare.lakes = 0
     for (let i = 0; i < reliefs.length; i++) {
       if (weightsOut[i] < MIN_RELIEF_WEIGHT) continue
       height += weightsOut[i] * reliefs[i](x, z)
+      waterShare.rivers += weightsOut[i] * (biomeList[i].water?.rivers ?? 0)
+      waterShare.lakes += weightsOut[i] * (biomeList[i].water?.lakes ?? 0)
     }
-    return terrain.WATER_LEVEL + height
+    return terrain.WATER_LEVEL + waterBodies.carveAt(x, z, height, waterShare)
   }
 
   return {
@@ -147,5 +161,7 @@ export function createTerrainSampler(seed, recipe = currentTerrainRecipe()) {
     sample,
     heightAt: (x, z) => sample(x, z),
     biomeAt: biomeMap.biomeAt,
+    // Correnteza dos rios (só visual — `waterBodies.flowAt`).
+    flowAt: waterBodies.flowAt,
   }
 }

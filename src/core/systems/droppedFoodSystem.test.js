@@ -1,7 +1,14 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { createWorld } from 'koota'
 import { GAME_CONFIG } from '../gameConfig'
-import { DroppedFood, Position, Rotation, Velocity } from '../traits'
+import {
+  DroppedFood,
+  Position,
+  Rotation,
+  Velocity,
+  WaterSplash,
+} from '../traits'
+import { withDeepWater } from '@/test/deepWater'
 import { droppedFoodSystem } from './droppedFoodSystem'
 
 const DELTA = 1 / 60
@@ -78,5 +85,20 @@ describe('droppedFoodSystem', () => {
     tick(4)
 
     expect(world.query(DroppedFood).length).toBe(0)
+  })
+
+  it('caindo na água funda, afunda com um respingo (057)', () => {
+    const { WATER_LEVEL } = GAME_CONFIG.TERRAIN
+    const { world, food, tick } = setup({
+      y: WATER_LEVEL + 0.5,
+      velocity: { x: 0, y: -2, z: 0 },
+    })
+    // O chão de quem derrubou bem abaixo: só a água para a fruta.
+    food.set(DroppedFood, { floorY: WATER_LEVEL - 10 })
+
+    withDeepWater(() => tick(60))
+
+    expect(food.isAlive()).toBe(false)
+    expect(world.query(WaterSplash).length).toBe(1)
   })
 })

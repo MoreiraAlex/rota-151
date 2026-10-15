@@ -57,6 +57,8 @@ import {
  *
  * @typedef {object} TerrainChunkSet
  * @property {(x: number, z: number) => number} heightAt
+ * @property {(x: number, z: number) => { x: number, z: number }} flowAt -
+ *   correnteza dos rios (docs/features/057-lagos-e-rios.md)
  * @property {(x: number, z: number, weightsOut?: Float64Array) => number} sample -
  *   altura do relevo da seed em `(x, z)` (sem trilhas), com os pesos dos
  *   biomas em `weightsOut` (na ordem de `recipe().biomeList`) — o relevo
@@ -250,6 +252,8 @@ export function createTerrainChunkSet({
     },
 
     biomeAt: (x, z) => sampler.biomeAt(x, z),
+    // Correnteza dos rios em `(x, z)` (docs/features/057-lagos-e-rios.md).
+    flowAt: (x, z) => sampler.flowAt(x, z),
 
     sample: (x, z, weightsOut) => sampler.sample(x, z, weightsOut),
     recipe: () => recipe,

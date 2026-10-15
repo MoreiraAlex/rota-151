@@ -7,7 +7,7 @@ import { opennessOf, patchNoiseFor } from './clearings'
  * limpo ou de grama baixa e rala entre elas. Com `clusters` na entrada
  * `tall-grass` de um bioma, a grama segue estes conjuntos pela seed (o
  * mesmo mundo, os mesmos conjuntos); sem ele, a grama espalha por igual.
- * Fica no core para a 058 perguntar "este ponto é mato alto?".
+ * Fica no core para a 060 perguntar "este ponto é mato alto?".
  *
  * @typedef {object} GrassClusters - o `clusters` do bioma (0 a 1, menos
  *   onde diz)

@@ -1,10 +1,14 @@
 import { GAME_CONFIG } from '../gameConfig'
 import { castRay } from '../physics/raycast'
 import { DroppedFood, Position, Velocity } from '../traits'
+import { levelWaterDepthAt, respingarAgua } from '../actions/water'
+import { overDeepWater } from '../terrain/water'
 
 // Folga (m) acima da fruta de onde sai o raio que procura o chão.
 const GROUND_PROBE_LIFT = 0.5
 const DOWN = { x: 0, y: -1, z: 0 }
+// Tamanho do respingo da fruta afundando (1 = o de uma bola).
+const FOOD_SPLASH = 0.6
 
 /**
  * Fruta derrubada (`derrubarComida`, docs/features/042-itens-da-beta.md):
@@ -13,7 +17,8 @@ const DOWN = { x: 0, y: -1, z: 0 }
  * o terreno embaixo dela (raio só na geometria fixa do nível); sem física
  * carregada (ou sem nada embaixo), o chão de quem derrubou (`floorY`). Batida
  * forte soma em `landings` (o respingo da view). Também conta o `lifetime` e
- * destrói ao zerar.
+ * destrói ao zerar. Caindo na água funda, afunda: some com um respingo
+ * (docs/features/057-lagos-e-rios.md).
  *
  * `Position` é a BASE da fruta (o ponto que encosta no chão).
  *
@@ -39,6 +44,20 @@ export function droppedFoodSystem(context) {
       pos.x += vel.x * delta
       pos.y += vel.y * delta
       pos.z += vel.z * delta
+
+      const { WATER_LEVEL } = GAME_CONFIG.TERRAIN
+      if (
+        pos.y <= WATER_LEVEL &&
+        overDeepWater(levelWaterDepthAt, pos.x, pos.z)
+      ) {
+        respingarAgua(
+          world,
+          { x: pos.x, y: WATER_LEVEL, z: pos.z },
+          FOOD_SPLASH,
+        )
+        entity.destroy()
+        return
+      }
 
       const groundY = resolveGroundY(pos, food.floorY)
       if (pos.y > groundY) return

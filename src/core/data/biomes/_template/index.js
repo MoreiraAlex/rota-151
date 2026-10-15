@@ -49,6 +49,11 @@ export const BIOME_TEMPLATE = {
     // encosta: conferir o limite de subida do personagem.
     // ridges: 0.6,
   },
+  // Opcional: quanto o bioma aceita de rio e de lago (0 a 1 cada; sem ele,
+  // nenhum — a cidade). Na fronteira vale a média pelo peso dos biomas, então
+  // o rio raseia e some ao entrar num bioma sem água
+  // (core/terrain/waterBodies.js, docs/features/057-lagos-e-rios.md).
+  // water: { rivers: 1, lakes: 1 },
   // Cores do chão (view/terrain/terrainGeometry.js).
   palette: {
     // Abaixo da água.
@@ -205,7 +210,7 @@ export const BIOME_TEMPLATE = {
   //     houses: [{ model: 'house-pewter', weight: 1, fence: true }] }],
   //   props: { lamp: 'street-lamp', fence: 'fence-wood', bench: 'bench' },
   // },
-  // Tags que o spawn (058) usa nas condições de cada espécie.
+  // Tags que o spawn (060) usa nas condições de cada espécie.
   tags: ['grassland'],
   // Chances relativas de cada clima (docs/features/048-dia-noite-e-
   // clima.md): a cada período, cada região sorteia um tipo por estes pesos.

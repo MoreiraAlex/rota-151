@@ -76,6 +76,7 @@ export {
 } from './components/pokemon'
 export { SummonBall } from './components/summonBall'
 export { SummonFlash, SummonBallOpen } from './components/summonFlash'
+export { WaterSplash } from './components/waterSplash'
 export { RecallBeam } from './components/recallBeam'
 export { WildCreature } from './components/wildCreature'
 export {

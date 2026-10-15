@@ -56,4 +56,36 @@ describe('buildWaterChunkGeometry', () => {
     expect(index.length / 6).toBeLessThan(cells)
     geometry.dispose()
   })
+
+  it('leva a correnteza de cada vértice (zero sem `flowAt`)', () => {
+    const chunk = rampChunk()
+    const still = buildWaterChunkGeometry(chunk, WATER)
+    expect(
+      [...still.getAttribute('waterFlow').array].every((v) => v === 0),
+    ).toBe(true)
+
+    const flowing = buildWaterChunkGeometry(chunk, WATER, (x) => ({
+      x: x * 0.01,
+      z: -1,
+    }))
+    const flow = flowing.getAttribute('waterFlow')
+    const position = flowing.getAttribute('position')
+    for (let i = 0; i < flow.count; i++) {
+      expect(flow.getX(i)).toBeCloseTo(position.getX(i) * 0.01)
+      expect(flow.getY(i)).toBe(-1)
+    }
+  })
+
+  it('com `shoreReach`, cobre também a terra da beira até essa altura', () => {
+    const chunk = rampChunk()
+    const cellsOf = (geometry) => geometry.getIndex().count / 6
+    const plain = buildWaterChunkGeometry(chunk, WATER)
+    const withShore = buildWaterChunkGeometry(chunk, WATER, undefined, 2)
+    expect(cellsOf(withShore)).toBeGreaterThan(cellsOf(plain))
+    // Uma fileira de célula por metro de altura da rampa (1 m por célula).
+    expect(cellsOf(withShore) - cellsOf(plain)).toBe(chunk.resolution * 2)
+
+    const dry = { ...base, minHeight: WATER + 1 }
+    expect(buildWaterChunkGeometry(dry, WATER, undefined, 2)).not.toBeNull()
+  })
 })

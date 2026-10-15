@@ -7,6 +7,8 @@ import { FarTerrainView } from './FarTerrainView'
 import { TerrainView } from './TerrainView'
 import { VegetationView } from '../vegetation/VegetationView'
 import { WaterView } from '../water/WaterView'
+import { WaterSplashesView } from '../water/WaterSplashView'
+import { FootRipplesView } from '../water/FootRipplesView'
 import { RenderSettingsView } from './RenderSettingsView'
 import { FogView } from './FogView'
 import { DayNightView } from './DayNightView'
@@ -82,7 +84,7 @@ function TestLevelView() {
       {GAME_CONFIG.FAR_TERRAIN.ENABLED && <FarTerrainView />}
       {/* Grama, flores e árvores (049). */}
       <VegetationView />
-      {/* Superfície da água, só visual (049; a de verdade é da 059). */}
+      {/* Superfície da água dos lagos e rios (049, 057). */}
       <WaterView />
 
       {obstacles.map((obstacle) => (
@@ -147,6 +149,8 @@ export function GameScene({ children }) {
       <PokeballVfxView />
       <GroundBallsView />
       <SummonFlashesView />
+      <WaterSplashesView />
+      <FootRipplesView />
       <RecallBeamsView />
       <DroppedFoodsView />
       {/* Itens no chão, arbustos com item e frutas nas árvores (055). */}

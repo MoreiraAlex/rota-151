@@ -25,7 +25,13 @@ import {
   terrainOnlyFilterFlags,
 } from '../physics/physicsWorld'
 import { quaternionFromAxisAngle } from '../math'
-import { resolveFreeTurn } from '../physics/colliders'
+import { resolveFreeTurn, verticalClearance } from '../physics/colliders'
+import { levelWaterDepthAt } from '../actions/water'
+import {
+  shallowSpeedFactor,
+  stepOutOfDeepWater,
+  wadeLimit,
+} from '../terrain/water'
 
 // Deslocamento horizontal pedido (m, no tick) abaixo do qual o personagem
 // conta como parado — `Velocity` zerada por quem controla, com folga pra
@@ -112,6 +118,15 @@ const STILL_REQUEST_EPSILON = 1e-6
  * move. Desmaiada (`Fainted`) é sempre assim (e intangível pros outros,
  * collider desligado): só pisa no chão.
  *
+ * Água (docs/features/057-lagos-e-rios.md): cada corpo entra até uma
+ * fração da própria altura (`wadeLimit`); o passo encolhe com a
+ * profundidade debaixo dele (`shallowSpeedFactor`) e, passando do limite,
+ * a água barra o passo como uma parede (`stepOutOfDeepWater` — desliza pelo
+ * eixo livre, e quem já está fundo demais sempre consegue sair). É aqui, e não em
+ * quem pede a `Velocity`, para valer igual para o treinador, o time e os
+ * selvagens; o passo barrado pela água entra no `MovementBlocked` como o
+ * barrado por um sólido, e a IA desvia.
+ *
  * Headless (Rapier-compat roda em Node). Fase: simulation, depois do
  * movementSystem/creatureFollowSystem e antes do physicsStepSystem.
  */
@@ -172,10 +187,29 @@ export function characterPhysicsSystem(context) {
         entity.add(Jumping)
       }
 
-      const requestedX = vel.x * delta
-      const requestedZ = vel.z * delta
+      const translation = rigidBody.translation()
+      // Até onde este corpo entra na água (uma fração da altura dele).
+      const wade = wadeLimit(verticalClearance(character) * 2)
+      const slowdown = shallowSpeedFactor(
+        levelWaterDepthAt(translation.x, translation.z),
+        wade,
+      )
+      const requestedX = vel.x * delta * slowdown
+      const requestedZ = vel.z * delta * slowdown
 
       const requestedDistance = Math.hypot(requestedX, requestedZ)
+      const step =
+        requestedDistance > 0
+          ? stepOutOfDeepWater(
+              translation.x,
+              translation.z,
+              requestedX,
+              requestedZ,
+              levelWaterDepthAt,
+              character.capsuleRadius,
+              wade,
+            )
+          : { dx: 0, dz: 0 }
 
       // Parado no chão, ou desmaiada: só o terreno — não é empurrado por
       // quem encosta/passa por cima (ver docstring).
@@ -187,7 +221,7 @@ export function characterPhysicsSystem(context) {
       // consulta), depois o que sobrou contra o terreno — que dá a palavra
       // final (autostep, snap, `grounded`). Juntos numa consulta só, o
       // controller do Rapier prende quem está colado noutro personagem.
-      let desired = { x: requestedX, y: vel.y * delta, z: requestedZ }
+      let desired = { x: step.dx, y: vel.y * delta, z: step.dz }
       if (!terrainOnly) {
         avoidanceController.computeColliderMovement(
           collider,
@@ -202,7 +236,6 @@ export function characterPhysicsSystem(context) {
         terrainOnlyFilterFlags(),
       )
       const movement = controller.computedMovement()
-      const translation = rigidBody.translation()
       const nextTranslation = {
         x: translation.x + movement.x,
         y: translation.y + movement.y,

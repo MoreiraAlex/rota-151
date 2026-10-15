@@ -13,6 +13,8 @@ import {
 import { createParticleSystem } from '@/view/vfx/particleEmitter'
 import { buildDashEmitters, DASH_TEXTURE_PATHS } from '@/view/vfx/dashVfx'
 import { createFollowEffectManager } from '@/view/vfx/followEffectManager'
+import { levelWaterDepthAt } from '@/core/actions/water'
+import { addFootRipple } from '@/view/water/footRipples'
 
 // Passo máximo da simulação — um frame longo não pode virar um salto das partículas.
 const MAX_STEP = 1 / 20
@@ -29,6 +31,9 @@ const MAX_STEP = 1 / 20
  * O efeito vive no espaço do MUNDO (o `<group>` está na raiz da cena): as
  * partículas nascem na posição da criatura naquele instante e ficam pra trás
  * conforme ela corre. `GAME_CONFIG.FEEDBACK.DASH_EFFECT` liga/desliga e escala.
+ * A poeira da saída é a do pulo (do tamanho dela, `JUMP_DUST.SCALE`); com os
+ * pés na água no começo do dash, o respingo na superfície
+ * (docs/features/057-lagos-e-rios.md).
  */
 export function DashEffectsView() {
   const { ENABLED, SCALE, LINE_RATE, LINE_LENGTH, LINE_THICKNESS, DUST_COUNT } =
@@ -37,30 +42,53 @@ export function DashEffectsView() {
   const rootRef = useRef()
   const managerRef = useRef(null)
 
+  const JUMP_SCALE = GAME_CONFIG.FEEDBACK.JUMP_DUST.SCALE
+
   useEffect(() => {
-    const emitters = buildDashEmitters({
+    const options = {
       lineRate: LINE_RATE,
       lineLength: LINE_LENGTH,
       lineThickness: LINE_THICKNESS,
       dustCount: DUST_COUNT,
-    })
+      groundScale: JUMP_SCALE / SCALE,
+    }
+    const dry = buildDashEmitters(options)
+    const wet = buildDashEmitters({ ...options, water: true })
     const manager = createFollowEffectManager({
       root: rootRef.current,
-      createSystem: () =>
-        createParticleSystem({
-          emitters,
+      createSystem: ({ water, origin }) => {
+        // Na água, um anel na superfície junto do respingo.
+        if (water) {
+          addFootRipple(
+            origin[0],
+            GAME_CONFIG.TERRAIN.WATER_LEVEL,
+            origin[2],
+            GAME_CONFIG.FEEDBACK.WATER_SPLASH.RING_SIZE,
+          )
+        }
+        return createParticleSystem({
+          emitters: water ? wet : dry,
           textures,
           length: 0,
           radius: 0,
           scale: SCALE,
-        }),
+        })
+      },
     })
     managerRef.current = manager
     return () => {
       manager.dispose()
       managerRef.current = null
     }
-  }, [textures, SCALE, LINE_RATE, LINE_LENGTH, LINE_THICKNESS, DUST_COUNT])
+  }, [
+    textures,
+    SCALE,
+    JUMP_SCALE,
+    LINE_RATE,
+    LINE_LENGTH,
+    LINE_THICKNESS,
+    DUST_COUNT,
+  ])
 
   useFrame((state, delta) => {
     const manager = managerRef.current
@@ -74,11 +102,19 @@ export function DashEffectsView() {
         ? entity.get(CharacterController)
         : null
       const clearance = body ? verticalClearance(body) : 0
+      const water = levelWaterDepthAt(pos.x, pos.z) > 0
+      const feetY = pos.y - clearance
       dashers.push({
         key: entity,
         active: action.current === 'dash',
-        // nos pés; o corpo se estende `2 * clearance` pra cima
-        origin: [pos.x, pos.y - clearance, pos.z],
+        water,
+        // nos pés (na água, na superfície); o corpo se estende
+        // `2 * clearance` pra cima
+        origin: [
+          pos.x,
+          water ? Math.max(feetY, GAME_CONFIG.TERRAIN.WATER_LEVEL) : feetY,
+          pos.z,
+        ],
         // pra onde o dash VAI (travada no disparo), não pra onde o corpo olha agora
         yaw: Math.atan2(action.dirX, action.dirZ),
         height: clearance * 2,

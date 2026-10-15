@@ -1,4 +1,5 @@
 import { castRay } from '../physics/raycast'
+import { mergulhoNoTrajeto, respingarAgua } from '../actions/water'
 import {
   Projectile,
   Position,
@@ -24,7 +25,9 @@ import {
  * mais se mover (ver `DebugPanel`, que lista os projéteis ativos e mostra
  * onde cada um bateu). Exclui a cápsula de quem arremessou (se a entidade
  * ainda existir) — sem isso, um projétil spawnado bem perto do próprio
- * corpo do jogador podia se autoacertar no primeiro tick.
+ * corpo do jogador podia se autoacertar no primeiro tick. Mergulhando na
+ * água funda antes de bater em algo, afunda: some com um respingo
+ * (docs/features/057-lagos-e-rios.md).
  *
  * Headless. Fase: simulation — independente da ordem com os outros
  * systems de física (não lê nem escreve `Velocity`/`Position` de mais
@@ -58,6 +61,17 @@ export function projectileSystem(context) {
                 { excludeColliderHandle },
               )
             : null
+
+        const dive = mergulhoNoTrajeto(
+          pos,
+          { x: segX, y: segY, z: segZ },
+          hit?.point,
+        )
+        if (dive) {
+          respingarAgua(world, dive)
+          entity.destroy()
+          return
+        }
 
         if (hit) {
           pos.x = hit.point.x

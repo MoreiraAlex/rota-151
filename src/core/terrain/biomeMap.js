@@ -17,7 +17,7 @@ const NOISE_LAYERS = 2
 const LAYERED_NOISE_SPREAD = 0.325
 
 /** Soma de camadas de simplex em `(x, z)`, com manchas do tamanho `size`. */
-function layeredNoise(noise2D, x, z, size) {
+export function layeredNoise(noise2D, x, z, size) {
   let sum = 0
   let weight = 1
   let totalWeight = 0

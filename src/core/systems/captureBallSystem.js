@@ -16,6 +16,8 @@ import {
   selvagemEscapou,
 } from '../actions/capture'
 import { resolveOwner } from '../actions/owner'
+import { levelWaterDepthAt, respingarAgua } from '../actions/water'
+import { overDeepWater } from '../terrain/water'
 import { verticalClearance } from '../physics/colliders'
 import { getSpecies } from '../data/species'
 import {
@@ -78,9 +80,13 @@ export function captureBallSystem(context) {
       ball.timer += delta
 
       switch (ball.state) {
-        case 'flying':
+        case 'flying': {
+          const pending = transitions.length
           flyBall(world, entity, ball, pos, vel, delta, transitions)
+          if (transitions.length === pending)
+            sinkIfInDeepWater(entity, pos, transitions)
           return
+        }
         case 'absorbing':
           pos.y = ball.hitY + resolveAbsorbHop(ball.timer)
           if (ball.timer >= CAPTURE.ABSORB_DURATION) {
@@ -112,6 +118,7 @@ export function captureBallSystem(context) {
           return
         case 'missed':
           rollMissedBall(entity, ball, pos, vel, delta)
+          if (sinkIfInDeepWater(entity, pos, transitions)) return
           if (ball.timer >= CAPTURE.MISS_LIFETIME) {
             transitions.push({ kind: 'broke', entity })
           }
@@ -121,6 +128,18 @@ export function captureBallSystem(context) {
   for (const transition of transitions) {
     applyTransition(world, events, rng, transition)
   }
+}
+
+/**
+ * A bola voando ou perdida que passou da superfície da água funda afunda
+ * (docs/features/057-lagos-e-rios.md): some com um respingo, sem quebrar.
+ */
+function sinkIfInDeepWater(entity, pos, transitions) {
+  const { WATER_LEVEL } = GAME_CONFIG.TERRAIN
+  if (pos.y > WATER_LEVEL) return false
+  if (!overDeepWater(levelWaterDepthAt, pos.x, pos.z)) return false
+  transitions.push({ kind: 'sank', entity })
+  return true
 }
 
 function flyBall(world, entity, ball, pos, vel, delta, transitions) {
@@ -364,6 +383,16 @@ function applyTransition(world, events, rng, { kind, entity, wild, velocity }) {
   if (!entity.isAlive()) return
 
   if (kind === 'destroy') {
+    entity.destroy()
+    return
+  }
+  if (kind === 'sank') {
+    const pos = entity.get(Position)
+    respingarAgua(world, {
+      x: pos.x,
+      y: GAME_CONFIG.TERRAIN.WATER_LEVEL,
+      z: pos.z,
+    })
     entity.destroy()
     return
   }

@@ -9,10 +9,11 @@ function setup() {
     root,
     minSpeed: 2,
     maxSpeed: 10,
-    createSystem: ({ kind, strength }) => {
+    createSystem: ({ kind, strength, water }) => {
       const system = {
         kind,
         strength,
+        water,
         group: new THREE.Group(),
         age: 0,
         disposed: false,
@@ -108,5 +109,19 @@ describe('jumpDustManager', () => {
     expect(manager.activeCount).toBe(0)
     expect(spawned[0].disposed).toBe(true)
     expect(root.children).toHaveLength(0)
+  })
+
+  it('com os pés na água, o efeito sabe (respingo no lugar da poeira, 057)', () => {
+    const { manager, spawned } = setup()
+    const wet = (grounded, vy) => [
+      { entity, grounded, vy, position: [0, 0, 0], water: true },
+    ]
+    manager.update(wet(true, 0), 0.016)
+    manager.update(wet(false, 5), 0.016)
+    expect(spawned[0].water).toBe(true)
+
+    manager.update(creature(true, 0), 0.016)
+    manager.update(creature(false, 5), 0.016)
+    expect(spawned[1].water).toBe(false)
   })
 })

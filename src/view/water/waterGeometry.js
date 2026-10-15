@@ -4,17 +4,28 @@ import { heightIndex } from '@/core/terrain/terrainChunk'
 /**
  * Superfície da água de um chunk (docs/features/049-vegetacao-e-
  * floresta.md): uma grade plana no nível da água com a mesma resolução do
- * relevo, só nas células onde algum canto do chão fica abaixo dela. Cada
+ * relevo, só nas células onde algum canto do chão fica abaixo dela — ou
+ * até `shoreReach` m acima (a terra da beira, onde as ondas da margem
+ * sobem; docs/features/057-lagos-e-rios.md). Cada
  * vértice leva a profundidade ali (`waterDepth`, m; negativa onde o chão
- * passa da água — o material recorta). Chunk sem chão abaixo da água:
+ * passa da água — o material recorta) e a correnteza do rio (`waterFlow`,
+ * direção vezes quanto do rio está ali — docs/features/057-lagos-e-
+ * rios.md; zero em lago e sem `flowAt`). Chunk sem chão abaixo da água:
  * `null`. Quem cria é dono do `dispose()` (regra 5.3).
  *
  * @param {import('@/core/terrain/terrainChunk').TerrainChunk} chunk
  * @param {number} waterLevel
+ * @param {(x: number, z: number) => { x: number, z: number }} [flowAt]
+ * @param {number} [shoreReach]
  * @returns {THREE.BufferGeometry | null}
  */
-export function buildWaterChunkGeometry(chunk, waterLevel) {
-  if (chunk.minHeight >= waterLevel) return null
+export function buildWaterChunkGeometry(
+  chunk,
+  waterLevel,
+  flowAt,
+  shoreReach = 0,
+) {
+  if (chunk.minHeight >= waterLevel + shoreReach) return null
   const { resolution, heights, minX, minZ } = chunk
   const side = resolution + 1
   const step = chunk.size / resolution
@@ -22,11 +33,19 @@ export function buildWaterChunkGeometry(chunk, waterLevel) {
 
   const positions = new Float32Array(side * side * 3)
   const depths = new Float32Array(side * side)
+  const flows = new Float32Array(side * side * 2)
   for (let ix = 0; ix < side; ix++) {
     for (let iz = 0; iz < side; iz++) {
       const i = vertex(ix, iz)
-      positions.set([minX + ix * step, waterLevel, minZ + iz * step], i * 3)
+      const x = minX + ix * step
+      const z = minZ + iz * step
+      positions.set([x, waterLevel, z], i * 3)
       depths[i] = waterLevel - heights[heightIndex(resolution, ix, iz)]
+      if (flowAt) {
+        const flow = flowAt(x, z)
+        flows[i * 2] = flow.x
+        flows[i * 2 + 1] = flow.z
+      }
     }
   }
 
@@ -39,7 +58,7 @@ export function buildWaterChunkGeometry(chunk, waterLevel) {
         vertex(ix, iz + 1),
         vertex(ix + 1, iz + 1),
       ]
-      if (corners.every((i) => depths[i] <= 0)) continue
+      if (corners.every((i) => depths[i] <= -shoreReach)) continue
       const [a, b, c, d] = corners
       indices.push(a, c, b, b, c, d)
     }
@@ -49,6 +68,7 @@ export function buildWaterChunkGeometry(chunk, waterLevel) {
   const geometry = new THREE.BufferGeometry()
   geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
   geometry.setAttribute('waterDepth', new THREE.BufferAttribute(depths, 1))
+  geometry.setAttribute('waterFlow', new THREE.BufferAttribute(flows, 2))
   geometry.setIndex(indices)
   geometry.computeVertexNormals()
   geometry.computeBoundingSphere()

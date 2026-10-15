@@ -4,7 +4,7 @@ import { adicionarItem } from './inventory'
 import { colocarNoTime, criarPokemon } from './pokemon'
 
 // Kit de TESTE (docs/features/042-itens-da-beta.md): a Pokédex e todos os
-// itens da beta. O kit de verdade é definido na 065.
+// itens da beta. O kit de verdade é definido na 066.
 const STARTING_ITEMS = {
   pokedex: 1,
   'poke-ball': 10,

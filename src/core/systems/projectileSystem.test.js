@@ -6,7 +6,13 @@ import {
 import { createWorld } from 'koota'
 import { makeWorld } from '@/test/makeWorld'
 import { TEST_LEVEL } from '@/core/data/testLevel'
-import { Projectile, Position, Velocity, PhysicsBody } from '@/core/traits'
+import {
+  Projectile,
+  Position,
+  Velocity,
+  PhysicsBody,
+  WaterSplash,
+} from '@/core/traits'
 import {
   initPhysics,
   disposePhysics,
@@ -14,6 +20,8 @@ import {
 } from '@/core/physics/physicsWorld'
 import { createCharacterBody } from '@/core/physics/colliders'
 import { projectileSystem } from './projectileSystem'
+import { withDeepWater } from '@/test/deepWater'
+import { GAME_CONFIG } from '@/core/gameConfig'
 
 const spawnedWorlds = []
 function spawnWorld() {
@@ -153,5 +161,22 @@ describe('projectileSystem — colisão com o mundo', () => {
     tick(world, 1 / 60)
 
     expect(projectile.get(Projectile).hit).toBe(false)
+  })
+
+  it('mergulhando na água funda, afunda com um respingo na superfície (057)', () => {
+    const world = spawnWorld()
+    const { WATER_LEVEL } = GAME_CONFIG.TERRAIN
+    withDeepWater(() => {
+      world.spawn(
+        Position({ x: 0, y: WATER_LEVEL + 1, z: 0 }),
+        Velocity({ x: 2, y: -4, z: 0 }),
+        Projectile({ lifetime: 5 }),
+      )
+      for (let i = 0; i < 60; i++) tick(world)
+    })
+
+    expect(world.query(Projectile).length).toBe(0)
+    const [splash] = world.query(WaterSplash, Position)
+    expect(splash.get(Position).y).toBeCloseTo(WATER_LEVEL)
   })
 })

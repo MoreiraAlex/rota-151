@@ -20,14 +20,16 @@ export const PLAINS = {
     roughness: 0.2,
     flatness: 1.4,
   },
+  // Rios e lagos (docs/features/057-lagos-e-rios.md).
+  water: { rivers: 1, lakes: 1 },
   // A paleta casa com a textura do Let's Go (a média dela): é a cor do
   // relevo distante — de perto, a cor vem da textura (`ground.colors`). O
-  // chão é todo grama (sem margem, trilha ou alto por textura), então
-  // todos os papéis usam a mesma cor; a encosta, um verde um pouco mais
-  // escuro para o morro distante não ficar chapado.
+  // chão é grama (sem trilha ou alto por textura), então quase todos os
+  // papéis usam a mesma cor; a margem dos lagos e rios é areia; a encosta,
+  // um verde um pouco mais escuro para o morro distante não ficar chapado.
   palette: {
     bed: '#6b5a3e',
-    shore: '#77c546',
+    shore: '#e8d59a',
     low: '#77c546',
     high: '#77c546',
     highHeight: 8,
@@ -35,8 +37,9 @@ export const PLAINS = {
     trail: '#77c546',
   },
   // Desenho do chão (camadas de view/terrain/terrainLayers.js). `colors`:
-  // a cor vem da grama do Let's Go em todo o chão, trilha e margem
-  // inclusive (docs/features/053-planicie-com-assets-do-lgpe.md).
+  // a cor vem da grama do Let's Go no chão e na trilha
+  // (docs/features/053-planicie-com-assets-do-lgpe.md); margem e encosta,
+  // da areia e da terra (docs/features/057-lagos-e-rios.md).
   ground: {
     texture: 'grass',
     slopeTexture: 'rock',
@@ -45,6 +48,10 @@ export const PLAINS = {
     detail: 0.6,
     colors: {
       base: 'lgpe-grass',
+      // Margem de areia e encosta de terra nos lagos e rios
+      // (docs/features/057-lagos-e-rios.md).
+      shore: 'lgpe-sand',
+      slope: 'lgpe-soil',
     },
   },
   // Trilhas de terra batida cruzando o campo (core/terrain/trails.js).

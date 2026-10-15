@@ -3,6 +3,8 @@ import * as THREE from 'three'
 import { createParticleSystem } from './particleEmitter'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import { buildDashEmitters, DASH_EMITTERS, DASH_TEXTURE_PATHS } from './dashVfx'
+import { buildJumpDustEmitters } from './jumpDustVfx'
+import { buildWaterSplashEmitters } from './waterSplashVfx'
 
 function seededRandom(seed = 1) {
   let state = seed
@@ -15,7 +17,11 @@ function seededRandom(seed = 1) {
 function buildDash(overrides = {}) {
   const system = createParticleSystem({
     emitters: DASH_EMITTERS,
-    textures: { lines: new THREE.Texture(), smoke: new THREE.Texture() },
+    textures: {
+      lines: new THREE.Texture(),
+      smoke: new THREE.Texture(),
+      drop: new THREE.Texture(),
+    },
     length: 0,
     radius: 0,
     scale: 1,
@@ -33,9 +39,24 @@ function run(system, seconds, step = 1 / 60) {
 const live = (system) => system.group.children.filter((s) => s.visible)
 
 describe('DASH_EMITTERS', () => {
-  it('tem as texturas das linhas e da poeira, e dois emissores', () => {
-    expect(Object.keys(DASH_TEXTURE_PATHS)).toEqual(['lines', 'smoke'])
+  it('tem as texturas das linhas, da poeira e do respingo; linhas e poeira', () => {
+    expect(Object.keys(DASH_TEXTURE_PATHS)).toEqual(['lines', 'smoke', 'drop'])
     expect(DASH_EMITTERS.map((e) => e.id)).toEqual(['lines', 'dust'])
+  })
+
+  it('a poeira é a mesma do pulo (docs/features/057-lagos-e-rios.md)', () => {
+    const [, dust] = DASH_EMITTERS
+    const [ring] = buildJumpDustEmitters()
+    expect(dust.texture).toBe(ring.texture)
+    expect(dust.tint).toEqual(ring.tint)
+  })
+
+  it('na água, o respingo no lugar da poeira; as linhas continuam', () => {
+    const wet = buildDashEmitters({ water: true })
+    const ids = wet.map((e) => e.id)
+    expect(ids[0]).toBe('lines')
+    expect(ids).not.toContain('dust')
+    expect(ids.slice(1)).toEqual(buildWaterSplashEmitters().map((e) => e.id))
   })
 
   it('as linhas são contínuas (duram o dash inteiro); a poeira é uma rajada de 12 na saída', () => {
@@ -73,24 +94,17 @@ describe('DASH_EMITTERS', () => {
     expect(meanZ).toBeLessThan(spawnZ)
   })
 
-  it('a poeira sobe e deriva pra trás (aceleração +Y e -Z)', () => {
+  it('a poeira se espalha em volta dos pés, como a do pulo', () => {
     const system = buildDash({ emitters: [DASH_EMITTERS[1]] })
     system.update(1 / 60)
-    const start = live(system).map((s) => ({
-      y: s.position.y,
-      z: s.position.z,
-    }))
-    run(system, 0.3)
-    const later = live(system)
-
-    const meanY = (list) => list.reduce((sum, p) => sum + p.y, 0) / list.length
-    const meanZ = (list) => list.reduce((sum, p) => sum + p.z, 0) / list.length
-    expect(meanY(later.map((s) => ({ y: s.position.y })))).toBeGreaterThan(
-      meanY(start),
-    )
-    expect(meanZ(later.map((s) => ({ z: s.position.z })))).toBeLessThan(
-      meanZ(start),
-    )
+    const spread = () =>
+      live(system).reduce(
+        (sum, s) => sum + Math.hypot(s.position.x, s.position.z),
+        0,
+      ) / live(system).length
+    const start = spread()
+    run(system, 0.2)
+    expect(spread()).toBeGreaterThan(start)
   })
 
   it('a escala (GAME_CONFIG...DASH_EFFECT.SCALE) encolhe o efeito: raio e tamanho', () => {

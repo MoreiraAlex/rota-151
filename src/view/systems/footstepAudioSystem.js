@@ -1,4 +1,8 @@
-import { AnimationState } from '@/core/traits'
+import { levelWaterDepthAt } from '@/core/actions/water'
+import { WATER_SOUNDS } from '@/core/data/audio/waterSounds'
+import { GAME_CONFIG } from '@/core/gameConfig'
+import { AnimationState, Position } from '@/core/traits'
+import { addFootRipple } from '@/view/water/footRipples'
 import { getAnimatedBonesEntry } from '@/view/registry/animationRegistry'
 import { getFootstepAudioEntries } from '@/view/registry/footstepAudioRegistry'
 import { pickRandomVariation } from '@/view/audio/pickRandomVariation'
@@ -7,6 +11,8 @@ import { pickRandomVariation } from '@/view/audio/pickRandomVariation'
 // funciona igual pra biped e quadrúpede sem saber nada do rig (ver
 // docstring da função abaixo).
 const BEATS_PER_CYCLE = 2
+// Tamanho da marolinha de quem corre na água (1 = andando).
+const RUN_RIPPLE = 1.3
 
 /**
  * Toca o som de passo no instante certo do ciclo de andar/correr — só pra
@@ -37,6 +43,10 @@ const BEATS_PER_CYCLE = 2
  * termina de carregar) — evita o "clique" de tocar sempre o mesmo
  * arquivo. Sem nenhum buffer carregado ainda pro estado atual, no-op
  * silencioso (mesmo fallback gracioso de todo o resto do motor).
+ *
+ * No raso (docs/features/057-lagos-e-rios.md), o passo é o da água
+ * (`waterBuffers`, com o volume dela) e acende uma marolinha na superfície
+ * nos pés (`addFootRipple`) — maior correndo.
  *
  * Vive na view (mexe em nó Three de áudio). Fase: presentation, perto de
  * `animationSystem` (depende do relógio de animação já avançado neste
@@ -72,11 +82,23 @@ export function footstepAudioSystem() {
     if (beat === entry.previousBeat) continue
     entry.previousBeat = beat
 
-    const buffers = entry.buffers[stateId]
+    const position = entity.get(Position)
+    const inWater = position && levelWaterDepthAt(position.x, position.z) > 0
+    if (inWater) {
+      addFootRipple(
+        position.x,
+        GAME_CONFIG.TERRAIN.WATER_LEVEL,
+        position.z,
+        stateId === 'run' ? RUN_RIPPLE : 1,
+      )
+    }
+
+    const buffers = (inWater ? entry.waterBuffers : entry.buffers)[stateId]
     if (!buffers || buffers.length === 0) continue
 
     const buffer = pickRandomVariation(buffers)
     if (entry.audio.isPlaying) entry.audio.stop()
+    entry.audio.setVolume(inWater ? WATER_SOUNDS.step.volume : entry.volume)
     entry.audio.setBuffer(buffer)
     entry.audio.play()
   }

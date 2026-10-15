@@ -34,8 +34,8 @@ export const GAME_CONFIG = {
   // (docs/features/047-biomas.md).
   TERRAIN: {
     // Identifica a receita do relevo; subir quando a geração mudar.
-    GENERATION_VERSION: 15,
-    // Altura (m) da superfície da água: o que fica abaixo vira lago na 059.
+    GENERATION_VERSION: 17,
+    // Altura (m) da superfície da água: o que fica abaixo vira lago na 057.
     // O relevo dos biomas é medido a partir dela (`relief.baseHeight`).
     WATER_LEVEL: -2,
     // Lado (m) de um chunk — sempre um vértice por metro (o do Minecraft).
@@ -154,7 +154,7 @@ export const GAME_CONFIG = {
   // bioma (`palette`, core/data/biomes/).
   TERRAIN_COLOR: {
     // Margem: da água até esta altura (m) acima dela.
-    SHORE_HEIGHT: 0.15,
+    SHORE_HEIGHT: 0.5,
     // Encosta: começa a misturar quando a inclinação passa de SLOPE_START
     // (normal.y abaixo dele) e chega cheia em SLOPE_FULL.
     SLOPE_START: 0.9,
@@ -216,13 +216,89 @@ export const GAME_CONFIG = {
     // casas.
     MIN_CITY_LOTS: 8,
   },
-  // Água (view/water/, docs/features/049-vegetacao-e-floresta.md): só a
-  // superfície no `TERRAIN.WATER_LEVEL`, onde o chão fica abaixo dela — sem
-  // nadar nem colidir (a água de verdade é da 059).
+  // Lagos e rios (core/terrain/waterBodies.js, docs/features/057-lagos-e-
+  // rios.md): cavam o relevo abaixo do `TERRAIN.WATER_LEVEL` nos biomas com
+  // `water`. Faz parte da receita do relevo: mudar qualquer número muda o
+  // mundo da seed — subir `TERRAIN.GENERATION_VERSION` junto.
+  WATER_BODIES: {
+    RIVER: {
+      // Distância típica (m) entre dois rios.
+      SIZE: 700,
+      // Quanto o rio serpenteia (m de desvio) e o tamanho (m) das curvas.
+      WARP: 70,
+      WARP_SIZE: 220,
+      // Largura (m) da água.
+      WIDTH: 9,
+      // Fundura (m) que o meio vai alcançando e quanto (m) o fundo desce a
+      // cada metro para dentro da beira.
+      DEPTH: 2.2,
+      SHORE_SLOPE: 0.35,
+    },
+    LAKE: {
+      // Tamanho (m) das manchas de lago e a fração (0 a 1) delas que vira
+      // lago.
+      SIZE: 260,
+      COVERAGE: 0.1,
+      DEPTH: 2.8,
+      SHORE_SLOPE: 0.2,
+    },
+    // Quanto (m) a encosta do vale sobe a cada metro para fora da água:
+    // íngreme o bastante para pintar a encosta (`TERRAIN_COLOR.SLOPE_*`),
+    // abaixo do degrau que a IA sobe (`PATHFINDING.MAX_CLIMB_STEP`).
+    BANK_SLOPE: 0.5,
+    // Largura (m) da curva onde o vale encontra o relevo.
+    BLEND: 1.5,
+    // Ruído do fundo: quanto (m) ele varia e o tamanho (m) das ondulações.
+    BED_ROUGHNESS: 0.3,
+    BED_SIZE: 7,
+    // Sem lago nem rio até esta distância (m) da origem (onde o treinador
+    // nasce); some aos poucos a partir da metade dela.
+    SPAWN_CLEAR_RADIUS: 60,
+  },
+  // Água (core/terrain/water.js, view/water/; docs/features/049-vegetacao-
+  // e-floresta.md e 057-lagos-e-rios.md): a superfície no
+  // `TERRAIN.WATER_LEVEL`, onde o chão fica abaixo dela.
   WATER: {
+    // Até onde cada corpo entra andando, em fração da altura dele: mais
+    // fundo que isso, a água o barra (core/terrain/water.js).
+    WADE_FRACTION: 0.3,
+    // O trecho de raso por onde a IA navega (m de profundidade): mais fundo
+    // que isso, o pathfinding desvia, o que é arremessado afunda e ninguém
+    // nasce.
+    NAV_DEPTH: 0.2,
+    // Fração da velocidade que sobra no limite de cada corpo (cai aos
+    // poucos da margem até lá).
+    SHALLOW_MIN_SPEED: 0.55,
+    // Raio (m) da consulta "perto de água" (tag do spawn).
+    NEAR_RADIUS: 12,
+    // Quanto tempo (s) dura o respingo de algo que afunda.
+    SPLASH_DURATION: 0.9,
+    // Ondas na margem (view/water/shoreWave.js): quanto (m) a superfície
+    // sobe e desce na beira, quantas ondas por segundo, o tamanho (m) dos
+    // trechos da margem que andam juntos e até que profundidade (m) a onda
+    // mexe.
+    SHORE_WAVE: {
+      HEIGHT: 0.14,
+      SPEED: 0.22,
+      SIZE: 10,
+      DEPTH: 0.8,
+    },
+    // Marolinha nos pés de quem anda na água (view/water/
+    // FootRipplesView.jsx): até que raio (m) cresce, a opacidade no começo
+    // (0 a 1) e quanto tempo (s) dura.
+    RIPPLE: {
+      SIZE: 0.5,
+      OPACITY: 0.18,
+      DURATION: 1.2,
+    },
+    // Correnteza dos rios: velocidade (m/s) e o ciclo (s)
+    // em que o desenho volta ao lugar (curto = repete visível; longo =
+    // estica).
+    FLOW_SPEED: 1.2,
+    FLOW_CYCLE: 2.5,
     // Cor na margem e no fundo; profundidade (m) em que a cor é a do fundo.
-    SHALLOW_COLOR: '#4fa7a0',
-    DEEP_COLOR: '#1d4f6b',
+    SHALLOW_COLOR: '#3fb8e8',
+    DEEP_COLOR: '#1462d9',
     DEEP_DEPTH: 3,
     // Opacidade na margem e no fundo; profundidade (m) em que fica a do
     // fundo — na margem dá para ver o chão.
@@ -517,6 +593,18 @@ export const GAME_CONFIG = {
       LINE_THICKNESS: 0.05,
       // Nuvens de poeira na saída do dash (0 = sem poeira).
       DUST_COUNT: 5,
+    },
+    // Respingo de quem pula, cai ou dá dash na água (`view/vfx/
+    // waterSplashVfx.js`, docs/features/057-lagos-e-rios.md), no lugar da
+    // poeira: gotas por nuvem de poeira que sairia (`DROPS_PER_PUFF`), o
+    // tamanho (m) e a força (m/s) delas, antes da escala do efeito, e o
+    // tamanho do anel na superfície (vezes o da marolinha dos passos,
+    // `WATER.RIPPLE`).
+    WATER_SPLASH: {
+      DROPS_PER_PUFF: 8,
+      DROP_SIZE: 0.45,
+      DROP_SPEED: 3.5,
+      RING_SIZE: 2.5,
     },
     // Poeira do pulo (`view/scene/JumpDustView.jsx`, `view/vfx/jumpDustVfx.js`):
     // anel de nuvens no chão na decolagem de um pulo (TAKEOFF_COUNT nuvens) e na

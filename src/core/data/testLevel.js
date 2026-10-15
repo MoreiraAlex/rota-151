@@ -2,6 +2,7 @@ import { GAME_CONFIG } from '../gameConfig'
 import { createRng, deriveSeed, randomInt } from '../rng'
 import { createTerrainChunkSet } from '../terrain/terrainChunkSet'
 import { verticalClearance } from '../physics/capsule'
+import { shoreNear, waterDepthAt } from '../terrain/water'
 import { getSpecies } from './species'
 
 /**
@@ -47,7 +48,7 @@ const WILD_CREATURE_COUNT = 10
 const WILD_CREATURE_SPECIES = ['bulbasaur', 'charmander', 'squirtle']
 
 // Metade do lado (m) do quadrado em volta da origem onde os selvagens
-// nascem — provisório até o spawn por chunk (058).
+// nascem — provisório até o spawn por chunk (060).
 const WILD_AREA_HALF_SIZE = 84
 
 // Objetos de treino (ver `trainingObjects` no cabeçalho) — x/z fixos, o y
@@ -79,8 +80,13 @@ function generateWildCreatures(terrain, count) {
   return Array.from({ length: count }, (_, index) => {
     const speciesId =
       WILD_CREATURE_SPECIES[randomInt(rng, 0, WILD_CREATURE_SPECIES.length - 1)]
-    const x = between(-WILD_AREA_HALF_SIZE, WILD_AREA_HALF_SIZE)
-    const z = between(-WILD_AREA_HALF_SIZE, WILD_AREA_HALF_SIZE)
+    // Sorteado em água funda, vai para a margem (docs/features/057-lagos-
+    // e-rios.md).
+    const { x, z } = shoreNear(
+      (pointX, pointZ) => waterDepthAt(terrain.heightAt, pointX, pointZ),
+      between(-WILD_AREA_HALF_SIZE, WILD_AREA_HALF_SIZE),
+      between(-WILD_AREA_HALF_SIZE, WILD_AREA_HALF_SIZE),
+    )
     // Pés acima do chão (o centro fica a `verticalClearance` deles).
     const y =
       terrain.heightAt(x, z) +
