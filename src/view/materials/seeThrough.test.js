@@ -2,8 +2,8 @@ import * as THREE from 'three'
 import { describe, expect, it } from 'vitest'
 import { addSeeThrough, withSeeThrough } from './seeThrough'
 
-// Os materiais da cena que recebem o ver-através (toon do LGPE, Lambert do
-// MegaKit, Standard das caixas).
+// Os materiais da cena que recebem o ver-através (toon do LGPE, Lambert e
+// Standard dos outros objetos).
 const LIBS = ['toon', 'lambert', 'standard']
 
 describe('ver-através', () => {

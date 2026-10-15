@@ -8,6 +8,7 @@ import {
   currentTerrainRecipe,
 } from '../terrain/terrainHeight'
 import { slopeAt } from './vegetationDensity'
+import { vegetationEntryOf } from './vegetationEntry'
 import {
   ROCK_KIND,
   STANDING_TREE_KINDS,
@@ -15,12 +16,16 @@ import {
   borderGapOf,
   footprintOf,
   placeChunkSolids,
+  solidFootprintOf,
   specOf,
 } from './solidPlacement'
 
 const { TERRAIN } = GAME_CONFIG
 const GROUPS = ['trees', 'rocks']
 const SOLID_KINDS = [...STANDING_TREE_KINDS, ROCK_KIND]
+
+// Se o tipo nasce no bioma (tem `models`).
+const hasKind = (biome, kind) => Boolean(vegetationEntryOf(biome, kind))
 
 // Todos os objetos do chunk, de todos os grupos (cada um com o `kind`).
 const allOf = (solids) => GROUPS.flatMap((group) => solids[group])
@@ -53,10 +58,8 @@ function solidsOf(recipe, seed, chunkX, chunkZ) {
 const treeDensityOf = ({ vegetation }) =>
   vegetation.find(({ kind }) => kind === TREE_KIND)?.density ?? 0
 const withAllSolids = listBiomes()
-  .filter(({ vegetation }) =>
-    [TREE_KIND, ROCK_KIND].every((kind) =>
-      vegetation.some((entry) => entry.kind === kind),
-    ),
+  .filter((biome) =>
+    [TREE_KIND, ROCK_KIND].every((kind) => hasKind(biome, kind)),
   )
   .sort((a, b) => treeDensityOf(b) - treeDensityOf(a))[0]
 
@@ -209,10 +212,7 @@ describe.runIf(withAllSolids)('placeChunkSolids', () => {
 
 describe('placeChunkSolids — cada espécie de árvore', () => {
   // Um bioma do registro que declara a espécie.
-  const biomeWith = (kind) =>
-    listBiomes().find(({ vegetation }) =>
-      vegetation.some((entry) => entry.kind === kind),
-    )
+  const biomeWith = (kind) => listBiomes().find((biome) => hasKind(biome, kind))
 
   it.each(STANDING_TREE_KINDS)('%s tem números no config', (kind) => {
     const spec = specOf(kind, currentTerrainRecipe().solids)
@@ -231,7 +231,7 @@ describe('placeChunkSolids — cada espécie de árvore', () => {
         const biome = recipe.biomeList[0]
         biome.vegetation = biome.vegetation
           .filter((entry) => entry.kind === kind)
-          .map(({ kind: only }) => ({ kind: only, density: 1 }))
+          .map(({ kind: only, models }) => ({ kind: only, density: 1, models }))
       })
       // Uma área maior que `CHUNKS`: as árvores grandes têm células de
       // mais de um chunk.
@@ -249,10 +249,12 @@ describe('placeChunkSolids — cada espécie de árvore', () => {
 })
 
 describe('placeChunkSolids — tamanho por bioma', () => {
-  // Um bioma do registro com pedra; o mesmo mundo com e sem `scale`.
-  const biome = listBiomes().find(({ vegetation }) =>
-    vegetation.some(({ kind }) => kind === ROCK_KIND),
-  )
+  // O bioma do registro com mais pedra; o mesmo mundo com e sem `scale`.
+  const rockDensityOf = (candidate) =>
+    vegetationEntryOf(candidate, ROCK_KIND)?.density ?? 0
+  const biome = [...listBiomes()].sort(
+    (a, b) => rockDensityOf(b) - rockDensityOf(a),
+  )[0]
   const withScale = (scale) =>
     worldOf([biome.id], (recipe) => {
       const entry = recipe.biomeList[0].vegetation.find(
@@ -287,8 +289,9 @@ describe('placeChunkSolids — tamanho por bioma', () => {
 
   it('a pegada maior continua dentro do chunk e guardada', () => {
     for (const { rock, chunk, solids } of rocksOf(withScale(fitting))) {
-      const [circle] = footprintOf(ROCK_KIND, rock, params)
-      expect(circle.radius).toBeCloseTo(params.rocks.RADIUS * rock.scale)
+      // A pegada pelo modelo do LGPE (o casco), que cresce com o tamanho.
+      const circle = solidFootprintOf(rock, params)
+      expect(circle.radius).toBeGreaterThan(0)
       expect(circle.x - circle.radius).toBeGreaterThan(chunk.minX)
       expect(circle.x + circle.radius).toBeLessThan(chunk.minX + chunk.size)
       expect(circle.z - circle.radius).toBeGreaterThan(chunk.minZ)
@@ -299,10 +302,10 @@ describe('placeChunkSolids — tamanho por bioma', () => {
 })
 
 describe('placeChunkSolids — bioma sem sólidos', () => {
-  const without = listBiomes().find(({ vegetation }) =>
-    SOLID_KINDS.every(
-      (kind) => !vegetation.some((entry) => entry.kind === kind),
-    ),
+  // Sem nenhum sólido que nasça (com `models`) — pode declarar algum sem
+  // modelo, que não nasce.
+  const without = listBiomes().find((biome) =>
+    SOLID_KINDS.every((kind) => !hasKind(biome, kind)),
   )
 
   it.runIf(without)('nenhum objeto', () => {

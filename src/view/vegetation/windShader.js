@@ -1,10 +1,9 @@
-import * as THREE from 'three'
 import { GAME_CONFIG } from '@/core/gameConfig'
 
 /**
  * Vento da vegetação em GLSL (docs/features/049-vegetacao-e-floresta.md),
- * portado do `materials/wind.ts` do stylized-scene (lá em TSL/WebGPU). A
- * grama, as flores e as copas incluem este MESMO pedaço e leem os mesmos
+ * portado do `materials/wind.ts` do stylized-scene (lá em TSL/WebGPU). As
+ * plantas e as árvores incluem este MESMO pedaço e leem os mesmos
  * uniforms (`vegetationUniforms`), então uma rajada que atravessa o campo
  * passa pela grama e pelas árvores ao mesmo tempo.
  *
@@ -151,8 +150,8 @@ vec3 vegCanopySway(
 
 /**
  * Uniforms do vento e da luz da vegetação — os MESMOS objetos em todos os
- * materiais (grama, flores, copas e a sombra das copas), atualizados uma
- * vez por quadro pelo `VegetationView`.
+ * materiais (o toon do Let's Go), atualizados uma vez por quadro pelo
+ * `VegetationView`.
  */
 export const vegetationUniforms = {
   uWindTime: { value: 0 },
@@ -162,8 +161,6 @@ export const vegetationUniforms = {
   uGustScale: { value: GAME_CONFIG.WIND.GUST_SCALE },
   uTurbulence: { value: GAME_CONFIG.WIND.TURBULENCE },
   uFlutter: { value: GAME_CONFIG.WIND.FLUTTER },
-  // Direção do sol (mundo) e quanto ele brilha agora (0 à noite) — a luz
-  // que passa pela folha.
-  uSunDirection: { value: new THREE.Vector3(0, 1, 0) },
+  // Quanto o sol brilha agora (0 à noite) — a luz de borda do toon.
   uSunGlow: { value: 1 },
 }

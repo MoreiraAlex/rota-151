@@ -45,6 +45,9 @@ export const TERRAIN_COLOR_LAYERS = [
   ['lgpe-route-grass', 'grass01_area02'],
   ['lgpe-trail-soil', 'soil09_com'],
   ['lgpe-sand', 'sand01_com'],
+  // Penhasco de terra das rotas secas (docs/features/054-savana-lgpe-e-
+  // saida-do-megakit.md).
+  ['lgpe-cliff', 'cliff02_com'],
 ]
 
 // Os pesos das camadas de cor vão para o shader em três vec4 por vértice.

@@ -24,6 +24,9 @@ const sampler = createTerrainSampler(21, recipe)
 const chunk = generateTerrainChunk(sampler, 3, -1, recipe.terrain)
 const step = chunk.size / chunk.resolution
 
+// Os biomas de teste dizem um modelo: sem `models`, o tipo não nasce.
+const MODELS = ['modelo']
+
 // Um tipo declarado por algum bioma do registro.
 const someKind = recipe.biomeList[0].vegetation[0].kind
 
@@ -102,9 +105,9 @@ describe('createKindDensity (clareiras)', () => {
     id: 'teste',
     clearings: { amount: 0.4 },
     vegetation: [
-      { kind: 'sombra', density: 0.8, place: 'shade' },
-      { kind: 'clareira', density: 0.8, place: 'clearing' },
-      { kind: 'livre', density: 0.8 },
+      { kind: 'sombra', density: 0.8, models: MODELS, place: 'shade' },
+      { kind: 'clareira', density: 0.8, models: MODELS, place: 'clearing' },
+      { kind: 'livre', density: 0.8, models: MODELS },
     ],
   }
   const single = {
@@ -130,7 +133,13 @@ describe('createKindDensity (clareiras)', () => {
     const partial = {
       ...biome,
       vegetation: [
-        { kind: 'meio', density: 0.8, place: 'clearing', shade: 0.25 },
+        {
+          kind: 'meio',
+          density: 0.8,
+          models: MODELS,
+          place: 'clearing',
+          shade: 0.25,
+        },
       ],
     }
     const density = createKindDensity(single, 'meio', {
@@ -160,6 +169,18 @@ describe('createKindDensity (clareiras)', () => {
   it('tipo que o bioma não tem: vazio', () => {
     expect(createKindDensity(single, 'nao-existe', options).isEmpty).toBe(true)
   })
+
+  it('tipo sem modelos (`models`): vazio, como se o bioma não tivesse', () => {
+    const noModels = {
+      ...biome,
+      vegetation: [{ kind: 'livre', density: 0.8 }],
+    }
+    const density = createKindDensity(single, 'livre', {
+      biomeList: [noModels],
+      seed: 3,
+    })
+    expect(density.isEmpty).toBe(true)
+  })
 })
 
 describe('createKindDensity (manchas)', () => {
@@ -168,9 +189,15 @@ describe('createKindDensity (manchas)', () => {
     id: 'teste',
     clearings: { amount: 0.4 },
     vegetation: [
-      { kind: 'mancha', density: 0.8, patches },
-      { kind: 'sombra', density: 0.8, place: 'shade' },
-      { kind: 'sombra-mancha', density: 0.8, place: 'shade', patches },
+      { kind: 'mancha', density: 0.8, models: MODELS, patches },
+      { kind: 'sombra', density: 0.8, models: MODELS, place: 'shade' },
+      {
+        kind: 'sombra-mancha',
+        density: 0.8,
+        models: MODELS,
+        place: 'shade',
+        patches,
+      },
     ],
   }
   const single = {
@@ -220,7 +247,7 @@ describe('createKindDensity (conjuntos de grama)', () => {
   }
   const biome = {
     id: 'teste',
-    vegetation: [{ kind: 'grama', density: 0.8, clusters }],
+    vegetation: [{ kind: 'grama', density: 0.8, models: MODELS, clusters }],
   }
   const single = {
     ...chunk,
@@ -249,7 +276,12 @@ describe('createKindDensity (conjuntos de grama)', () => {
 
   it('sem conjuntos: altura de sempre', () => {
     const plain = createKindDensity(single, 'grama', {
-      biomeList: [{ id: 'teste', vegetation: [{ kind: 'grama', density: 1 }] }],
+      biomeList: [
+        {
+          id: 'teste',
+          vegetation: [{ kind: 'grama', density: 1, models: MODELS }],
+        },
+      ],
       seed: 3,
     })
     for (const [x, z] of points) expect(plain.heightAt(x, z)).toBe(1)
@@ -276,7 +308,7 @@ describe('createKindDensity (linha das árvores, docs/features/051-*.md)', () =>
   const altitude = { ...GAME_CONFIG.VEGETATION_ALTITUDE, FADE }
   const biomeWith = (entry) => ({
     id: 'teste',
-    vegetation: [{ kind: 'pinheiro', density: 0.8, ...entry }],
+    vegetation: [{ kind: 'pinheiro', density: 0.8, models: MODELS, ...entry }],
   })
   const limited = createKindDensity(single, 'pinheiro', {
     biomeList: [biomeWith({ maxHeight })],

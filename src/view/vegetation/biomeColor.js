@@ -1,66 +1,69 @@
 import * as THREE from 'three'
-import { listBiomes } from '@/core/data/biomes'
-import { GAME_CONFIG } from '@/core/gameConfig'
+import { getBiome } from '@/core/data/biomes'
 import { densityAt } from '@/core/vegetation/vegetationDensity'
+import { vegetationEntryOf } from '@/core/vegetation/vegetationEntry'
+import { tintAt } from './instancing'
 
 /**
- * Cor por bioma (docs/features/050-planicie-e-savana.md): a entrada do
- * `vegetation` pode ter `color`, que vence a cor do tipo no config naquele
- * bioma — o arbusto seco e a pedra de arenito da savana. A cor do material
- * continua a do config; cada instância leva o fator `color ÷ cor do tipo`,
- * misturado pelo peso dos biomas no ponto (borda suave). Calculado ao
- * montar as malhas: mexer na cor do tipo no F2 só acerta o fator ao
- * remontar.
+ * Tinta por bioma (docs/features/054-savana-lgpe-e-saida-do-megakit.md): a
+ * entrada do `vegetation` pode ter `tint: { color, amount }` — o tom dos
+ * modelos do Let's Go do tipo puxa para `color` (0 a 1, `amount`),
+ * mantendo o claro e escuro da textura (toonMaterial.js) — o verde
+ * virando o amarelado da savana. Cada instância leva a tinta misturada
+ * pelo peso dos biomas no ponto (borda suave): a cor pela força de cada
+ * um, a força pela média. Calculado ao montar as malhas: mexer no F2 só
+ * aparece ao remontar.
  */
 
+const scratch = new THREE.Color()
+
+/** A tinta da entrada (`null` sem tinta ou com força 0). */
+const tintOfEntry = (entry) => (entry?.tint?.amount > 0 ? entry.tint : null)
+
 /**
- * A cor de cada tipo no config (a do material): a folha das árvores e do
- * arbusto, a pedra e o seixo.
+ * A tinta de `kind` no chunk, ou `null` quando nenhum bioma do chunk tinge
+ * o tipo (nada a fazer).
+ *
+ * @returns {null | ((x: number, z: number) => number[])} `[r, g, b,
+ *   força]` (cor linear) em `(x, z)`
  */
-export const KIND_COLOR = {
-  'broadleaf-tree': (config) => config.TREES.LEAF_COLOR,
-  'ancient-tree': (config) => config.ANCIENT_TREES.LEAF_COLOR,
-  'pine-tree': (config) => config.PINES.LEAF_COLOR,
-  'acacia-tree': (config) => config.ACACIAS.LEAF_COLOR,
-  bush: (config) => config.BUSHES.LEAF_COLOR,
-  rock: (config) => config.ROCKS.COLOR,
-  pebble: (config) => config.ROCKS.COLOR,
+export function createBiomeTint(chunk, kind) {
+  const tints = chunk.biomeIds.map((id) =>
+    tintOfEntry(vegetationEntryOf(getBiome(id), kind)),
+  )
+  if (!tints.some(Boolean)) return null
+
+  // Cor vezes força (para misturar pela força) e a força, por bioma.
+  const channels = [0, 1, 2, 3].map(() => new Float32Array(tints.length))
+  tints.forEach((tint, index) => {
+    if (!tint) return
+    scratch.set(tint.color)
+    channels[0][index] = scratch.r * tint.amount
+    channels[1][index] = scratch.g * tint.amount
+    channels[2][index] = scratch.b * tint.amount
+    channels[3][index] = tint.amount
+  })
+  return (x, z) => {
+    const [r, g, b, amount] = channels.map((values) =>
+      densityAt(chunk, values, x, z),
+    )
+    if (amount <= 0) return [0, 0, 0, 0]
+    return [r / amount, g / amount, b / amount, amount]
+  }
 }
 
-const species = new THREE.Color()
-const biome = new THREE.Color()
-
 /**
- * O fator de cor de `kind` no chunk, ou `null` quando nenhum bioma do chunk
- * muda a cor dele (nada a fazer).
+ * O tom e a tinta de cada objeto de `kind` no chunk: `tint` é o do lugar
+ * (`tintAt`, até `variation`); `recolor`, a tinta do bioma
+ * (`createBiomeTint`, ou `undefined`).
  *
- * @returns {null | ((x: number, z: number, out: THREE.Color) => THREE.Color)}
- *   multiplica `out` pelo fator em `(x, z)`
+ * @returns {(x: number, z: number) => { tint: THREE.Color,
+ *   recolor?: number[] }}
  */
-export function createBiomeColorFactor(chunk, kind) {
-  const colorOf = KIND_COLOR[kind]
-  if (!colorOf) return null
-  const entries = chunk.biomeIds.map((id) =>
-    listBiomes()
-      .find((candidate) => candidate.id === id)
-      ?.vegetation.find((entry) => entry.kind === kind),
-  )
-  if (!entries.some((entry) => entry?.color)) return null
-
-  species.set(colorOf(GAME_CONFIG))
-  const channels = [0, 1, 2].map(() => new Float32Array(entries.length))
-  entries.forEach((entry, index) => {
-    biome.set(entry?.color ?? species)
-    channels[0][index] = biome.r / Math.max(species.r, 1e-3)
-    channels[1][index] = biome.g / Math.max(species.g, 1e-3)
-    channels[2][index] = biome.b / Math.max(species.b, 1e-3)
+export function createTint(chunk, kind, variation) {
+  const biomeTint = createBiomeTint(chunk, kind)
+  return (x, z) => ({
+    tint: tintAt(x, z, variation),
+    recolor: biomeTint?.(x, z),
   })
-  return (x, z, out) =>
-    out.multiply(
-      biome.setRGB(
-        densityAt(chunk, channels[0], x, z),
-        densityAt(chunk, channels[1], x, z),
-        densityAt(chunk, channels[2], x, z),
-      ),
-    )
 }

@@ -19,19 +19,13 @@ import { world } from '@/core/world/world'
 import { useTerrainChunks } from '@/view/hooks/useTerrainChunks'
 import { loadedFogRange } from '@/view/terrain/fogRange'
 import { resolveSkyLook } from '@/view/weather/skyLook'
-import { applyCanopyLook } from './canopyMaterial'
 import {
   buildRockMeshes,
   buildTreeMeshes,
   buildUndergrowthMeshes,
 } from './chunkMeshes'
 import { disposeVegetationMesh, setShadowsEnabled } from './instancing'
-import { applyBarkLook, applyFoliageLook, applyRockLook } from './propMaterials'
-import {
-  applyPartColor,
-  materialsOfKind,
-  useVegetationModels,
-} from './useVegetationModels'
+import { useVegetationModels } from './useVegetationModels'
 import { createGrassPushMap } from './grassPush'
 import { LgpeChoiceLoader } from './LgpeChoiceLoader'
 import { applyToonLook } from './toonMaterial'
@@ -122,7 +116,7 @@ function GrassTile({ chunk, tile, models, showGrass, showFlowers }) {
  * A vegetação de um bloco de sólidos (`loadedBlocks` do conjunto de chunks,
  * `SOLIDS_BLOCK_SIZE` m — vários chunks, para não multiplicar as malhas):
  * árvores e pedras (os do core) e o sub-bosque (arbustos,
- * samambaias, plantas, cogumelos, seixos), sorteados sobre o relevo do
+ * samambaias, plantas, seixos), sorteados sobre o relevo do
  * bloco inteiro (`ground`). Pela distância da câmera
  * (`VEGETATION_QUALITY`): `showSolids` (até `treeDistance`), `showDetail`
  * (sub-bosque, até `detailRing`) e `castShadows` (até `shadowRing`) — ligar
@@ -147,7 +141,6 @@ function BlockVegetation({
       bushes: undergrowth('bush'),
       ferns: undergrowth('fern'),
       plants: undergrowth('leafy-plant'),
-      mushrooms: undergrowth('mushroom'),
       pebbles: undergrowth('pebble'),
       rocks: () => buildRockMeshes(chunk, options),
     }
@@ -166,7 +159,7 @@ function BlockVegetation({
       )}
       {settings.undergrowth && showDetail && (
         <>
-          {['bushes', 'ferns', 'plants', 'mushrooms', 'pebbles'].map((name) => (
+          {['bushes', 'ferns', 'plants', 'pebbles'].map((name) => (
             <LodMeshesOf
               key={name}
               build={builds[name]}
@@ -258,18 +251,6 @@ export function VegetationView() {
     getVegetationSettings,
   )
   const models = useVegetationModels()
-  const materials = useMemo(
-    () => ({
-      canopy: materialsOfKind(models.kinds, 'canopy'),
-      foliage: materialsOfKind(models.kinds, 'foliage'),
-      bark: materialsOfKind(models.kinds, 'bark'),
-      rock: [
-        ...materialsOfKind(models.kinds, 'rock'),
-        ...materialsOfKind(models.kinds, 'pebble'),
-      ],
-    }),
-    [models],
-  )
 
   const chunksByKey = new Map(
     TEST_LEVEL.terrain
@@ -292,7 +273,7 @@ export function VegetationView() {
   const cameraBlockRef = useRef(cameraBlock)
 
   useFrame(({ camera, gl }, delta) => {
-    updateUniforms(delta, materials)
+    updateUniforms(delta)
     applyToonLook(models.lgpeMaterials)
     pushMap.update(gl, world, camera.position, delta)
     lod.update(camera.position)
@@ -386,9 +367,8 @@ export function VegetationView() {
   )
 }
 
-// Vento e sol: uma vez por quadro, nos uniforms de todos; e os
-// números de material que o painel do debug mexe ao vivo.
-function updateUniforms(delta, materials) {
+// Vento e sol: uma vez por quadro, nos uniforms de todos.
+function updateUniforms(delta) {
   const { WIND } = GAME_CONFIG
   const clock = world.get(WorldClock)
   const weather = world.get(LocalWeather)
@@ -403,16 +383,6 @@ function updateUniforms(delta, materials) {
   if (weather) uniforms.uWindStrength.value = windStrengthOf(weather)
   if (clock && weather) {
     const look = resolveSkyLook(lightingAt(clock.time), weather)
-    uniforms.uSunDirection.value.set(look.sun.x, look.sun.y, look.sun.z)
     uniforms.uSunGlow.value = look.shadowIntensity
   }
-
-  // A cor antes do preenchimento da sombra (que segue a cor).
-  for (const material of [...materials.canopy, ...materials.bark]) {
-    applyPartColor(material)
-  }
-  for (const material of materials.canopy) applyCanopyLook(material)
-  for (const material of materials.foliage) applyFoliageLook(material)
-  for (const material of materials.bark) applyBarkLook(material)
-  for (const material of materials.rock) applyRockLook(material)
 }

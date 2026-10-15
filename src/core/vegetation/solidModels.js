@@ -1,11 +1,13 @@
 import { getBiome } from '../data/biomes'
 import LGPE_COLLIDERS from '../data/lgpeColliders.json'
 import { heightIndex } from '../terrain/terrainChunk'
+import { vegetationEntryOf } from './vegetationEntry'
 
 /**
  * O modelo de cada objeto da vegetação por bioma (docs/features/052-
  * assets-do-lgpe-e-floresta.md): a entrada do `vegetation` pode dizer os
- * dela (`models`, ids do LGPE); sem isso vale o padrão do tipo (a view).
+ * dela (`models`, ids do LGPE); sem isso o tipo não nasce lá
+ * (`vegetationEntryOf`).
  * Cada objeto usa os do bioma de mais peso onde ele está entre os que têm
  * o tipo — o que fez ele nascer: na fronteira, a planta de um bioma não
  * troca de modelo por cair do lado de um vizinho que não tem esse tipo.
@@ -15,11 +17,9 @@ import { heightIndex } from '../terrain/terrainChunk'
  * `scripts/lgpe/colliders.js` a partir dos `.glb`).
  */
 
-/** A entrada do tipo no bioma (ou `null`). */
+/** A entrada do tipo no bioma, se ele nasce lá (ou `null`). */
 export function entryOf(biomeId, kind) {
-  return (
-    getBiome(biomeId)?.vegetation.find((item) => item.kind === kind) ?? null
-  )
+  return vegetationEntryOf(getBiome(biomeId), kind)
 }
 
 /**
@@ -51,7 +51,7 @@ export const modelIndexOf = (variant, count) =>
 /**
  * O colisor do LGPE de um sólido (`SolidPlacement`, com o `biome`): os
  * pontos do casco no tamanho do modelo e o `reach` (afastamento do eixo no
- * chão). `null` quando o bioma usa o modelo padrão (sem casco).
+ * chão). `null` quando o modelo não tem casco.
  *
  * @returns {{ points: number[], reach: number } | null}
  */

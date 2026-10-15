@@ -5,7 +5,7 @@ import { buildLodKindMeshes, finishMesh } from './instancing'
 // Um modelo de uma parte, com a versão de longe.
 function makeModel() {
   const part = () => ({
-    kind: 'solid',
+    kind: 'toon',
     geometry: new THREE.BoxGeometry(),
     material: new THREE.MeshBasicMaterial(),
   })

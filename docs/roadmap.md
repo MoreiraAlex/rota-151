@@ -2,7 +2,7 @@
 
 ---
 
-# ✅ Já feito (0.0.1 – 0.0.53)
+# ✅ Já feito (0.0.1 – 0.0.54)
 
 O que já foi entregue, por tema. Detalhes de cada uma em `docs/features/`.
 
@@ -55,6 +55,7 @@ O que já foi entregue, por tema. Detalhes de cada uma em `docs/features/`.
 - [x] **051 — Montanha**
 - [x] **052 — Assets do LGPE e floresta**
 - [x] **053 — Planície com assets do LGPE**
+- [x] **054 — Savana com assets do LGPE e saída do MegaKit**
 
 ### Combate
 - [x] **025 — Ataque comum de criatura**
@@ -102,26 +103,24 @@ Concluído: a 044 (salvar o jogo) fechou o ciclo offline.
 ## Marco 2 — Mundo procedural
 
 **Objetivo:** um mundo infinito gerado por seed, em chunks, com biomas, dia e
-noite, clima, água e cavernas. Há itens para achar, as 7 espécies selvagens
+noite, clima e água. Há itens para achar, as 7 espécies selvagens
 aparecem conforme bioma, horário e clima, e há um Pokécenter para curar o time.
 
 **Biomas da beta:** os 11 biomas existem na seed (cobrem os 151), mas só os
 que as 7 espécies selvagens usam são refinados e aparecem no jogo —
 **floresta** (Caterpie, Weedle, Pidgey, Pikachu), **planície** (Pidgey,
-Rattata, Pikachu), **savana** (Rattata, Spearow, Ekans) e **montanha**
-(Spearow e a boca das cavernas, 061). Os outros (oceano, praia, selva,
-pântano, deserto, vulcânico e tundra) ficam escondidos (`BIOMES.HIDDEN`) e
-só aparecem pelo F2. Os 3 iniciais não nascem no mundo: vêm só no kit
-inicial (067).
+Rattata, Pikachu) e **savana** (Rattata, Spearow, Ekans — como nas rotas
+secas e pedregosas de Kanto). Os outros (oceano, praia, selva, pântano,
+deserto, vulcânico, tundra e montanha) ficam escondidos (`BIOMES.HIDDEN`) e
+só aparecem pelo F2. A montanha foi adiada: na beta não teria espécie
+exclusiva (o Spearow já mora na savana). Os 3 iniciais não nascem no mundo:
+vêm só no kit inicial (067).
 
-- [ ] **054 — Savana com assets do LGPE** — achar no LGPE o que serve à savana (campo seco, árvores esparsas, pedras) e trocar a vegetação e o chão dela.
-- [ ] **055 — Montanha com assets do LGPE** — achar no LGPE o que serve à montanha (pedra, penhasco, pinheiros, neve) e trocar a vegetação e o chão dela. Depois dela, o MegaKit sai do jogo (junto da 081).
 - [ ] **056 — Itens no mundo** — itens espalhados pela seed conforme o bioma (no chão e em arbustos: Pokébolas, poções) e **árvores de frutas** que dá para colher e voltam a dar fruto com o tempo. É a forma de conseguir itens além do kit inicial.
 - [ ] **057 — Estruturas e Pokécenter** — sistema para colocar construções pré-modeladas no mundo procedural (posição pela seed, terreno aplainado). Primeiro: o Pokécenter, que cura o time (com o som de cura) e é o ponto de reaparecimento.
 - [ ] **058 — As 10 espécies** — Bulbasaur, Charmander, Squirtle, Caterpie, Weedle, Pidgey, Rattata, Spearow, Ekans e Pikachu (7 novas, as selvagens; os 3 iniciais já existem e só vêm no kit inicial): modelo, status, golpes, sons e animações. Sons mapeados em `docs/reference/audio.md`.
 - [ ] **059 — Spawn estilo Cobblemon** — limite por jogador ativo, nascer fora da vista, despawn dos distantes; condições por espécie: bioma, tags, horário, clima, faixa de nível e raridade. Só as 7 selvagens têm spawn; os 3 iniciais não nascem no mundo.
 - [ ] **060 — Água** — lagos e rios; parte rasa andável (com respingo visual e sonoro), parte funda bloqueia treinador e criaturas; IA desvia da água funda; shader simples. Tag "perto de água" para o spawn. Só nos biomas visíveis (o oceano continua escondido).
-- [ ] **061 — Cavernas** — camada subterrânea gerada pela seed (túneis e salões com malha, colisor e grade de navegação próprios, por chunk), sem mexer na superfície; boca numa encosta de montanha. Save e spawn passam a saber em que camada a entidade está.
 - [ ] **062 — Design da HUD** — visual definitivo da interface (com horário e clima); menus saem de `src/tools/menu/` para `view/`.
 
 > **Modelos das espécies (058):** o Sword/Shield só tem Caterpie e Pikachu.
@@ -188,13 +187,14 @@ item entra aqui quando for identificado e vira feature quando chegar a vez.
 - [ ] **085 — Luz no estilo BotW por hora** — sol mais quente, sombra azulada e névoa leve nas cores de cada hora (`DAY_CYCLE.KEYFRAMES`, 048). Mexer na luz muda a cor da grama, então junto vem um novo ajuste das cores da grama e da floresta (a 049 casou tudo com a luz de hoje) *(detalhar quando chegar)*.
 - [ ] **086 — Desempenho no celular** — medir no celular na qualidade baixa (a 049 só mediu na Intel UHD do PC: a mata densa fica perto do limite de 30 FPS) e cortar o que pesar — copas, grama, sombra, raio; se as flores pesarem, trocar pelas moitas mais leves do Ultimate (`Flower_*_Clump`, 050). A planície da 053 (mato alto do Let's Go bem denso) custa cerca de um quarto a mais de GPU que a da 052 na Intel UHD, ainda no teto de 60 FPS no PC — conferir no celular *(detalhar quando chegar)*.
 - [ ] **087 — Ambiente da floresta** — névoa um pouco mais fechada dentro da mata; partículas (folhas caindo de dia, vaga-lumes à noite); som ambiente por bioma (pássaros de dia, grilos e coruja à noite) *(detalhar quando chegar)*.
-- [ ] **088 — Detalhes da floresta** — cogumelo-prateleira (`Mushroom_Laetiporus` do MegaKit), musgo nos troncos caídos e grama mais rala sob a copa fechada *(detalhar quando chegar)*.
+- [ ] **088 — Detalhes da floresta** — cogumelo-prateleira (o do MegaKit saiu na 054: achar um no LGPE), musgo nos troncos caídos e grama mais rala sob a copa fechada *(detalhar quando chegar)*.
 
 ---
 
 ## 🔭 Depois da beta 0.1
 
-- Refinar os biomas escondidos (oceano, praia, selva, pântano, deserto, vulcânico e tundra — vegetação e ajuste visual) quando as espécies deles entrarem
+- Refinar os biomas escondidos (oceano, praia, selva, pântano, deserto, vulcânico, tundra e montanha — vegetação e ajuste visual) quando as espécies deles entrarem. A montanha era a 055 (achar no LGPE pedra, penhasco, pinheiros e neve e trocar a vegetação e o chão dela); volta quando entrarem Geodude, Onix, Machop etc.
+- Cavernas (era a 061): camada subterrânea gerada pela seed (túneis e salões com malha, colisor e grade de navegação próprios, por chunk), sem mexer na superfície; boca numa encosta de montanha. Save e spawn passam a saber em que camada a entidade está. Volta junto da montanha, com as espécies de caverna (Zubat, Geodude, Onix etc.)
 - PC/caixa de Pokémon
 - Evolução
 - Nado

@@ -165,10 +165,35 @@ function addModelChoices(folder, title, entry, manifest, apply) {
   return modelFolder
 }
 
+// Tinta de uma entrada do bioma (`tint: { color, amount }`, view/vegetation/
+// biomeColor.js): a cor e quanto o tom puxa para ela (0 tira o campo).
+// Refaz a vegetação ao soltar. Devolve a pasta.
+function addTint(folder, entry, title) {
+  const tint = { color: '#d8b860', amount: 0, ...entry.tint }
+  const sync = () => {
+    if (tint.amount > 0) entry.tint = { color: tint.color, amount: tint.amount }
+    else delete entry.tint
+  }
+  const tintFolder = folder.addFolder(title)
+  tintFolder
+    .addColor(tint, 'color')
+    .name('Cor')
+    .onChange(sync)
+    .onFinishChange(rebuildVegetation)
+  tintFolder
+    .add(tint, 'amount', 0, 1, 0.01)
+    .name('Quanto puxa')
+    .onChange(sync)
+    .onFinishChange(rebuildVegetation)
+  tintFolder.close()
+  return tintFolder
+}
+
 /**
  * Subpasta "No bioma": escolhe um bioma (dos que têm algum dos `kinds`) e
- * mostra a densidade e os modelos do Let's Go (`addModelChoices`) de cada
- * entrada desses tipos no `vegetation` dele. `apply` ao soltar.
+ * mostra a densidade, a tinta (`addTint`) e os modelos do Let's Go
+ * (`addModelChoices`) de cada entrada desses tipos no `vegetation` dele.
+ * `apply` ao soltar.
  */
 function addBiomeDensities(folder, kinds, apply, manifest) {
   const biomes = listBiomes().filter(({ vegetation }) =>
@@ -190,6 +215,7 @@ function addBiomeDensities(folder, kinds, apply, manifest) {
             .add(entry, 'density', 0, 2, 0.01)
             .name(label)
             .onFinishChange(apply),
+          addTint(biomeFolder, entry, `Tinta: ${label}`),
           addModelChoices(
             biomeFolder,
             `Modelos: ${label}`,
@@ -212,12 +238,10 @@ function addBiomeDensities(folder, kinds, apply, manifest) {
 }
 
 /** Subpasta de uma espécie de árvore (`TREES`, `PINES`...). */
-function addTreeSpecies(folder, title, config, colors) {
+function addTreeSpecies(folder, title, config) {
   const species = folder.addFolder(title)
   addControls(species, config, SOLID_CONTROLS, regenerate)
   addControls(species, config.SCALE, scaleControls([0.2, 3, 0.01]), regenerate)
-  if (colors.leaf) species.addColor(config, 'LEAF_COLOR').name('Folha')
-  if (colors.bark) species.addColor(config, 'BARK_COLOR').name('Casca')
 }
 
 // As partes do "Mostrar" (`setVegetationVisible`) — cada uma tem a pasta
@@ -226,7 +250,7 @@ const PARTS = [
   ['grass', 'Grama'],
   ['flowers', 'Flores'],
   ['trees', 'Árvores'],
-  ['undergrowth', 'Arbustos, samambaias, plantas e cogumelos'],
+  ['undergrowth', 'Arbustos, samambaias e plantas'],
   ['rocks', 'Pedras'],
 ]
 const TREE_KINDS = [
@@ -244,7 +268,7 @@ const grassEntryOf = (biome) =>
 function copyValues() {
   const { GRASS, FLOWERS, TREES, WIND, VEGETATION_QUALITY, RENDER } =
     GAME_CONFIG
-  const { CLEARINGS, ROCKS, BUSHES, FERNS, MUSHROOMS } = GAME_CONFIG
+  const { CLEARINGS, ROCKS, BUSHES, FERNS } = GAME_CONFIG
   const { ANCIENT_TREES, PINES, ACACIAS, DEAD_TREES, LEAFY_PLANTS } =
     GAME_CONFIG
   const { VEGETATION_PATCHES } = GAME_CONFIG
@@ -257,7 +281,6 @@ function copyValues() {
     `TREES: ${JSON.stringify(TREES, null, 2)},`,
     `WIND: ${JSON.stringify(WIND, null, 2)},`,
     `VEGETATION_QUALITY: ${JSON.stringify(VEGETATION_QUALITY, null, 2)},`,
-    `FOLIAGE_FILL: ${GAME_CONFIG.FOLIAGE_FILL},`,
     `LGPE: ${JSON.stringify(GAME_CONFIG.LGPE, null, 2)},`,
     `ENCOUNTER_GRASS: ${JSON.stringify(GAME_CONFIG.ENCOUNTER_GRASS, null, 2)},`,
     `GRASS_PUSH: ${JSON.stringify(GAME_CONFIG.GRASS_PUSH, null, 2)},`,
@@ -272,7 +295,6 @@ function copyValues() {
       BUSHES,
       FERNS,
       LEAFY_PLANTS,
-      MUSHROOMS,
     }).map(([name, value]) => `${name}: ${JSON.stringify(value, null, 2)},`),
     `RENDER.MAX_FPS: ${RENDER.MAX_FPS},`,
     `// vegetation por bioma (core/data/biomes/<id>/): ${JSON.stringify(vegetationByBiome, null, 2)}`,
@@ -285,9 +307,9 @@ function copyValues() {
  * (docs/features/049-vegetacao-e-floresta.md) — FPS e Stats, qualidade,
  * ligar e desligar cada parte ("Mostrar") e uma pasta com os números de
  * cada parte: grama (e, por bioma, cor, densidade e conjuntos), flores,
- * árvores e sub-bosque por espécie e pedras, cada uma com a densidade e
- * os modelos do Let's Go no bioma; mais o toon do Let's Go (com o mato
- * alto) e o vento. Mexe no
+ * árvores e sub-bosque por espécie e pedras, cada uma com a densidade, a
+ * tinta e os modelos do Let's Go no bioma; mais o toon do Let's Go (com o
+ * mato alto) e o vento. Mexe no
  * `GAME_CONFIG` e nos biomas ao vivo (só nesta sessão); "Copiar valores"
  * leva os números para o código. O que o core sorteia (árvores e pedras)
  * refaz o terreno ao soltar.
@@ -417,6 +439,7 @@ export function VegetationPanel() {
             .name(label)
             .onFinishChange(rebuildVegetation),
         ),
+        addTint(grassBiomeFolder, entry, 'Tinta'),
         grassBiomeFolder
           .add(grassChoice, 'clusters')
           .name('Usar conjuntos')
@@ -468,41 +491,24 @@ export function VegetationPanel() {
       },
       rebuildVegetation,
     )
-    addControls(
-      flowerFolder,
-      FLOWERS.SCALE,
-      scaleControls([0.05, 1.5, 0.01]),
-      rebuildVegetation,
-    )
     addBiomeDensities(flowerFolder, ['flower'], rebuildVegetation, manifest)
 
-    // Árvores: o que vale para todas (material da copa e do tronco) e uma
-    // subpasta por espécie; onde nascem vem do terreno (refaz ao soltar).
+    // Árvores: o tom de uma para outra e uma subpasta por espécie; onde
+    // nascem vem do terreno (refaz ao soltar).
     const treeFolder = folderOf.trees
-    treeFolder.add(TREES, 'LEAF_FILL', 0, 1, 0.01).name('Folha na sombra')
-    treeFolder.add(TREES, 'INNER_SHADE', 0, 1, 0.01).name('Miolo da copa')
-    treeFolder.add(TREES, 'TOP_LIGHT', 0, 1, 0.01).name('Alto da copa')
-    treeFolder.add(TREES, 'TRANSLUCENCY', 0, 2, 0.05).name('Sol pela folha')
-    treeFolder.add(TREES, 'TRUNK_FILL', 0, 1, 0.01).name('Tronco na sombra')
     treeFolder
       .add(TREES, 'TINT_VARIATION', 0, 0.5, 0.01)
       .name('Variação do tom')
       .onFinishChange(rebuildVegetation)
-    addTreeSpecies(treeFolder, 'Folhosa (casca vale p/ antiga)', TREES, {
-      leaf: true,
-      bark: true,
-    })
-    addTreeSpecies(treeFolder, 'Antiga', ANCIENT_TREES, { leaf: true })
-    addTreeSpecies(treeFolder, 'Pinheiro', PINES, { leaf: true, bark: true })
-    addTreeSpecies(treeFolder, 'Acácia', ACACIAS, { leaf: true, bark: true })
-    addTreeSpecies(treeFolder, 'Morta', DEAD_TREES, { bark: true })
+    addTreeSpecies(treeFolder, 'Folhosa', TREES)
+    addTreeSpecies(treeFolder, 'Antiga', ANCIENT_TREES)
+    addTreeSpecies(treeFolder, 'Pinheiro', PINES)
+    addTreeSpecies(treeFolder, 'Acácia', ACACIAS)
+    addTreeSpecies(treeFolder, 'Morta', DEAD_TREES)
     addBiomeDensities(treeFolder, TREE_KINDS, regenerate, manifest)
 
     // Sub-bosque: uma subpasta por planta (refaz ao soltar).
     const undergrowthFolder = folderOf.undergrowth
-    undergrowthFolder
-      .add(GAME_CONFIG, 'FOLIAGE_FILL', 0, 1, 0.01)
-      .name('Planta baixa na sombra')
     for (const [title, config, maxPerM2] of [
       ['Arbustos', BUSHES, 0.2],
       ['Samambaias', FERNS, 0.4],
@@ -510,13 +516,6 @@ export function VegetationPanel() {
     ]) {
       const folder = undergrowthFolder.addFolder(title)
       addControls(folder, config, perM2Controls(maxPerM2), rebuildVegetation)
-      addControls(
-        folder,
-        config.SCALE,
-        scaleControls([0.05, 2, 0.01]),
-        rebuildVegetation,
-      )
-      if (config === BUSHES) folder.addColor(BUSHES, 'LEAF_COLOR').name('Cor')
     }
     addBiomeDensities(
       undergrowthFolder,
@@ -525,8 +524,7 @@ export function VegetationPanel() {
       manifest,
     )
 
-    // Pedras: onde nascem vem do terreno (refaz ao soltar); a cor vale na
-    // hora.
+    // Pedras: onde nascem vem do terreno (refaz ao soltar).
     const rockFolder = folderOf.rocks
     addControls(rockFolder, ROCKS, SOLID_CONTROLS, regenerate)
     addControls(
@@ -535,10 +533,6 @@ export function VegetationPanel() {
       scaleControls([0.1, 3, 0.01]),
       regenerate,
     )
-    rockFolder.addColor(ROCKS, 'COLOR').name('Cor')
-    rockFolder.add(ROCKS, 'BRIGHTNESS', 0.5, 3, 0.05).name('Brilho')
-    rockFolder.add(ROCKS, 'FILL', 0, 1, 0.01).name('Na sombra')
-    rockFolder.addColor(ROCKS, 'MOSS_COLOR').name('Cor do musgo')
     addBiomeDensities(rockFolder, ['rock', 'pebble'], regenerate, manifest)
 
     // Modelos do Let's Go (docs/features/052-*.md): o material toon muda

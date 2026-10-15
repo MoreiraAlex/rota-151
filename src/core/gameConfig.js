@@ -34,7 +34,7 @@ export const GAME_CONFIG = {
   // (docs/features/047-biomas.md).
   TERRAIN: {
     // Identifica a receita do relevo; subir quando a geração mudar.
-    GENERATION_VERSION: 13,
+    GENERATION_VERSION: 14,
     // Altura (m) da superfície da água: o que fica abaixo vira lago na 060.
     // O relevo dos biomas é medido a partir dela (`relief.baseHeight`).
     WATER_LEVEL: -2,
@@ -103,9 +103,11 @@ export const GAME_CONFIG = {
     // deles). Ferramenta de teste: o painel do debug (F2) esconde biomas
     // para olhar um só. Na beta só aparecem os biomas das espécies
     // selvagens, cada um ao ser refinado (docs/roadmap.md, Marco 2): a
-    // floresta (049), a planície e a savana (050) e a montanha (051). Os
-    // outros ficam na seed, vistos só pelo F2.
+    // floresta (049), a planície e a savana (050). Os outros ficam na seed,
+    // vistos só pelo F2 — a montanha (051) inclusive, adiada para depois da
+    // beta (docs/features/054-savana-lgpe-e-saida-do-megakit.md).
     HIDDEN: [
+      'mountain',
       'ocean',
       'beach',
       'jungle',
@@ -1521,13 +1523,11 @@ export const GAME_CONFIG = {
   FLOWERS: {
     // Moitas de flores por m² onde a `density` é 1.
     CLUMPS_PER_M2: 0.5,
-    // Tamanho (multiplica o modelo) — sorteado entre os dois.
-    SCALE: [0.22, 0.38],
   },
   // Árvores (docs/features/049-vegetacao-e-floresta.md). `TREES` é a
   // folhosa comum (`broadleaf-tree`) e o que vale para todas as espécies
-  // (vento, sombra, copa, LOD); cada espécie tem o próprio bloco com a
-  // colocação e a cor (`ANCIENT_TREES`, `PINES`, `DEAD_TREES`).
+  // (tom, LOD); cada espécie tem o próprio bloco com a colocação e a cor
+  // da copa ao longe (`ANCIENT_TREES`, `PINES`, `DEAD_TREES`).
   TREES: {
     // Lado (m) da grade de candidatas: no máximo uma árvore por célula —
     // é o espaço mínimo entre duas.
@@ -1548,32 +1548,15 @@ export const GAME_CONFIG = {
     // Raio (m, no tamanho 1) em volta do tronco onde não nasce o tronco de
     // outra árvore — a copa não atravessa a da vizinha.
     CROWN_RADIUS: 1.6,
-    // Cor das folhas (a textura é branca, para tingir). As cores da
-    // vegetação, do musgo e do chão seguem a da grama (o mesmo verde
-    // amarelado), cada uma mais clara ou mais escura.
+    // Cor da copa no relevo distante (view/terrain/farTerrainGeometry.js,
+    // onde não há árvores), vezes a tinta do bioma (`tint`).
     LEAF_COLOR: '#73983e',
-    // Quanto da cor das folhas a copa tem mesmo na sombra (0 a 1) — sem
-    // isso a copa fica quase preta (o jogo não tem luz de céu de imagem).
-    LEAF_FILL: 0.28,
-    // Volume da copa (todas as espécies e os arbustos): o miolo escurece
-    // (`INNER_SHADE`, 0 a 1), o alto clareia e esquenta (`TOP_LIGHT`) e o
-    // sol atravessa a borda das folhas vista contra ele (`TRANSLUCENCY`).
-    INNER_SHADE: 0.4,
-    TOP_LIGHT: 0.18,
-    TRANSLUCENCY: 0.5,
-    // O mesmo para o tronco (a textura dele clareada na sombra).
-    TRUNK_FILL: 0.3,
-    // Multiplica a cor da casca da folhosa, da árvore antiga e dos troncos
-    // caídos (a mesma textura, cinza-amarronzada).
-    BARK_COLOR: '#eadfd2',
-    // Quanto o tom da copa varia de uma árvore para outra (0 = todas
+    // Quanto o tom varia de uma árvore (ou planta) para outra (0 = todas
     // iguais): mais clara ou mais escura, e um pouco mais amarelada.
     TINT_VARIATION: 0.18,
     // Árvore de longe (LOD): a partir desta distância (m) da câmera, a
-    // árvore perde os galhos (a casca fica só até `LOD_TRIM_MARGIN` m acima
-    // da base da copa) — de longe eles somem nas folhas.
+    // árvore para de fazer sombra.
     LOD_DISTANCE: 30,
-    LOD_TRIM_MARGIN: 0.6,
   },
   // Árvore antiga (`ancient-tree`): a grande e retorcida, poucas e
   // espalhadas — a copa alta que fecha a mata. Mesmos campos de `TREES`.
@@ -1600,24 +1583,19 @@ export const GAME_CONFIG = {
     TRUNK_HEIGHT: 4,
     CROWN_RADIUS: 1.6,
     LEAF_COLOR: '#4e6a39',
-    BARK_COLOR: '#f2dcc6',
   },
-  // Acácia (`acacia-tree`, savana): tronco fino e copa achatada em
-  // guarda-chuva (a TwistedTree deformada, scripts/pack-forest-
-  // assets.py), isolada no campo. Mesmos campos de `TREES`.
+  // Acácia (`acacia-tree`, savana): isolada no campo. Mesmos campos de
+  // `TREES`.
   ACACIAS: {
     SPACING: 22,
     CHANCE: 0.8,
-    SCALE: [0.8, 1.15],
+    SCALE: [2, 2.5],
     MAX_SLOPE: 0.4,
     SHORE_GAP: 1,
     TRUNK_RADIUS: 0.5,
     TRUNK_HEIGHT: 4,
     CROWN_RADIUS: 3.5,
-    // Verde-oliva acinzentado, mais apagado que o da mata (como a acácia
-    // da savana de verdade).
     LEAF_COLOR: '#8a9466',
-    BARK_COLOR: '#eadfd2',
   },
   // Árvore morta (`dead-tree`): só galhos, rara.
   DEAD_TREES: {
@@ -1629,10 +1607,9 @@ export const GAME_CONFIG = {
     TRUNK_RADIUS: 0.5,
     TRUNK_HEIGHT: 5,
     CROWN_RADIUS: 2,
-    BARK_COLOR: '#f2ece6',
   },
   // Manchas (`patches` no `vegetation` dos biomas): o tipo nasce em grupos
-  // — bosque de pinheiros, tapete de samambaias, roda de cogumelos — e não
+  // — bosque de pinheiros, tapete de samambaias — e não
   // salpicado por igual. Largura da borda da mancha (0 a 1 do ruído).
   VEGETATION_PATCHES: {
     EDGE: 0.12,
@@ -1668,47 +1645,23 @@ export const GAME_CONFIG = {
     HEIGHT: 1.8,
     // Quanto a pedra afunda no chão (fração da altura).
     SINK: 0.12,
-    // Cor do musgo nas pedras de bioma com `moss` (o topo delas).
-    MOSS_COLOR: '#6e883a',
-    // Cor da pedra (multiplica a textura, que é escura e esverdeada) e
-    // quanto ela clareia (`BRIGHTNESS`, acima de 1 clareia a textura) — a
-    // de cada bioma vem do `color` da entrada `rock`.
-    COLOR: '#d8d4cc',
-    BRIGHTNESS: 2.6,
-    // Quanto da cor a pedra tem mesmo na sombra (0 a 1), como a casca
-    // (`TREES.TRUNK_FILL`) — sem isso o lado sem sol fica quase preto.
-    FILL: 0.3,
   },
   // Arbustos (`bush`) — atravessáveis.
   BUSHES: {
     // Arbustos por m² onde a `density` do bioma é 1.
     PER_M2: 0.04,
-    SCALE: [0.15, 1],
-    // Cor das folhas do arbusto liso (a textura dele é branca, para tingir).
-    LEAF_COLOR: '#718f3d',
   },
-  // Samambaias (`fern`) e cogumelos (`mushroom`) — decorativos.
+  // Samambaias (`fern`) — decorativas.
   FERNS: {
     PER_M2: 0.08,
-    // Acima da grama: menor que ela, a samambaia some no meio dos tufos.
-    SCALE: [0.3, 0.45],
   },
   // Plantas de folha larga (`leafy-plant`) do chão da mata — decorativas.
   LEAFY_PLANTS: {
     PER_M2: 0.06,
-    SCALE: [0.6, 1],
   },
   // Seixos (`pebble`) — decorativos, na trilha (`place: 'trail'`).
   PEBBLES: {
     PER_M2: 0.35,
-    SCALE: [0.35, 0.8],
-  },
-  // Quanto da própria cor as plantas baixas (samambaia, flores) têm mesmo
-  // na sombra (como `TREES.LEAF_FILL`).
-  FOLIAGE_FILL: 0.3,
-  MUSHROOMS: {
-    PER_M2: 0.05,
-    SCALE: [0.6, 1.3],
   },
   // Vento da vegetação: a força vem do clima onde está quem joga (mistura
   // pela força de cada tipo, `LocalWeather`).

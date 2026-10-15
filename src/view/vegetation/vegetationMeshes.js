@@ -6,7 +6,8 @@ import {
   createKindDensity,
   kindDensities,
 } from '@/core/vegetation/vegetationDensity'
-import { buildKindMeshes, tintAt } from './instancing'
+import { createBiomeTint, createTint } from './biomeColor'
+import { buildKindMeshes } from './instancing'
 import { entryOf, groupByBiome, lgpePlantScale, modelsOf } from './biomeModels'
 import { blendGrassColors, hash01, scatterTile } from './vegetationScatter'
 
@@ -98,6 +99,8 @@ export function buildGrassMeshes(chunk, tile, models) {
   const macroNoise = patchNoiseFor(seed, 'grass-macro', GRASS.MACRO_SIZE)
   const [minScale, maxScale] = GRASS.SCALE
   const colors = new Float32Array(6)
+  // A tinta do bioma (`tint`), por cima das duas cores.
+  const recolorOf = createBiomeTint(chunk, GRASS_KIND)
   const instances = []
   for (let i = 0; i < points.count; i++) {
     const [x, y, z] = points.positions.subarray(i * 3, i * 3 + 3)
@@ -124,23 +127,25 @@ export function buildGrassMeshes(chunk, tile, models) {
       scale: new THREE.Vector3(size, size * height, size),
       variant: points.variants[i],
       tint,
+      recolor: recolorOf?.(x, z),
     })
   }
   return [...groupByBiome(chunk, instances, GRASS_KIND)].flatMap(
     ([biomeId, group]) =>
-      buildKindMeshes(modelsOf(models, GRASS_KIND, biomeId).list, group),
+      buildKindMeshes(modelsOf(models, GRASS_KIND, biomeId), group),
   )
 }
 
 /**
- * Flores de um bloco, cada uma num tamanho e num tom, nos modelos do bioma
- * onde está (`modelsOf`: os do LGPE da entrada ou as moitas do MegaKit). Na
+ * Flores de um bloco, cada uma num tamanho e num tom (com a tinta do
+ * bioma, `tint`), nos modelos do bioma onde está (`modelsOf`). Na
  * floresta, só nas clareiras (`place: 'clearing'`).
  *
  * @returns {THREE.InstancedMesh[]}
  */
 export function buildFlowerMeshes(chunk, tile, models) {
   const { FLOWERS, VEGETATION_QUALITY, TREES } = GAME_CONFIG
+  const tintOf = createTint(chunk, FLOWER_KIND, TREES.TINT_VARIATION)
   const quality = VEGETATION_QUALITY[VEGETATION_QUALITY.CURRENT]
   const { points } = scatterKind(
     chunk,
@@ -149,7 +154,6 @@ export function buildFlowerMeshes(chunk, tile, models) {
     FLOWERS.CLUMPS_PER_M2 * quality.density,
     FLOWER_SALT,
   )
-  const [minScale, maxScale] = FLOWERS.SCALE
   const instances = Array.from({ length: points.count }, (_, i) => {
     const [x, y, z] = points.positions.subarray(i * 3, i * 3 + 3)
     return {
@@ -159,20 +163,17 @@ export function buildFlowerMeshes(chunk, tile, models) {
       yaw: points.yaws[i],
       size: points.sizes[i],
       variant: points.variants[i],
-      tint: tintAt(x, z, TREES.TINT_VARIATION),
+      ...tintOf(x, z),
     }
   })
   return [...groupByBiome(chunk, instances, FLOWER_KIND)].flatMap(
     ([biomeId, group]) => {
-      const { list, isLgpe } = modelsOf(models, FLOWER_KIND, biomeId)
       const entry = entryOf(biomeId, FLOWER_KIND)
       const sized = group.map((item) => ({
         ...item,
-        scale: isLgpe
-          ? lgpePlantScale(item.size, entry)
-          : minScale + (maxScale - minScale) * item.size,
+        scale: lgpePlantScale(item.size, entry),
       }))
-      return buildKindMeshes(list, sized)
+      return buildKindMeshes(modelsOf(models, FLOWER_KIND, biomeId), sized)
     },
   )
 }
@@ -198,6 +199,11 @@ export function buildEncounterGrassMeshes(chunk, tile, models) {
     ENCOUNTER_SALT,
   )
   const [minScale, maxScale] = ENCOUNTER_GRASS.SCALE
+  const tintOf = createTint(
+    chunk,
+    ENCOUNTER_KIND,
+    GAME_CONFIG.TREES.TINT_VARIATION / 2,
+  )
   const instances = []
   for (let i = 0; i < points.count; i++) {
     const [x, y, z] = points.positions.subarray(i * 3, i * 3 + 3)
@@ -209,7 +215,7 @@ export function buildEncounterGrassMeshes(chunk, tile, models) {
       yaw: points.yaws[i],
       scale: minScale + (maxScale - minScale) * points.sizes[i],
       variant: points.variants[i],
-      tint: tintAt(x, z, GAME_CONFIG.TREES.TINT_VARIATION / 2),
+      ...tintOf(x, z),
     })
   }
   return [...groupByBiome(chunk, instances, ENCOUNTER_KIND)].flatMap(
@@ -222,10 +228,7 @@ export function buildEncounterGrassMeshes(chunk, tile, models) {
           hash01(Math.floor(item.x * 7), Math.floor(item.z * 7), 703) <
           entry.density,
       )
-      return buildKindMeshes(
-        modelsOf(models, ENCOUNTER_KIND, biomeId).list,
-        kept,
-      )
+      return buildKindMeshes(modelsOf(models, ENCOUNTER_KIND, biomeId), kept)
     },
   )
 }

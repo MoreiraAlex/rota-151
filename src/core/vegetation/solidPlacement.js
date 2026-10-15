@@ -3,6 +3,7 @@ import { createRng, deriveSeed } from '../rng'
 import { chunkHeightAt } from '../terrain/terrainChunk'
 import { dominantBiomeAt, largestReachOf, lgpeColliderOf } from './solidModels'
 import { createKindDensity, densityAt, slopeAt } from './vegetationDensity'
+import { vegetationEntryOf } from './vegetationEntry'
 
 /**
  * Os objetos SÓLIDOS da vegetação (docs/features/049-vegetacao-e-
@@ -167,8 +168,7 @@ const crowdsCrowns = (trunk, crown, crowns) =>
 export function createScaleField(chunk, kind, biomeList) {
   const factors = Float32Array.from(chunk.biomeIds, (id) => {
     const biome = biomeList.find((candidate) => candidate.id === id)
-    const entry = biome?.vegetation.find((item) => item.kind === kind)
-    return entry?.scale ?? 1
+    return vegetationEntryOf(biome, kind)?.scale ?? 1
   })
   if (factors.every((factor) => factor === 1)) return { max: 1, at: () => 1 }
   return {

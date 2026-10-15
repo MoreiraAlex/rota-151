@@ -8,7 +8,7 @@ import { resolveRenderPosition } from '@/view/registry/renderInterpolation'
 /**
  * Vegetação abrindo para quem passa (docs/features/053-planicie-com-
  * assets-do-lgpe.md): as plantas — grama, tufos, flores, arbustos e
- * plantas largas, do Let's Go e do MegaKit; árvores não — dobram para
+ * plantas largas do Let's Go; árvores não — dobram para
  * longe do treinador e das criaturas (`CharacterController`) — os `MAX_PUSHERS`
  * mais perto da câmera.
  *
@@ -25,8 +25,7 @@ import { resolveRenderPosition } from '@/view/registry/renderInterpolation'
  *
  * O mapa anda com a câmera presa à grade dos texels (sem tremer) e cada
  * quadro lê o anterior pela posição no mundo. A grama lê o mapa na origem
- * de cada planta (`GRASS_PUSH_SHADER`, em toonMaterial.js e
- * propMaterials.js).
+ * de cada planta (`GRASS_PUSH_SHADER`, em toonMaterial.js).
  *
  * Só apresentação: lê o ECS (posição desenhada) e escreve uniforms
  * (`grassPushUniforms`, os mesmos objetos em todos os materiais com o
@@ -34,8 +33,8 @@ import { resolveRenderPosition } from '@/view/registry/renderInterpolation'
  */
 
 /**
- * O empurrão no shader das plantas (o toon do LGPE e as plantas do
- * MegaKit), depois do `WIND_SHADER` (usa `vegToLocalFrame` e o tempo do
+ * O empurrão no shader das plantas (o toon do LGPE), depois do
+ * `WIND_SHADER` (usa `vegToLocalFrame` e o tempo do
  * vento): `vegPush(y, altura, origem, giro, semente, dobra)` lê o mapa na
  * origem da planta e devolve o deslocamento (espaço local da instância)
  * na mesma dobra em arco do vento, com o tremor enquanto ela se mexe.

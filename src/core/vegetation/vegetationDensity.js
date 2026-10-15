@@ -5,6 +5,7 @@ import { trailAt } from '../terrain/trails'
 import { clearingNoiseAt, opennessOf } from './clearings'
 import { createGrassClusterField } from './grassClusters'
 import { patchAt } from './patches'
+import { vegetationEntryOf } from './vegetationEntry'
 
 /**
  * Quanto de um tipo de vegetação nasce em cada ponto de um chunk
@@ -25,8 +26,7 @@ import { patchAt } from './patches'
 export function kindDensities(biomeList, biomeIds, kind) {
   return Float32Array.from(biomeIds, (id) => {
     const biome = biomeList.find((candidate) => candidate.id === id)
-    const entry = biome?.vegetation.find((item) => item.kind === kind)
-    return entry?.density ?? 0
+    return vegetationEntryOf(biome, kind)?.density ?? 0
   })
 }
 
@@ -121,7 +121,7 @@ export function createKindDensity(
   const isEmpty = densities.every((density) => density === 0)
   const shaping = chunk.biomeIds.map((id) => {
     const biome = biomeList.find((candidate) => candidate.id === id)
-    const entry = biome?.vegetation.find((item) => item.kind === kind)
+    const entry = vegetationEntryOf(biome, kind)
     const amount = biome?.clearings?.amount ?? 0
     const factor =
       amount > 0 && PLACE_FACTOR[entry?.place]
@@ -148,10 +148,8 @@ export function createKindDensity(
   })
   // O que é de trilha (`place: 'trail'`, os seixos) só nasce nela; o
   // resto, fora dela.
-  const isTrailKind = biomeList.some((biome) =>
-    biome.vegetation.some(
-      (item) => item.kind === kind && item.place === 'trail',
-    ),
+  const isTrailKind = biomeList.some(
+    (biome) => vegetationEntryOf(biome, kind)?.place === 'trail',
   )
   const offTrail = isTrailKind
     ? (x, z) => trailAt(chunk, x, z)

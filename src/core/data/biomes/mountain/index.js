@@ -1,6 +1,7 @@
 /**
  * Montanha (docs/features/047-biomas.md) — Morros altos e íngremes de rocha,
- * com neve no alto. É onde ficarão as bocas das cavernas (061).
+ * com neve no alto. Adiada para depois da beta (escondida, `BIOMES.HIDDEN`),
+ * junto das cavernas (docs/roadmap.md).
  * Campos: ver `../_template/`.
  */
 export const MOUNTAIN = {
@@ -46,7 +47,9 @@ export const MOUNTAIN = {
     detail: 0.45,
   },
   // Bosques de pinheiro no pé, até a linha das árvores (`maxHeight`);
-  // acima, rocha com pedregulhos; no pico, só neve.
+  // acima, rocha com pedregulhos; no pico, só neve. Sem `models` (ainda não
+  // refinada, escondida): só a grama nasce, pelo F2
+  // (docs/features/054-savana-lgpe-e-saida-do-megakit.md).
   vegetation: [
     {
       kind: 'pine-tree',
@@ -55,12 +58,10 @@ export const MOUNTAIN = {
       maxHeight: 42,
     },
     { kind: 'dead-tree', density: 0.1, maxHeight: 45 },
-    // Pedregulhos (`scale`) de granito cinza, sem musgo, até pouco acima
-    // da neve.
+    // Pedregulhos (`scale`), até pouco acima da neve.
     {
       kind: 'rock',
       density: 0.6,
-      color: '#dcc4cc',
       scale: 1.8,
       maxHeight: 66,
     },
@@ -68,7 +69,6 @@ export const MOUNTAIN = {
       kind: 'bush',
       density: 0.25,
       patches: { amount: 0.3, size: 10 },
-      color: '#6f8f3e',
       maxHeight: 34,
     },
     {

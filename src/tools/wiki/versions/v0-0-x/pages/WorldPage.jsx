@@ -46,8 +46,7 @@ export function WorldPage({ data, version }) {
       <Section id="biomas" title="Biomas">
         <p>
           O mundo é dividido em <strong>biomas</strong>, cada um com o próprio
-          chão, cores, plantas e formato de terreno. Por enquanto existem
-          quatro:
+          chão, cores, plantas e formato de terreno. Por enquanto existem três:
         </p>
         <ul>
           <li>
@@ -59,9 +58,6 @@ export function WorldPage({ data, version }) {
           </li>
           <li>
             <strong>Savana</strong>: campo seco e quente, com ondulações largas.
-          </li>
-          <li>
-            <strong>Montanha</strong>: serras altas e frias, com picos nevados.
           </li>
         </ul>
         <p>
@@ -153,48 +149,29 @@ export function WorldPage({ data, version }) {
       </Section>
 
       <Section id="savana" title="A savana">
-        <p>Um campo seco, de capim alto e amarelado.</p>
+        <p>
+          Um campo seco, como as rotas de terra de Kanto: chão de terra batida
+          com manchas de grama, e as plantas em tons de amarelo e palha.
+        </p>
         <ul>
           <li>
-            <strong>Acácias</strong>: árvores de tronco fino e copa larga e
-            achatada, como um guarda-chuva, espalhadas pelo campo.
+            <strong>Capim alto</strong> amarelado nas manchas de grama, com o
+            mato alto no meio.
           </li>
-          <li>De vez em quando, uma árvore morta.</li>
-          <li>Arbustos secos e pedras grandes, cor de areia.</li>
+          <li>Árvores redondas espalhadas pelo campo, arbustos e tufos.</li>
+          <li>Pedras na terra.</li>
           <li>
             <strong>Trilhas</strong> de terra batida, com pedrinhas no caminho.
+          </li>
+          <li>
+            <strong>Lagoas</strong> pequenas nos pontos mais baixos, com a
+            margem de areia.
           </li>
         </ul>
         <p>
           Como na floresta, árvores e pedras bloqueiam a passagem e as criaturas
           desviam delas; arbustos e mato dá pra atravessar. O vento balança o
           capim e as copas do mesmo jeito.
-        </p>
-      </Section>
-
-      <Section id="montanha" title="A montanha">
-        <p>
-          Serras altas, com cristas e picos pontudos. Quanto mais alto, mais
-          frio e mais vazio:
-        </p>
-        <ul>
-          <li>
-            <strong>No pé</strong>: grama verde, bosques de pinheiros, arbustos
-            e algumas flores. Às vezes, um lago entre os morros.
-          </li>
-          <li>
-            <strong>No meio</strong>: o chão vira rocha, os pinheiros vão
-            rareando até sumir e aparecem pedregulhos grandes e cinzentos.
-          </li>
-          <li>
-            <strong>No pico</strong>: neve, sem planta nenhuma.
-          </li>
-          <li>De vez em quando, uma árvore morta.</li>
-        </ul>
-        <p>
-          Dá pra subir a montanha a pé, menos os <strong>paredões</strong> das
-          cristas, íngremes demais. A montanha não tem trilhas. Como nos outros
-          biomas, árvores e pedras bloqueiam a passagem.
         </p>
       </Section>
 
@@ -315,9 +292,10 @@ export function WorldPage({ data, version }) {
 
       <Notice tone="soon">
         <p>
-          Ainda vão chegar ao mundo: água de verdade em lagos e rios, cavernas,
-          itens pelo chão e o Pokécenter. Os Pokémon de cada bioma, horário e
-          clima também chegam depois.
+          Ainda vão chegar ao mundo: água de verdade em lagos e rios, itens pelo
+          chão e o Pokécenter. Os Pokémon de cada bioma, horário e clima também
+          chegam depois. A montanha e as cavernas ficam para depois desta
+          versão.
         </p>
       </Notice>
     </>

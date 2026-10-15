@@ -58,11 +58,11 @@ export function setShadowsEnabled(mesh, isEnabled) {
 /**
  * Geometria nova que aponta para os MESMOS buffers de `base` (índice,
  * posição, normal, UV): só o que for posto nela depois (os atributos por
- * instância) é dela. `index`: outro índice (a árvore de longe).
+ * instância) é dela.
  */
-export function shareGeometry(base, index = base.index) {
+export function shareGeometry(base) {
   const geometry = new THREE.BufferGeometry()
-  geometry.setIndex(index)
+  geometry.setIndex(base.index)
   for (const [name, attribute] of Object.entries(base.attributes)) {
     geometry.setAttribute(name, attribute)
   }
@@ -108,33 +108,12 @@ export function tintAt(x, z, variation, out = new THREE.Color()) {
 }
 
 const WHITE = new THREE.Color(1, 1, 1)
-// Partes que recebem o tom de cada objeto (a casca, não). `toon` e
-// `toon-low`: os modelos do LGPE (lgpeModels.js), com e sem sombra.
-const TINTED_PARTS = new Set([
-  'canopy',
-  'foliage',
-  'solid',
-  'rock',
-  'pebble',
-  'toon',
-  'toon-low',
-])
-// Partes que balançam (precisam da origem e do giro de cada instância).
-// Nos modelos do LGPE (`toon`) quem decide é o material (a pedra não).
-const SWAYING_PARTS = new Set(['canopy', 'foliage', 'toon', 'toon-low'])
-// Sombra fixa por parte; a copa segue a qualidade (`castShadow`). Planta
-// baixa, cogumelo e seixo não fazem (pequenos, e a sombra desenha tudo de
-// novo).
+// Sombra por parte (os modelos do LGPE, lgpeModels.js): `toon` segue a
+// qualidade (`castShadow`); `toon-low` (planta baixa e flor) nunca faz —
+// pequenas, e a sombra desenha tudo de novo.
 const SHADOW_BY_PART = {
-  foliage: false,
-  bark: true,
-  rock: true,
-  pebble: false,
-  solid: false,
   'toon-low': false,
 }
-// Partes com o material da pedra (musgo por instância, `aMoss`).
-const ROCK_PARTS = new Set(['rock', 'pebble'])
 
 /**
  * @typedef {object} ModelInstance
@@ -144,25 +123,24 @@ const ROCK_PARTS = new Set(['rock', 'pebble'])
  * @property {number} yaw
  * @property {number} scale
  * @property {number} variant - 0 a 1: qual dos modelos do tipo
- * @property {THREE.Color} [tint] - tom (folhas, plantas, pedras)
- * @property {number} [moss] - musgo (pedras), 0 a 1
+ * @property {THREE.Color} [tint] - tom (cor por instância)
+ * @property {number[]} [recolor] - tinta do bioma, `[r, g, b, força]`
+ *   (biomeColor.js)
  */
 
 /**
  * As malhas de um modelo (`useVegetationModels`) para uma lista de
  * instâncias: uma `InstancedMesh` por parte, com a geometria do modelo
- * (`shareGeometry`) e os atributos que o material da parte pede — origem e giro
- * (`aWind`, vento), centro da copa (`aCenter`, normal esférica), musgo
- * (`aMoss`) e o tom (cor por instância). `castShadow`: se a copa faz
- * sombra (a qualidade); planta baixa nunca faz, casca e pedra sempre.
+ * (`shareGeometry`), a origem e o giro de cada uma (`aWind`, o vento e o
+ * empurrão — quem decide se usa é o material), o tom (cor por instância)
+ * e a tinta do bioma (`aRecolor`). `castShadow`: se a parte faz sombra (a qualidade); planta
+ * baixa nunca faz.
  *
  * @param {import('./useVegetationModels').VegetationModel} model
  * @param {ModelInstance[]} instances
  * @returns {THREE.InstancedMesh[]}
  */
 export function buildModelMeshes(model, instances, { castShadow = true } = {}) {
-  const matrix = new THREE.Matrix4()
-  const point = new THREE.Vector3()
   return model.parts.map((part) => {
     const geometry = shareGeometry(part.geometry)
     const mesh = new THREE.InstancedMesh(
@@ -171,43 +149,21 @@ export function buildModelMeshes(model, instances, { castShadow = true } = {}) {
       instances.length,
     )
     const wind = new Float32Array(instances.length * 4)
-    const centers = new Float32Array(instances.length * 3)
-    const moss = new Float32Array(instances.length)
+    const recolor = new Float32Array(instances.length * 4)
     instances.forEach((item, index) => {
+      if (item.recolor) recolor.set(item.recolor, index * 4)
       setInstance(mesh, index, item.x, item.y, item.z, item.yaw, item.scale)
-      if (TINTED_PARTS.has(part.kind)) {
-        mesh.setColorAt(index, item.tint ?? WHITE)
-      }
+      mesh.setColorAt(index, item.tint ?? WHITE)
       wind.set(
         [item.x, item.z, Math.cos(item.yaw), Math.sin(item.yaw)],
         index * 4,
       )
-      if (part.center) {
-        mesh.getMatrixAt(index, matrix)
-        point.copy(part.center).applyMatrix4(matrix)
-        centers.set([point.x, point.y, point.z], index * 3)
-      }
-      moss[index] = item.moss ?? 0
     })
-    if (SWAYING_PARTS.has(part.kind)) {
-      geometry.setAttribute(
-        'aWind',
-        new THREE.InstancedBufferAttribute(wind, 4),
-      )
-    }
-    if (part.kind === 'canopy') {
-      geometry.setAttribute(
-        'aCenter',
-        new THREE.InstancedBufferAttribute(centers, 3),
-      )
-      mesh.customDepthMaterial = part.depth
-    }
-    if (ROCK_PARTS.has(part.kind)) {
-      geometry.setAttribute(
-        'aMoss',
-        new THREE.InstancedBufferAttribute(moss, 1),
-      )
-    }
+    geometry.setAttribute('aWind', new THREE.InstancedBufferAttribute(wind, 4))
+    geometry.setAttribute(
+      'aRecolor',
+      new THREE.InstancedBufferAttribute(recolor, 4),
+    )
     allowShadow(mesh, SHADOW_BY_PART[part.kind] ?? castShadow)
     mesh.receiveShadow = true
     return finishMesh(mesh)
@@ -270,7 +226,7 @@ function compactInstances(mesh, snapshot, indices) {
 
 /**
  * Como `buildKindMeshes`, com LOD por instância: cada modelo tem as malhas
- * de perto e as de longe (`model.far`, ex.: a árvore sem os galhos), e
+ * de perto e as de longe (`model.far`, ex.: nenhuma no sub-bosque), e
  * `setNear(isNear)` divide as instâncias entre elas — sem remontar nada,
  * só regravando os dados por instância e o `count` de cada malha. Começa
  * tudo de longe. As de longe não fazem sombra.

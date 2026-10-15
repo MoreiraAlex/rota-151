@@ -1,5 +1,5 @@
 {
-  "source": "Pokémon Let's Go Pikachu/Eevee — forest001_00, road001_00, road003_00, road022_00 e buildmodel",
+  "source": "Pokémon Let's Go Pikachu/Eevee — forest001_00, road001_00, road003_00, road022_00, road004_1_00, road009_00 e buildmodel",
   "props": {
     "round-tree": {
       "label": "Árvore redonda (Rota 1)",
@@ -792,7 +792,7 @@
       "copiesInMap": 22
     },
     "round-tree-e": {
-      "label": "Árvore redonda (Rota 3)",
+      "label": "Pinheiro (Rota 3)",
       "category": "tree",
       "file": "props/round-tree-e.glb",
       "size": [
@@ -992,69 +992,6 @@
       },
       "copiesInMap": 26
     },
-    "grass-mound": {
-      "label": "Monte de grama (Rota 1)",
-      "category": "plant",
-      "file": "props/grass-mound.glb",
-      "size": [
-        3.502,
-        0.947,
-        3.57
-      ],
-      "materials": {
-        "grass01_com": {
-          "shader": "FieldGrassShader02",
-          "maps": {
-            "green_hikari": "grassdecoration01_com",
-            "TextureMap02": "grass02_com",
-            "green_blend": "greenblend01_com",
-            "Hilight": "grassdecoration02_com",
-            "TextureMap01": "grass01_com"
-          },
-          "cutoff": 0.8500000238418579,
-          "doubleSided": true,
-          "shadowColor": [
-            0.23499999940395355,
-            0.3610000014305115,
-            0.39100000262260437
-          ],
-          "rimColor": null,
-          "rim": null,
-          "lightColor": null,
-          "greenColor": null
-        },
-        "grass01_com_002": {
-          "shader": "FieldGrassShader01",
-          "maps": {
-            "green_hikari": "grassdecoration01_com",
-            "TextureMap02": "grass02_com",
-            "green_blend": "greenblend01_com",
-            "Hilight": "grassdecoration02_com",
-            "TextureMap01": "grass01_com"
-          },
-          "cutoff": 0.8500000238418579,
-          "doubleSided": true,
-          "shadowColor": [
-            0.23499999940395355,
-            0.3610000014305115,
-            0.39100000262260437
-          ],
-          "rimColor": [
-            0,
-            0.25,
-            0.2047000527381897
-          ],
-          "rim": [
-            0.4333333373069763,
-            1,
-            1
-          ],
-          "lightColor": null,
-          "greenColor": null
-        }
-      },
-      "copiesInMap": 6
-    },
     "rock-grass": {
       "label": "Pedrinha na grama (Rota 1)",
       "category": "rock",
@@ -1180,6 +1117,132 @@
         }
       },
       "copiesInMap": 6
+    },
+    "rock-dirt": {
+      "label": "Pedra na terra (Rota 9)",
+      "category": "rock",
+      "file": "props/rock-dirt.glb",
+      "size": [
+        0.316,
+        0.085,
+        0.299
+      ],
+      "materials": {
+        "rock01_com_soil09_com": {
+          "shader": "FieldRockShader",
+          "maps": {
+            "Rock_tex": "rock01_com",
+            "GroundTex01": "soil09_com",
+            "BlendTex": "soil_blend_test",
+            "BorderTex": "glassmask01_com",
+            "GroundTex02": "soil10_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23454800248146057,
+            0.3613100051879883,
+            0.3915709853172302
+          ],
+          "rimColor": [
+            0.5759999752044678,
+            0.4219279885292053,
+            0.14284799993038177
+          ],
+          "rim": [
+            0.6296300292015076,
+            1,
+            0.7160490155220032
+          ],
+          "lightColor": null,
+          "greenColor": null
+        }
+      },
+      "copiesInMap": 4
+    },
+    "rock-dirt-b": {
+      "label": "Pedra na terra escura (Rota 4)",
+      "category": "rock",
+      "file": "props/rock-dirt-b.glb",
+      "size": [
+        0.504,
+        0.134,
+        0.467
+      ],
+      "materials": {
+        "rock01_com_soil08_com": {
+          "shader": "FieldRockShader",
+          "maps": {
+            "Rock_tex": "rock01_com",
+            "GroundTex01": "soil09_com",
+            "BlendTex": "soil_blend_test",
+            "BorderTex": "glassmask01_com",
+            "GroundTex02": "soil10_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23454786837100983,
+            0.36131009459495544,
+            0.39157116413116455
+          ],
+          "rimColor": [
+            0.5759999752044678,
+            0.4219279885292053,
+            0.14284799993038177
+          ],
+          "rim": [
+            0.6296300292015076,
+            1,
+            0.7160490155220032
+          ],
+          "lightColor": null,
+          "greenColor": null
+        }
+      },
+      "copiesInMap": 4
+    },
+    "rock-dirt-c": {
+      "label": "Pedra média na terra (Rota 4)",
+      "category": "rock",
+      "file": "props/rock-dirt-c.glb",
+      "size": [
+        1.037,
+        0.368,
+        0.957
+      ],
+      "materials": {
+        "rock01_com_soil01_com": {
+          "shader": "FieldRockShader",
+          "maps": {
+            "Rock_tex": "rock01_com",
+            "GroundTex01": "soil08_com",
+            "BlendTex": "greenblend01_com",
+            "BorderTex": "glassmask01_com",
+            "GroundTex02": "soil01_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23454786837100983,
+            0.36131009459495544,
+            0.39157116413116455
+          ],
+          "rimColor": [
+            0.5759999752044678,
+            0.4219279885292053,
+            0.14284799993038177
+          ],
+          "rim": [
+            0.6296300292015076,
+            1,
+            0.7160490155220032
+          ],
+          "lightColor": null,
+          "greenColor": null
+        }
+      },
+      "copiesInMap": 2
     },
     "tall-grass": {
       "label": "Mato alto",
@@ -2083,43 +2146,6 @@
           "greenColor": null
         }
       }
-    },
-    "strength-rock": {
-      "label": "Pedra de Força",
-      "category": "rock",
-      "file": "props/strength-rock.glb",
-      "size": [
-        1,
-        1.98,
-        0.99
-      ],
-      "materials": {
-        "kairiki_rock03": {
-          "shader": "FieldObjectShader",
-          "maps": {
-            "Texture01": "kairiki_rock03"
-          },
-          "cutoff": null,
-          "doubleSided": false,
-          "shadowColor": [
-            0.583686888217926,
-            0.583686888217926,
-            0.583686888217926
-          ],
-          "rimColor": [
-            0.9071428775787354,
-            0.9071428775787354,
-            0.9071428775787354
-          ],
-          "rim": [
-            0.6049379706382751,
-            1,
-            0.30000001192092896
-          ],
-          "lightColor": null,
-          "greenColor": null
-        }
-      }
     }
   },
   "ground": [
@@ -2146,7 +2172,8 @@
     "soil10_com",
     "sand01_com",
     "sand02_com",
-    "cliff01_area02"
+    "cliff01_area02",
+    "cliff02_com"
   ],
   "toonTables": [
     "shadowtable01_t",
@@ -2376,6 +2403,18 @@
       "height": 256,
       "alpha": false
     },
+    "soil08_com": {
+      "file": "textures/soil08_com.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "soil01_com": {
+      "file": "textures/soil01_com.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
     "encgrass01": {
       "file": "textures/encgrass01.png",
       "width": 256,
@@ -2544,24 +2583,6 @@
       "height": 256,
       "alpha": true
     },
-    "kairiki_rock03": {
-      "file": "textures/kairiki_rock03.png",
-      "width": 512,
-      "height": 512,
-      "alpha": false
-    },
-    "soil01_com": {
-      "file": "textures/soil01_com.png",
-      "width": 256,
-      "height": 256,
-      "alpha": false
-    },
-    "soil08_com": {
-      "file": "textures/soil08_com.png",
-      "width": 256,
-      "height": 256,
-      "alpha": false
-    },
     "soil12_com": {
       "file": "textures/soil12_com.png",
       "width": 256,
@@ -2642,6 +2663,12 @@
     },
     "cliff01_area02": {
       "file": "textures/cliff01_area02.png",
+      "width": 512,
+      "height": 128,
+      "alpha": false
+    },
+    "cliff02_com": {
+      "file": "textures/cliff02_com.png",
       "width": 512,
       "height": 128,
       "alpha": false

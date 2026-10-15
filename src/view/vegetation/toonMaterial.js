@@ -16,9 +16,13 @@ import { WIND_SHADER, vegetationUniforms } from './windShader'
  * - **luz de borda** na cor do material (`RimColor` do jogo), apagando com
  *   o sol (`uSunGlow`);
  * - a **cor por vértice** do modelo (sombreado pintado), com força ajustável;
+ * - a **tinta do bioma** (`aRecolor` por instância, view/vegetation/
+ *   biomeColor.js): no fim, puxa o tom para uma cor mantendo o claro e
+ *   escuro (o verde do LGPE vira o amarelado da savana — a sombra e a
+ *   borda junto);
  * - o **vento** da vegetação (`windShader.js`, o mesmo de todo o resto):
- *   as plantas dobram como as do MegaKit (`vegGrassSway`) e as árvores
- *   balançam como as copas (`vegCanopySway`, com o pé parado) — sem
+ *   as plantas dobram em arco (`vegGrassSway`) e as árvores balançam
+ *   como copas (`vegCanopySway`, com o pé parado) — sem
  *   número próprio, só o vento (`sway` no `createToonMaterial`);
  * - as **plantas abrindo** para quem passa (`push`, grassPush.js): mato,
  *   tufos, flores, arbustos e plantas largas dobram para longe do
@@ -83,9 +87,15 @@ varying vec2 vRampUv;
 #if defined(LGPE_PUSH) && defined(USE_INSTANCING)
 ${GRASS_PUSH_SHADER}
 #endif
+#ifdef USE_INSTANCING
+// Por instância: a cor da tinta (rgb) e quanto puxa para ela (a).
+attribute vec4 aRecolor;
+#endif
+varying vec4 vRecolor;
 `
 
 const FRAGMENT_HEADER = /* glsl */ `
+varying vec4 vRecolor;
 uniform float uRimStrength;
 uniform float uSunGlow;
 uniform vec3 uRimColor;
@@ -126,10 +136,15 @@ vColor.rgb *= mix(vec3(1.0), color.rgb, uVertexColor);
 #ifdef USE_INSTANCING_COLOR
 vColor.rgb *= instanceColor.rgb;
 #endif
+#ifdef USE_INSTANCING
+vRecolor = aRecolor;
+#else
+vRecolor = vec4(0.0);
+#endif
 `
 
-// Planta: a mesma dobra das plantas do MegaKit (propMaterials.js). Árvore:
-// o balanço das copas, crescendo do pé (parado) ao topo.
+// Planta: a dobra em arco do vento. Árvore: o balanço das copas,
+// crescendo do pé (parado) ao topo.
 const SWAY = /* glsl */ `
 #include <begin_vertex>
 #ifdef LGPE_SWAY_PLANT
@@ -169,9 +184,19 @@ diffuseColor.rgb = rampColor * shadeColor + sampledDiffuseColor.rgb;
 #endif
 `
 
+// Luz de borda e, por último, a tinta: o tom vira o da cor (normalizada
+// pelo brilho dela), com o brilho de cada ponto já iluminado — o desenho,
+// a sombra e a borda ficam, a cor muda (sem sobrar o verde da borda e da
+// sombra do jogo original).
 const RIM = /* glsl */ `
 float rimFactor = 1.0 - clamp(dot(normal, normalize(vViewPosition)), 0.0, 1.0);
 outgoingLight += uRimColor * uRimStrength * uSunGlow * smoothstep(uRimMin, uRimMax, rimFactor);
+if (vRecolor.a > 0.0) {
+  const vec3 LUMA = vec3(0.2126, 0.7152, 0.0722);
+  vec3 hue = vRecolor.rgb / max(dot(vRecolor.rgb, LUMA), 1e-3);
+  vec3 recolored = hue * dot(outgoingLight, LUMA);
+  outgoingLight = mix(outgoingLight, recolored, vRecolor.a);
+}
 #include <opaque_fragment>
 `
 

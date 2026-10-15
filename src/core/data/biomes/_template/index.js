@@ -103,13 +103,12 @@ export const BIOME_TEMPLATE = {
   // trails: true,
   // O que nasce aqui (docs/features/049-vegetacao-e-floresta.md). `kind` é
   // o tipo do objeto; `density` (0 ou mais; acima de 1 a chance satura) é
-  // relativa entre os biomas. Já
+  // relativa entre os biomas. Só nasce o tipo com `models` (abaixo). Já
   // aparecem no mundo: `tall-grass` (grama), `flower`, `bush`, `fern`,
-  // `leafy-plant`, `mushroom`, `pebble` e `encounter-grass` (o mato alto do
-  // Let's Go, no miolo dos conjuntos de grama) (atravessáveis);
-  // `broadleaf-tree`, `ancient-tree`, `pine-tree`, `acacia-tree`,
-  // `dead-tree` e `rock` (com colisão). Os outros tipos só
-  // estão declarados.
+  // `leafy-plant`, `pebble` e `encounter-grass` (o mato alto do Let's Go,
+  // no miolo dos conjuntos de grama) (atravessáveis); `broadleaf-tree`,
+  // `ancient-tree`, `pine-tree`, `acacia-tree`, `dead-tree` e `rock` (com
+  // colisão). Os outros tipos só estão declarados.
   // - `place` (opcional, com `clearings`): 'shade' = rareia nas clareiras;
   //   'clearing' = nas clareiras (com `shade`, 0 a 1, a fração que ainda
   //   fica na mata). Sem ele, em qualquer lugar. 'trail' (com `trails`) =
@@ -117,20 +116,20 @@ export const BIOME_TEMPLATE = {
   // - `patches` (opcional): `{ amount, size }` — o tipo só nasce em
   //   manchas, mais ou menos `amount` (0 a 1) do chão, de `size` m de
   //   largura (bosque, tapete, roda). Sem ele, espalhado por igual.
-  // - `moss` (opcional, `rock`): quanto do topo da pedra é musgo (0 a 1).
-  // - `color` (opcional, árvores, `bush`, `rock` e `pebble`): cor do tipo
-  //   neste bioma (a folha; na pedra e no seixo, a pedra), no lugar da cor
-  //   do config — o
-  //   arbusto seco e o arenito da savana (view/vegetation/biomeColor.js).
+  // - `tint` (opcional): `{ color, amount }` — o tom dos modelos do tipo
+  //   neste bioma puxa para `color` (`amount`, 0 a 1), com o claro e
+  //   escuro da textura — o verde virando o amarelado da savana
+  //   (view/vegetation/biomeColor.js). Na grama, por cima das `colors`.
   // - `scale` (opcional, objetos com colisão: árvores e `rock`):
   //   multiplica o tamanho do tipo neste bioma — colisão e
   //   desvio acompanham (as pedras maiores da savana).
-  // - `models` (opcional): ids dos modelos do Pokémon Let's Go do tipo
-  //   neste bioma (os do `manifest.json` de public/assets/vegetation/lgpe/,
+  // - `models`: ids dos modelos do Pokémon Let's Go do tipo neste bioma
+  //   (os do `manifest.json` de public/assets/vegetation/lgpe/,
   //   docs/features/052-assets-do-lgpe-e-floresta.md); cada objeto sorteia
-  //   um. Sem ele, os modelos de sempre do tipo (MegaKit). Nas plantas
-  //   baixas e flores, o tamanho passa a ser `LGPE.PLANT_SCALE` vezes o
-  //   `scale` da entrada (os modelos já vêm em metros).
+  //   um. Sem ele o tipo não nasce (os biomas ainda não refinados,
+  //   docs/features/054-savana-lgpe-e-saida-do-megakit.md). Nas plantas
+  //   baixas e flores, o tamanho é `LGPE.PLANT_SCALE` vezes o `scale` da
+  //   entrada (os modelos já vêm em metros).
   // - `maxHeight` (opcional): altura (m acima da água) em que o tipo some —
   //   ele rareia na faixa `GAME_CONFIG.VEGETATION_ALTITUDE.FADE` abaixo
   //   dela (a linha das árvores da montanha).

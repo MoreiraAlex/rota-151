@@ -16,11 +16,12 @@ import { clusterObjects, piecesOf, sizeSignature } from './splitObjects.js'
  * - **props** tirados dos mapas da Floresta de Viridian (`forest001_00`),
  *   da Rota 1 (`road001_00`, as árvores redondas) e das rotas de campo da
  *   planície (Rotas 3 e 22 — docs/features/053-planicie-com-assets-do-
- *   lgpe.md), onde cada tipo de
+ *   lgpe.md) e das rotas secas da savana (Rotas 4 e 9 —
+ *   docs/features/054-savana-lgpe-e-saida-do-megakit.md), onde cada tipo de
  *   árvore, planta ou pedra vem fundido numa malha só: separa os objetos
  *   (`splitObjects.js`) e fica com o mais comum de cada tipo;
  * - **props soltos** da `buildmodel/` (mato alto, flores, tufos, árvore de
- *   Corte, pedra de Força), inteiros;
+ *   Corte), inteiros;
  * - **texturas** (DDS BC1/BC3 → PNG, até `MAX_TEXTURE` px) dos props, do
  *   chão do mapa e as tabelas de toon (rampa da sombra).
  *
@@ -32,7 +33,7 @@ import { clusterObjects, piecesOf, sizeSignature } from './splitObjects.js'
  * Entrada: a pasta `field/` extraída do `LGPE-FieldMaps.7z` (guardado em
  * `.exemple/ambient/LGPE/`). Para extrair só o necessário:
  *   npx -y -p 7zip-bin node -e "console.log(require('7zip-bin').path7za)"
- *   <7za> x LGPE-FieldMaps.7z 'field/forest/*' 'field/area02/*' 'field/area03/*' 'field/buildmodel/*' -o<pasta>
+ *   <7za> x LGPE-FieldMaps.7z 'field/forest/*' 'field/area02/*' 'field/area03/*' 'field/area04/*' 'field/buildmodel/*' -o<pasta>
  *
  * Uso:
  *   node scripts/lgpe/pack-lgpe.js --field <pasta>/field
@@ -58,6 +59,10 @@ const ROUTE_1_GRASS = 'road001_00_grass'
 // árvores, tufos, flores e pedras da planície.
 const ROUTE_3 = { map: 'area03/road003_00.gfbmdl', folder: 'area03' }
 const ROUTE_22 = { map: 'area02/road022_00.gfbmdl', folder: 'area02' }
+// Rotas secas (docs/features/054-savana-lgpe-e-saida-do-megakit.md): as
+// pedras na terra da savana.
+const ROUTE_4 = { map: 'area03/road004_1_00.gfbmdl', folder: 'area03' }
+const ROUTE_9 = { map: 'area04/road009_00.gfbmdl', folder: 'area04' }
 const MAP_PROPS = [
   {
     id: 'round-tree',
@@ -153,7 +158,7 @@ const MAP_PROPS = [
   },
   {
     id: 'round-tree-e',
-    label: 'Árvore redonda (Rota 3)',
+    label: 'Pinheiro (Rota 3)',
     category: 'tree',
     ...ROUTE_3,
     node: 'road003_00_tree/tree02_3',
@@ -180,13 +185,6 @@ const MAP_PROPS = [
     node: `${ROUTE_1_GRASS}/road001_00_grass06`,
   },
   {
-    id: 'grass-mound',
-    label: 'Monte de grama (Rota 1)',
-    category: 'plant',
-    ...ROUTE_1,
-    node: `${ROUTE_1_GRASS}/road001_00_grass05`,
-  },
-  {
     id: 'rock-grass',
     label: 'Pedrinha na grama (Rota 1)',
     category: 'rock',
@@ -206,6 +204,27 @@ const MAP_PROPS = [
     category: 'rock',
     ...ROUTE_3,
     node: 'road003_00_rock/road003_00_rock02_001',
+  },
+  {
+    id: 'rock-dirt',
+    label: 'Pedra na terra (Rota 9)',
+    category: 'rock',
+    ...ROUTE_9,
+    node: 'road009_00_rock/road009_00_mountain_rock01',
+  },
+  {
+    id: 'rock-dirt-b',
+    label: 'Pedra na terra escura (Rota 4)',
+    category: 'rock',
+    ...ROUTE_4,
+    node: 'road004_1_00_rock/road004_1_00_rock03',
+  },
+  {
+    id: 'rock-dirt-c',
+    label: 'Pedra média na terra (Rota 4)',
+    category: 'rock',
+    ...ROUTE_4,
+    node: 'road004_1_00_rock/road004_1_00_rock04',
   },
 ]
 
@@ -328,12 +347,6 @@ const LOOSE_PROPS = [
     category: 'tree',
     file: 'iaigiri_tree01',
   },
-  {
-    id: 'strength-rock',
-    label: 'Pedra de Força',
-    category: 'rock',
-    file: 'kairiki_rock',
-  },
 ]
 
 // Texturas do chão do mapa (as camadas de cor do chão dos biomas), pela
@@ -367,6 +380,7 @@ const GROUND_TEXTURES = {
     'sand02_com',
     'cliff01_area02',
   ],
+  area04: ['cliff02_com'],
 }
 const TOON_TABLES = ['shadowtable01_t', 'shadowtable02_t', 'lighttable01_t']
 
@@ -620,7 +634,7 @@ writeFileSync(
   JSON.stringify(
     {
       source:
-        "Pokémon Let's Go Pikachu/Eevee — forest001_00, road001_00, road003_00, road022_00 e buildmodel",
+        "Pokémon Let's Go Pikachu/Eevee — forest001_00, road001_00, road003_00, road022_00, road004_1_00, road009_00 e buildmodel",
       props,
       ground,
       toonTables: TOON_TABLES,

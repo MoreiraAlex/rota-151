@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { STANDING_TREE_KINDS, specOf } from '@/core/vegetation/solidPlacement'
+import { vegetationEntryOf } from '@/core/vegetation/vegetationEntry'
 import { terrainColorAt } from './terrainGeometry'
 
 /**
@@ -14,26 +15,45 @@ const scratch = new THREE.Color()
 const mixed = new THREE.Color()
 const canopy = new THREE.Color()
 
+// Pesos do brilho (os mesmos do toon, toonMaterial.js).
+const LUMA = [0.2126, 0.7152, 0.0722]
+const lumaOf = (color) =>
+  color.r * LUMA[0] + color.g * LUMA[1] + color.b * LUMA[2]
+
+/**
+ * A tinta do bioma (`tint: { color, amount }`) na cor da copa, como no
+ * toon: o tom puxa para o da tinta, com o brilho da copa.
+ */
+function recolor(color, tint) {
+  if (!(tint?.amount > 0)) return color
+  const hue = new THREE.Color(tint.color)
+  const recolored = hue.multiplyScalar(
+    lumaOf(color) / Math.max(lumaOf(hue), 1e-3),
+  )
+  return color.lerp(recolored, tint.amount)
+}
+
 /**
  * O que a copa das árvores de um bioma cobre do chão: para cada espécie
  * de árvore com folha, quanto ela ocupa (a `density`, só nas manchas
  * dela com `patches`, rareando nas clareiras com `place: 'shade'`), a
- * altura em que ela some (`maxHeight`) e a cor da folha (a do bioma,
- * `color`, ou a da espécie).
+ * altura em que ela some (`maxHeight`) e a cor da copa (a da espécie,
+ * `LEAF_COLOR`, com a tinta do bioma, `tint`). Só as que nascem no bioma
+ * (`vegetationEntryOf`).
  */
 function canopyOf(biome, solids) {
   const clearing = biome.clearings?.amount ?? 0
-  return biome.vegetation
-    .filter(({ kind }) => STANDING_TREE_KINDS.includes(kind))
+  return STANDING_TREE_KINDS.map((kind) => vegetationEntryOf(biome, kind))
+    .filter(Boolean)
     .map((entry) => {
-      const leafColor = entry.color ?? specOf(entry.kind, solids)?.LEAF_COLOR
+      const leafColor = specOf(entry.kind, solids)?.LEAF_COLOR
       if (!leafColor) return null
       const patches = entry.patches?.amount ?? 1
       const open = entry.place === 'shade' ? 1 - clearing : 1
       return {
         cover: entry.density * patches * open,
         maxHeight: entry.maxHeight ?? Infinity,
-        color: new THREE.Color(leafColor),
+        color: recolor(new THREE.Color(leafColor), entry.tint),
       }
     })
     .filter(Boolean)
