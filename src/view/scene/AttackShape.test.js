@@ -23,12 +23,10 @@ function makeShape() {
 }
 
 const BODY = { capsuleRadius: 0.3, capsuleHalfHeight: 0.2, capsuleAxis: 'y' }
-const SPECIES = { body: BODY }
 const BASE = {
   pos: { x: 0, y: 1, z: 0 },
   body: BODY,
   colliderHandle: -1,
-  species: SPECIES,
   direction: { x: 0, y: 0, z: 1 },
 }
 

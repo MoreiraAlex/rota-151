@@ -5,6 +5,7 @@ import * as THREE from 'three'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import {
   resolveAttackOrigin,
+  resolveAttackReach,
   resolveGroundPoint,
   resolveRoundedCone,
 } from '@/core/battle/attackGeometry'
@@ -227,7 +228,7 @@ export const AttackShape = forwardRef(function AttackShape(
  */
 export function placeAttackShape(
   shape,
-  { pos, body, colliderHandle, species, attack, direction, progress = 1 },
+  { pos, body, colliderHandle, attack, direction, progress = 1 },
 ) {
   if (!shape?.root) return
   if (isSelfAttack(attack)) {
@@ -237,11 +238,12 @@ export function placeAttackShape(
   // Cone (canalizado, ou `area: 'cone'` como o Growl): só estrutura encurta
   // (mesma trajetória do dano). Cápsula: o golpe normal.
   const channel = isConeAttack(attack)
-  const origin = resolveAttackOrigin(pos, species.body?.attackOriginHeight)
+  const origin = resolveAttackOrigin(pos, direction, attack)
+  const reach = resolveAttackReach(attack)
   const pathEnd = resolveAttackImpactPoint(
     origin,
     direction,
-    attack.range,
+    reach,
     colliderHandle,
     { terrainOnly: channel },
   )
@@ -266,7 +268,7 @@ export function placeAttackShape(
   shape.fan.visible = channel
   shape.tube.visible = !channel
   if (channel) {
-    placeCone(shape, attack, length, progress)
+    placeCone(shape, attack.radius, reach, length, progress)
   } else {
     placeCapsule(shape, attack.radius, length, progress)
   }
@@ -310,10 +312,10 @@ export function paintAttackShape(shape, { fill, edge }) {
   })
 }
 
-function placeCone(shape, attack, length, progress) {
+function placeCone(shape, radius, reach, length, progress) {
   // Comprimento `length` (encurtado pela parede) com a abertura do ataque
-  // inteiro — mesma conta de `isInsideAttackCone`.
-  const slope = attack.range > 0 ? attack.radius / attack.range : 0
+  // inteiro (`radius` no fim do alcance) — mesma conta de `isInsideAttackCone`.
+  const slope = reach > 0 ? radius / reach : 0
   const cone = resolveRoundedConeGeometry(slope)
   shape.fanFill.geometry = cone.fill
   shape.fanEdge.geometry = cone.edge

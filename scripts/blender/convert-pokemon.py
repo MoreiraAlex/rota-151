@@ -12,7 +12,7 @@ Saída:
 As texturas ficam fora do .glb de propósito: o jogo aplica a variante (default, shiny...)
 pelo nome do material (body, eye, fire), então o mesmo .glb serve para todas.
 """
-import bpy, os, sys, addon_utils
+import bpy, os, struct, sys, addon_utils
 
 ADDON = "Pokemon-Switch-Model-Importer-Blender-main"
 
@@ -59,6 +59,120 @@ def game_material_name(addon_name):
 
 def bake_size(game_name):
     return 256 if game_name in SMALL_MATERIALS else 1024
+
+
+# Visibilidade de malha por animação (.tracm, flatbuffer ao lado do .tranm). Aves do Z-A trocam a
+# asa fechada (malha à parte) pela aberta (no corpo): a aberta some pela escala dos ossos, que já
+# vem no .tranm, mas a fechada só some pela trilha de visibilidade, que o addon não importa.
+# O glTF não tem visibilidade animada, então a malha escondida vira escala quase zero nos ossos
+# que só ela usa.
+OVERLAY_ANIMATIONS = ("blink",)  # tocam por cima das outras: não escondem malha
+HIDDEN_SCALE = 0.001
+
+
+def read_mesh_visibility(path):
+    """{nome da malha: função quadro -> visível} das trilhas de um .tracm."""
+    d = open(path, "rb").read()
+    u32 = lambda o: struct.unpack_from("<I", d, o)[0]
+    ref = lambda o: o + u32(o)
+
+    def field(table, k):
+        vtable = table - struct.unpack_from("<i", d, table)[0]
+        if 4 + 2 * k >= struct.unpack_from("<H", d, vtable)[0]:
+            return None
+        off = struct.unpack_from("<H", d, vtable + 4 + 2 * k)[0]
+        return table + off if off else None
+
+    def bytes_of(table, k):
+        p = field(table, k)
+        if p is None:
+            return b""
+        v = ref(p)
+        return d[v + 4:v + 4 + u32(v)]
+
+    def bit(data, i):
+        return bool(data[i // 8] >> (i % 8) & 1) if i // 8 < len(data) else None
+
+    tracks = {}
+    meshes = field(ref(0), 1)
+    if meshes is None:
+        return tracks
+    vec = ref(meshes)
+    for i in range(u32(vec)):
+        track = ref(vec + 4 + 4 * i)
+        name_at = ref(field(track, 0))
+        name = d[name_at + 4:name_at + 4 + u32(name_at)].decode()
+        if field(track, 5) is None:
+            continue
+        union = ref(field(ref(field(track, 5)), 2))
+        kind, value = d[field(union, 0)], ref(field(union, 1))
+        if kind == 1:  # valor fixo
+            fixed = field(value, 0) is not None and d[field(value, 0)] == 1
+            tracks[name] = lambda f, v=fixed: v
+        elif kind == 2:  # um bit por quadro
+            bits = bytes_of(value, 0)
+            last = bit(bits, len(bits) * 8 - 1)
+            tracks[name] = lambda f, b=bits, l=last: bit(b, f) if bit(b, f) is not None else l
+        elif kind == 4:  # quadros-chave (um byte cada) com os valores em bits
+            keys, bits = bytes_of(value, 0), bytes_of(value, 1)
+
+            def keyed(f, k=keys, b=bits):
+                i = max((n for n, frame in enumerate(k) if frame <= f), default=0)
+                return bit(b, i)
+            tracks[name] = keyed
+        else:
+            raise ValueError(f"{path}: trilha de visibilidade de tipo {kind} desconhecido ({name})")
+    return tracks
+
+
+def exclusive_bones(arm):
+    """{nome da malha: ossos que só ela usa} — escalar esses ossos esconde a malha.
+
+    Todos os ossos do ramo, não só o do topo: com só o pai encolhido, o exportador do glTF
+    compensa o filho com escala inversa (1000), e o Three interpola os dois em separado entre
+    quadros e entre animações — no meio do caminho o produto explode e a malha fica gigante.
+    """
+    used = {}
+    for obj in arm.children:
+        if obj.type != "MESH":
+            continue
+        names = {g.index: g.name for g in obj.vertex_groups}
+        used[obj.data.name.split(".")[0]] = {
+            names[g.group] for v in obj.data.vertices for g in v.groups if g.weight > 0}
+    exclusive = {}
+    for mesh, bones in used.items():
+        others = set().union(*(b for m, b in used.items() if m != mesh))
+        exclusive[mesh] = sorted(b for b in bones - others if b in arm.pose.bones)
+    return exclusive
+
+
+def apply_mesh_visibility(arm, action, tracm, bones_by_mesh):
+    """Escala quase zero, quadro a quadro, nos ossos das malhas invisíveis da animação."""
+    visibility = read_mesh_visibility(tracm)
+    hidden = {mesh: fn for mesh, fn in visibility.items()
+              if bones_by_mesh.get(mesh) and not all(fn(f) for f in range(int(action.frame_range[1]) + 1))}
+    if not hidden:
+        return
+    scene = bpy.context.scene
+    arm.animation_data.action = action
+    start, end = (int(x) for x in action.frame_range)
+    bones = [(bone, visible) for mesh, visible in hidden.items() for bone in bones_by_mesh[mesh]]
+    # Primeiro lê a escala original de cada quadro (osso sem trilha de escala fica na de
+    # descanso), depois grava: gravar no meio da leitura mudaria o que vem depois.
+    for bone, _ in bones:
+        arm.pose.bones[bone].scale = (1, 1, 1)
+    original = {}
+    for frame in range(start, end + 1):
+        scene.frame_set(frame)
+        for bone, _ in bones:
+            original[bone, frame] = tuple(arm.pose.bones[bone].scale)
+    for frame in range(start, end + 1):
+        for bone, visible in bones:
+            pb = arm.pose.bones[bone]
+            pb.scale = original[bone, frame] if visible(frame - start) else (HIDDEN_SCALE,) * 3
+            pb.keyframe_insert(data_path="scale", frame=frame)
+    arm.animation_data.action = None
+    print(f"VISIBILIDADE {action.name}: {sorted(hidden)}")
 
 
 def parse_args():
@@ -196,6 +310,7 @@ def main():
     arm.select_set(True)
 
     faltando = []
+    visibility = []
     for game_name, legends_name in ANIMATIONS.items():
         candidates = [legends_name] + [f"{p}{legends_name[1:]}" for p in "21"]
         path = next((os.path.join(folder, f"{pm}_00_00_{c}.tranm") for c in candidates
@@ -207,6 +322,13 @@ def main():
         action = bpy.data.actions.get(os.path.basename(path)[:-len(".tranm")])
         action.name = game_name
         action.use_fake_user = True
+        tracm = path[:-len(".tranm")] + ".tracm"
+        if game_name not in OVERLAY_ANIMATIONS and os.path.exists(tracm):
+            visibility.append((action, tracm))
+
+    bones_by_mesh = exclusive_bones(arm)
+    for action, tracm in visibility:
+        apply_mesh_visibility(arm, action, tracm, bones_by_mesh)
 
     models = os.path.join(out, "models")
     tex = os.path.join(out, "textures", f"{dex:03d}-{name}", "default")

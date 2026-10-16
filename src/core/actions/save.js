@@ -1,6 +1,6 @@
 import { restorePokemon, restoreTrainer, restoreWorldItems } from '../save'
 import { SaveRequested, TrainerReady } from '../traits'
-import { darKitInicial } from './startingKit'
+import { completarEspeciesDeTeste, darKitInicial } from './startingKit'
 import { definirHorario } from './environment'
 
 /**
@@ -11,14 +11,18 @@ import { definirHorario } from './environment'
 
 /**
  * Prepara o treinador ao entrar no jogo, uma vez só: com `save` (já migrado e
- * validado — `migrateSave`), volta tudo como estava; sem save (primeira
- * entrada), o kit inicial — e já pede um save, pra conta ganhar o dela.
+ * validado — `migrateSave`), volta tudo como estava, mais as espécies novas
+ * que ele ainda não tem (kit de teste, `completarEspeciesDeTeste`); sem save
+ * (primeira entrada), o kit inicial — e já pede um save, pra conta ganhar o
+ * dela.
  * Devolve se preparou agora.
  */
 export function prepararTreinador(world, trainer, save) {
   if (trainer.has(TrainerReady)) return false
-  if (save) aplicarSave(world, trainer, save)
-  else {
+  if (save) {
+    aplicarSave(world, trainer, save)
+    if (completarEspeciesDeTeste(world, trainer) > 0) pedirSave(trainer)
+  } else {
     darKitInicial(world, trainer)
     pedirSave(trainer)
   }

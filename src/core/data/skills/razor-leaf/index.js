@@ -1,6 +1,7 @@
 export const RAZOR_LEAF_SKILL = {
   id: 'razor-leaf',
   type: 'grass',
+  accuracy: 95,
   duration: 1,
   effectAt: 0.25,
   range: 3,

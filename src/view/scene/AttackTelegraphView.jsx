@@ -85,7 +85,6 @@ export function AttackTelegraphView() {
           pos: entity.get(Position),
           body: entity.get(CharacterController),
           colliderHandle: entity.get(PhysicsBody).colliderHandle,
-          species,
           attack,
           direction: { x: action.dirX, y: action.dirY, z: action.dirZ },
           progress,

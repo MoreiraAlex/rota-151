@@ -5,7 +5,11 @@ import { resolveChannelTickDamage } from './calculateDamage'
 import { combatWeatherAt } from '../weather/combatWeather'
 import { resolveSkillType } from '../data/types'
 import { isBeamAttack } from './channelAttack'
-import { resolveAttackOrigin, resolveFootElevation } from './attackGeometry'
+import {
+  resolveAttackOrigin,
+  resolveAttackReach,
+  resolveFootElevation,
+} from './attackGeometry'
 import { readStatStages } from './statStages'
 import { resolveAttackImpactPoint } from './attackTrajectory'
 import { resolveAttackTarget, resolveConeTargets } from './attackTargets'
@@ -32,11 +36,9 @@ import {
  */
 export function applyChannelTick(world, events, context) {
   const { entity, action, species, individualValues, attack } = context
-  const origin = resolveAttackOrigin(
-    context.pos,
-    species?.body?.attackOriginHeight,
-  )
   const direction = { x: action.dirX, y: action.dirY, z: action.dirZ }
+  const origin = resolveAttackOrigin(context.pos, direction, attack)
+  const reach = resolveAttackReach(attack)
   const beam = isBeamAttack(attack)
   // Cone: só estrutura/terreno encurta o canal — criatura no caminho NÃO (o
   // ember pega todo mundo dentro do leque, inclusive quem está atrás). Feixe:
@@ -44,7 +46,7 @@ export function applyChannelTick(world, events, context) {
   const impactPoint = resolveAttackImpactPoint(
     origin,
     direction,
-    attack.range,
+    reach,
     context.physicsBody.colliderHandle,
     { terrainOnly: !beam },
   )
@@ -72,7 +74,7 @@ export function applyChannelTick(world, events, context) {
   } else {
     const cone = {
       length: Math.hypot(impactPoint.x - origin.x, impactPoint.z - origin.z),
-      range: attack.range,
+      range: reach,
       radius: attack.radius,
     }
     targets = resolveConeTargets(

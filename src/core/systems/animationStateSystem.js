@@ -1,4 +1,7 @@
-import { resolveAnimationState } from '../data/animationStates'
+import {
+  resolveAnimationState,
+  resolveRunMinSpeed,
+} from '../data/animationStates'
 import {
   Velocity,
   Rotation,
@@ -9,6 +12,7 @@ import {
   CombatMode,
   Fainted,
   Jumping,
+  MovementStats,
   Training,
 } from '../traits'
 
@@ -42,8 +46,10 @@ export function animationStateSystem(context) {
     .updateEach(([, vel, rot, action, anim], entity) => {
       const speed = Math.hypot(vel.x, vel.z)
       const grounded = entity.has(Grounded)
+      const movement = entity.get(MovementStats)
       anim.id = resolveAnimationState({
         speed,
+        runMinSpeed: movement ? resolveRunMinSpeed(movement) : undefined,
         grounded,
         action: action.current,
         fainted: entity.has(Fainted),

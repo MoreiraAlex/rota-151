@@ -1,6 +1,7 @@
 import { GAME_CONFIG } from '../gameConfig'
 import { verticalClearance } from '../physics/colliders'
 import { castRay } from '../physics/raycast'
+import { resolveEffectStart } from './attackEffectPlacement'
 
 /**
  * Pontos espaciais de um ataque, separados por conceito — ver
@@ -13,7 +14,8 @@ import { castRay } from '../physics/raycast'
  *
  * - posição da criatura / centro do corpo → `Position` direto
  * - chão sob a criatura → `resolveGroundPoint`
- * - onde o golpe começa → `resolveAttackOrigin`
+ * - onde o golpe começa → `resolveAttackOrigin` (e quanto anda dali →
+ *   `resolveAttackReach`)
  * - onde a área do golpe termina → `resolveAttackImpactPoint`
  *   (`creatureAttackSystem.js`, acompanha o terreno e para em parede/
  *   desnível)
@@ -72,12 +74,25 @@ export function isWithinCombatHeight(elevationA, elevationB) {
 }
 
 /**
- * `originHeight` é `species.body.attackOriginHeight` (opcional, metros
- * acima do centro do corpo — ver `core/data/species/_template/index.js`).
- * Sem ele, o golpe sai do centro do corpo.
+ * Onde o golpe começa: o centro do corpo deslocado pelo
+ * `visual.positionOffset` do golpe (`resolveEffectStart` — no referencial
+ * da trajetória: +Z golpe adentro, +Y pra cima, +X pro lado). É o MESMO
+ * ponto pro dano, pros alvos, pro aviso no chão e pro VFX: cada golpe
+ * define de onde sai (a mordida na boca, a rabada na cauda), e o que se vê
+ * é o que acerta. Sem offset, o golpe sai do centro do corpo.
  */
-export function resolveAttackOrigin(pos, originHeight = 0) {
-  return { x: pos.x, y: pos.y + originHeight, z: pos.z }
+export function resolveAttackOrigin(pos, direction, attack) {
+  return resolveEffectStart(pos, direction, attack?.visual?.positionOffset)
+}
+
+/**
+ * Quanto o golpe anda a partir da origem (`resolveAttackOrigin`). O
+ * `range` conta do CENTRO do corpo, então desconta o quanto a origem já
+ * andou golpe adentro (`positionOffset.z`): mudar de onde o golpe sai não
+ * muda até onde ele chega.
+ */
+export function resolveAttackReach(attack) {
+  return Math.max(0, attack.range - (attack.visual?.positionOffset?.z ?? 0))
 }
 
 // Eixo comprido da cápsula no espaço LOCAL do corpo — mesma convenção de

@@ -1,0 +1,36 @@
+{
+  "name": "creature-cry",
+  "bones": {
+    "lower_jaw": {
+      "rotation": {
+        "y": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": 0.75
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.05,
+              "frequencyScale": 1.35,
+              "phaseTurns": 0.12
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.03,
+              "frequencyScale": 2.7,
+              "phaseTurns": 0.37
+            },
+            {
+              "type": "sine",
+              "amplitude": 0.04,
+              "frequencyScale": 4.9,
+              "phaseTurns": 0.61
+            }
+          ]
+        }
+      }
+    }
+  }
+}

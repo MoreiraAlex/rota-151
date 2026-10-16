@@ -48,6 +48,10 @@ import {
   unregisterEyeBlink,
 } from '../registry/eyeBlinkRegistry'
 import {
+  registerFlightLift,
+  unregisterFlightLift,
+} from '../registry/flightLiftRegistry'
+import {
   registerMouthSync,
   unregisterMouthSync,
 } from '../registry/mouthSyncRegistry'
@@ -602,6 +606,24 @@ export function useAnimatedModel(entity, species) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entity, species])
+
+  // Voo rasante (`species.body.flightHeight`, opcional — docs/features/
+  // 059-as-10-especies.md, Parte 16): `flightLiftSystem.js` sobe o modelo
+  // ao andar/correr.
+  useEffect(() => {
+    const height = species.body?.flightHeight
+    if (!height) return
+    registerFlightLift(entity, {
+      object: cloned,
+      baseY: species.body.modelOffset?.[1] ?? 0,
+      height,
+      lift: 0,
+    })
+    return () => {
+      cloned.position.y = species.body.modelOffset?.[1] ?? 0
+      unregisterFlightLift(entity)
+    }
+  }, [cloned, entity, species])
 
   useEffect(() => {
     const footstep = resolveFootstepSound(species)

@@ -60,6 +60,31 @@ describe('prepararTreinador', () => {
     expect(player.has(SaveRequested)).toBe(false)
   })
 
+  it('com save sem uma espécie: ela entra no inventário (kit de teste) e pede save', () => {
+    const source = setup()
+    prepararTreinador(source.world, source.player, null)
+    const save = snapshotSave(source.world, source.player)
+    const missing = save.pokemon.find(
+      (saved) => saved.location.kind === 'inventory',
+    )
+    const withoutSpecies = {
+      ...save,
+      pokemon: save.pokemon.filter(
+        (saved) => saved.speciesId !== missing.speciesId,
+      ),
+    }
+
+    const { world, player } = setup()
+    prepararTreinador(world, player, withoutSpecies)
+
+    const given = listOwnedPokemon(world, player).filter(
+      (pokemon) => pokemon.get(Pokemon).speciesId === missing.speciesId,
+    )
+    expect(given).toHaveLength(1)
+    expect(resolvePartySlot(player, given[0])).toBe(null)
+    expect(player.has(SaveRequested)).toBe(true)
+  })
+
   it('só prepara uma vez', () => {
     const { world, player } = setup()
     prepararTreinador(world, player, null)

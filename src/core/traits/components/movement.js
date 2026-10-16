@@ -9,7 +9,8 @@ import { trait } from 'koota'
  *
  * Dono de escrita: spawn (world.js / test/makeWorld.js).
  * Leem: movementSystem (walkSpeed/runSpeed/turnSpeed), characterPhysicsSystem
- * (jumpSpeed).
+ * (jumpSpeed), animationStateSystem (walkSpeed/runSpeed — o meio entre os
+ * dois é onde a animação passa de andar pra correr).
  */
 export const MovementStats = trait({
   walkSpeed: 3,

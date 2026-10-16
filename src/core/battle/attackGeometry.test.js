@@ -9,6 +9,7 @@ import {
   resolveRoundedCone,
   isWithinCombatHeight,
   resolveAttackOrigin,
+  resolveAttackReach,
   resolveCapsuleSegment,
   resolveContactPoint,
   resolveFootElevation,
@@ -40,16 +41,55 @@ describe('resolveGroundPoint', () => {
 })
 
 describe('resolveAttackOrigin', () => {
-  it('sem altura configurada, sai do centro do corpo (Position)', () => {
-    expect(resolveAttackOrigin({ x: 1, y: 2, z: 3 })).toEqual({
-      x: 1,
-      y: 2,
-      z: 3,
-    })
+  const FRENTE = { x: 0, y: 0, z: 1 }
+
+  it('sem positionOffset no golpe, sai do centro do corpo (Position)', () => {
+    const pos = { x: 1, y: 2, z: 3 }
+    expect(resolveAttackOrigin(pos, FRENTE, { range: 1, visual: {} })).toEqual(
+      pos,
+    )
   })
 
-  it('soma a altura configurada por espécie', () => {
-    expect(resolveAttackOrigin({ x: 0, y: 1, z: 0 }, 0.25).y).toBeCloseTo(1.25)
+  it('o positionOffset do golpe desloca a saída no referencial do golpe', () => {
+    const offset = { x: 0.1, y: 0.2, z: 0.3 }
+    const origin = resolveAttackOrigin({ x: 0, y: 1, z: 0 }, FRENTE, {
+      range: 1,
+      visual: { positionOffset: offset },
+    })
+    expect(origin.y).toBeCloseTo(1 + offset.y)
+    expect(origin.z).toBeCloseTo(offset.z)
+  })
+
+  it('golpes diferentes da mesma espécie saem de lugares diferentes', () => {
+    const pos = { x: 0, y: 1, z: 0 }
+    const mordida = { visual: { positionOffset: { x: 0, y: 0.5, z: 0.4 } } }
+    const rabada = { visual: { positionOffset: { x: 0, y: 0, z: -0.4 } } }
+    const a = resolveAttackOrigin(pos, FRENTE, mordida)
+    const b = resolveAttackOrigin(pos, FRENTE, rabada)
+    expect(a.y).toBeGreaterThan(b.y)
+    expect(a.z).toBeGreaterThan(b.z)
+  })
+})
+
+describe('resolveAttackReach', () => {
+  it('sem offset, anda o range inteiro', () => {
+    expect(resolveAttackReach({ range: 3, visual: {} })).toBe(3)
+  })
+
+  it('o range conta do centro: a saída empurrada pra frente desconta o z', () => {
+    const attack = {
+      range: 3,
+      visual: { positionOffset: { x: 0, y: 0, z: 1 } },
+    }
+    expect(1 + resolveAttackReach(attack)).toBeCloseTo(attack.range)
+  })
+
+  it('nunca fica negativo', () => {
+    const attack = {
+      range: 1,
+      visual: { positionOffset: { x: 0, y: 0, z: 2 } },
+    }
+    expect(resolveAttackReach(attack)).toBe(0)
   })
 })
 

@@ -10,7 +10,10 @@ import {
   isAttackCharging,
   isAttackPastEffect,
 } from '@/core/battle/attackTelegraph'
-import { resolveAttackOrigin } from '@/core/battle/attackGeometry'
+import {
+  resolveAttackOrigin,
+  resolveAttackReach,
+} from '@/core/battle/attackGeometry'
 import { resolveAttackImpactPoint } from '@/core/battle/attackTrajectory'
 import { resolveEffectStart } from '@/core/battle/attackEffectPlacement'
 import {
@@ -77,8 +80,8 @@ const DEG_TO_RAD = Math.PI / 180
  *   quadro nos pés. Acaba no efeito ou se o golpe for interrompido.
  * - **Canal** (`visual.channelGroup` — ex.: o Water Gun com `'water-jet'`):
  *   do `effectAt` até a ação acabar (`isAttackChanneling`; soltar o botão
- *   encerra); quadro na BOCA (`resolveAttackOrigin`, deslocada por
- *   `visual.positionOffset`), virado pra direção do
+ *   encerra); quadro na origem do golpe (`resolveAttackOrigin`, o centro
+ *   deslocado pelo `visual.positionOffset`), virado pra direção do
  *   golpe de agora (`ActionState.dir*`, que o feixe reaponta a cada tick) e com
  *   `length` = até onde a trajetória bate agora (`resolveAttackImpactPoint`,
  *   a mesma do dano) — o jato segue a mira.
@@ -136,7 +139,7 @@ export function ContinuousAttackEffectsView() {
           ? resolveEntityAttack(entity, species, action.pendingSlot)
           : null
         followers.push(chargeFollower(entity, action, attack))
-        followers.push(channelFollower(entity, action, attack, species))
+        followers.push(channelFollower(entity, action, attack))
         followers.push(actionFollower(entity, action, attack))
       })
 
@@ -163,7 +166,7 @@ function chargeFollower(entity, action, attack) {
   }
 }
 
-function channelFollower(entity, action, attack, species) {
+function channelFollower(entity, action, attack) {
   const key = `${entity}:channel`
   const group = attack?.visual?.channelGroup
   const active =
@@ -172,24 +175,14 @@ function channelFollower(entity, action, attack, species) {
     isAttackChanneling(action, attack)
   if (!active) return { key, active: false }
 
-  const origin = resolveAttackOrigin(
-    entity.get(Position),
-    species?.body?.attackOriginHeight,
-  )
   const direction = { x: action.dirX, y: action.dirY, z: action.dirZ }
+  // mesma origem e alcance do dano (`attackChannelTick.js`)
+  const start = resolveAttackOrigin(entity.get(Position), direction, attack)
   const impact = resolveAttackImpactPoint(
-    origin,
+    start,
     direction,
-    attack.range,
+    resolveAttackReach(attack),
     entity.get(PhysicsBody).colliderHandle,
-  )
-  // Partida VISUAL do jato (`visual.positionOffset`, no referencial do golpe:
-  // +Z = pra frente, +Y = pra cima) — só o jato anda; o dano e o ponto onde ele
-  // bate continuam contados da boca (`origin`).
-  const start = resolveEffectStart(
-    origin,
-    direction,
-    attack.visual.positionOffset,
   )
   return {
     key,

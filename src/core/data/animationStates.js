@@ -1,11 +1,13 @@
 import { GAME_CONFIG } from '../gameConfig'
 
-const { WALK_MIN_SPEED, RUN_MIN_SPEED } = GAME_CONFIG.ANIMATION
+const { WALK_MIN_SPEED } = GAME_CONFIG.ANIMATION
 
 /**
  * Tabela de resolução de estado de animação — uma lista ordenada de
  * `{ id, when, oneShot?, fallback? }`; a primeira cuja condição bate,
- * vence. `ctx` é `{ speed, grounded, action, fainted, inCombat, jumping }` —
+ * vence. `ctx` é `{ speed, runMinSpeed, grounded, action, fainted, inCombat,
+ * jumping }` (`runMinSpeed`: acima dela a animação é a de correr —
+ * `resolveRunMinSpeed`; sem ela, nunca corre) —
  * `action` é o `ActionState.current` da entidade (`null` quando livre);
  * `fainted`, se ela tem `Fainted` (desmaiada); `inCombat`, se tem
  * `CombatMode`; `jumping`, se está SUBINDO num pulo de verdade
@@ -89,7 +91,10 @@ export const ANIMATION_STATES = [
   // `grounded`. Cair de uma borda sem pular é `fall` desde o início, e
   // `fall` também é o fallback de quem não tem animação de pulo.
   { id: 'jump', fallback: 'fall', when: (ctx) => ctx.jumping === true },
-  { id: 'run', when: (ctx) => ctx.grounded && ctx.speed > RUN_MIN_SPEED },
+  {
+    id: 'run',
+    when: (ctx) => ctx.grounded && ctx.speed > ctx.runMinSpeed,
+  },
   { id: 'walk', when: (ctx) => ctx.grounded && ctx.speed > WALK_MIN_SPEED },
   // No ar sem ter pulado (caiu de uma borda) — o pulo de verdade é `jump`,
   // acima. Antes cobria o pulo inteiro também — pedido do usuário ("vou
@@ -124,6 +129,16 @@ const FALLBACK_BY_ID = new Map(
     state.fallback,
   ]),
 )
+
+/**
+ * Velocidade a partir da qual a animação é a de correr: o meio entre o
+ * `walkSpeed` e o `runSpeed` da criatura (`MovementStats`). Andando ela fica
+ * em volta do primeiro, correndo em volta do segundo — o limiar acompanha as
+ * velocidades de cada espécie sem número próprio.
+ */
+export function resolveRunMinSpeed({ walkSpeed, runSpeed }) {
+  return (walkSpeed + runSpeed) / 2
+}
 
 export function resolveAnimationState(ctx) {
   return ANIMATION_STATES.find((state) => state.when(ctx)).id

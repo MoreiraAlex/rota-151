@@ -1,6 +1,8 @@
 import {
   applyAnimationClip,
+  capturePose,
   resolveClipSpeed,
+  restorePose,
 } from '@/core/animation/applyAnimationClip'
 import { getVoiceAudioEntry } from '@/view/registry/voiceAudioRegistry'
 import { getMouthSyncEntries } from '@/view/registry/mouthSyncRegistry'
@@ -19,9 +21,13 @@ import { getMouthSyncEntries } from '@/view/registry/mouthSyncRegistry'
  * `getVoiceAudioEntry`, `undefined` cai em "não tocando", no-op gracioso),
  * simplesmente NÃO escreve nada nesses ossos neste frame — quem faz isso
  * de novo é `animationSystem.js` (roda ANTES, na fase presentation, ver
- * `registerSystems.js`) com o clipe normal de idle/walk/run, então o grito
- * "solta" a boca e ela volta a seguir a animação de corpo padrão sozinha,
- * sem esse system precisar reverter nada.
+ * `registerSystems.js`) com o clipe normal de idle/walk/run.
+ *
+ * Só que o mixer do Three só reescreve um osso quando o valor da trilha
+ * MUDA: com o osso parado na animação de base (o bico do Pidgey no idle), a
+ * boca ficava aberta depois do grito. Por isso a pose desses ossos é
+ * fotografada quando o grito começa (`entry.basePose`, logo depois do
+ * `animationSystem` escrever) e devolvida quando ele acaba.
  *
  * Relógio PRÓPRIO (`entry.elapsed`, não o relógio compartilhado de
  * `animationRegistry.js`) — reinicia do zero toda vez que o áudio começa
@@ -43,6 +49,11 @@ export function mouthSyncSystem(context) {
 
     if (isPlaying && !entry.wasPlaying) {
       entry.elapsed = 0
+      entry.basePose = capturePose(entry.bones)
+    }
+    if (!isPlaying && entry.wasPlaying && entry.basePose) {
+      restorePose(entry.basePose, entry.bones)
+      entry.basePose = null
     }
     entry.wasPlaying = isPlaying
 

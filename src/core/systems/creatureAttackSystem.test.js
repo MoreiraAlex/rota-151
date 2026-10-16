@@ -336,7 +336,7 @@ describe('creatureAttackSystem', () => {
     const effect = advanceUntilEffectSpawns(world)
 
     // O golpe sai do centro do corpo (`Position`, centro da cápsula) —
-    // `bulbasaur` não declara `body.attackOriginHeight`.
+    // `ATTACK` não declara `visual.positionOffset`.
     const pos = effect.get(Position)
     expect(pos.x).toBeCloseTo(2)
     expect(pos.y).toBeCloseTo(1)
@@ -356,34 +356,32 @@ describe('creatureAttackSystem', () => {
     expect(effect.get(AttackEffect).length).toBeCloseTo(ATTACK.range)
   })
 
-  it('visual.positionOffset do ataque só desloca a PARTIDA: o efeito continua nascendo no impacto do range, reorientado e com o length medido da nova partida', () => {
+  it('visual.positionOffset do ataque move a ORIGEM do golpe (core e VFX): a trajetória sai dela e o range continua contado do centro', () => {
     // yaw 0 (sem câmera: +Z), nível: x → +X, y → +Y, z → +Z (golpe adentro)
+    const offset = { x: 0.5, y: 0.25, z: 0.2 }
     const restore = overrideSkill(getSpecies('bulbasaur'), SLOT, {
-      visual: { positionOffset: { x: 0.5, y: 0.25, z: 0.2 } },
+      visual: { positionOffset: offset },
     })
     try {
       const world = spawnWorld()
-      spawnControlledCreature(world, { position: { x: 2, y: 1, z: 3 } })
+      const pos = { x: 2, y: 1, z: 3 }
+      spawnControlledCreature(world, { position: pos })
 
       tick(world, PRESS)
       const effect = advanceUntilEffectSpawns(world)
 
-      // o impacto NÃO se mexe: continua em origem + range
-      const pos = effect.get(Position)
-      expect(pos.x).toBeCloseTo(2)
-      expect(pos.y).toBeCloseTo(1)
-      expect(pos.z).toBeCloseTo(3 + ATTACK.range)
+      // a trajetória inteira andou com a origem; o fim continua no range
+      // contado do centro do corpo
+      const impact = effect.get(Position)
+      expect(impact.x).toBeCloseTo(pos.x + offset.x)
+      expect(impact.y).toBeCloseTo(pos.y + offset.y)
+      expect(impact.z).toBeCloseTo(pos.z + ATTACK.range)
 
-      // a partida andou (2.5, 1.25, 3.2): o golpe agora vai dela até o impacto
-      const dx = -0.5
-      const dy = -0.25
-      const dz = ATTACK.range - 0.2
-      const length = Math.hypot(dx, dy, dz)
-      expect(effect.get(AttackEffect).length).toBeCloseTo(length)
-      const esperada = resolveEffectRotation(
-        { x: dx / length, y: dy / length, z: dz / length },
-        null,
+      // o VFX vai da origem até o impacto, reto golpe adentro
+      expect(effect.get(AttackEffect).length).toBeCloseTo(
+        ATTACK.range - offset.z,
       )
+      const esperada = resolveEffectRotation({ x: 0, y: 0, z: 1 }, null)
       expect(effect.get(Rotation).x).toBeCloseTo(esperada.x)
       expect(effect.get(Rotation).y).toBeCloseTo(esperada.y)
     } finally {

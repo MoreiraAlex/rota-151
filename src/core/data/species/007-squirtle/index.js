@@ -169,5 +169,9 @@ export const SQUIRTLE = {
     sp_def: { base: SP_DEF, ev: SP_DEF_EV },
     speed: { base: SPEED, ev: SPEED_EV },
   },
-  moves: [],
+  moves: [
+    { id: 'withdraw', requires: { level: 6 } },
+    { id: 'rapid-spin', requires: { level: 9 } },
+    { id: 'bite', requires: { level: 12 } },
+  ],
 }

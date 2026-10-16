@@ -10,8 +10,12 @@
  * amostra real (não placeholder) de `.exemple/Steps/Steps/`, biblioteca de
  * SFX de passo indicada pelo usuário; escolha de qual arquivo virou qual
  * grupo é arbitrária por enquanto (`heavy` = `ConcreteFootStepWalk/Run`,
- * `light` = `MetalFootStepWalkChild/RunChild`) — troca fácil, é só apontar
- * outro arquivo aqui.
+ * `light` = `MetalFootStepWalkChild/RunChild`, `crawl` =
+ * `CarpetFootstepsScuff` andando e `CarpetFootstepsScrape` correndo, `bird` =
+ * `PipeThickHandstep`, metade andando e metade correndo) — troca
+ * fácil, é só apontar outro arquivo aqui. `wing` não é passo: é a batida de
+ * asa de penas do Cobblemon (`sounds/animation/wings/plumage_wing_flap_*`,
+ * a pequena andando e a média correndo), pra quem se move voando.
  *
  * `volume`/`refDistance` (distância de referência do falloff espacial do
  * `THREE.PositionalAudio`) moram no GRUPO — "as outras configs" que
@@ -53,6 +57,71 @@ export const FOOTSTEP_GROUPS = {
       '/assets/audio/footsteps/light/run-03.ogg',
       '/assets/audio/footsteps/light/run-04.ogg',
       '/assets/audio/footsteps/light/run-05.ogg',
+    ],
+  },
+  // Rastejar — arrastado macio, sem batida de pé: criaturas sem pernas ou de
+  // corpo no chão (lagartas, cobras).
+  crawl: {
+    volume: 0.05,
+    refDistance: 4,
+    walk: [
+      '/assets/audio/footsteps/crawl/walk-01.ogg',
+      '/assets/audio/footsteps/crawl/walk-02.ogg',
+      '/assets/audio/footsteps/crawl/walk-03.ogg',
+      '/assets/audio/footsteps/crawl/walk-04.ogg',
+      '/assets/audio/footsteps/crawl/walk-05.ogg',
+    ],
+    run: [
+      '/assets/audio/footsteps/crawl/run-01.ogg',
+      '/assets/audio/footsteps/crawl/run-02.ogg',
+      '/assets/audio/footsteps/crawl/run-03.ogg',
+      '/assets/audio/footsteps/crawl/run-04.ogg',
+      '/assets/audio/footsteps/crawl/run-05.ogg',
+    ],
+  },
+  // Ave: batida curta de unha/garra.
+  bird: {
+    volume: 0.05,
+    refDistance: 4,
+    walk: [
+      '/assets/audio/footsteps/bird/walk-01.ogg',
+      '/assets/audio/footsteps/bird/walk-02.ogg',
+      '/assets/audio/footsteps/bird/walk-03.ogg',
+      '/assets/audio/footsteps/bird/walk-04.ogg',
+      '/assets/audio/footsteps/bird/walk-05.ogg',
+    ],
+    run: [
+      '/assets/audio/footsteps/bird/run-01.ogg',
+      '/assets/audio/footsteps/bird/run-02.ogg',
+      '/assets/audio/footsteps/bird/run-03.ogg',
+      '/assets/audio/footsteps/bird/run-04.ogg',
+      '/assets/audio/footsteps/bird/run-05.ogg',
+    ],
+  },
+  // Voo: batida de asa de penas — quem anda e corre voando (o voo rasante do
+  // Spearow, docs/features/059-as-10-especies.md, Parte 16).
+  wing: {
+    volume: 0.05,
+    refDistance: 4,
+    walk: [
+      '/assets/audio/footsteps/wing/walk-01.ogg',
+      '/assets/audio/footsteps/wing/walk-02.ogg',
+      '/assets/audio/footsteps/wing/walk-03.ogg',
+      '/assets/audio/footsteps/wing/walk-04.ogg',
+      '/assets/audio/footsteps/wing/walk-05.ogg',
+      '/assets/audio/footsteps/wing/walk-06.ogg',
+      '/assets/audio/footsteps/wing/walk-07.ogg',
+      '/assets/audio/footsteps/wing/walk-08.ogg',
+    ],
+    run: [
+      '/assets/audio/footsteps/wing/run-01.ogg',
+      '/assets/audio/footsteps/wing/run-02.ogg',
+      '/assets/audio/footsteps/wing/run-03.ogg',
+      '/assets/audio/footsteps/wing/run-04.ogg',
+      '/assets/audio/footsteps/wing/run-05.ogg',
+      '/assets/audio/footsteps/wing/run-06.ogg',
+      '/assets/audio/footsteps/wing/run-07.ogg',
+      '/assets/audio/footsteps/wing/run-08.ogg',
     ],
   },
 }

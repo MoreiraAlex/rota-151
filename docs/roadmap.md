@@ -2,7 +2,7 @@
 
 ---
 
-# ✅ Já feito (0.0.1 – 0.0.58)
+# ✅ Já feito (0.0.1 – 0.0.59)
 
 O que já foi entregue, por tema. Detalhes de cada uma em `docs/features/`.
 
@@ -60,6 +60,7 @@ O que já foi entregue, por tema. Detalhes de cada uma em `docs/features/`.
 - [x] **056 — Bioma cidade**
 - [x] **057 — Lagos e rios**
 - [x] **058 — Ajuste dos biomas**
+- [x] **059 — As 10 espécies**
 
 ### Combate
 - [x] **025 — Ataque comum de criatura**
@@ -120,15 +121,8 @@ só aparecem pelo F2. A montanha foi adiada: na beta não teria espécie
 exclusiva (o Spearow já mora na savana). Os 3 iniciais não nascem no mundo:
 vêm só no kit inicial (066).
 
-- [ ] **059 — As 10 espécies** — Bulbasaur, Charmander, Squirtle, Caterpie, Weedle, Pidgey, Rattata, Spearow, Ekans e Pikachu (7 novas, as selvagens; os 3 iniciais já existem e só vêm no kit inicial): modelo, status, golpes, sons e animações. Sons mapeados em `docs/reference/audio.md`.
 - [ ] **060 — Spawn estilo Cobblemon** — limite por jogador ativo, nascer fora da vista, despawn dos distantes; condições por espécie: bioma, tags, horário, clima, faixa de nível e raridade. Só as 7 selvagens têm spawn; os 3 iniciais não nascem no mundo.
 - [ ] **061 — Design da HUD** — visual definitivo da interface (com horário e clima); menus saem de `src/tools/menu/` para `view/`.
-
-> **Modelos das espécies (059):** o Sword/Shield só tem Caterpie e Pikachu.
-> Weedle, Pidgey, Rattata, Spearow e Ekans precisam vir do Let's Go (todos os
-> 151, com andar) ou do HOME (só animações de exibição). Resolver antes da 059.
-> Os 151 do Let's Go (com animações) estão em `.exemple/ambient/LGPE/LGPE-Poke.zip`;
-> o conversor do `.gfbmdl` da 052 é o ponto de partida.
 
 ---
 
@@ -189,6 +183,7 @@ item entra aqui quando for identificado e vira feature quando chegar a vez.
 - [ ] **085 — Ambiente da floresta** — névoa um pouco mais fechada dentro da mata; partículas (folhas caindo de dia, vaga-lumes à noite); som ambiente por bioma (pássaros de dia, grilos e coruja à noite) *(detalhar quando chegar)*.
 - [ ] **086 — Detalhes da floresta** — cogumelo-prateleira (o do MegaKit saiu na 054: achar um no LGPE), musgo nos troncos caídos e grama mais rala sob a copa fechada *(detalhar quando chegar)*.
 - [ ] **087 — Pokécenter funcionando** — o Pokécenter da cidade (056) cura o time (com o som de cura) e vira o ponto de reaparecimento; base para a derrota do treinador (063) *(detalhar quando chegar)*.
+- [ ] **088 — Refino dos golpes** — os golpes que entraram na 059 com valores padrão (VFX e som emprestados de outro golpe) ganham VFX, som, forma e animação próprios, um por um; efeitos que o jogo ainda não tem (ex.: a paralisia do Dragon Breath, o recuo do Bite, a Velocidade que o Rapid Spin dá a quem usa, o envenenamento do Poison Sting, a Velocidade que o String Shot tira — o jogo ainda não tem estágio de Velocidade —, a paralisia do Thunder Shock e do Thunder Wave, a Evasão do Double Team, o poder do Electro Ball pela Velocidade, prender do Wrap, a paralisia do Glare, a chance de crítico do Focus Energy — o crítico do jogo ainda não tem estágio —, o poder dobrado do Assurance e os vários acertos do Fury Attack) entram aqui; conferir no jogo o `positionOffset` (de onde cada golpe sai) e os golpes do learnset de cada espécie no nível certo *(detalhar quando chegar)*.
 
 ---
 

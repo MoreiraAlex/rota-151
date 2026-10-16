@@ -35,6 +35,12 @@ export function ReachPage({ data, version }) {
           O golpe acerta quando encosta no corpo do alvo. Criaturas maiores têm
           corpo maior, então são mais fáceis de acertar.
         </p>
+        <p>
+          Cada golpe sai de uma parte do corpo de quem ataca (a boca, a cauda, a
+          frente do corpo...), e é dali que ele parte e acerta. O alcance,
+          porém, é sempre contado do centro de quem ataca: um golpe que sai da
+          boca não vai mais longe por isso.
+        </p>
       </Section>
 
       <Section id="areas" title="Formas de área">

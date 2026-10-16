@@ -13,6 +13,13 @@
 import { BULBASAUR } from './001-bulbasaur'
 import { CHARMANDER } from './004-charmander'
 import { SQUIRTLE } from './007-squirtle'
+import { CATERPIE } from './010-caterpie'
+import { WEEDLE } from './013-weedle'
+import { PIDGEY } from './016-pidgey'
+import { RATTATA } from './019-rattata'
+import { SPEAROW } from './021-spearow'
+import { EKANS } from './023-ekans'
+import { PIKACHU } from './025-pikachu'
 import { BOY } from './boy'
 
 export const SPECIES_REGISTRY = {
@@ -20,6 +27,13 @@ export const SPECIES_REGISTRY = {
   [BULBASAUR.id]: BULBASAUR,
   [CHARMANDER.id]: CHARMANDER,
   [SQUIRTLE.id]: SQUIRTLE,
+  [CATERPIE.id]: CATERPIE,
+  [WEEDLE.id]: WEEDLE,
+  [PIDGEY.id]: PIDGEY,
+  [RATTATA.id]: RATTATA,
+  [SPEAROW.id]: SPEAROW,
+  [EKANS.id]: EKANS,
+  [PIKACHU.id]: PIKACHU,
 }
 
 /**

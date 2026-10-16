@@ -28,6 +28,28 @@ import { GROWTH_SKILL } from './growth'
 import { LEECH_SEED_SKILL } from './leech-seed'
 import { WATER_GUN_SKILL } from './water-gun'
 import { TAIL_WHIP_SKILL } from './tail-whip'
+import { SCRATCH_SKILL } from './scratch'
+import { DRAGON_BREATH_SKILL } from './dragon-breath'
+import { WITHDRAW_SKILL } from './withdraw'
+import { RAPID_SPIN_SKILL } from './rapid-spin'
+import { BITE_SKILL } from './bite'
+import { POISON_STING_SKILL } from './poison-sting'
+import { STRING_SHOT_SKILL } from './string-shot'
+import { BUG_BITE_SKILL } from './bug-bite'
+import { SAND_ATTACK_SKILL } from './sand-attack'
+import { GUST_SKILL } from './gust'
+import { WRAP_SKILL } from './wrap'
+import { LEER_SKILL } from './leer'
+import { GLARE_SKILL } from './glare'
+import { THUNDER_SHOCK_SKILL } from './thunder-shock'
+import { QUICK_ATTACK_SKILL } from './quick-attack'
+import { THUNDER_WAVE_SKILL } from './thunder-wave'
+import { DOUBLE_TEAM_SKILL } from './double-team'
+import { ELECTRO_BALL_SKILL } from './electro-ball'
+import { FOCUS_ENERGY_SKILL } from './focus-energy'
+import { PECK_SKILL } from './peck'
+import { ASSURANCE_SKILL } from './assurance'
+import { FURY_ATTACK_SKILL } from './fury-attack'
 
 export const SKILL_REGISTRY = {
   [TACKLE_SKILL.id]: TACKLE_SKILL,
@@ -43,6 +65,28 @@ export const SKILL_REGISTRY = {
   [WHIRLPOOL_SKILL.id]: WHIRLPOOL_SKILL,
   [RAZOR_LEAF_SKILL.id]: RAZOR_LEAF_SKILL,
   [TAIL_WHIP_SKILL.id]: TAIL_WHIP_SKILL,
+  [SCRATCH_SKILL.id]: SCRATCH_SKILL,
+  [DRAGON_BREATH_SKILL.id]: DRAGON_BREATH_SKILL,
+  [WITHDRAW_SKILL.id]: WITHDRAW_SKILL,
+  [RAPID_SPIN_SKILL.id]: RAPID_SPIN_SKILL,
+  [BITE_SKILL.id]: BITE_SKILL,
+  [POISON_STING_SKILL.id]: POISON_STING_SKILL,
+  [STRING_SHOT_SKILL.id]: STRING_SHOT_SKILL,
+  [BUG_BITE_SKILL.id]: BUG_BITE_SKILL,
+  [SAND_ATTACK_SKILL.id]: SAND_ATTACK_SKILL,
+  [GUST_SKILL.id]: GUST_SKILL,
+  [WRAP_SKILL.id]: WRAP_SKILL,
+  [LEER_SKILL.id]: LEER_SKILL,
+  [GLARE_SKILL.id]: GLARE_SKILL,
+  [THUNDER_SHOCK_SKILL.id]: THUNDER_SHOCK_SKILL,
+  [QUICK_ATTACK_SKILL.id]: QUICK_ATTACK_SKILL,
+  [THUNDER_WAVE_SKILL.id]: THUNDER_WAVE_SKILL,
+  [DOUBLE_TEAM_SKILL.id]: DOUBLE_TEAM_SKILL,
+  [ELECTRO_BALL_SKILL.id]: ELECTRO_BALL_SKILL,
+  [FOCUS_ENERGY_SKILL.id]: FOCUS_ENERGY_SKILL,
+  [PECK_SKILL.id]: PECK_SKILL,
+  [ASSURANCE_SKILL.id]: ASSURANCE_SKILL,
+  [FURY_ATTACK_SKILL.id]: FURY_ATTACK_SKILL,
 }
 
 export function getSkill(id, registry = SKILL_REGISTRY) {

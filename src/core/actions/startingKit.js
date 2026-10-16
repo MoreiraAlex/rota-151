@@ -1,7 +1,12 @@
 import { listSpecies, resolveSpeciesKind } from '../data/species'
 import { HeldItem } from '../traits'
-import { adicionarItem } from './inventory'
-import { colocarNoTime, criarPokemon } from './pokemon'
+import { adicionarItem, hasFreeCell } from './inventory'
+import {
+  colocarNoTime,
+  criarPokemon,
+  listOwnedPokemon,
+  resolvePokemonSpeciesId,
+} from './pokemon'
 
 // Kit de TESTE (docs/features/042-itens-da-beta.md): a Pokédex e todos os
 // itens da beta. O kit de verdade é definido na 066.
@@ -37,15 +42,37 @@ export function darKitInicial(world, trainer) {
   for (const [itemId, amount] of Object.entries(STARTING_ITEMS)) {
     adicionarItem(world, trainer, itemId, amount)
   }
-  const pokemonSpecies = listSpecies().filter(
-    (species) => resolveSpeciesKind(species) === 'pokemon',
-  )
   const created = new Map()
-  for (const species of pokemonSpecies) {
+  for (const species of listPokemonSpecies()) {
     created.set(species.id, criarPokemon(world, trainer, species.id))
   }
   for (const [slot, speciesId] of Object.entries(STARTER_PARTY)) {
     const pokemon = created.get(speciesId)
     if (pokemon) colocarNoTime(trainer, pokemon, slot)
   }
+}
+
+/**
+ * Kit de TESTE num save que já existe: um Pokémon de cada espécie
+ * `kind: 'pokemon'` que o `trainer` ainda não tem vai pro inventário (pra
+ * testar os controles de cada espécie nova), enquanto houver célula livre.
+ * Sai junto do kit de teste na 066. Devolve quantos deu.
+ */
+export function completarEspeciesDeTeste(world, trainer) {
+  const owned = new Set(
+    listOwnedPokemon(world, trainer).map(resolvePokemonSpeciesId),
+  )
+  let given = 0
+  for (const species of listPokemonSpecies()) {
+    if (owned.has(species.id) || !hasFreeCell(world, trainer)) continue
+    criarPokemon(world, trainer, species.id)
+    given++
+  }
+  return given
+}
+
+function listPokemonSpecies() {
+  return listSpecies().filter(
+    (species) => resolveSpeciesKind(species) === 'pokemon',
+  )
 }

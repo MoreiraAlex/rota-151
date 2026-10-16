@@ -1324,12 +1324,13 @@ export const GAME_CONFIG = {
   ANIMATION: {
     // Abaixo disso, considera parado (idle).
     WALK_MIN_SPEED: 0.3,
-    // Acima disso, considera correndo (run) em vez de andando (walk). Fica
-    // entre walkSpeed e runSpeed de MovementStats (core/data/species).
-    RUN_MIN_SPEED: 4,
     // Duração do crossfade (segundos) ao trocar de AnimationState — evita o
     // corte seco entre idle/walk/run (ou qualquer outro clipe futuro).
     BLEND_DURATION: 0.2,
+    // Rapidez (por segundo) com que o modelo sobe até a altura de voo
+    // rasante ao andar/correr e volta ao chão ao parar (`body.flightHeight`,
+    // `view/systems/flightLiftSystem.js`).
+    FLIGHT_LIFT_SPEED: 12,
   },
   PHYSICS: {
     // Aceleração da gravidade (m/s²). Mais forte que 9.81 dá um "peso" de jogo.

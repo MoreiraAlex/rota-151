@@ -5,7 +5,11 @@ import { resolveDamageAmount } from './calculateDamage'
 import { combatWeatherAt } from '../weather/combatWeather'
 import { resolveSkillType } from '../data/types'
 import { isChannelAttack, isSelfAttack } from './channelAttack'
-import { resolveAttackOrigin, resolveFootElevation } from './attackGeometry'
+import {
+  resolveAttackOrigin,
+  resolveAttackReach,
+  resolveFootElevation,
+} from './attackGeometry'
 import { readStatStages } from './statStages'
 import { rollAttackFails, rollHit } from './accuracy'
 import { gameplayRng } from '../rng'
@@ -13,7 +17,7 @@ import { attackFailed, attackResolved, attackUsed } from '../events'
 import { resolveAttackSoundKey } from '../data/audio/attackSound'
 import { resolveAttackImpactPoint } from './attackTrajectory'
 import { resolveAttackTarget, resolveEffectTargets } from './attackTargets'
-import { resolveEffectPlacement } from './attackEffectPlacement'
+import { resolveEffectOrientation } from './attackEffectPlacement'
 import {
   applyAttackEffects,
   applySecondaryEffects,
@@ -75,7 +79,6 @@ export function resolveAttackImpact(world, events, context) {
   const {
     entity,
     action,
-    species,
     attack,
     pos,
     controller,
@@ -95,24 +98,24 @@ export function resolveAttackImpact(world, events, context) {
     return { failed: true }
   }
 
-  // Trajetória do golpe: da origem (centro do corpo + altura
-  // opcional da espécie, `resolveAttackOrigin`) por `range` metros
-  // na horizontal travada no disparo (`action.dirX/dirZ`),
-  // acompanhando o terreno e parando em parede/desnível
-  // (`resolveAttackImpactPoint`, `attackTrajectory.js`).
-  const origin = resolveAttackOrigin(pos, species?.body?.attackOriginHeight)
+  // Trajetória do golpe: da origem (centro do corpo + `positionOffset` do
+  // golpe, `resolveAttackOrigin`) até o `range` contado do centro
+  // (`resolveAttackReach`), na direção travada no disparo
+  // (`action.dirX/dirZ`), acompanhando o terreno e parando em parede/
+  // desnível (`resolveAttackImpactPoint`, `attackTrajectory.js`).
   const direction = { x: action.dirX, y: action.dirY, z: action.dirZ }
+  const origin = resolveAttackOrigin(pos, direction, attack)
   const impactPoint = resolveAttackImpactPoint(
     origin,
     direction,
-    attack.range,
+    resolveAttackReach(attack),
     physicsBody.colliderHandle,
   )
-  const { effectStart, effectRotation } = resolveEffectPlacement(
+  const effectRotation = resolveEffectOrientation(
     origin,
     direction,
     impactPoint,
-    attack.visual,
+    attack.visual.rotationOffset,
   )
 
   // Onde o VFX nasce: no ponto de CONTATO quando o golpe acerta
@@ -229,13 +232,13 @@ export function resolveAttackImpact(world, events, context) {
         revealDuration: attack.visual.revealDuration ?? 0,
         impactType: attack.visual.impactType ?? attack.type ?? '',
         visualScale: attack.visual.scale ?? 1,
-        // da PARTIDA do golpe (origem + `positionOffset`) até onde o VFX
+        // da origem do golpe (com o `positionOffset`) até onde o VFX
         // nasce — um VFX que sai da criatura (Brasa) precisa saber o
         // quanto andar
         length: Math.hypot(
-          effectPoint.x - effectStart.x,
-          effectPoint.y - effectStart.y,
-          effectPoint.z - effectStart.z,
+          effectPoint.x - origin.x,
+          effectPoint.y - origin.y,
+          effectPoint.z - origin.z,
         ),
       }),
     )

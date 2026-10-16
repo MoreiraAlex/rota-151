@@ -53,7 +53,8 @@ export function MoveListPage({ data, version }) {
           formatAccuracy(skill),
           formatArea(skill),
           skill.area === 'self' ? '—' : formatMeters(skill.range, 1),
-          skill.effects.join('; ') || '—',
+          skill.effects.join('; ') ||
+            (skill.category === 'status' ? 'ainda não existe no jogo' : '—'),
         ])}
       />
     </Section>
@@ -109,6 +110,9 @@ export function MoveDetailPage({ data, version, id }) {
               {skill.effects.map((effect) => (
                 <li key={effect}>{effect}</li>
               ))}
+              {skill.category === 'status' && !skill.effects.length ? (
+                <li>Ainda não existe no jogo: o efeito deste golpe.</li>
+              ) : null}
               {skill.category !== 'status' ? (
                 <li>
                   Golpe do tipo <TypeTag data={data} type={skill.type} />: vale

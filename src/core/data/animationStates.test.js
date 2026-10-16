@@ -3,10 +3,14 @@ import { GAME_CONFIG } from '../gameConfig'
 import {
   resolveAnimationState,
   resolveAnimationFallback,
+  resolveRunMinSpeed,
   isOneShotAnimationState,
 } from './animationStates'
 
-const { WALK_MIN_SPEED, RUN_MIN_SPEED } = GAME_CONFIG.ANIMATION
+const { WALK_MIN_SPEED } = GAME_CONFIG.ANIMATION
+// velocidades de uma criatura de teste: o limiar de correr sai delas
+const MOVEMENT = { walkSpeed: 2, runSpeed: 6 }
+const RUN_MIN_SPEED = resolveRunMinSpeed(MOVEMENT)
 
 describe('resolveAnimationState', () => {
   it('esperando no treino, parada no chão → rest (sem rest, a idle)', () => {
@@ -45,14 +49,38 @@ describe('resolveAnimationState', () => {
 
   it('entre WALK_MIN_SPEED e RUN_MIN_SPEED → walk', () => {
     expect(
-      resolveAnimationState({ speed: WALK_MIN_SPEED + 0.01, grounded: true }),
+      resolveAnimationState({
+        speed: WALK_MIN_SPEED + 0.01,
+        runMinSpeed: RUN_MIN_SPEED,
+        grounded: true,
+      }),
     ).toBe('walk')
   })
 
   it('acima de RUN_MIN_SPEED → run', () => {
     expect(
-      resolveAnimationState({ speed: RUN_MIN_SPEED + 0.01, grounded: true }),
+      resolveAnimationState({
+        speed: RUN_MIN_SPEED + 0.01,
+        runMinSpeed: RUN_MIN_SPEED,
+        grounded: true,
+      }),
     ).toBe('run')
+  })
+
+  it('o limiar de correr fica entre o walkSpeed e o runSpeed da criatura', () => {
+    const runMinSpeed = resolveRunMinSpeed(MOVEMENT)
+    expect(runMinSpeed).toBeGreaterThan(MOVEMENT.walkSpeed)
+    expect(runMinSpeed).toBeLessThan(MOVEMENT.runSpeed)
+    const at = (speed) =>
+      resolveAnimationState({ speed, runMinSpeed, grounded: true })
+    expect(at(MOVEMENT.walkSpeed)).toBe('walk')
+    expect(at(MOVEMENT.runSpeed)).toBe('run')
+  })
+
+  it('sem limiar (criatura sem velocidades), não corre', () => {
+    expect(
+      resolveAnimationState({ speed: RUN_MIN_SPEED + 10, grounded: true }),
+    ).toBe('walk')
   })
 
   it('no ar → fall, não importa a velocidade horizontal', () => {

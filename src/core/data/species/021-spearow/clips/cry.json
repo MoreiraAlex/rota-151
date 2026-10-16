@@ -1,0 +1,25 @@
+{
+  "name": "creature-cry",
+  "bones": {
+    "LowerBeak": {
+      "rotation": {
+        "y": {
+          "type": "sum",
+          "curves": [
+            {
+              "type": "constant",
+              "value": -0.563
+            },
+            {
+              "type": "sine",
+              "amplitude": -0.029,
+              "frequencyScale": 10,
+              "phaseTurns": 1
+            }
+          ]
+        }
+      }
+    }
+  },
+  "speed": 0.25
+}

@@ -71,7 +71,6 @@ export function AttackIndicatorView() {
       pos,
       body: controlled.get(CharacterController),
       colliderHandle: physicsBody.colliderHandle,
-      species,
       attack,
       direction: resolveAttackDirection(
         world,

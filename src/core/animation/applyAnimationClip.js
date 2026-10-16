@@ -134,6 +134,16 @@ export function capturePose(bones) {
 }
 
 /**
+ * Devolve aos ossos uma pose fotografada por `capturePose`. Serve pra quem
+ * escreve por cima da animação de base e precisa soltar os ossos depois: o
+ * mixer do Three só reescreve um osso quando o valor da trilha muda, então um
+ * osso parado na animação de base não volta sozinho.
+ */
+export function restorePose(pose, bones) {
+  writePose(pose, bones)
+}
+
+/**
  * Interpola entre uma pose congelada (`fromPose`, ver `capturePose`) e o
  * clipe novo avaliado em `t`, por `alpha` (0 = ainda na pose congelada, 1 =
  * clipe novo puro). Não há dois clipes tocando ao mesmo tempo — só uma

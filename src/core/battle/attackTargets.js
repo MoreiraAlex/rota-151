@@ -5,6 +5,7 @@ import {
   isInsideAttackCone,
   isWithinCombatHeight,
   resolveCapsuleSegment,
+  resolveAttackReach,
   resolveContactPoint,
   resolveFootElevation,
 } from './attackGeometry'
@@ -210,16 +211,17 @@ export function resolveEffectTargets(world, context) {
   const attackerElevation = resolveFootElevation(pos, controller)
 
   if (isConeAttack(attack)) {
+    const reach = resolveAttackReach(attack)
     const coneEnd = resolveAttackImpactPoint(
       origin,
       direction,
-      attack.range,
+      reach,
       context.physicsBody.colliderHandle,
       { terrainOnly: true },
     )
     const cone = {
       length: Math.hypot(coneEnd.x - origin.x, coneEnd.z - origin.z),
-      range: attack.range,
+      range: reach,
       radius: attack.radius,
     }
     return resolveConeTargets(

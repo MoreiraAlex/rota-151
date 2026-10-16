@@ -45,7 +45,18 @@ import { getSpecies } from './species'
 
 const WILD_CREATURE_COUNT = 10
 
-const WILD_CREATURE_SPECIES = ['bulbasaur', 'charmander', 'squirtle']
+const WILD_CREATURE_SPECIES = [
+  'bulbasaur',
+  'charmander',
+  'squirtle',
+  'caterpie',
+  'weedle',
+  'pidgey',
+  'rattata',
+  'spearow',
+  'ekans',
+  'pikachu',
+]
 
 // Metade do lado (m) do quadrado em volta da origem onde os selvagens
 // nascem — provisório até o spawn por chunk (060).

@@ -42,16 +42,15 @@ export function resolveEffectRotation(direction, rotationOffset) {
 }
 
 /**
- * Ponto de PARTIDA do VFX: a origem do golpe (`origin`) deslocada por
+ * Ponto de PARTIDA do golpe: `origin` deslocado por
  * `positionOffset` (metros, `attack.visual.positionOffset`) no referencial
  * da trajetória — o mesmo que `resolveEffectRotation` desenha: +Z = direção
  * do golpe, +Y = pra cima, +X = pro lado (esquerda de quem olha na direção
- * do golpe). Assim `{ y: 0.2 }` sobe a saída do golpe 20 cm, seja qual for
- * a direção do disparo. Só o VISUAL: o dano e o alcance continuam contados
- * a partir de `origin`, e o PONTO DE IMPACTO continua sendo o do `range`
- * — o efeito só se reorienta e se estica do novo ponto de partida até ele
- * (ver o spawn do `AttackEffect`). Independente do `rotationOffset` (que só
- * gira a malha): os eixos aqui são só os do yaw/pitch do golpe.
+ * do golpe). Assim `{ y: 0.2 }` sobe a saída do golpe, seja qual for a
+ * direção do disparo. É a origem do golpe no core também
+ * (`resolveAttackOrigin`, `attackGeometry.js`): dano, alvos e VFX saem
+ * daqui. Independente do `rotationOffset` (que só gira a malha): os eixos
+ * aqui são só os do yaw/pitch do golpe.
  *
  * Os eixos seguem a ordem de rotação que a view usa (`object.rotation.set(x,
  * y, z)` do Three, ordem XYZ — ver `syncTransformSystem.js`): `R = Rx(pitch)
@@ -88,16 +87,19 @@ export function resolveEffectStart(origin, direction, positionOffset) {
 }
 
 /**
- * Onde o VFX do golpe parte e como ele gira: orientado pela trajetória REAL
- * (`origin` → `impactPoint`), deslocado por `visual.positionOffset`
- * (`resolveEffectStart`) e reorientado da nova partida até o impacto, mais o
- * `visual.rotationOffset` (`resolveEffectRotation`). `direction` é a direção
- * travada do golpe — usada quando a trajetória tem comprimento ~0.
+ * Como o VFX do golpe gira: orientado pela trajetória REAL (`origin` →
+ * `impactPoint`, inclina junto numa rampa), mais o `visual.rotationOffset`
+ * (`resolveEffectRotation`). A partida já é a origem do golpe
+ * (`resolveAttackOrigin`, com o `positionOffset`). `direction` é a direção
+ * travada do golpe — usada quando a trajetória tem comprimento ~0
+ * (encostado na parede).
  */
-export function resolveEffectPlacement(origin, direction, impactPoint, visual) {
-  // VFX orientado pela trajetória REAL (inclina junto numa rampa);
-  // trajetória de comprimento ~0 (encostado na parede) usa a
-  // direção travada.
+export function resolveEffectOrientation(
+  origin,
+  direction,
+  impactPoint,
+  rotationOffset,
+) {
   const path = {
     x: impactPoint.x - origin.x,
     y: impactPoint.y - origin.y,
@@ -112,32 +114,5 @@ export function resolveEffectPlacement(origin, direction, impactPoint, visual) {
           z: path.z / pathLength,
         }
       : direction
-  // Ponto de partida VISUAL (`visual.positionOffset`): só a saída do
-  // golpe anda; o impacto continua o do `range`. O efeito é
-  // reorientado da nova partida até o impacto.
-  const effectStart = resolveEffectStart(
-    origin,
-    pathDirection,
-    visual.positionOffset,
-  )
-  const startPath = {
-    x: impactPoint.x - effectStart.x,
-    y: impactPoint.y - effectStart.y,
-    z: impactPoint.z - effectStart.z,
-  }
-  const startPathLength = Math.hypot(startPath.x, startPath.y, startPath.z)
-  const effectDirection =
-    startPathLength > 1e-6
-      ? {
-          x: startPath.x / startPathLength,
-          y: startPath.y / startPathLength,
-          z: startPath.z / startPathLength,
-        }
-      : pathDirection
-  const effectRotation = resolveEffectRotation(
-    effectDirection,
-    visual.rotationOffset,
-  )
-
-  return { effectStart, effectRotation }
+  return resolveEffectRotation(pathDirection, rotationOffset)
 }

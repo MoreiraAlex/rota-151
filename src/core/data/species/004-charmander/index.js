@@ -155,7 +155,7 @@ export const CHARMANDER = {
         },
       },
     },
-    2: { id: 'tackle', overrides: { range: 1.4, duration: 1, effectAt: 0.4 } },
+    2: { id: 'scratch', overrides: { range: 1.4, duration: 1, effectAt: 0.4 } },
     3: {
       id: 'ember',
       overrides: {
@@ -177,6 +177,7 @@ export const CHARMANDER = {
   moves: [
     {
       id: 'smokescreen',
+      requires: { level: 8 },
       overrides: {
         range: 2.5,
         radius: 2,
@@ -185,8 +186,10 @@ export const CHARMANDER = {
         visual: { positionOffset: { x: 0, y: 0, z: 0.5 }, scale: 3 },
       },
     },
+    { id: 'dragon-breath', requires: { level: 12 } },
     {
       id: 'flamethrower',
+      requires: { level: 24 },
       overrides: {
         range: 2.5,
         radius: 2,

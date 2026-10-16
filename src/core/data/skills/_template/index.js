@@ -153,12 +153,14 @@ export const SKILL_TEMPLATE = {
     // câmera). A malha de origem pode não ter o "forward" alinhado com a
     // convenção do jogo — corrige aqui olhando o resultado em jogo.
     rotationOffset: { x: 0, y: 0, z: 0 },
-    // Opcional — desloca o PONTO DE PARTIDA do VFX (METROS), no
-    // referencial do golpe: +Z = direção do golpe, +Y = pra cima, +X = pro
-    // lado (esquerda de quem olha na direção do golpe). Só a saída do golpe
-    // anda (ex.: subir a boca do jato); o ponto de IMPACTO continua o do
-    // `range`, e o efeito se reorienta/estica da nova partida até ele. Não
-    // muda dano nem alcance (só o visual) nem depende do `rotationOffset`.
+    // Opcional — de onde o golpe SAI (METROS a partir do centro do corpo),
+    // no referencial do golpe: +Z = direção do golpe, +Y = pra cima, +X = pro
+    // lado (esquerda de quem olha na direção do golpe). Vale pro jogo todo,
+    // não só pro visual (`resolveAttackOrigin`, `core/battle/
+    // attackGeometry.js`): dano, alvos, aviso no chão e VFX partem daqui
+    // (ex.: a mordida na boca, a rabada na cauda). O `range` continua
+    // contado do centro do corpo — empurrar a saída pra frente não aumenta o
+    // alcance (`resolveAttackReach`). Não depende do `rotationOffset`.
     positionOffset: { x: 0, y: 0, z: 0 },
     // Opcional — só pro grupo `'impact'` (impacto genérico por tipo): o tipo
     // do golpe, que escolhe as partículas ('normal', 'fire', 'water',

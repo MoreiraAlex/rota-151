@@ -64,15 +64,18 @@ export const BULBASAUR = {
     idle: 'idle',
     walk: { animation: 'walk', speed: 1.5 },
     run: { animation: 'run', speed: 1.2 },
-    attackBasic: {
-      sequence: [
-        { animation: 'attackRangedAltStart' },
-        { animation: 'attackRangedAltEnd', frames: 10 },
-      ],
+    attack: {
+      start: 'attackAltStart',
+      loop: 'attackAltLoop',
+      end: 'attackAltEnd',
     },
     attackBasicAlt: { sequence: ['attackAltStart', 'attackAltEnd'] },
     attackAlt: 'attack',
     attackRanged: { sequence: [{ animation: 'attackRanged', frames: 40 }] },
+    attackRangedAlt: {
+      start: 'attackRangedAltStart',
+      loop: 'attackRangedAltLoop',
+    },
     faint: {
       start: 'faintStart',
       loop: 'faintLoop',
@@ -186,5 +189,9 @@ export const BULBASAUR = {
     sp_def: { base: SP_DEF, ev: SP_DEF_EV },
     speed: { base: SPEED, ev: SPEED_EV },
   },
-  moves: [{ id: 'leech-seed' }, { id: 'growth' }],
+  moves: [
+    { id: 'growth', requires: { level: 6 } },
+    { id: 'leech-seed', requires: { level: 9 } },
+    { id: 'razor-leaf', requires: { level: 12 } },
+  ],
 }

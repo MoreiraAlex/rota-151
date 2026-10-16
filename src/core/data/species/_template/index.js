@@ -135,12 +135,8 @@ export const SPECIES_TEMPLATE = {
     // local, em unidades de mundo — não escala com `model.scale`). Ajusta
     // junto toda vez que capsuleRadius/capsuleHalfHeight/capsuleAxis mudam.
     modelOffset: [0, 0, 0],
-    // Opcional — de onde os ataques desta espécie saem, em metros ACIMA do
-    // centro da cápsula (`Position` é o centro, não o pé). Ausente = golpe
-    // sai do centro do corpo (`resolveAttackOrigin`,
-    // `core/battle/attackGeometry.js`). Útil quando o golpe devia sair da
-    // boca/mãos, bem acima do centro.
-    // attackOriginHeight: 0,
+    // De onde cada golpe sai não é da espécie: é o `visual.positionOffset`
+    // do golpe (override por espécie em `skills`/`moves`).
   },
   movement: {
     // Unidades por segundo (1 unidade = 1 metro).

@@ -21,7 +21,7 @@ function color565(value) {
 }
 
 // Bloco de cor do BC1/BC3: 4×4 pixels em `out` (RGBA).
-function decodeColorBlock(buffer, at, out, allowPunchThrough) {
+export function decodeColorBlock(buffer, at, out, allowPunchThrough) {
   const c0 = buffer.readUInt16LE(at)
   const c1 = buffer.readUInt16LE(at + 2)
   const bits = buffer.readUInt32LE(at + 4)
@@ -45,7 +45,7 @@ function decodeColorBlock(buffer, at, out, allowPunchThrough) {
   for (let i = 0; i < 16; i++) out.set(palette[(bits >> (2 * i)) & 3], i * 4)
 }
 
-function decodeAlphaBlock(buffer, at, out) {
+export function decodeAlphaBlock(buffer, at, out) {
   const a0 = buffer[at]
   const a1 = buffer[at + 1]
   const values = [a0, a1]

@@ -79,7 +79,7 @@ import {
  * de `FOLLOW_MIN_DISTANCE`, parada; além de `RUN_DISTANCE`, corre
  * (`runSpeed`) pra alcançar; entre os dois, anda (`walkSpeed`) — é essa
  * transição de velocidade que dá o walk/run de verdade (`animationStateSystem`
- * já decide o clipe a partir de `WALK_MIN_SPEED`/`RUN_MIN_SPEED`, sem
+ * já decide o clipe a partir de `WALK_MIN_SPEED`/`resolveRunMinSpeed`, sem
  * precisar de um limiar próprio aqui). A decisão anda/corre usa a
  * distância até o ALVO, não até o waypoint atual — só a direção do
  * movimento muda com o pathfinding, o ritmo de aproximação continua igual
