@@ -40,12 +40,15 @@ ANIMATIONS = {
 }
 
 # Por espécie (número da Pokédex), o que muda no mapa acima. O Spearow voa no mapa do LGPE:
-# o idle do mapa é pairando no ar, então o parado é o de interação (de pé, asa fechada).
-OVERRIDES = {21: {"idle": "kw01_wait01"}}
+# o idle do mapa é pairando no ar, então o parado é o de interação (de pé, asa fechada), e
+# o pairando vira o flyIdle do voo livre (docs/features/060-ajustes-por-especie.md).
+OVERRIDES = {21: {"idle": "kw01_wait01", "flyIdle": "fi01_wait01"}}
 # Clipes de locomoção que precisam ficar no chão: se o ponto mais baixo do esqueleto passa do
 # do idle por mais que a tolerância (o andar e o correr do Spearow são voo, bem acima do chão),
-# o clipe inteiro desce até o chão do idle — o "voo rasante" (decisão do usuário, 059).
-GROUNDED = ("walk", "run")
+# o clipe inteiro desce até o chão do idle — o "voo rasante" (decisão do usuário, 059; desde
+# a 060 só no voo livre, no chão o Spearow anda a pé por clipe procedural). O pairar
+# (flyIdle) também: no voo livre quem sobe é o corpo, não o clipe (060).
+GROUNDED = ("walk", "run", "flyIdle")
 GROUND_TOLERANCE = 10  # centímetros, como o arquivo
 
 # O LGPE grava em centímetros; os .glb do jogo são em metros.

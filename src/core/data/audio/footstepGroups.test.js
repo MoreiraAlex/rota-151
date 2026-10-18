@@ -3,6 +3,7 @@ import {
   FOOTSTEP_GROUPS,
   getFootstepGroup,
   resolveFootstepSound,
+  resolveFlightSound,
 } from './footstepGroups'
 
 describe('getFootstepGroup', () => {
@@ -73,6 +74,27 @@ describe('FOOTSTEP_GROUPS', () => {
     for (const [id, group] of Object.entries(FOOTSTEP_GROUPS)) {
       expect(group.walk.length, `${id}.walk`).toBeGreaterThan(0)
       expect(group.run.length, `${id}.run`).toBeGreaterThan(0)
+    }
+  })
+})
+
+describe('resolveFlightSound (voo livre, 060)', () => {
+  it('sem `flightGroup`, null (o voo toca o passo normal)', () => {
+    expect(resolveFlightSound({ sounds: { footstepGroup: 'bird' } })).toBeNull()
+    expect(resolveFlightSound({})).toBeNull()
+  })
+
+  it('`flightGroup` resolve pro grupo compartilhado', () => {
+    expect(resolveFlightSound({ sounds: { flightGroup: 'wing' } })).toBe(
+      getFootstepGroup('wing'),
+    )
+  })
+
+  it('toda espécie que voa e declara `flightGroup` aponta pra um grupo que existe', async () => {
+    const { listSpecies } = await import('@/core/data/species')
+    for (const species of listSpecies()) {
+      if (!species.sounds?.flightGroup) continue
+      expect(resolveFlightSound(species)).not.toBeNull()
     }
   })
 })

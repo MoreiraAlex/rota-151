@@ -47,12 +47,4 @@ describe('laboratório de corpo', () => {
     expect(snippet).toContain("capsuleAxis: 'z',")
     expect(snippet).toContain('modelOffset: [0, -0.5, 0],')
   })
-
-  it('o trecho mantém o flightHeight de quem tem voo rasante', () => {
-    const flying = { ...STANDING, flightHeight: 0.2 }
-    expect(formatBodySnippet(flying, 1)).toContain(
-      `flightHeight: ${flying.flightHeight},`,
-    )
-    expect(formatBodySnippet(STANDING, 1)).not.toContain('flightHeight')
-  })
 })

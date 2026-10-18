@@ -2,7 +2,7 @@
  * Estilingada de Teia (String Shot) — golpe de status em cone, no formato do
  * `../growl`, ver `../_template/index.js` pro que cada campo significa.
  * Entrou na 059 com valores padrão: forma e VFX do Growl, som do impacto do
- * tipo; o refino fica pra 088. Na série ele baixa a Velocidade do alvo, mas
+ * tipo; o refino fica pra 090. Na série ele baixa a Velocidade do alvo, mas
  * o jogo ainda não tem estágio de Velocidade (`STAT_STAGE_KEYS`,
  * `core/battle/statStages.js`): por enquanto não tem efeito.
  */

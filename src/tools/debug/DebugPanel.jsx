@@ -153,7 +153,7 @@ export function DebugPanel({ onDeleteSave = null }) {
       {/* Bioma onde está quem é controlado (docs/features/047-biomas.md). */}
       <p>bioma: {TEST_LEVEL.terrain.biomeAt(position.x, position.z).name}</p>
       {/* A cidade mais perto (docs/features/058-ajuste-dos-biomas.md): a
-          base do nível dos selvagens pela distância (060). */}
+          base do nível dos selvagens pela distância (062). */}
       <NearestCityLine x={position.x} z={position.z} />
       <RenderStatsLine />
       {/* Relógio e clima (docs/features/048-dia-noite-e-clima.md). */}

@@ -40,6 +40,7 @@ import {
   WildCreature,
   resolveCreatureSpeciesId,
   resolveEntityLevel,
+  Flying,
 } from '../traits'
 
 /**
@@ -207,6 +208,12 @@ export function creatureAttackSystem(context) {
         ],
         entity,
       ) => {
+        // Voando não ataca: pra lutar, pousa (docs/features/060-*.md,
+        // Parte 2). O indicador aberto fecha.
+        if (entity.has(Flying)) {
+          aim.slot = null
+          return
+        }
         const species = getSpecies(creature.speciesId)
         const castContext = {
           entity,
@@ -295,6 +302,8 @@ export function creatureAttackSystem(context) {
         requested.push(entity)
         const target = request.target
         if (!request.slot || !isActiveCombatant(target)) return
+        // Descendo do voo (controle devolvido): só ataca depois de pousar.
+        if (entity.has(Flying)) return
         const speciesId = resolveCreatureSpeciesId(entity)
         if (!speciesId) return
 

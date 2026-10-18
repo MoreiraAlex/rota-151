@@ -643,6 +643,9 @@ export const GAME_CONFIG = {
       LINE_THICKNESS: 0.05,
       // Nuvens de poeira na saída do dash (0 = sem poeira).
       DUST_COUNT: 5,
+      // Dash no AR (voo livre, docs/features/060-ajustes-por-especie.md): sem
+      // poeira; ondas de ar que estouram pra trás na saída (0 = sem ondas).
+      AIR_WAVES: 2,
     },
     // Respingo de quem pula, cai ou dá dash na água (`view/vfx/
     // waterSplashVfx.js`, docs/features/057-lagos-e-rios.md), no lugar da
@@ -1131,6 +1134,10 @@ export const GAME_CONFIG = {
     RUN_WEIGHT_PER_SECOND: 4,
     DASH_WEIGHT: 15,
     JUMP_WEIGHT: 5,
+    // Voo livre (`core/systems/flightSystem.js`), POR SEGUNDO: pairando ou
+    // devagar, e rápido (Shift).
+    FLY_WEIGHT_PER_SECOND: 2,
+    FLY_FAST_WEIGHT_PER_SECOND: 6,
   },
   // Escolha do golpe pela IA (selvagens e time fora do controle —
   // `core/battle/aiAttackChoice.js`): cada golpe pronto ganha uma nota pelos
@@ -1327,10 +1334,75 @@ export const GAME_CONFIG = {
     // Duração do crossfade (segundos) ao trocar de AnimationState — evita o
     // corte seco entre idle/walk/run (ou qualquer outro clipe futuro).
     BLEND_DURATION: 0.2,
-    // Rapidez (por segundo) com que o modelo sobe até a altura de voo
-    // rasante ao andar/correr e volta ao chão ao parar (`body.flightHeight`,
-    // `view/systems/flightLiftSystem.js`).
-    FLIGHT_LIFT_SPEED: 12,
+  },
+  // Voo livre de quem tem `species.flight` (docs/features/060-ajustes-por-
+  // especie.md, Parte 2; `core/systems/flightSystem.js`). O gasto de stamina
+  // fica em `ACTION_COST` (pelo nível, como a corrida).
+  FLIGHT: {
+    // Teto (m acima do chão logo abaixo) com a stamina cheia; o teto de
+    // verdade é a fração de stamina × este valor.
+    MAX_HEIGHT: 30,
+    // Fração da stamina máxima que precisa ter pra decolar.
+    MIN_TAKEOFF_STAMINA: 0.25,
+    // Decolagem: sobe nesta velocidade (m/s) por este tempo (s), e só
+    // depois pode pousar encostando no chão.
+    TAKEOFF_SPEED: 3,
+    TAKEOFF_DURATION: 0.4,
+    // Descida (m/s) do pouso pedido (`V` no ar, ou o controle devolvido).
+    LANDING_SPEED: 3,
+    // Teto macio (a stamina caindo): a velocidade vertical máxima é a
+    // distância até o teto × CEILING_RESPONSE (por segundo) — maior = mais
+    // seco —, descendo no máximo em CEILING_DESCENT_SPEED (m/s). Sem stamina,
+    // desce pelo menos em TOUCHDOWN_SPEED (m/s) até tocar o chão.
+    CEILING_DESCENT_SPEED: 1.5,
+    CEILING_RESPONSE: 1.5,
+    TOUCHDOWN_SPEED: 0.6,
+    // A inclinação da câmera também sobe/desce o voo (W pra onde ela olha)?
+    // Desligado, a câmera só dá a direção no plano e a altura é só no
+    // Espaço/C.
+    CAMERA_PITCH_CONTROL: false,
+    // Pitch da câmera (rad, mesma convenção do `CAMERA.MIN_PITCH`) que conta
+    // como voo reto quando a câmera controla a altura; acima dele desce,
+    // abaixo sobe.
+    NEUTRAL_PITCH: 0.35,
+    // Embalo (por segundo, maior = mais seco): com que rapidez a velocidade
+    // chega na pedida com tecla (ACCELERATION) e para sem tecla (BRAKE).
+    ACCELERATION: 4,
+    BRAKE: 2,
+    // Inclinação do corpo no voo, só no modelo (`view/systems/
+    // flightTiltSystem.js`): deita pro lado da curva (ROLL_PER_TURN rad de
+    // roll por rad/s de giro, até MAX_ROLL) e levanta/abaixa o bico na
+    // subida/descida (o ângulo da subida × PITCH_FACTOR, até MAX_PITCH,
+    // pesando pela fração da velocidade de voo que vai no plano). SMOOTHING:
+    // rapidez (por segundo) com que a inclinação acompanha.
+    TILT: {
+      MAX_ROLL: 0.6,
+      ROLL_PER_TURN: 0.25,
+      MAX_PITCH: 0.5,
+      PITCH_FACTOR: 0.8,
+      SMOOTHING: 6,
+    },
+  },
+  // Luz de fogo presa num osso (`species.vfx.fireLight`, ex.: a ponta da
+  // cauda do Charmander — `view/systems/fireLightSystem.js`). Valores padrão
+  // de quem não declara o campo na espécie.
+  FIRE_LIGHT: {
+    COLOR: '#ff8a3d',
+    // Brilho base, antes do tremor.
+    INTENSITY: 2,
+    // Alcance (metros) e queda com a distância da `THREE.PointLight`.
+    DISTANCE: 3,
+    DECAY: 2,
+    // Tremor: oscilação senoidal (frequência e amplitude, fração do brilho
+    // base) e um ruído aleatório por cima.
+    FLICKER_SPEED: 18,
+    FLICKER_AMOUNT: 0.15,
+    FLICKER_NOISE: 0.1,
+    // Fração do brilho que sobra com a criatura desmaiada (a chama fica
+    // fraca, não apaga).
+    FAINTED_INTENSITY: 0.3,
+    // Segundos pra enfraquecer ao desmaiar e voltar ao acordar.
+    FAINT_FADE_DURATION: 0.4,
   },
   PHYSICS: {
     // Aceleração da gravidade (m/s²). Mais forte que 9.81 dá um "peso" de jogo.
@@ -1344,17 +1416,21 @@ export const GAME_CONFIG = {
     CHARACTER: {
       // "Casca" do character controller (folga de colisão).
       CONTROLLER_OFFSET: 0.03,
-      // Inclinação máxima que sobe / mínima em que escorrega (radianos).
+      // Inclinação máxima que sobe / mínima em que escorrega (radianos). Com
+      // as duas iguais, quem consegue subir a rampa também não escorrega nela
+      // (docs/features/060-ajustes-por-especie.md, Parte 4).
       MAX_SLOPE_CLIMB: 0.9,
-      MIN_SLOPE_SLIDE: 0.6,
+      MIN_SLOPE_SLIDE: 0.9,
       // Auto-degrau: altura e largura mínima do degrau transposto sozinho.
       AUTOSTEP_HEIGHT: 0.4,
       AUTOSTEP_MIN_WIDTH: 0.15,
       // Distância de "colar no chão" ao descer.
       SNAP_TO_GROUND: 0.4,
-      // Velocidade vertical mantida enquanto no chão (mantém o snap ativo) —
-      // epsilon técnico do algoritmo, não atributo de criatura.
-      GROUNDED_STICK: -2,
+      // Velocidade vertical mantida enquanto no chão — epsilon técnico do
+      // algoritmo, não atributo de criatura. Abaixo de zero, o controller
+      // transforma o empurrão em deslize encosta abaixo a cada passo (o snap
+      // do controller já cola no chão sem ele; 060, Parte 4).
+      GROUNDED_STICK: 0,
       // Sinal de "tem algo sólido na frente que não era esperado" — ver
       // trait `MovementBlocked`. Só entra na conta quando o deslocamento
       // PEDIDO neste tick (Velocity * delta, no plano XZ) já passa dessa

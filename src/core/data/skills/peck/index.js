@@ -1,7 +1,7 @@
 /**
  * Bicada (Peck) — golpe físico corpo a corpo, ver `../_template/index.js`
  * pro que cada campo significa. Entrou na 059 com valores padrão: forma e
- * VFX do `../scratch`, som de impacto; o refino fica pra 088.
+ * VFX do `../scratch`, som de impacto; o refino fica pra 090.
  */
 export const PECK_SKILL = {
   id: 'peck',

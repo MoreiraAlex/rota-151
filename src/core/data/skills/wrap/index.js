@@ -1,7 +1,7 @@
 /**
  * Enrolar (Wrap) — golpe físico corpo a corpo, ver `../_template/index.js`
  * pro que cada campo significa. Entrou na 059 com valores padrão: forma, VFX
- * e som do `../tackle`; o refino fica pra 088. Na série ele prende o alvo e
+ * e som do `../tackle`; o refino fica pra 090. Na série ele prende o alvo e
  * causa dano por alguns turnos; o jogo ainda não tem esse efeito, então por
  * enquanto é só o golpe.
  */

@@ -147,6 +147,18 @@ export const SPECIES_TEMPLATE = {
     // Velocidade vertical inicial do pulo (m/s).
     jumpSpeed: 9,
   },
+  // Opcional — voo livre (docs/features/060-ajustes-por-especie.md, Parte
+  // 2): com isto, a criatura controlada decola com `V` e voa pra onde a
+  // câmera olha. Velocidades em m/s; o gasto de stamina é pelo nível
+  // (`GAME_CONFIG.ACTION_COST.FLY_*`) e o teto/decolagem em
+  // `GAME_CONFIG.FLIGHT`. Animações: `flyIdle`, `fly` e `flyFast` em
+  // `nativeAnimations` (sem elas, toca a de andar/correr) e `flyDash` (sem
+  // ela, a do `dash`). O som do voo é o `sounds.flightGroup` (sem ele, o do
+  // passo).
+  //   flight: {
+  //     speed: 4, // voo normal
+  //     fastSpeed: 9, // voo rápido (Shift)
+  //   },
   // Opcional — sem isso, `cameraFollowSystem.js` usa os defaults globais
   // (`GAME_CONFIG.CAMERA.TARGET_HEIGHT`/`.SHOULDER_OFFSET`), os mesmos
   // que todo mundo usava antes desta espécie declarar algo próprio. Faz
@@ -310,57 +322,24 @@ export const SPECIES_TEMPLATE = {
   //          scale: 1,
   //        },
   //      },
-  // `vfx.tailFire` (opcional — ver `../004-charmander/index.js`, docs/
-  // features/022-fogo-de-cauda-do-charmander.md) — fogo de partícula
-  // encaixado num osso nomeado (`TAIL_BONE_BY_SPECIES`, hardcoded em
-  // `useAnimatedModel.js` — nome de osso vem do rig, não é dado de
-  // espécie; sem entrada lá pro `id` desta espécie, o campo abaixo não
-  // faz nada mesmo se declarado). Todos os campos opcionais — ver
-  // `createFlame` em `view/vfx/flameParticles.js` pro que cada um faz:
+  // `vfx.fireLight` (opcional — ver `../004-charmander/index.js`, docs/
+  // features/060-ajustes-por-especie.md) — luz quente presa num osso,
+  // tremendo como fogo (a chama em si é do modelo). Fica fraca com a
+  // criatura desmaiada. Só `bone` é obrigatório; o resto cai nos padrões de
+  // `GAME_CONFIG.FIRE_LIGHT`:
   //      vfx: {
-  //        tailFire: {
-  //          shape: 'cone', // 'cone' | 'cylinder' | 'inverseCone' | 'sphere' | 'diamond'
-  //          width: 0.25, // multiplicador do raio da base — default calibrado pra fogueira, cauda é bem menor
-  //          height: 0.35, // multiplicador da distância de subida
-  //          density: 0.35, // multiplicador da quantidade de partícula
-  //          turbulence: 1, // multiplicador do balanço lateral
-  //          palette: 'fire', // 'fire' | 'greenFlame' | 'blueFlame' | 'purpleFlame'
-  //          intensity: 1, // multiplicador de opacidade geral
-  //          scale: 1, // multiplicador de escala geral do grupo (por cima da correção de escala do rig, ver tailFireSystem.js)
-  //          speed: 1, // multiplicador do delta passado pra flame.update — chama mais rápida/lenta
-  //          // Rotação LOCAL fixa (graus), por cima da orientação herdada
-  //          // do osso — `bone.add()` faz o fogo herdar a rotação da
-  //          // cauda inteira, então o eixo "pra cima" da partícula pode
-  //          // sair torto/deitado dependendo de como o rig orienta esse
-  //          // osso; ajusta na mão olhando o resultado no jogo (ver
-  //          // tailFireSystem.js).
-  //          rotation: { x: 0, y: 0, z: 0 },
-  //          // Deslocamento LOCAL (unidades de mundo, ex.: 0.1 = 10cm) a
-  //          // partir da origem do osso — o osso pode não ficar bem onde
-  //          // a chama deveria nascer (ex.: um pouco além da ponta da
-  //          // cauda). Ajusta na mão, mesmo espírito de `rotation` acima.
+  //        fireLight: {
+  //          bone: 'feeler_01', // osso do rig onde a luz fica presa
+  //          color: '#ff8a3d',
+  //          intensity: 2, // brilho base, antes do tremor
+  //          distance: 3, // alcance, em metros
+  //          decay: 2, // queda com a distância
+  //          faintedIntensity: 0.3, // fração do brilho que sobra desmaiado
+  //          // Deslocamento a partir do osso, em metros, nos eixos do osso.
   //          position: { x: 0, y: 0, z: 0 },
-  //          // Opcional — `false` (ou `{ enabled: false }`) desliga por
-  //          // completo; sem declarar nada, sai com uma luz quente
-  //          // moderada default. `THREE.PointLight` de verdade, filha do
-  //          // MESMO grupo da chama — já acompanha escala/rotação/posição
-  //          // acima de graça, sem configurar posição própria (a menos
-  //          // que precise, ver `light.position` abaixo).
-  //          light: {
-  //            color: '#ff8a3d',
-  //            distance: 3, // alcance da luz, unidades de mundo
-  //            decay: 2,
-  //            baseIntensity: 1.5, // brilho base, antes do flicker
-  //            flickerSpeed: 18, // frequência da oscilação senoidal
-  //            flickerAmount: 0.15, // amplitude da oscilação senoidal
-  //            flickerNoise: 0.1, // amplitude do tremor aleatório por cima
-  //            position: { x: 0, y: 0.15, z: 0 }, // offset local dentro do grupo da chama
-  //            // false por padrão — sombra de PointLight é cara (cubemap,
-  //            // 6 passes), repetida por entidade com fogo. Liga só quem
-  //            // quiser pagar o custo.
-  //            castShadow: false,
-  //            shadowMapSize: 512,
-  //          },
+  //          // Tremor: frequência e amplitude do seno (fração do brilho) e
+  //          // amplitude do ruído aleatório por cima.
+  //          flicker: { speed: 18, amount: 0.15, noise: 0.1 },
   //        },
   //      },
   stats: {},

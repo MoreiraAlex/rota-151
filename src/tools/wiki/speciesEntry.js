@@ -7,6 +7,7 @@ import {
   resolveAttackForEntity,
 } from '@/core/battle/attackCasting'
 import { resolveMovementCosts } from '@/core/traits/components/vitals'
+import { resolveLevelCost } from '@/core/battle/levelCost'
 
 /**
  * Dados de espécie prontos pra wiki (Pokédex, `/wiki/pokedex`) — tudo
@@ -128,12 +129,31 @@ export function resolveSpeciesMoves(species) {
   return (species.moves ?? []).map(resolveSkill).filter(Boolean)
 }
 
-/** Velocidades e custo de energia do movimento (corrida, dash, pulo). */
+/** Velocidades e custo de energia do movimento (corrida, dash, pulo, voo). */
 export function resolveSpeciesMovement(species) {
   return {
     walkSpeed: species.movement?.walkSpeed ?? null,
     runSpeed: species.movement?.runSpeed ?? null,
     jumpSpeed: species.movement?.jumpSpeed ?? null,
     ...resolveMovementCosts(species),
+    flight: resolveSpeciesFlight(species),
+  }
+}
+
+/**
+ * Voo livre (`species.flight`): velocidades e energia por segundo, pelo
+ * nível da espécie e com a vida cheia (a mesma conta do `flightSystem`).
+ * `null` pra quem não voa.
+ */
+export function resolveSpeciesFlight(species) {
+  if (!species.flight) return null
+  const { FLY_WEIGHT_PER_SECOND, FLY_FAST_WEIGHT_PER_SECOND } =
+    GAME_CONFIG.ACTION_COST
+  const level = species.level ?? 1
+  return {
+    speed: species.flight.speed,
+    fastSpeed: species.flight.fastSpeed,
+    staminaPerSecond: resolveLevelCost(level, FLY_WEIGHT_PER_SECOND),
+    fastStaminaPerSecond: resolveLevelCost(level, FLY_FAST_WEIGHT_PER_SECOND),
   }
 }

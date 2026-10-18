@@ -7,6 +7,7 @@ import { verticalClearance } from '@/core/physics/colliders'
 import {
   ActionState,
   CharacterController,
+  Flying,
   Position,
   Rotation,
 } from '@/core/traits'
@@ -33,11 +34,20 @@ const MAX_STEP = 1 / 20
  * conforme ela corre. `GAME_CONFIG.FEEDBACK.DASH_EFFECT` liga/desliga e escala.
  * A poeira da saída é a do pulo (do tamanho dela, `JUMP_DUST.SCALE`); com os
  * pés na água no começo do dash, o respingo na superfície
- * (docs/features/057-lagos-e-rios.md).
+ * (docs/features/057-lagos-e-rios.md). Voando (`Flying`, docs/features/060-
+ * ajustes-por-especie.md), sem chão: só as linhas, inclinadas na direção do
+ * dash (`pitch`), e as ondas de ar (`DASH_EFFECT.AIR_WAVES`).
  */
 export function DashEffectsView() {
-  const { ENABLED, SCALE, LINE_RATE, LINE_LENGTH, LINE_THICKNESS, DUST_COUNT } =
-    GAME_CONFIG.FEEDBACK.DASH_EFFECT
+  const {
+    ENABLED,
+    SCALE,
+    LINE_RATE,
+    LINE_LENGTH,
+    LINE_THICKNESS,
+    DUST_COUNT,
+    AIR_WAVES,
+  } = GAME_CONFIG.FEEDBACK.DASH_EFFECT
   const textures = useTexture(DASH_TEXTURE_PATHS)
   const rootRef = useRef()
   const managerRef = useRef(null)
@@ -54,11 +64,16 @@ export function DashEffectsView() {
     }
     const dry = buildDashEmitters(options)
     const wet = buildDashEmitters({ ...options, water: true })
+    const air = buildDashEmitters({
+      ...options,
+      air: true,
+      airWaves: AIR_WAVES,
+    })
     const manager = createFollowEffectManager({
       root: rootRef.current,
-      createSystem: ({ water, origin }) => {
+      createSystem: ({ water, flying, origin }) => {
         // Na água, um anel na superfície junto do respingo.
-        if (water) {
+        if (water && !flying) {
           addFootRipple(
             origin[0],
             GAME_CONFIG.TERRAIN.WATER_LEVEL,
@@ -67,7 +82,7 @@ export function DashEffectsView() {
           )
         }
         return createParticleSystem({
-          emitters: water ? wet : dry,
+          emitters: flying ? air : water ? wet : dry,
           textures,
           length: 0,
           radius: 0,
@@ -88,6 +103,7 @@ export function DashEffectsView() {
     LINE_LENGTH,
     LINE_THICKNESS,
     DUST_COUNT,
+    AIR_WAVES,
   ])
 
   useFrame((state, delta) => {
@@ -102,12 +118,14 @@ export function DashEffectsView() {
         ? entity.get(CharacterController)
         : null
       const clearance = body ? verticalClearance(body) : 0
-      const water = levelWaterDepthAt(pos.x, pos.z) > 0
+      const flying = entity.has(Flying)
+      const water = !flying && levelWaterDepthAt(pos.x, pos.z) > 0
       const feetY = pos.y - clearance
       dashers.push({
         key: entity,
         active: action.current === 'dash',
         water,
+        flying,
         // nos pés (na água, na superfície); o corpo se estende
         // `2 * clearance` pra cima
         origin: [
@@ -117,6 +135,10 @@ export function DashEffectsView() {
         ],
         // pra onde o dash VAI (travada no disparo), não pra onde o corpo olha agora
         yaw: Math.atan2(action.dirX, action.dirZ),
+        // no ar o dash pode subir ou descer (`dirY`); no chão é sempre reto
+        pitch: flying
+          ? Math.atan2(action.dirY, Math.hypot(action.dirX, action.dirZ))
+          : 0,
         height: clearance * 2,
       })
     })

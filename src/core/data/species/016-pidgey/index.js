@@ -97,6 +97,12 @@ export const PIDGEY = {
     fall: 'fallLoop',
     jump: 'jumpLoop',
     dash: { sequence: ['stepIn', { animation: 'stepInEnd', frames: 10 }] },
+    // Voo livre (docs/features/060-ajustes-por-especie.md, Parte 2): o
+    // conjunto de voo do Z-A (2xxxx); o dash no ar é a arrancada dele.
+    flyIdle: 'flyIdle',
+    fly: 'fly',
+    flyFast: 'flyFast',
+    flyDash: { sequence: ['flyDash', { animation: 'flyDashEnd', frames: 10 }] },
     battleIdle: 'battleIdle',
     appeal: 'appeal',
     hit: 'hit',
@@ -128,6 +134,12 @@ export const PIDGEY = {
     turnSpeed: 10,
     jumpSpeed: 6.5,
   },
+  // Voo livre (`V`): velocidade do voo e do rápido (Shift). O gasto de
+  // stamina é pelo nível (`GAME_CONFIG.ACTION_COST`).
+  flight: {
+    speed: 3.5,
+    fastSpeed: 8,
+  },
   camera: {
     targetHeight: 0.4,
     shoulderOffset: 0,
@@ -138,6 +150,8 @@ export const PIDGEY = {
   },
   sounds: {
     footstepGroup: 'bird',
+    // no voo, batida de asa (no chão, a unha do `bird`)
+    flightGroup: 'wing',
     voice: {
       clips: ['/assets/audio/voices/016-pidgey/cry-01.wav'],
       volume: 0.8,

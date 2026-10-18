@@ -51,6 +51,7 @@ import { autosaveSystem } from '@/core/systems/autosaveSystem'
 import { summonEffectsSystem } from '@/core/systems/summonEffectsSystem'
 import { waterSplashSystem } from '@/core/systems/waterSplashSystem'
 import { characterPhysicsSystem } from '@/core/systems/characterPhysicsSystem'
+import { flightSystem } from '@/core/systems/flightSystem'
 import { physicsStepSystem } from '@/core/systems/physicsStepSystem'
 import { syncPhysicsSystem } from '@/core/systems/syncPhysicsSystem'
 import { animationStateSystem } from '@/core/systems/animationStateSystem'
@@ -58,7 +59,7 @@ import { syncTransformSystem } from '@/view/systems/syncTransformSystem'
 import { cameraFollowSystem } from '@/view/systems/cameraFollowSystem'
 import { seeThroughSystem } from '@/view/systems/seeThroughSystem'
 import { animationSystem } from '@/view/systems/animationSystem'
-import { flightLiftSystem } from '@/view/systems/flightLiftSystem'
+import { flightTiltSystem } from '@/view/systems/flightTiltSystem'
 import { hitStopSystem } from '@/view/systems/hitStopSystem'
 import { heldItemViewSystem } from '@/view/systems/heldItemViewSystem'
 import { eatingFoodViewSystem } from '@/view/systems/eatingFoodViewSystem'
@@ -69,7 +70,7 @@ import { summonBallViewSystem } from '@/view/systems/summonBallViewSystem'
 import { handBallViewSystem } from '@/view/systems/handBallViewSystem'
 import { pokeballFeedbackSystem } from '@/view/systems/pokeballFeedbackSystem'
 import { worldItemFeedbackSystem } from '@/view/systems/worldItemFeedbackSystem'
-import { tailFireSystem } from '@/view/systems/tailFireSystem'
+import { fireLightSystem } from '@/view/systems/fireLightSystem'
 import { audioListenerSystem } from '@/view/systems/audioListenerSystem'
 import { footstepAudioSystem } from '@/view/systems/footstepAudioSystem'
 import { voiceAudioSystem } from '@/view/systems/voiceAudioSystem'
@@ -109,10 +110,10 @@ let registered = false
  * depois o item na mão (`heldItemViewSystem`, precisa dos ossos já
  * registrados — mas não de ordem exata com as duas anteriores, o encaixe
  * no osso é o próprio Three.js resolvendo as matrizes no render, não algo
- * que este system calcula por frame) e o fogo de cauda (`tailFireSystem`,
- * docs/features/022-fogo-de-cauda-do-charmander.md — mesma observação de
- * ordem do item na mão; só avança a simulação de partícula e corrige
- * escala, a posição vem de graça do osso), depois o listener de áudio
+ * que este system calcula por frame) e a luz de fogo (`fireLightSystem`,
+ * docs/features/060-ajustes-por-especie.md — mesma observação de ordem do
+ * item na mão; só treme a luz e corrige o deslocamento, a posição vem de
+ * graça do osso), depois o listener de áudio
  * (`audioListenerSystem`, ver docs/features/019-som-ambiente-e-passos.md
  * — precisa da posição FINAL da câmera neste frame, já depois de
  * `cameraFollowSystem` mover ela) e por último o som de passo
@@ -266,6 +267,9 @@ export function registerGameSystems() {
   // persegue/foge; quem voltou a vagar já vaga no mesmo tick.
   registerSystem(GAME_PHASES.SIMULATION, wildBehaviorSystem)
   registerSystem(GAME_PHASES.SIMULATION, wildWanderSystem)
+  // Voo livre (060): depois de todo mundo que escreve a velocidade (no ar
+  // ela é toda dele) e logo antes da física.
+  registerSystem(GAME_PHASES.SIMULATION, flightSystem)
   registerSystem(GAME_PHASES.SIMULATION, characterPhysicsSystem)
   registerSystem(GAME_PHASES.SIMULATION, physicsStepSystem)
   registerSystem(GAME_PHASES.SIMULATION, syncPhysicsSystem)
@@ -289,8 +293,9 @@ export function registerGameSystems() {
   // Antes da animação: o acerto deste frame já congela o clipe agora.
   registerSystem(GAME_PHASES.PRESENTATION, hitStopSystem)
   registerSystem(GAME_PHASES.PRESENTATION, animationSystem)
-  // Voo rasante: segue o estado que a animação acabou de exibir.
-  registerSystem(GAME_PHASES.PRESENTATION, flightLiftSystem)
+  // Voo livre (060): inclina o corpo na curva e na subida/descida, por cima
+  // do yaw que o `syncTransformSystem` acabou de pôr.
+  registerSystem(GAME_PHASES.PRESENTATION, flightTiltSystem)
   registerSystem(GAME_PHASES.PRESENTATION, heldItemViewSystem)
   // A fruta de quem come, na mão/no chão — depois da animação (ossos na
   // pose deste frame).
@@ -306,7 +311,7 @@ export function registerGameSystems() {
   // (043) — a da mão depois da animação (osso na pose deste frame).
   registerSystem(GAME_PHASES.PRESENTATION, summonBallViewSystem)
   registerSystem(GAME_PHASES.PRESENTATION, handBallViewSystem)
-  registerSystem(GAME_PHASES.PRESENTATION, tailFireSystem)
+  registerSystem(GAME_PHASES.PRESENTATION, fireLightSystem)
   registerSystem(GAME_PHASES.PRESENTATION, audioListenerSystem)
   registerSystem(GAME_PHASES.PRESENTATION, footstepAudioSystem)
   registerSystem(GAME_PHASES.PRESENTATION, voiceAudioSystem)

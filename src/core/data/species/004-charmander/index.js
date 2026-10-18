@@ -101,6 +101,17 @@ export const CHARMANDER = {
       rotation: { x: 0, y: 180, z: 0 },
       scale: 1.25,
     },
+    // Luz da chama da cauda (a chama é do modelo) — ver `_template/`.
+    fireLight: {
+      bone: 'feeler_01',
+      color: '#ff8c00',
+      intensity: 0.5,
+      distance: 3,
+      decay: 1.5,
+      faintedIntensity: 0.1,
+      position: { x: 0.1, y: 0, z: 0 },
+      flicker: { speed: 10, amount: 0.15, noise: 0.1 },
+    },
   },
   nativeBlink: { animation: 'blink', minInterval: 2, maxInterval: 6 },
   actions: {

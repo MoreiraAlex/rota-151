@@ -10,7 +10,7 @@ let samplerSeed = null
 /**
  * Clima do mundo do jogo em `(x, z)` no horário `time` (dias de jogo):
  * `{ type, intensity }` (docs/features/048-dia-noite-e-clima.md). Usa a
- * seed do mundo e o bioma do relevo do nível. É a consulta do spawn (060)
+ * seed do mundo e o bioma do relevo do nível. É a consulta do spawn (062)
  * e do `weatherSystem`.
  */
 export function weatherAt(x, z, time) {

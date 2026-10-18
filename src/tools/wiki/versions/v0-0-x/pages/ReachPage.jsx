@@ -16,6 +16,14 @@ export function ReachPage({ data, version }) {
           {formatMeters(battle.maxCombatHeight, 1)} acima ou abaixo do outro
           (pulando alto, por exemplo) não é acertado.
         </p>
+        <p>
+          A exceção é quem está{' '}
+          <WikiLink version={version} to="criaturas/seu-time">
+            voando
+          </WikiLink>
+          : contra ele vale a distância de verdade, no ar. O golpe acerta se
+          passar na altura do corpo dele.
+        </p>
       </Section>
 
       <Section id="alcance" title="Alcance e raio">

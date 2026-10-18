@@ -11,7 +11,9 @@ const { WALK_MIN_SPEED } = GAME_CONFIG.ANIMATION
  * `action` é o `ActionState.current` da entidade (`null` quando livre);
  * `fainted`, se ela tem `Fainted` (desmaiada); `inCombat`, se tem
  * `CombatMode`; `jumping`, se está SUBINDO num pulo de verdade
- * (`Jumping` — input de pulo aceito — e `vel.y > 0`).
+ * (`Jumping` — input de pulo aceito — e `vel.y > 0`); `flying`, se está no
+ * voo livre (`Flying`) — aí `speed` é a velocidade nas três direções e
+ * `runMinSpeed` a do voo rápido.
  *
  * `fallback` é o id cuja animação a view toca quando a espécie não tem
  * nenhuma pra este estado (ex.: `battleIdle` → `idle`) — sem ele, estado
@@ -54,6 +56,14 @@ export const ANIMATION_STATES = [
   // `oneShot`): a duração é da fruta, não um gesto fixo. Espécie sem
   // animação de comer toca a idle.
   { id: 'eat', fallback: 'idle', when: (ctx) => ctx.action === 'eat' },
+  // Dash no ar, voando (docs/features/060-ajustes-por-especie.md): animação
+  // própria; sem ela, a do dash do chão.
+  {
+    id: 'flyDash',
+    oneShot: true,
+    fallback: 'dash',
+    when: (ctx) => ctx.action === 'dash' && ctx.flying === true,
+  },
   { id: 'dash', oneShot: true, when: (ctx) => ctx.action === 'dash' },
   // 'summon' (invocar criatura, ver docs/features/017-locomocao-e-
   // recolhimento-de-criaturas.md) reusa o MESMO clipe/id do arremesso —
@@ -91,6 +101,20 @@ export const ANIMATION_STATES = [
   // `grounded`. Cair de uma borda sem pular é `fall` desde o início, e
   // `fall` também é o fallback de quem não tem animação de pulo.
   { id: 'jump', fallback: 'fall', when: (ctx) => ctx.jumping === true },
+  // Voo livre (`Flying`, docs/features/060-ajustes-por-especie.md, Parte
+  // 2): rápido, voando e pairando. Espécie sem animação própria toca a de
+  // correr/andar (o bater de asas do voo rasante).
+  {
+    id: 'flyFast',
+    fallback: 'run',
+    when: (ctx) => ctx.flying === true && ctx.speed > ctx.runMinSpeed,
+  },
+  {
+    id: 'fly',
+    fallback: 'walk',
+    when: (ctx) => ctx.flying === true && ctx.speed > WALK_MIN_SPEED,
+  },
+  { id: 'flyIdle', fallback: 'walk', when: (ctx) => ctx.flying === true },
   {
     id: 'run',
     when: (ctx) => ctx.grounded && ctx.speed > ctx.runMinSpeed,

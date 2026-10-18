@@ -3,10 +3,12 @@ import { resolveCreatureAttack, resolveEntityMoveSet } from './creatureAttack'
 import { ATTACK_SLOTS } from './attackCasting'
 import { isSelfAttack } from './channelAttack'
 import { resolveOwner } from '../actions/owner'
+import { isOutOfGroundReach } from '../actions/flight'
 import {
   BeingCaptured,
   CharacterController,
   Fainted,
+  Flying,
   Party,
   Position,
   SummonedCreature,
@@ -41,15 +43,23 @@ function horizontalDistance(a, b) {
 
 /**
  * Todo combatente ativo do lado do jogador — treinador e criaturas do
- * time (controladas ou não) —, com posição, lido uma vez por tick.
+ * time (controladas ou não) —, com posição, lido uma vez por tick. Quem
+ * voa alto demais pra ser alcançado do chão fica de fora (docs/features/
+ * 060-ajustes-por-especie.md, Parte 2): a selvagem larga e volta quando
+ * ele descer.
  */
 export function listPlayerSide(world) {
   const list = []
   for (const trait of [Party, SummonedCreature]) {
     world.query(trait, Position, CharacterController).forEach((entity) => {
-      if (isActiveCombatant(entity)) {
-        list.push({ entity, pos: entity.get(Position) })
-      }
+      if (!isActiveCombatant(entity)) return
+      const pos = entity.get(Position)
+      if (
+        entity.has(Flying) &&
+        isOutOfGroundReach(pos, entity.get(CharacterController))
+      )
+        return
+      list.push({ entity, pos })
     })
   }
   return list

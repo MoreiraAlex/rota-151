@@ -15,6 +15,7 @@ import {
   InputControlled,
   Fainted,
   ChunkFrozen,
+  Flying,
 } from '../traits'
 import {
   isPhysicsReady,
@@ -127,8 +128,14 @@ const STILL_REQUEST_EPSILON = 1e-6
  * selvagens; o passo barrado pela água entra no `MovementBlocked` como o
  * barrado por um sólido, e a IA desvia.
  *
+ * Voo livre (`Flying`, docs/features/060-ajustes-por-especie.md, Parte 2):
+ * a velocidade vertical é a do `flightSystem` — sem gravidade, sem pulo — e
+ * a água não barra nem freia o passo (ele passa por cima; o próprio
+ * `flightSystem` não o deixa descer abaixo da superfície).
+ *
  * Headless (Rapier-compat roda em Node). Fase: simulation, depois do
- * movementSystem/creatureFollowSystem e antes do physicsStepSystem.
+ * movementSystem/creatureFollowSystem/flightSystem e antes do
+ * physicsStepSystem.
  */
 export function characterPhysicsSystem(context) {
   if (!isPhysicsReady()) return
@@ -160,8 +167,11 @@ export function characterPhysicsSystem(context) {
       if (!rigidBody || !collider) return
 
       const wasGrounded = entity.has(Grounded)
+      const flying = entity.has(Flying)
 
-      if (wasGrounded && vel.y <= 0) {
+      if (flying) {
+        // `vel.y` já é o do voo (`flightSystem`).
+      } else if (wasGrounded && vel.y <= 0) {
         vel.y = cfg.CHARACTER.GROUNDED_STICK
       } else {
         vel.y += cfg.GRAVITY * delta
@@ -170,6 +180,7 @@ export function characterPhysicsSystem(context) {
       if (
         input.jump &&
         wasGrounded &&
+        !flying &&
         entity.has(InputControlled) &&
         // atordoada (golpe interrompido) não faz nada, nem pular
         !isHitStunned(entity) &&
@@ -190,16 +201,19 @@ export function characterPhysicsSystem(context) {
       const translation = rigidBody.translation()
       // Até onde este corpo entra na água (uma fração da altura dele).
       const wade = wadeLimit(verticalClearance(character) * 2)
-      const slowdown = shallowSpeedFactor(
-        levelWaterDepthAt(translation.x, translation.z),
-        wade,
-      )
+      const slowdown = flying
+        ? 1
+        : shallowSpeedFactor(
+            levelWaterDepthAt(translation.x, translation.z),
+            wade,
+          )
       const requestedX = vel.x * delta * slowdown
       const requestedZ = vel.z * delta * slowdown
 
       const requestedDistance = Math.hypot(requestedX, requestedZ)
-      const step =
-        requestedDistance > 0
+      const step = flying
+        ? { dx: requestedX, dz: requestedZ }
+        : requestedDistance > 0
           ? stepOutOfDeepWater(
               translation.x,
               translation.z,

@@ -140,6 +140,17 @@ export function getFootstepGroup(id) {
  * fallback gracioso usado em todo o resto do projeto pra conteúdo que
  * ainda não existe.
  */
+/**
+ * O som do voo livre da espécie (docs/features/060-ajustes-por-especie.md):
+ * `sounds.flightGroup` (id de `FOOTSTEP_GROUPS`, ex.: `'wing'` pra quem anda
+ * com passo de unha no chão e bate asa no ar), ou `null` — aí o voo toca o
+ * passo normal (o Spearow, que já anda voando).
+ */
+export function resolveFlightSound(species) {
+  const group = species?.sounds?.flightGroup
+  return group ? getFootstepGroup(group) : null
+}
+
 export function resolveFootstepSound(species) {
   const sounds = species?.sounds
   if (!sounds) return null

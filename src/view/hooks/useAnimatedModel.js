@@ -6,7 +6,10 @@ import { clone as cloneSkeleton } from 'three/examples/jsm/utils/SkeletonUtils.j
 import { SummonedCreature, Mood } from '@/core/traits'
 import { resolveEyeState } from '@/view/shared/eyeState'
 import { resolveBones } from '@/core/animation/resolveBones'
-import { resolveFootstepSound } from '@/core/data/audio/footstepGroups'
+import {
+  resolveFlightSound,
+  resolveFootstepSound,
+} from '@/core/data/audio/footstepGroups'
 import { WATER_SOUNDS } from '@/core/data/audio/waterSounds'
 import {
   resolveVoiceSound,
@@ -21,7 +24,7 @@ import {
   resolveAttackLoopSounds,
   resolveAttackSounds,
 } from '@/core/data/audio/attackSound'
-import { createFlame } from '@/view/vfx/flameParticles'
+import { resolveFireLight } from '@/view/systems/fireLightSystem'
 import {
   createNativeAnimationPlayer,
   disposeNativeAnimationPlayer,
@@ -40,17 +43,13 @@ import {
   getAnimatedBonesEntry,
 } from '../registry/animationRegistry'
 import {
-  registerTailFire,
-  unregisterTailFire,
-} from '../registry/tailFireRegistry'
+  registerFireLight,
+  unregisterFireLight,
+} from '../registry/fireLightRegistry'
 import {
   registerEyeBlink,
   unregisterEyeBlink,
 } from '../registry/eyeBlinkRegistry'
-import {
-  registerFlightLift,
-  unregisterFlightLift,
-} from '../registry/flightLiftRegistry'
 import {
   registerMouthSync,
   unregisterMouthSync,
@@ -102,25 +101,6 @@ const DEFAULT_ACTION_SOUND_REF_DISTANCE = 6
 const DEFAULT_BLINK_MIN_INTERVAL = 2
 const DEFAULT_BLINK_MAX_INTERVAL = 6
 const DEFAULT_BLINK_CLOSED_DURATION = 0.12
-
-// Nome do osso da ponta da cauda, por espécie — puramente visual (nomes
-// vêm do rig 3D, não faz sentido core saber disso), mesmo raciocínio de
-// `HAND_BONE_BY_SPECIES` em `heldItemViewSystem.js`. Só espécies com fogo
-// de cauda entram aqui — sem entrada (ou sem `species.vfx.tailFire`
-// configurado), o efeito abaixo não cria nada e não quebra.
-const TAIL_BONE_BY_SPECIES = {
-  // charmander: 'Tail6',
-}
-
-// Únicas texturas de fogo existentes no projeto hoje (extraídas do rip do
-// Charmander, ver docs/features/021-pokemons-iniciais-e-selvagens-por-
-// sorteio.md) — se uma segunda espécie precisar de fogo com arquivo
-// PRÓPRIO no futuro, isso vira campo configurável em `tailFire`; por
-// enquanto, fixo aqui evita complicar a config à toa (YAGNI).
-const TAIL_FIRE_TEXTURE_PATHS = {
-  sten: '/assets/textures/004-charmander/default/pm0004_00_FireStenA1.png',
-  core: '/assets/textures/004-charmander/default/pm0004_00_FireCoreA1.png',
-}
 
 /**
  * Cria/carrega/registra um `THREE.PositionalAudio` de "um array de
@@ -276,12 +256,11 @@ function setupAttackAudio(entity, groupRef, sounds, loopSounds) {
  * invocada, não espera o primeiro intervalo aleatório — recolher não tem
  * som especial nenhum, só some (ver `immediate` em `registerVoiceAudio`).
  *
- * Fogo de cauda (`species.vfx.tailFire`, opcional — ver docs/features/022-
- * fogo-de-cauda-do-charmander.md) segue o mesmo espírito, mas encaixado
- * num OSSO nomeado (`TAIL_BONE_BY_SPECIES`), não no grupo raiz — precisa
- * seguir a pose animada da cauda, não só a posição/rotação geral da
- * entidade. Simulação de partícula em si avança em `view/systems/
- * tailFireSystem.js`, mesma separação "hook prepara, system avança" do
+ * Luz de fogo (`species.vfx.fireLight`, opcional — ver docs/features/060-
+ * ajustes-por-especie.md) segue o mesmo espírito, mas encaixada num OSSO
+ * nomeado (`fireLight.bone`), não no grupo raiz — precisa seguir a pose
+ * animada da cauda. O tremor e o desmaio avançam em `view/systems/
+ * fireLightSystem.js`, mesma separação "hook prepara, system avança" do
  * áudio.
  *
  * Boca sincronizada com o grito (`species.clips.cry`, opcional — ver docs/
@@ -540,42 +519,33 @@ export function useAnimatedModel(entity, species) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cloned, entity])
 
-  // Fogo de cauda (`species.vfx.tailFire`, opcional — ver docs/features/
-  // 022-fogo-de-cauda-do-charmander.md) — precisa do osso já registrado
-  // pelo efeito ACIMA; roda depois dele na mesma árvore React (mesmo
-  // commit, ordem de declaração), então o osso já está disponível aqui
-  // sem precisar do retry-todo-frame que `heldItemViewSystem.js` precisa
-  // (ali é um system ECS separado, cadência diferente da árvore React).
+  // Luz de fogo (`species.vfx.fireLight`, opcional — ver docs/features/
+  // 060-ajustes-por-especie.md) — precisa do osso já registrado pelo efeito
+  // ACIMA; roda depois dele na mesma árvore React (mesmo commit, ordem de
+  // declaração), então o osso já está disponível aqui.
   useEffect(() => {
-    const tailFire = species.vfx?.tailFire
-    const boneName = TAIL_BONE_BY_SPECIES[species.id]
-    if (!tailFire || !boneName) return
+    if (!species.vfx?.fireLight) return
+    const config = resolveFireLight(species.vfx.fireLight)
+    const bone = getAnimatedBonesEntry(entity)?.bones[config.bone]?.bone
+    if (!bone) return // rig sem esse osso — no-op gracioso
 
-    const bone = getAnimatedBonesEntry(entity)?.bones[boneName]?.bone
-    if (!bone) return // rig sem esse osso (ex.: reexportado sem cauda) — no-op gracioso
+    const light = new THREE.PointLight(
+      config.color,
+      config.intensity,
+      config.distance,
+      config.decay,
+    )
+    bone.add(light)
+    registerFireLight(entity, light, bone, config)
 
-    let cancelled = false
-    Promise.all([
-      loadTexture(TAIL_FIRE_TEXTURE_PATHS.sten),
-      loadTexture(TAIL_FIRE_TEXTURE_PATHS.core),
-    ]).then(([sten, core]) => {
-      if (cancelled || !sten || !core) return
-      const flame = createFlame({ sten, core }, tailFire)
-      bone.add(flame.group)
-      registerTailFire(entity, flame, bone, tailFire)
-    })
-
-    return () => {
-      cancelled = true
-      unregisterTailFire(entity)
-    }
+    return () => unregisterFireLight(entity)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entity, species])
 
   // Boca sincronizada com o grito (`species.clips.cry`, opcional — ver
   // docs/features/023-estado-de-humor-e-piscar-de-olhos.md, seção "Boca
   // sincronizada com o grito") — mesma razão de rodar depois do efeito de
-  // ossos que o fogo de cauda acima: precisa do osso já registrado,
+  // ossos que a luz de fogo acima: precisa do osso já registrado,
   // disponível na hora (mesmo commit React).
   useEffect(() => {
     const cryClip = species.clips?.cry
@@ -607,24 +577,6 @@ export function useAnimatedModel(entity, species) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entity, species])
 
-  // Voo rasante (`species.body.flightHeight`, opcional — docs/features/
-  // 059-as-10-especies.md, Parte 16): `flightLiftSystem.js` sobe o modelo
-  // ao andar/correr.
-  useEffect(() => {
-    const height = species.body?.flightHeight
-    if (!height) return
-    registerFlightLift(entity, {
-      object: cloned,
-      baseY: species.body.modelOffset?.[1] ?? 0,
-      height,
-      lift: 0,
-    })
-    return () => {
-      cloned.position.y = species.body.modelOffset?.[1] ?? 0
-      unregisterFlightLift(entity)
-    }
-  }, [cloned, entity, species])
-
   useEffect(() => {
     const footstep = resolveFootstepSound(species)
     if (!footstep) return
@@ -632,10 +584,11 @@ export function useAnimatedModel(entity, species) {
     const listener = getAudioListener()
     const audio = new THREE.PositionalAudio(listener)
     const volume = footstep.volume ?? DEFAULT_FOOTSTEP_VOLUME
+    const flight = resolveFlightSound(species)
     audio.setVolume(volume)
     audio.setRefDistance(footstep.refDistance ?? DEFAULT_FOOTSTEP_REF_DISTANCE)
     groupRef.current.add(audio)
-    registerFootstepAudio(entity, audio, volume)
+    registerFootstepAudio(entity, audio, volume, flight?.volume ?? volume)
 
     // Carrega cada variação (`walk`/`run`, array) em paralelo e preenche o
     // registry IN PLACE conforme cada uma termina — `footstepAudioSystem.js`
@@ -647,6 +600,8 @@ export function useAnimatedModel(entity, species) {
     // O passo no raso é o mesmo para todos (docs/features/057-lagos-e-
     // rios.md).
     const sources = { buffers: footstep, waterBuffers: WATER_SOUNDS.step }
+    // O voo livre com som próprio (`sounds.flightGroup`, docs/features/060-*).
+    if (flight) sources.flightBuffers = flight
     for (const [target, sound] of Object.entries(sources)) {
       for (const gait of ['walk', 'run']) {
         for (const path of sound[gait] ?? []) {

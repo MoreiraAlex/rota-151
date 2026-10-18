@@ -86,7 +86,7 @@ const NEAR_WATER_DIRECTIONS = 8
 
 /**
  * Tem água (qualquer profundidade) até `radius` m de `(x, z)`? É a tag
- * "perto de água" do spawn (060). Olha o ponto, um anel no raio e um na
+ * "perto de água" do spawn (062). Olha o ponto, um anel no raio e um na
  * metade dele.
  */
 export function nearWaterAt(

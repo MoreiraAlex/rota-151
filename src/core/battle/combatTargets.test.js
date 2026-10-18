@@ -2,10 +2,20 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { createWorld } from 'koota'
 import { registrarAmeaca } from '../actions/wildBehavior'
 import { GAME_CONFIG } from '../gameConfig'
-import { BeingCaptured, Position, Vitals } from '../traits'
+import { flightGroundY } from '../actions/flight'
+import { verticalClearance } from '../physics/colliders'
+import {
+  BeingCaptured,
+  CharacterController,
+  Flying,
+  Position,
+  SummonedCreature,
+  Vitals,
+} from '../traits'
 import {
   findWeakest,
   isActiveCombatant,
+  listPlayerSide,
   resolveFinishWeight,
   resolveWildTarget,
 } from './combatTargets'
@@ -87,5 +97,44 @@ describe('findWeakest — troca de alvo da criatura do time', () => {
       findWeakest({ x: 0, z: 0 }, [near, weak, tie].map(candidate)).entity,
     ).toBe(tie)
     expect(findWeakest({ x: 0, z: 0 }, [])).toBeNull()
+  })
+})
+
+describe('listPlayerSide — quem voa alto demais (060)', () => {
+  const BODY = {
+    capsuleRadius: 0.12,
+    capsuleHalfHeight: 0.06,
+    capsuleAxis: 'y',
+  }
+  const { MAX_COMBAT_HEIGHT_DIFF } = GAME_CONFIG.BATTLE
+
+  function spawnAt(world, elevation, flying) {
+    const x = 3
+    const z = 4
+    const y = flightGroundY(x, z) + verticalClearance(BODY) + elevation
+    return world.spawn(
+      Position({ x, y, z }),
+      CharacterController(BODY),
+      Vitals({ hp: 10, maxHp: 10 }),
+      SummonedCreature,
+      ...(flying ? [Flying] : []),
+    )
+  }
+
+  const listed = (world, entity) =>
+    listPlayerSide(world).some((candidate) => candidate.entity === entity)
+
+  it('voando ao alcance do chão continua sendo alvo', () => {
+    const world = createWorld()
+    worlds.push(world)
+    const bird = spawnAt(world, MAX_COMBAT_HEIGHT_DIFF * 0.5, true)
+    expect(listed(world, bird)).toBe(true)
+  })
+
+  it('voando alto demais sai da lista da IA', () => {
+    const world = createWorld()
+    worlds.push(world)
+    const bird = spawnAt(world, MAX_COMBAT_HEIGHT_DIFF + 1, true)
+    expect(listed(world, bird)).toBe(false)
   })
 })

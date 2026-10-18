@@ -33,6 +33,8 @@ describe('keyboardInput', () => {
       right: false,
       jump: false,
       run: false,
+      ascend: false,
+      descend: false,
       dash: false,
       secondary1: false,
       secondary2: false,
@@ -45,6 +47,7 @@ describe('keyboardInput', () => {
       switchSlot3: false,
       returnToBot: false,
       interact: false,
+      fly: false,
     })
   })
 
@@ -142,6 +145,8 @@ describe('keyboardInput', () => {
       right: false,
       jump: false,
       run: false,
+      ascend: false,
+      descend: false,
       dash: false,
       secondary1: false,
       secondary2: false,
@@ -154,6 +159,7 @@ describe('keyboardInput', () => {
       switchSlot3: false,
       returnToBot: false,
       interact: false,
+      fly: false,
     })
   })
 
@@ -290,6 +296,31 @@ describe('keyboardInput', () => {
     press('KeyF')
     expect(keyboard.snapshot().interact).toBe(true)
     expect(keyboard.snapshot().interact).toBe(false)
+  })
+
+  it('Espaço segurado é ascend (além do pulso de jump); C segurado é descend', () => {
+    const keyboard = createKeyboardInput()
+    keyboard.start()
+
+    press('Space')
+    press('KeyC')
+    const snapshot = keyboard.snapshot()
+    expect(snapshot.ascend).toBe(true)
+    expect(snapshot.jump).toBe(true)
+    expect(snapshot.descend).toBe(true)
+    // segurando: continua no próximo snapshot (o pulo é pulso, não)
+    const next = keyboard.snapshot()
+    expect(next.ascend).toBe(true)
+    expect(next.jump).toBe(false)
+  })
+
+  it('KeyV mapeia para o pulso de fly, drenado no snapshot', () => {
+    const keyboard = createKeyboardInput()
+    keyboard.start()
+
+    press('KeyV')
+    expect(keyboard.snapshot().fly).toBe(true)
+    expect(keyboard.snapshot().fly).toBe(false)
   })
 
   it('segurar Digit1 (auto-repeat do SO) não gera novo pulso de switchSlot1', () => {

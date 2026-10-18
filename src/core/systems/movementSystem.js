@@ -12,6 +12,7 @@ import {
   Vitals,
   OrbitCamera,
   ActionState,
+  Flying,
 } from '../traits'
 
 /**
@@ -39,6 +40,9 @@ import {
  * "arremessar andando". Não afeta `vel.y` (gravidade/pulo, resolvidos em
  * `characterPhysicsSystem`) — só a locomoção horizontal.
  *
+ * Quem voa (`Flying`) fica de fora: a velocidade no ar é toda do
+ * `flightSystem` (docs/features/060-ajustes-por-especie.md, Parte 2).
+ *
  * Headless. Fase: simulation, depois do cameraControlSystem e antes do
  * characterPhysicsSystem.
  */
@@ -60,6 +64,7 @@ export function movementSystem(context) {
       ActionState,
     )
     .updateEach(([input, stats, vitals, vel, rot, , action], entity) => {
+      if (entity.has(Flying)) return
       if (action.current !== null) {
         vel.x = 0
         vel.z = 0

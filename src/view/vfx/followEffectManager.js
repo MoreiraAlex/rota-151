@@ -9,7 +9,8 @@
  * `followers` (todos os candidatos, a cada frame): `{ key, active, origin:
  * [x, y, z], yaw, height, ... }` — `key` identifica o seguidor entre frames
  * (a entidade), `origin` é de onde as partículas saem, `yaw` pra onde ele vai
- * (`roll`, opcional: giro das partículas no plano da tela) e `height` a altura
+ * (`pitch`, opcional: inclinado pra cima/baixo; `roll`, opcional: giro das
+ * partículas no plano da tela) e `height` a altura
  * do corpo (os specs leem em `ctx.height`). O seguidor
  * inteiro vai pro `createSystem(follower)` quando o efeito nasce — campos a
  * mais (ex.: o grupo e o raio da carga) servem pra montar o sistema certo.
@@ -42,14 +43,15 @@ export function createFollowEffectManager({ createSystem, root }) {
       const seen = new Set()
 
       for (const follower of followers) {
-        const { key, active, origin, yaw, roll, height, length } = follower
+        const { key, active, origin, yaw, pitch, roll, height, length } =
+          follower
         seen.add(key)
         if (!active) {
           end(key)
           continue
         }
         const system = following.get(key) ?? begin(follower)
-        system.setFrame({ origin, yaw, roll, height, length })
+        system.setFrame({ origin, yaw, pitch, roll, height, length })
       }
 
       // seguidor que sumiu (criatura recolhida, destruída) no meio do efeito

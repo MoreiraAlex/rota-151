@@ -91,7 +91,7 @@ export function createWaterBodies(seed, params = GAME_CONFIG.WATER_BODIES) {
   /** Quanto (m) o lago fica para dentro da beira em `(x, z)`. */
   const insideLake = (x, z) => distanceToZero(lake, x, z, lakeThreshold)
 
-  // Um pouco de ruído no fundo (nunca uma célula plana — ver a 081 do
+  // Um pouco de ruído no fundo (nunca uma célula plana — ver a 083 do
   // roadmap), crescendo da beira para dentro.
   const bedAt = (x, z, inside) =>
     inside <= 0

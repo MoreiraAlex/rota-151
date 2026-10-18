@@ -19,7 +19,7 @@ const FADE_OUT_FRACTION = 0.15
  * `emberVfx.js`) agendados numa linha do tempo própria, cada partícula um
  * `THREE.Sprite` (billboard — sempre de frente pra câmera, como o
  * `facing_camera_mode` do Bedrock). Nada aqui é estado do ECS nem do React,
- * mesmo padrão imperativo de `flameParticles.js`.
+ * Three puro, imperativo.
  *
  * Cada sprite tem a PRÓPRIA cópia da textura (`clone()` reusa a imagem, não
  * duplica na GPU) porque o quadro do flipbook é um `offset` da textura —
@@ -296,7 +296,7 @@ export function createParticleSystem({
     },
     /**
      * Onde (e pra onde) os emissores soltam as partículas daqui pra frente:
-     * `{ origin: [x, y, z], yaw, roll?, height }` no MUNDO — ver o cabeçalho.
+     * `{ origin: [x, y, z], yaw, pitch?, roll?, height }` no MUNDO — ver o cabeçalho.
      */
     setFrame(next) {
       frame = next

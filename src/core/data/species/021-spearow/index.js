@@ -1,4 +1,6 @@
 import CRY_CLIP from './clips/cry.json'
+import WALK_CLIP from './clips/walk.json'
+import RUN_CLIP from './clips/run.json'
 import { LGPE_EYE_ATLAS } from '../lgpeEyeAtlas'
 
 const LEVEL = 5
@@ -18,8 +20,11 @@ const SP_DEF_EV = 0
 const SPEED_EV = 0
 
 // Modelo do Let's Go (o Spearow não está no dump do Legends: Z-A), pelo
-// scripts/blender/convert-pokemon-lgpe.py. No LGPE ele voa no mapa: andar e
-// correr são o voo do dump trazido para perto do chão (voo rasante); parado,
+// scripts/blender/convert-pokemon-lgpe.py. No LGPE ele voa no mapa: o andar e
+// o correr do dump são voo, trazidos para perto do chão (voo rasante), e
+// ficam só para o voo livre. No chão ele anda a pé: `clips.walk`/`clips.run`
+// são o andar e o correr do Pidgey (Z-A) medidos e passados para este
+// esqueleto como curvas (docs/features/060-ajustes-por-especie.md). Parado,
 // fica de pé com a asa fechada. Não tem animação de dormir (o `rest` cai no
 // idle) nem dash. O piscar é por textura (`eyeStates`), como no LGPE.
 export const SPEAROW = {
@@ -65,12 +70,13 @@ export const SPEAROW = {
 
   clips: {
     cry: CRY_CLIP,
+    walk: WALK_CLIP,
+    run: RUN_CLIP,
   },
+  // Sem `walk`/`run` aqui: no chão tocam os clipes procedurais acima.
   nativeAnimations: {
     roar: 'roar',
     idle: 'idle',
-    walk: 'walk',
-    run: 'run',
     attack: 'attack',
     attackAlt: 'attack',
     attackRanged: 'attackRanged',
@@ -84,6 +90,12 @@ export const SPEAROW = {
     fall: 'fallLoop',
     jump: 'jumpLoop',
     dash: 'jumpLoop',
+    // Voo livre (docs/features/060-ajustes-por-especie.md, Parte 2): o
+    // voo rasante do `.glb` (`walk`/`run` do dump).
+    flyIdle: 'flyIdle',
+    fly: 'walk',
+    flyFast: 'run',
+    flyDash: 'run',
     battleIdle: 'battleIdle',
     appeal: 'appeal',
     hit: 'hit',
@@ -107,14 +119,18 @@ export const SPEAROW = {
     capsuleHalfHeight: 0.06,
     capsuleAxis: 'y',
     modelOffset: [0, -0.21, 0],
-    // altura do voo rasante (andando/correndo), só no modelo
-    flightHeight: 0.25,
   },
   movement: {
-    walkSpeed: 2,
-    runSpeed: 5,
+    walkSpeed: 1.5,
+    runSpeed: 4,
     turnSpeed: 10,
     jumpSpeed: 6.5,
+  },
+  // Voo livre (`V`): velocidade do voo e do rápido (Shift). O gasto de
+  // stamina é pelo nível (`GAME_CONFIG.ACTION_COST`).
+  flight: {
+    speed: 4,
+    fastSpeed: 9,
   },
   camera: {
     targetHeight: 0.4,
@@ -125,8 +141,9 @@ export const SPEAROW = {
     jumpStaminaCost: 1,
   },
   sounds: {
-    // anda e corre voando: batida de asa, não passo
-    footstepGroup: 'wing',
+    footstepGroup: 'bird',
+    // no voo, batida de asa (no chão, a unha do `bird`)
+    flightGroup: 'wing',
     voice: {
       clips: ['/assets/audio/voices/021-spearow/cry-01.wav'],
       volume: 0.8,

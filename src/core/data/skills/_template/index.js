@@ -148,7 +148,7 @@ export const SKILL_TEMPLATE = {
     // por inteiro desde o primeiro frame.
     revealDuration: 0,
     // Opcional — ajuste fino de orientação (GRAUS, mesma convenção de
-    // vfx.tailFire.rotation em core/data/species/*/index.js), somado por
+    // vfx.eatFood.rotation em core/data/species/*/index.js), somado por
     // cima da direção real do golpe (pitch+yaw, calculados a partir da
     // câmera). A malha de origem pode não ter o "forward" alinhado com a
     // convenção do jogo — corrige aqui olhando o resultado em jogo.

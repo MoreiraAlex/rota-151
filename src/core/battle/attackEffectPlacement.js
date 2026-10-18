@@ -22,8 +22,7 @@ const DEG_TO_RAD = Math.PI / 180
  *
  * `core/` não importa Three.js (a ponte ECS → Three mora na view) — por
  * isso graus→radianos é uma multiplicação simples aqui, não
- * `THREE.MathUtils.degToRad` (esse sim usado em `tailFireSystem.js`, que
- * é view).
+ * `THREE.MathUtils.degToRad` (esse fica na view).
  *
  * Exportada — mesmo motivo de `resolveAttackImpactPoint` (testável como
  * função pura, sem precisar montar um world/entidade inteiros).

@@ -1,5 +1,8 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { createCharacterBody } from '@/core/physics/colliders'
+import {
+  createCharacterBody,
+  verticalClearance,
+} from '@/core/physics/colliders'
 import { disposePhysics } from '@/core/physics/physicsWorld'
 import { initTestTerrain, settleTerrain } from '@/test/physicsTerrain'
 import {
@@ -8,6 +11,7 @@ import {
   isInsideAttackCone,
   resolveRoundedCone,
   isWithinCombatHeight,
+  isWithinFlyingTargetHeight,
   resolveAttackOrigin,
   resolveAttackReach,
   resolveCapsuleSegment,
@@ -302,5 +306,28 @@ describe('isInsideAttackCone — cone de sorvete (triângulo + meia-lua na ponta
     const right = { x: 1, y: 0, z: 0 }
     expect(inside({ x: 2, z: 0.5 }, CONE, 0, right)).toBe(true)
     expect(inside({ x: 0, z: 2 }, CONE, 0, right)).toBe(false)
+  })
+})
+
+describe('isWithinFlyingTargetHeight (alvo voando, 060)', () => {
+  const pos = { x: 0, y: 10, z: 0 }
+  const half = verticalClearance(STANDING)
+  const reach = 0.5
+
+  it('a trajetória na altura do corpo acerta', () => {
+    expect(isWithinFlyingTargetHeight(pos.y, pos, STANDING, reach)).toBe(true)
+    expect(isWithinFlyingTargetHeight(pos.y + half, pos, STANDING, 0)).toBe(
+      true,
+    )
+  })
+
+  it('passa raspando dentro do raio do golpe: acerta', () => {
+    const below = pos.y - half - reach
+    expect(isWithinFlyingTargetHeight(below, pos, STANDING, reach)).toBe(true)
+  })
+
+  it('por baixo, fora do raio: não acerta', () => {
+    const below = pos.y - half - reach - 0.01
+    expect(isWithinFlyingTargetHeight(below, pos, STANDING, reach)).toBe(false)
   })
 })

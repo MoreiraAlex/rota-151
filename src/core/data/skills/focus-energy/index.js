@@ -2,7 +2,7 @@
  * Energia Focada (Focus Energy) — golpe de status em SI MESMO, no formato do
  * `../withdraw` (`area: 'self'`), ver `../_template/index.js` pro que cada
  * campo significa. Entrou na 059 com valores padrão: VFX e som do "atributo
- * subiu" do Growth; o refino fica pra 088. Na série ele aumenta a chance de
+ * subiu" do Growth; o refino fica pra 090. Na série ele aumenta a chance de
  * crítico de quem usa, mas no jogo o crítico tem chance fixa, sem estágio
  * (`rollCriticalMultiplier`, `core/battle/calculateDamage.js`): por enquanto
  * não tem efeito.

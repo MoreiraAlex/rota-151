@@ -1,7 +1,7 @@
 /**
  * Picada (Bug Bite) — golpe físico corpo a corpo, ver `../_template/index.js`
  * pro que cada campo significa. Entrou na 059 com valores padrão: forma e
- * VFX do `../scratch`, som do impacto do tipo; o refino fica pra 088. Comer a
+ * VFX do `../scratch`, som do impacto do tipo; o refino fica pra 090. Comer a
  * fruta do alvo (série) fica de fora.
  */
 export const BUG_BITE_SKILL = {

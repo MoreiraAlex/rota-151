@@ -1,7 +1,7 @@
 /**
  * Mordida (Bite) — golpe físico corpo a corpo, ver `../_template/index.js`
  * pro que cada campo significa. Entrou na 059 com valores padrão: forma e
- * VFX do `../scratch`, som de impacto; o refino fica pra 088. A chance de
+ * VFX do `../scratch`, som de impacto; o refino fica pra 090. A chance de
  * fazer o alvo recuar (série) fica de fora até o jogo ter esse efeito.
  * Tipo Normal, como na Gen 1: a tabela de tipos do jogo é a dela, sem
  * Sombrio (`core/data/types/index.js`).

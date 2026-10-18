@@ -59,7 +59,7 @@ const WILD_CREATURE_SPECIES = [
 ]
 
 // Metade do lado (m) do quadrado em volta da origem onde os selvagens
-// nascem — provisório até o spawn por chunk (060).
+// nascem — provisório até o spawn por chunk (062).
 const WILD_AREA_HALF_SIZE = 84
 
 // Objetos de treino (ver `trainingObjects` no cabeçalho) — x/z fixos, o y

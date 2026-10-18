@@ -7,6 +7,7 @@ import {
   particleSize,
   resolveBeamBasis,
   rotateY,
+  rotatePitch,
   sampleCurve,
   sampleGradient,
   spawnParticle,
@@ -339,5 +340,14 @@ describe('spawnParticle / stepPathParticle — movimento por trajetória (path)'
     expect(particle.x).toBeCloseTo(11)
 
     expect(stepPathParticle(SPEC, particle, 0.6)).toBe(false) // passou da vida
+  })
+})
+
+describe('rotatePitch', () => {
+  it('pitch positivo levanta a frente: +Z vai pra +Y; X não muda', () => {
+    const up = rotatePitch([0, 0, 1], Math.PI / 2)
+    expect(up[1]).toBeCloseTo(1)
+    expect(up[2]).toBeCloseTo(0)
+    expect(rotatePitch([2, 0, 0], 0.7)[0]).toBe(2)
   })
 })

@@ -65,6 +65,21 @@ export function resolveFootElevation(pos, body) {
   return Math.max(0, pos.y - verticalClearance(body) - groundY)
 }
 
+/**
+ * Alvo VOANDO (docs/features/060-ajustes-por-especie.md, Parte 2): no ar o
+ * plano de combate não vale — vale a altura de verdade. A altura `y` (da
+ * trajetória do golpe) cruza o corpo do alvo, de `pos.y` menos a folga
+ * vertical da cápsula até mais ela, com a tolerância `reach` (o raio do
+ * golpe)?
+ */
+export function isWithinFlyingTargetHeight(y, pos, body, reach) {
+  const half = verticalClearance(body)
+  const bottom = pos.y - half
+  const top = pos.y + half
+  const gap = y < bottom ? bottom - y : y > top ? y - top : 0
+  return gap <= reach
+}
+
 /** Atacante e alvo no mesmo plano de combate (`MAX_COMBAT_HEIGHT_DIFF`). */
 export function isWithinCombatHeight(elevationA, elevationB) {
   return (

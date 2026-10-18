@@ -22,6 +22,7 @@ import {
   InputState,
   Mood,
   MovementStats,
+  FlightStats,
   OwnedBy,
   AiMovement,
   PartyBehavior,
@@ -133,6 +134,8 @@ function spawnCreature(
     Velocity,
     CharacterController(species.body),
     MovementStats(species.movement),
+    // Só quem voa (`species.flight`, docs/features/060-*.md, Parte 2).
+    ...(species.flight ? [FlightStats(species.flight)] : []),
     vitalsFromSpecies(species, individualValues, progress.level),
     PhysicsBody(physicsBody),
     PathState,

@@ -2,7 +2,7 @@
  * Bando Duplo (Double Team) — golpe de status em SI MESMO, no formato do
  * `../withdraw` (`area: 'self'`), ver `../_template/index.js` pro que cada
  * campo significa. Entrou na 059 com valores padrão: VFX e som do "atributo
- * subiu" do Growth; o refino fica pra 088. Na série ele sobe a Evasão de quem
+ * subiu" do Growth; o refino fica pra 090. Na série ele sobe a Evasão de quem
  * usa, mas o jogo ainda não tem estágio de Evasão (`STAT_STAGE_KEYS`,
  * `core/battle/statStages.js`): por enquanto não tem efeito.
  */

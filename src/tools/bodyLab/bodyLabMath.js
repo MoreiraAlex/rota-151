@@ -44,10 +44,6 @@ export function formatBodySnippet(body, scale) {
     `    capsuleHalfHeight: ${round(body.capsuleHalfHeight)},`,
     `    capsuleAxis: '${body.capsuleAxis}',`,
     `    modelOffset: [${offset}],`,
-    // não é ajustado aqui, mas faz parte do bloco: colar sem ele o apagaria
-    ...(body.flightHeight === undefined
-      ? []
-      : [`    flightHeight: ${round(body.flightHeight)},`]),
     '  },',
   ].join('\n')
 }

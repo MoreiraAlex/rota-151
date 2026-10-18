@@ -16,6 +16,11 @@ const KEY_MAP = {
   ArrowRight: 'right',
   ShiftLeft: 'run',
   ShiftRight: 'run',
+  // Subir e descer no voo livre (docs/features/060-ajustes-por-especie.md).
+  // O Espaço também é o pulo (pulso, abaixo). Descer não é no Ctrl: Ctrl+W
+  // fecha a aba e a página não consegue impedir.
+  Space: 'ascend',
+  KeyC: 'descend',
 }
 
 // Ações de disparo único ("apertou agora", não "está segurando") — ao
@@ -43,6 +48,8 @@ const EDGE_KEY_MAP = {
   Digit4: 'returnToBot',
   // Pegar item do chão e colher fruta (docs/features/055-itens-no-mundo.md).
   KeyF: 'interact',
+  // Decolar / pousar quem voa (docs/features/060-ajustes-por-especie.md).
+  KeyV: 'fly',
 }
 
 // Botões de ataque que TAMBÉM expõem estado contínuo ("está segurando"),
@@ -100,6 +107,8 @@ export function createKeyboardInput() {
         left: pressed.has('left'),
         right: pressed.has('right'),
         run: pressed.has('run'),
+        ascend: pressed.has('ascend'),
+        descend: pressed.has('descend'),
         jump: justPressed.has('jump'),
         dash: justPressed.has('dash'),
         secondary1: justPressed.has('secondary1'),
@@ -113,6 +122,7 @@ export function createKeyboardInput() {
         switchSlot3: justPressed.has('switchSlot3'),
         returnToBot: justPressed.has('returnToBot'),
         interact: justPressed.has('interact'),
+        fly: justPressed.has('fly'),
       }
       justPressed.clear()
       return snapshot

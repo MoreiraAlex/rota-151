@@ -1,7 +1,7 @@
 /**
  * Ataque Rápido (Quick Attack) — golpe físico corpo a corpo, ver
  * `../_template/index.js` pro que cada campo significa. Entrou na 059 com
- * valores padrão: forma, VFX e som do `../tackle`; o refino fica pra 088. A
+ * valores padrão: forma, VFX e som do `../tackle`; o refino fica pra 090. A
  * prioridade da série (agir primeiro) não tem equivalente no jogo em tempo
  * real.
  */

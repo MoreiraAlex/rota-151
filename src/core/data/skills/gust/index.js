@@ -2,7 +2,7 @@
  * Lufada de Vento (Gust) — golpe especial à distância, ver
  * `../_template/index.js` pro que cada campo significa. Entrou na 059 com
  * valores padrão: forma da Brasa (`../ember`), VFX e som do impacto genérico
- * do tipo (`'impact'`); o refino fica pra 088.
+ * do tipo (`'impact'`); o refino fica pra 090.
  */
 export const GUST_SKILL = {
   id: 'gust',

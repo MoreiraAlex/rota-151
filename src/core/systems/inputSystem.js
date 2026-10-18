@@ -22,6 +22,7 @@ const SCAN_BLOCKED_FLAGS = [
   'secondary2Held',
   'secondary3Held',
   'interact', // F — pegar item / colher fruta
+  'fly', // V — decolar / pousar
 ]
 
 /**

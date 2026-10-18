@@ -1,9 +1,11 @@
+import { GAME_CONFIG } from '../gameConfig'
 import { getPlayerSpecies, getSpecies } from '../data/species'
 import { isConeAttack } from './channelAttack'
 import {
   closestPointsOnGroundPlane,
   isInsideAttackCone,
   isWithinCombatHeight,
+  isWithinFlyingTargetHeight,
   resolveCapsuleSegment,
   resolveAttackReach,
   resolveContactPoint,
@@ -14,6 +16,7 @@ import {
   BeingCaptured,
   CharacterController,
   Fainted,
+  Flying,
   IndividualValues,
   Party,
   Position,
@@ -62,7 +65,9 @@ export function resolveCombatantSpecies(entity) {
  * 1. Mesmo plano de combate — elevação dos pés de cada um relativa ao
  *    próprio terreno (`resolveFootElevation`), diferença até
  *    `MAX_COMBAT_HEIGHT_DIFF` (`isWithinCombatHeight`). Rampa, degrau ou
- *    terraço não importam; só quem está no ar (pulo) sai do plano.
+ *    terraço não importam; só quem está no ar (pulo) sai do plano. Quem
+ *    VOA (`Flying`) não tem plano: vale a altura da trajetória cruzando o
+ *    corpo dele (`isWithinFlyingTargetHeight`, com o raio do golpe).
  * 2. Alcance no plano HORIZONTAL — distância entre a trajetória e a
  *    pegada do corpo do alvo, com Y zerado (`closestPointsOnGroundPlane`)
  *    ≤ `radius + capsuleRadius`. Usa as medidas do corpo físico
@@ -98,7 +103,9 @@ export function resolveAttackTarget(
     (entity, pos, rot, controller, vitals) => {
       // Sem HP ou desmaiada (`Fainted`): não é mais alvo.
       if (vitals.hp <= 0 || entity.has(Fainted)) return
+      const flying = entity.has(Flying)
       if (
+        !flying &&
         !isWithinCombatHeight(
           attackerElevation,
           resolveFootElevation(pos, controller),
@@ -114,16 +121,17 @@ export function resolveAttackTarget(
         capsule.b,
       )
       if (closest.distance > radius + controller.capsuleRadius) return
+      // Contato na altura da trajetória naquele ponto (não no Y zerado da
+      // conta no plano) — é onde um VFX de acerto deve nascer.
+      const pathY = origin.y + (impactPoint.y - origin.y) * closest.s
+      if (flying && !isWithinFlyingTargetHeight(pathY, pos, controller, radius))
+        return
 
       const isEarlier =
         !best ||
         closest.s < best.s ||
         (closest.s === best.s && closest.distance < best.distance)
       if (!isEarlier) return
-
-      // Contato na altura da trajetória naquele ponto (não no Y zerado da
-      // conta no plano) — é onde um VFX de acerto deve nascer.
-      const pathY = origin.y + (impactPoint.y - origin.y) * closest.s
       const species = resolveCombatantSpecies(entity)
       best = {
         s: closest.s,
@@ -170,8 +178,20 @@ export function resolveConeTargets(
     targetSide,
     (entity, pos, rot, controller, vitals) => {
       if (vitals.hp <= 0 || entity.has(Fainted)) return
-      const elevation = resolveFootElevation(pos, controller)
-      if (!isWithinCombatHeight(attackerElevation, elevation)) return
+      if (entity.has(Flying)) {
+        if (
+          !isWithinFlyingTargetHeight(
+            origin.y,
+            pos,
+            controller,
+            GAME_CONFIG.BATTLE.MAX_COMBAT_HEIGHT_DIFF,
+          )
+        )
+          return
+      } else {
+        const elevation = resolveFootElevation(pos, controller)
+        if (!isWithinCombatHeight(attackerElevation, elevation)) return
+      }
       if (
         !isInsideAttackCone(
           origin,

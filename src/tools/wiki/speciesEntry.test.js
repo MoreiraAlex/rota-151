@@ -8,6 +8,7 @@ import {
   findWikiSpecies,
   listWikiSpecies,
   resolveSpeciesAttacks,
+  resolveSpeciesFlight,
   resolveSpeciesMoves,
   resolveStatRange,
   uniformIndividualValues,
@@ -104,6 +105,30 @@ describe('resolveSpeciesMoves', () => {
       const moves = resolveSpeciesMoves(species)
       expect(moves.length).toBeLessThanOrEqual((species.moves ?? []).length)
       for (const move of moves) expect(move.id).toBeTruthy()
+    }
+  })
+})
+
+describe('resolveSpeciesFlight', () => {
+  const species = listWikiSpecies()
+
+  it('null pra quem não voa', () => {
+    for (const entry of species.filter((s) => !s.flight)) {
+      expect(resolveSpeciesFlight(entry)).toBeNull()
+    }
+  })
+
+  it('velocidades da espécie e o voo rápido gastando mais que o normal', () => {
+    const flyers = species.filter((s) => s.flight)
+    expect(flyers.length).toBeGreaterThan(0)
+    for (const entry of flyers) {
+      const flight = resolveSpeciesFlight(entry)
+      expect(flight.speed).toBe(entry.flight.speed)
+      expect(flight.fastSpeed).toBe(entry.flight.fastSpeed)
+      expect(flight.staminaPerSecond).toBeGreaterThan(0)
+      expect(flight.fastStaminaPerSecond).toBeGreaterThan(
+        flight.staminaPerSecond,
+      )
     }
   })
 })

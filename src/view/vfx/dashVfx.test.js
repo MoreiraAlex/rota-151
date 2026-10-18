@@ -39,8 +39,13 @@ function run(system, seconds, step = 1 / 60) {
 const live = (system) => system.group.children.filter((s) => s.visible)
 
 describe('DASH_EMITTERS', () => {
-  it('tem as texturas das linhas, da poeira e do respingo; linhas e poeira', () => {
-    expect(Object.keys(DASH_TEXTURE_PATHS)).toEqual(['lines', 'smoke', 'drop'])
+  it('tem as texturas das linhas, das ondas de ar, da poeira e do respingo; linhas e poeira', () => {
+    expect(Object.keys(DASH_TEXTURE_PATHS)).toEqual([
+      'lines',
+      'wave',
+      'smoke',
+      'drop',
+    ])
     expect(DASH_EMITTERS.map((e) => e.id)).toEqual(['lines', 'dust'])
   })
 
@@ -198,5 +203,57 @@ describe('buildDashEmitters — quantidade e tamanho das linhas vêm da config',
       expect(typeof config[key], key).toBe('number')
       expect(config[key], key).toBeGreaterThanOrEqual(0)
     }
+  })
+})
+
+describe('dash no ar (voo livre, 060)', () => {
+  const waves = GAME_CONFIG.FEEDBACK.DASH_EFFECT.AIR_WAVES
+
+  it('sem poeira nem respingo: as linhas e as ondas de ar', () => {
+    const ids = buildDashEmitters({ air: true, airWaves: waves }).map(
+      (e) => e.id,
+    )
+    expect(ids[0]).toBe('lines')
+    expect(ids).not.toContain('dust')
+    expect(ids.filter((id) => id.startsWith('gust'))).toHaveLength(waves)
+  })
+
+  it('AIR_WAVES 0: só as linhas', () => {
+    expect(
+      buildDashEmitters({ air: true, airWaves: 0 }).map((e) => e.id),
+    ).toEqual(['lines'])
+  })
+
+  it('as ondas saem uma depois da outra e vão pra trás', () => {
+    const gusts = buildDashEmitters({ air: true, airWaves: 2 }).filter((e) =>
+      e.id.startsWith('gust'),
+    )
+    expect(gusts[1].start).toBeGreaterThan(gusts[0].start)
+    for (const gust of gusts) {
+      expect(gust.burst).toBe(1)
+      expect(gust.direction()[2]).toBeLessThan(0)
+    }
+  })
+
+  it('com o quadro inclinado pra cima, as linhas sobem junto (vão pra trás e pra baixo)', () => {
+    const system = createParticleSystem({
+      emitters: [buildDashEmitters({ air: true })[0]],
+      textures: { lines: new THREE.Texture() },
+      length: 0,
+      radius: 0,
+      scale: 1,
+      random: seededRandom(),
+    })
+    system.setFrame({
+      origin: [0, 0, 0],
+      yaw: 0,
+      pitch: Math.PI / 2,
+      height: 0,
+    })
+    run(system, 0.1)
+    const lines = live(system).filter((s) => s.isMesh)
+    // dash reto pra cima: a esfera das linhas fica ACIMA (a "frente")
+    const meanY = lines.reduce((sum, s) => sum + s.position.y, 0) / lines.length
+    expect(meanY).toBeGreaterThan(0)
   })
 })

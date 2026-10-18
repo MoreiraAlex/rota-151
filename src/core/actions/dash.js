@@ -42,9 +42,11 @@ export function iniciarDash(action, vitals, dirX, dirZ) {
 /**
  * Avança um dash em andamento: velocidade na direção travada
  * (`resolveDashSpeed`) e, no tick do fim, já a de saída (`exitSpeed`) e a
- * ação livre.
+ * ação livre. `vertical`: dash no ar, voando (docs/features/060-ajustes-
+ * por-especie.md) — a direção travada tem `dirY` e a velocidade vertical
+ * segue ela; no chão o vertical é da gravidade e fica intocado.
  */
-export function avancarDash(action, vel, delta, exitSpeed) {
+export function avancarDash(action, vel, delta, exitSpeed, vertical = false) {
   const DASH = GAME_CONFIG.PLAYER_ACTIONS.dash
   action.elapsed += delta
   const done = action.elapsed >= DASH.DURATION
@@ -53,6 +55,7 @@ export function avancarDash(action, vel, delta, exitSpeed) {
     : resolveDashSpeed(DASH, action.elapsed, exitSpeed)
   vel.x = action.dirX * speed
   vel.z = action.dirZ * speed
+  if (vertical) vel.y = action.dirY * speed
   if (done) action.current = null
 }
 

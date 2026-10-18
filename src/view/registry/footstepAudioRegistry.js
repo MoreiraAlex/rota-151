@@ -18,12 +18,21 @@
  */
 const entries = new Map()
 
-export function registerFootstepAudio(entity, audio, volume = 1) {
+export function registerFootstepAudio(
+  entity,
+  audio,
+  volume = 1,
+  flightVolume = volume,
+) {
   entries.set(entity, {
     audio,
     volume,
     buffers: { walk: [], run: [] },
     waterBuffers: { walk: [], run: [] },
+    // Som do voo livre (`sounds.flightGroup`, docs/features/060-*.md):
+    // vazio = toca o passo normal (`buffers`).
+    flightBuffers: { walk: [], run: [] },
+    flightVolume,
     previousBeat: -1,
   })
 }

@@ -3,7 +3,7 @@
  * alvos, como o `../tail-whip`, ver `../_template/index.js` pro que cada
  * campo significa. Entrou na 059 com valores padrão: forma e VFX do
  * `../growl`, som do impacto do tipo; o refino (um olhar no lugar das ondas)
- * fica pra 088.
+ * fica pra 090.
  */
 export const LEER_SKILL = {
   id: 'leer',

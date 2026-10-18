@@ -231,3 +231,45 @@ describe('jump × fall', () => {
     ).toBe('dash')
   })
 })
+
+describe('resolveAnimationState — voo livre (060)', () => {
+  const FLIGHT = { walkSpeed: 4, runSpeed: 9 }
+  const FLY_FAST_MIN = resolveRunMinSpeed(FLIGHT)
+  const flying = (speed) => ({
+    speed,
+    runMinSpeed: FLY_FAST_MIN,
+    grounded: false,
+    flying: true,
+  })
+
+  it('parado no ar paira; voando, fly; rápido, flyFast', () => {
+    expect(resolveAnimationState(flying(0))).toBe('flyIdle')
+    expect(resolveAnimationState(flying(FLY_FAST_MIN - 0.1))).toBe('fly')
+    expect(resolveAnimationState(flying(FLY_FAST_MIN + 0.1))).toBe('flyFast')
+  })
+
+  it('no ar voando não é queda', () => {
+    expect(resolveAnimationState(flying(0))).not.toBe('fall')
+  })
+
+  it('sem animação de voo, toca a de andar/correr', () => {
+    expect(resolveAnimationFallback('flyIdle')).toBe('walk')
+    expect(resolveAnimationFallback('fly')).toBe('walk')
+    expect(resolveAnimationFallback('flyFast')).toBe('run')
+  })
+
+  it('dash voando → flyDash (sem ela, a do dash); no chão continua dash', () => {
+    expect(resolveAnimationState({ ...flying(0), action: 'dash' })).toBe(
+      'flyDash',
+    )
+    expect(resolveAnimationFallback('flyDash')).toBe('dash')
+    expect(isOneShotAnimationState('flyDash')).toBe(true)
+    expect(
+      resolveAnimationState({ speed: 0, grounded: true, action: 'dash' }),
+    ).toBe('dash')
+  })
+
+  it('desmaiada no ar cai no faint, antes do voo', () => {
+    expect(resolveAnimationState({ ...flying(0), fainted: true })).toBe('faint')
+  })
+})

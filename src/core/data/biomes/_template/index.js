@@ -210,7 +210,7 @@ export const BIOME_TEMPLATE = {
   //     houses: [{ model: 'house-pewter', weight: 1, fence: true }] }],
   //   props: { lamp: 'street-lamp', fence: 'fence-wood', bench: 'bench' },
   // },
-  // Tags que o spawn (060) usa nas condições de cada espécie.
+  // Tags que o spawn (062) usa nas condições de cada espécie.
   tags: ['grassland'],
   // Chances relativas de cada clima (docs/features/048-dia-noite-e-
   // clima.md): a cada período, cada região sorteia um tipo por estes pesos.

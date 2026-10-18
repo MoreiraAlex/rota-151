@@ -105,7 +105,7 @@ describe('createWaterBodies', () => {
     expect(narrowest).toBeGreaterThan(PARAMS.RIVER.WIDTH * 0.9)
   })
 
-  it('o fundo nunca tem célula plana (docs/roadmap.md, 081)', () => {
+  it('o fundo nunca tem célula plana (docs/roadmap.md, 083)', () => {
     const water = createWaterBodies(3)
     const at = (x, z) => water.carveAt(x, z, 6, FULL)
     let cells = 0

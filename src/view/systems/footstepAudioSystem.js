@@ -65,11 +65,18 @@ const RUN_RIPPLE = 1.3
  * andando/correndo" — mesmo fallback gracioso de sempre, resolve sozinho
  * assim que o registry for limpo no frame seguinte.
  */
+// Voo livre (docs/features/060-ajustes-por-especie.md, Parte 2): bate a
+// asa como no voo rasante — pairando e voando, o som do andar; rápido, o do
+// correr. No ar, sem água nos pés.
+const FLIGHT_SOUND_STATE = { flyIdle: 'walk', fly: 'walk', flyFast: 'run' }
+
 export function footstepAudioSystem() {
   for (const [entity, entry] of getFootstepAudioEntries()) {
     const anim = entity.get(AnimationState)
     const animatedEntry = anim && getAnimatedBonesEntry(entity)
-    const stateId = animatedEntry?.stateId
+    const shownId = animatedEntry?.stateId
+    const flying = shownId in FLIGHT_SOUND_STATE
+    const stateId = flying ? FLIGHT_SOUND_STATE[shownId] : shownId
     if (stateId !== 'walk' && stateId !== 'run') {
       entry.previousBeat = -1
       continue
@@ -83,7 +90,8 @@ export function footstepAudioSystem() {
     entry.previousBeat = beat
 
     const position = entity.get(Position)
-    const inWater = position && levelWaterDepthAt(position.x, position.z) > 0
+    const inWater =
+      !flying && position && levelWaterDepthAt(position.x, position.z) > 0
     if (inWater) {
       addFootRipple(
         position.x,
@@ -93,12 +101,25 @@ export function footstepAudioSystem() {
       )
     }
 
-    const buffers = (inWater ? entry.waterBuffers : entry.buffers)[stateId]
+    // No voo, o som próprio do voo se a espécie tiver (`flightBuffers`).
+    const flightSound = flying && entry.flightBuffers[stateId].length > 0
+    const source = inWater
+      ? entry.waterBuffers
+      : flightSound
+        ? entry.flightBuffers
+        : entry.buffers
+    const buffers = source[stateId]
     if (!buffers || buffers.length === 0) continue
 
     const buffer = pickRandomVariation(buffers)
     if (entry.audio.isPlaying) entry.audio.stop()
-    entry.audio.setVolume(inWater ? WATER_SOUNDS.step.volume : entry.volume)
+    entry.audio.setVolume(
+      inWater
+        ? WATER_SOUNDS.step.volume
+        : flightSound
+          ? entry.flightVolume
+          : entry.volume,
+    )
     entry.audio.setBuffer(buffer)
     entry.audio.play()
   }

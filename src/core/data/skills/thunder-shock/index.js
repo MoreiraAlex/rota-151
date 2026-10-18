@@ -2,7 +2,7 @@
  * Choque do Trovão (Thunder Shock) — golpe especial à distância, ver
  * `../_template/index.js` pro que cada campo significa. Entrou na 059 com
  * valores padrão: forma da Brasa (`../ember`), VFX e som do impacto genérico
- * do tipo (`'impact'`); o refino fica pra 088. A chance de paralisar da série
+ * do tipo (`'impact'`); o refino fica pra 090. A chance de paralisar da série
  * fica de fora até o jogo ter paralisia.
  */
 export const THUNDER_SHOCK_SKILL = {

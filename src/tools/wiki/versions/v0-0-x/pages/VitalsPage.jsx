@@ -29,8 +29,9 @@ export function VitalsPage({ data, version }) {
             <strong>Tomar dano</strong> zera a espera da vida.
           </li>
           <li>
-            <strong>Gastar energia</strong> (golpe, corrida, dash, pulo) zera a
-            espera da energia. Gastando um pouco o tempo todo, ela nunca volta.
+            <strong>Gastar energia</strong> (golpe, corrida, dash, pulo, voo)
+            zera a espera da energia. Gastando um pouco o tempo todo, ela nunca
+            volta.
           </li>
           <li>
             Cada espécie tem o próprio ritmo. A volta é uma porcentagem da vida

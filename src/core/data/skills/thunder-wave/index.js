@@ -2,7 +2,7 @@
  * Onda de Trovão (Thunder Wave) — golpe de status em cone, no formato do
  * `../glare`, ver `../_template/index.js` pro que cada campo significa.
  * Entrou na 059 com valores padrão: forma e VFX do Growl, som do impacto do
- * tipo; o refino fica pra 088. Na série ele paralisa o alvo, mas o jogo
+ * tipo; o refino fica pra 090. Na série ele paralisa o alvo, mas o jogo
  * ainda não tem paralisia: por enquanto não tem efeito.
  */
 export const THUNDER_WAVE_SKILL = {

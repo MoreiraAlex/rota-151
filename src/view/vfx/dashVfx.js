@@ -21,6 +21,9 @@ import {
  *   - `lines`  — contínuo: linhas de velocidade ao redor do corpo
  *   - `dust`   — o anel de poeira do pulo na saída (`DASH_EFFECT.DUST_COUNT`
  *     nuvens) — ou, na água, `foam` e `drops` (o respingo)
+ *   - `gust<N>` — só no AR (o dash do voo livre, docs/features/060-ajustes-
+ *     por-especie.md), no lugar da poeira: ondas de ar (o arco do Growl,
+ *     `growlVfx.js`) que estouram pra trás na saída (`DASH_EFFECT.AIR_WAVES`)
  *
  * Não existe efeito de dash PARA MOVIMENTO no Cobblemon (é o mod por turnos
  * do Minecraft): estes vêm do golpe Quick Attack e foram adaptados — as linhas
@@ -33,6 +36,7 @@ import {
 
 export const DASH_TEXTURE_PATHS = {
   lines: '/assets/effects/dash/dashlines.png',
+  wave: '/assets/effects/growl/wave.png',
   ...JUMP_DUST_TEXTURE_PATHS,
   ...WATER_SPLASH_TEXTURE_PATHS,
 }
@@ -55,6 +59,22 @@ const DEFAULTS = {
 }
 // Raio (m, antes da escala) da nuvem de linhas ao redor do corpo.
 const LINE_RADIUS = 1
+
+// Ondas de ar do dash no ar: intervalo entre elas (s), quanto duram (s), até
+// onde vão pra trás (m) e o arco, de quando nasce até quando some (largura e
+// altura, m) — antes da escala.
+const GUST_INTERVAL = 0.06
+const GUST_LIFETIME = 0.35
+const GUST_DISTANCE = 1.2
+const GUST_THICKNESS = 0.35
+const GUST_HEIGHT = [0.4, 1.6]
+
+const GUST_TINT = compileGradient([
+  { at: 0, color: '#e6fdff' },
+  { at: 1, color: '#9fe9f5' },
+])
+// Alfa das ondas (o motor ainda esmaece no fim da vida): ar, não parede.
+const GUST_OPACITY = 0.7
 
 const LINE_TINT = compileGradient([
   { at: 0.17, color: '#b4feff' },
@@ -89,20 +109,33 @@ function pointInSphere(rnd, radius) {
  * do dash — o sistema do dash tem a escala dele).
  */
 export function buildDashEmitters(options = {}) {
-  const { lineRate, lineLength, lineThickness, dustCount, water, groundScale } =
-    {
-      ...DEFAULTS,
-      water: false,
-      groundScale: 1,
-      ...options,
-    }
-  const ground = (water ? buildWaterSplashEmitters : buildJumpDustEmitters)({
-    count: dustCount,
-    speed: GROUND_SPEED * groundScale,
-    size: GROUND_SIZE * groundScale,
-  }).map((emitter) =>
-    emitter.id === 'ring' ? { ...emitter, id: 'dust' } : emitter,
-  )
+  const {
+    lineRate,
+    lineLength,
+    lineThickness,
+    dustCount,
+    water,
+    air,
+    airWaves,
+    groundScale,
+  } = {
+    ...DEFAULTS,
+    water: false,
+    air: false,
+    airWaves: 0,
+    groundScale: 1,
+    ...options,
+  }
+  // no ar não tem chão: as ondas de ar no lugar da poeira/respingo
+  const ground = air
+    ? buildGustEmitters(airWaves)
+    : (water ? buildWaterSplashEmitters : buildJumpDustEmitters)({
+        count: dustCount,
+        speed: GROUND_SPEED * groundScale,
+        size: GROUND_SIZE * groundScale,
+      }).map((emitter) =>
+        emitter.id === 'ring' ? { ...emitter, id: 'dust' } : emitter,
+      )
 
   return [
     // quickattack_dashlines.particle.json — esfera de raio 1 centrada 1 m à
@@ -135,6 +168,39 @@ export function buildDashEmitters(options = {}) {
     },
     ...ground,
   ]
+}
+
+/**
+ * Ondas de ar do dash no ar: `count` arcos que nascem no meio do corpo, um
+ * logo depois do outro, e vão pra trás crescendo e sumindo — o ar empurrado
+ * na arrancada. O arco fica deitado ao longo do movimento (`facing:
+ * 'direction'`), convexo pra trás.
+ */
+function buildGustEmitters(count) {
+  return Array.from({ length: count }, (_, index) => ({
+    id: `gust${index}`,
+    texture: 'wave',
+    strip: 1,
+    frames: { first: 0, count: 1, fps: 1 },
+    facing: 'direction',
+    blending: 'additive',
+    start: index * GUST_INTERVAL,
+    burst: 1,
+    anchor: 'impact',
+    offset: (ctx) => [0, unscaled(ctx, ctx.height / 2), 0],
+    direction: () => [0, 0, -1],
+    speed: () => GUST_DISTANCE / GUST_LIFETIME,
+    accel: () => [0, 0, 0],
+    drag: () => 0,
+    lifetime: () => GUST_LIFETIME,
+    size: (t) => [
+      GUST_THICKNESS,
+      GUST_HEIGHT[0] + t * (GUST_HEIGHT[1] - GUST_HEIGHT[0]),
+    ],
+    spin: false,
+    tint: GUST_TINT,
+    opacity: GUST_OPACITY,
+  }))
 }
 
 // Com os valores padrão (testes e uso sem config).

@@ -2,7 +2,7 @@
  * Registro entidade → sincronia de boca com o grito (`species.clips.cry`,
  * ver docs/features/023-estado-de-humor-e-piscar-de-olhos.md, seção "Boca
  * sincronizada com o grito"). Mesmo padrão de
- * `viewRegistry.js`/`tailFireRegistry.js`: `useAnimatedModel.js` registra
+ * `viewRegistry.js`/`fireLightRegistry.js`: `useAnimatedModel.js` registra
  * no `useEffect`, desregistra no cleanup; `view/systems/mouthSyncSystem.js`
  * só lê/mexe.
  *

@@ -2,7 +2,7 @@
  * Ataque de Fúria (Fury Attack) — golpe físico corpo a corpo, ver
  * `../_template/index.js` pro que cada campo significa. Entrou na 059 com
  * valores padrão: forma e VFX do `../scratch`, som de impacto; o refino fica
- * pra 088. Na série ele acerta de 2 a 5 vezes seguidas — por enquanto é um
+ * pra 090. Na série ele acerta de 2 a 5 vezes seguidas — por enquanto é um
  * golpe só (o jogo não tem golpe de vários acertos).
  */
 export const FURY_ATTACK_SKILL = {

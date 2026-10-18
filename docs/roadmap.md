@@ -2,7 +2,7 @@
 
 ---
 
-# ✅ Já feito (0.0.1 – 0.0.59)
+# ✅ Já feito (0.0.1 – 0.0.60)
 
 O que já foi entregue, por tema. Detalhes de cada uma em `docs/features/`.
 
@@ -61,6 +61,7 @@ O que já foi entregue, por tema. Detalhes de cada uma em `docs/features/`.
 - [x] **057 — Lagos e rios**
 - [x] **058 — Ajuste dos biomas**
 - [x] **059 — As 10 espécies**
+- [x] **060 — Ajustes por espécie**
 
 ### Combate
 - [x] **025 — Ataque comum de criatura**
@@ -109,7 +110,8 @@ Concluído: a 044 (salvar o jogo) fechou o ciclo offline.
 
 **Objetivo:** um mundo infinito gerado por seed, em chunks, com biomas, dia e
 noite, clima e água. Há itens para achar, cidades, e as 7 espécies selvagens
-aparecem conforme bioma, horário e clima.
+aparecem conforme bioma, horário e clima. Antes do spawn, cada espécie e
+todas as skills passam por um ajuste final (060 e 061).
 
 **Biomas da beta:** os 11 biomas existem na seed (cobrem os 151), mas só os
 que as 7 espécies selvagens usam são refinados e aparecem no jogo —
@@ -119,10 +121,10 @@ secas e pedregosas de Kanto). Os outros (oceano, praia, selva, pântano,
 deserto, vulcânico, tundra e montanha) ficam escondidos (`BIOMES.HIDDEN`) e
 só aparecem pelo F2. A montanha foi adiada: na beta não teria espécie
 exclusiva (o Spearow já mora na savana). Os 3 iniciais não nascem no mundo:
-vêm só no kit inicial (066).
+vêm só no kit inicial (067).
 
-- [ ] **060 — Spawn estilo Cobblemon** — limite por jogador ativo, nascer fora da vista, despawn dos distantes; condições por espécie: bioma, tags, horário, clima, faixa de nível e raridade. Só as 7 selvagens têm spawn; os 3 iniciais não nascem no mundo.
-- [ ] **061 — Design da HUD** — visual definitivo da interface (com horário e clima); menus saem de `src/tools/menu/` para `view/`.
+- [ ] **061 — Revisão das skills** — foco em todas as skills *(detalhar quando chegar)*.
+- [ ] **062 — Spawn estilo Cobblemon** — limite por jogador ativo, nascer fora da vista, despawn dos distantes; condições por espécie: bioma, tags, horário, clima, faixa de nível e raridade. Só as 7 selvagens têm spawn; os 3 iniciais não nascem no mundo.
 
 ---
 
@@ -130,16 +132,17 @@ vêm só no kit inicial (066).
 
 **Objetivo:** o jogador cria o próprio treinador, escolhe o Pokémon inicial,
 aprende a jogar com um tutorial curto e controla um treinador com animações e
-ações completas.
+ações completas, com a interface no visual definitivo.
 
-- [ ] **062 — Animações e ações do treinador** — revisar e completar o que o treinador faz *(detalhar quando chegar)*.
-- [ ] **063 — Derrota do treinador** — cai ao chegar a 0 de HP e reaparece no último Pokécenter com o time curado (depende da 087).
-- [ ] **064 — Criação do treinador** — escolha entre menino e menina e cores de cada parte (pele, cabelo, boné, blusa, calça, sapatos, mochila, olhos), aproveitando os materiais separados do modelo. Salvo com a conta.
-- [ ] **065 — Áudio do treinador e da treinadora** — voz, passos, dash/rolamento, pulo, invocar/recolher, arremesso, dano e derrota para os dois modelos, mais os sons das ações revisadas na 062. Ver `docs/reference/audio.md`.
-- [ ] **066 — Início do jogo e escolha do inicial** — primeira entrada: login → criação do treinador → escolha entre Bulbasaur, Charmander e Squirtle → mundo, com o kit inicial de itens (definido aqui; até lá o kit é de teste, ver 042). Quem já tem treinador vai direto para o mundo.
-- [ ] **067 — Tutorial com o inicial** — passos guiados: andar, invocar/recolher, atacar, trocar o controle, usar um item, enfraquecer e capturar um selvagem. Avança ao fazer a ação; dá para pular.
+- [ ] **063 — Animações e ações do treinador** — revisar e completar o que o treinador faz *(detalhar quando chegar)*.
+- [ ] **064 — Derrota do treinador** — cai ao chegar a 0 de HP e reaparece no último Pokécenter com o time curado (depende da 089).
+- [ ] **065 — Criação do treinador** — escolha entre menino e menina e cores de cada parte (pele, cabelo, boné, blusa, calça, sapatos, mochila, olhos), aproveitando os materiais separados do modelo. Salvo com a conta.
+- [ ] **066 — Áudio do treinador e da treinadora** — voz, passos, dash/rolamento, pulo, invocar/recolher, arremesso, dano e derrota para os dois modelos, mais os sons das ações revisadas na 063. Ver `docs/reference/audio.md`.
+- [ ] **067 — Início do jogo e escolha do inicial** — primeira entrada: login → criação do treinador → escolha entre Bulbasaur, Charmander e Squirtle → mundo, com o kit inicial de itens (definido aqui; até lá o kit é de teste, ver 042). Quem já tem treinador vai direto para o mundo.
+- [ ] **068 — Design da HUD** — visual definitivo da interface (com horário e clima); menus saem de `src/tools/menu/` para `view/`.
+- [ ] **069 — Tutorial com o inicial** — passos guiados: andar, invocar/recolher, atacar, trocar o controle, usar um item, enfraquecer e capturar um selvagem. Avança ao fazer a ação; dá para pular.
 
-> **Modelo da menina (064):** o `boy` veio do Legends (`tr0001`); a `girl`
+> **Modelo da menina (065):** o `boy` veio do Legends (`tr0001`); a `girl`
 > antiga foi removida. Usar a mesma fonte para ter os mesmos materiais e
 > esqueleto.
 
@@ -151,15 +154,15 @@ ações completas.
 mesmos selvagens, itens, horário e clima, batalham, capturam, trocam e duelam,
 cada um com o próprio progresso salvo. O jogo vai para o ar.
 
-- [ ] **068 — Servidor e sala** — Colyseus com uma sala, local. Servidor no mesmo repositório (ex.: `server/`) importando o `src/core/`.
-- [ ] **069 — Entrar e ver os outros jogadores** — login na sala (Better Auth com `bearer()`), posição/rotação/animação sincronizadas com interpolação, aparência do treinador, nome acima da cabeça, entrar/sair e reconexão.
-- [ ] **070 — Mundo compartilhado** — servidor é dono da seed, do horário e do clima; clientes e servidor geram os mesmos chunks.
-- [ ] **071 — Selvagens no servidor** — spawn e IA no servidor, limite por jogadores ativos, cada jogador só recebe os selvagens perto dele. Entram aqui o bando e as regras de acerto pendentes do backlog.
-- [ ] **072 — Combate no servidor** — cliente manda a intenção, servidor calcula dano, efetividade, status, desmaio e XP. A mira deixa de ler a câmera dentro do `core/` (`aim.js`).
-- [ ] **073 — Captura, itens e save no servidor** — captura decidida no servidor; pegar itens do mundo e colher frutas passam pelo servidor (cada item pego some para todos); inventário e time mudam pelo servidor; só o servidor grava no banco.
-- [ ] **074 — Troca entre jogadores** — pedir troca, os dois escolhem e confirmam; transação única no banco.
-- [ ] **075 — Duelo PvP** — desafiar e lutar time contra time com o combate existente; usa a derrota do treinador da 063.
-- [ ] **076 — Deploy** — jogo na Vercel e servidor na VPS da Hostinger (`wss://` com SSL via nginx, PM2 ou Docker, acesso ao banco). Fecha a beta 0.1.
+- [ ] **070 — Servidor e sala** — Colyseus com uma sala, local. Servidor no mesmo repositório (ex.: `server/`) importando o `src/core/`.
+- [ ] **071 — Entrar e ver os outros jogadores** — login na sala (Better Auth com `bearer()`), posição/rotação/animação sincronizadas com interpolação, aparência do treinador, nome acima da cabeça, entrar/sair e reconexão.
+- [ ] **072 — Mundo compartilhado** — servidor é dono da seed, do horário e do clima; clientes e servidor geram os mesmos chunks.
+- [ ] **073 — Selvagens no servidor** — spawn e IA no servidor, limite por jogadores ativos, cada jogador só recebe os selvagens perto dele. Entram aqui o bando e as regras de acerto pendentes do backlog.
+- [ ] **074 — Combate no servidor** — cliente manda a intenção, servidor calcula dano, efetividade, status, desmaio e XP. A mira deixa de ler a câmera dentro do `core/` (`aim.js`).
+- [ ] **075 — Captura, itens e save no servidor** — captura decidida no servidor; pegar itens do mundo e colher frutas passam pelo servidor (cada item pego some para todos); inventário e time mudam pelo servidor; só o servidor grava no banco.
+- [ ] **076 — Troca entre jogadores** — pedir troca, os dois escolhem e confirmam; transação única no banco.
+- [ ] **077 — Duelo PvP** — desafiar e lutar time contra time com o combate existente; usa a derrota do treinador da 064.
+- [ ] **078 — Deploy** — jogo na Vercel e servidor na VPS da Hostinger (`wss://` com SSL via nginx, PM2 ou Docker, acesso ao banco). Fecha a beta 0.1.
 
 > ⚠️ **Para rever depois:** o movimento é decidido pelo cliente (o servidor só
 > repassa). Funciona entre amigos, mas não impede trapaça.
@@ -172,18 +175,18 @@ cada um com o próprio progresso salvo. O jogo vai para o ar.
 aparecendo ao longo da beta, pra não interromper a feature em andamento. Cada
 item entra aqui quando for identificado e vira feature quando chegar a vez.
 
-- [ ] **077 — Revisão da batalha e da IA** — rever o combate e as decisões da IA dos selvagens (partir para a ofensiva ou fugir) *(detalhar quando chegar)*.
-- [ ] **078 — Revisão da wiki** — rever a wiki inteira *(detalhar quando chegar)*.
-- [ ] **079 — Limpeza de código sem uso** — achar e remover código que ficou de testes ou de ideias descartadas (systems, traits, componentes, dados, assets e configs que nada mais usa) *(detalhar quando chegar)*.
-- [ ] **080 — Revisão do diagrama ER** — com todos os requisitos da beta conhecidos (save, mundo, multiplayer, troca, duelo), rever as tabelas do banco desenhadas na 044 e montar um diagrama ER melhor *(detalhar quando chegar)*.
-- [ ] **081 — Chão plano no relevo** — o Rapier erra parte dos raios (bola, comida, câmera, mira) em células PLANAS do heightfield do relevo (medido na 045; o relevo por ruído não tem célula plana, então hoje não aparece). Resolver antes de aplainar terreno (chão da cidade e dos prédios, 056; a 057 desviou dela: o leito dos lagos e rios tem um ruído e nunca fica plano) — ex.: colisor próprio pra área plana *(detalhar quando chegar)*.
-- [ ] **082 — Rotação das entidades no relevo** — rever como o corpo acompanha a inclinação do terreno: subindo um morro o corpo continua reto, e às vezes as skills saem da cabeça do personagem *(detalhar quando chegar)*.
-- [ ] **083 — Luz no estilo BotW por hora** — sol mais quente, sombra azulada e névoa leve nas cores de cada hora (`DAY_CYCLE.KEYFRAMES`, 048). Mexer na luz muda a cor da grama, então junto vem um novo ajuste das cores da grama e da floresta (a 049 casou tudo com a luz de hoje) *(detalhar quando chegar)*.
-- [ ] **084 — Desempenho no celular** — medir no celular na qualidade baixa (a 049 só mediu na Intel UHD do PC: a mata densa fica perto do limite de 30 FPS) e cortar o que pesar — copas, grama, sombra, raio; se as flores pesarem, trocar pelas moitas mais leves do Ultimate (`Flower_*_Clump`, 050). A planície da 053 (mato alto do Let's Go bem denso) custa cerca de um quarto a mais de GPU que a da 052 na Intel UHD, ainda no teto de 60 FPS no PC — conferir no celular. Desde a 055 os arbustos não são mais cortados pela metade na qualidade baixa (todos podem ser vasculhados): medir esse custo e, se pesar, cortar em outro lugar *(detalhar quando chegar)*.
-- [ ] **085 — Ambiente da floresta** — névoa um pouco mais fechada dentro da mata; partículas (folhas caindo de dia, vaga-lumes à noite); som ambiente por bioma (pássaros de dia, grilos e coruja à noite) *(detalhar quando chegar)*.
-- [ ] **086 — Detalhes da floresta** — cogumelo-prateleira (o do MegaKit saiu na 054: achar um no LGPE), musgo nos troncos caídos e grama mais rala sob a copa fechada *(detalhar quando chegar)*.
-- [ ] **087 — Pokécenter funcionando** — o Pokécenter da cidade (056) cura o time (com o som de cura) e vira o ponto de reaparecimento; base para a derrota do treinador (063) *(detalhar quando chegar)*.
-- [ ] **088 — Refino dos golpes** — os golpes que entraram na 059 com valores padrão (VFX e som emprestados de outro golpe) ganham VFX, som, forma e animação próprios, um por um; efeitos que o jogo ainda não tem (ex.: a paralisia do Dragon Breath, o recuo do Bite, a Velocidade que o Rapid Spin dá a quem usa, o envenenamento do Poison Sting, a Velocidade que o String Shot tira — o jogo ainda não tem estágio de Velocidade —, a paralisia do Thunder Shock e do Thunder Wave, a Evasão do Double Team, o poder do Electro Ball pela Velocidade, prender do Wrap, a paralisia do Glare, a chance de crítico do Focus Energy — o crítico do jogo ainda não tem estágio —, o poder dobrado do Assurance e os vários acertos do Fury Attack) entram aqui; conferir no jogo o `positionOffset` (de onde cada golpe sai) e os golpes do learnset de cada espécie no nível certo *(detalhar quando chegar)*.
+- [ ] **079 — Revisão da batalha e da IA** — rever o combate e as decisões da IA dos selvagens (partir para a ofensiva ou fugir) *(detalhar quando chegar)*.
+- [ ] **080 — Revisão da wiki** — rever a wiki inteira *(detalhar quando chegar)*.
+- [ ] **081 — Limpeza de código sem uso** — achar e remover código que ficou de testes ou de ideias descartadas (systems, traits, componentes, dados, assets e configs que nada mais usa) *(detalhar quando chegar)*.
+- [ ] **082 — Revisão do diagrama ER** — com todos os requisitos da beta conhecidos (save, mundo, multiplayer, troca, duelo), rever as tabelas do banco desenhadas na 044 e montar um diagrama ER melhor *(detalhar quando chegar)*.
+- [ ] **083 — Chão plano no relevo** — o Rapier erra parte dos raios (bola, comida, câmera, mira) em células PLANAS do heightfield do relevo (medido na 045; o relevo por ruído não tem célula plana, então hoje não aparece). Resolver antes de aplainar terreno (chão da cidade e dos prédios, 056; a 057 desviou dela: o leito dos lagos e rios tem um ruído e nunca fica plano) — ex.: colisor próprio pra área plana *(detalhar quando chegar)*.
+- [ ] **084 — Rotação das entidades no relevo** — rever como o corpo acompanha a inclinação do terreno: subindo um morro o corpo continua reto, e às vezes as skills saem da cabeça do personagem *(detalhar quando chegar)*.
+- [ ] **085 — Luz no estilo BotW por hora** — sol mais quente, sombra azulada e névoa leve nas cores de cada hora (`DAY_CYCLE.KEYFRAMES`, 048). Mexer na luz muda a cor da grama, então junto vem um novo ajuste das cores da grama e da floresta (a 049 casou tudo com a luz de hoje) *(detalhar quando chegar)*.
+- [ ] **086 — Desempenho no celular** — medir no celular na qualidade baixa (a 049 só mediu na Intel UHD do PC: a mata densa fica perto do limite de 30 FPS) e cortar o que pesar — copas, grama, sombra, raio; se as flores pesarem, trocar pelas moitas mais leves do Ultimate (`Flower_*_Clump`, 050). A planície da 053 (mato alto do Let's Go bem denso) custa cerca de um quarto a mais de GPU que a da 052 na Intel UHD, ainda no teto de 60 FPS no PC — conferir no celular. Desde a 055 os arbustos não são mais cortados pela metade na qualidade baixa (todos podem ser vasculhados): medir esse custo e, se pesar, cortar em outro lugar *(detalhar quando chegar)*.
+- [ ] **087 — Ambiente da floresta** — névoa um pouco mais fechada dentro da mata; partículas (folhas caindo de dia, vaga-lumes à noite); som ambiente por bioma (pássaros de dia, grilos e coruja à noite) *(detalhar quando chegar)*.
+- [ ] **088 — Detalhes da floresta** — cogumelo-prateleira (o do MegaKit saiu na 054: achar um no LGPE), musgo nos troncos caídos e grama mais rala sob a copa fechada *(detalhar quando chegar)*.
+- [ ] **089 — Pokécenter funcionando** — o Pokécenter da cidade (056) cura o time (com o som de cura) e vira o ponto de reaparecimento; base para a derrota do treinador (064) *(detalhar quando chegar)*.
+- [ ] **090 — Refino dos golpes** — os golpes que entraram na 059 com valores padrão (VFX e som emprestados de outro golpe) ganham VFX, som, forma e animação próprios, um por um; efeitos que o jogo ainda não tem (ex.: a paralisia do Dragon Breath, o recuo do Bite, a Velocidade que o Rapid Spin dá a quem usa, o envenenamento do Poison Sting, a Velocidade que o String Shot tira — o jogo ainda não tem estágio de Velocidade —, a paralisia do Thunder Shock e do Thunder Wave, a Evasão do Double Team, o poder do Electro Ball pela Velocidade, prender do Wrap, a paralisia do Glare, a chance de crítico do Focus Energy — o crítico do jogo ainda não tem estágio —, o poder dobrado do Assurance e os vários acertos do Fury Attack) entram aqui; conferir no jogo o `positionOffset` (de onde cada golpe sai) e os golpes do learnset de cada espécie no nível certo *(detalhar quando chegar)*.
 
 ---
 

@@ -5,6 +5,7 @@ import {
   travarRecargaDoDash,
 } from '../actions/dash'
 import { resolveMoveSpeed } from '../actions/movementSpeed'
+import { resolveFlightDashDirection } from '../actions/flight'
 import { resolveDashCost } from '../actions/stamina'
 import { gastarItem } from '../actions/inventory'
 import { comecarAComer, podeComer } from '../actions/eating'
@@ -29,6 +30,8 @@ import {
   CaptureBall,
   OwnedBy,
   Party,
+  Flying,
+  OrbitCamera,
 } from '../traits'
 
 /**
@@ -183,14 +186,27 @@ export function playerActionSystem(context) {
     )
     .updateEach(([action, vitals, heldItem, pos, vel, rot, body], entity) => {
       if (action.current === null) {
+        const flying = entity.has(Flying)
         const canDash =
           input.dash &&
-          entity.has(Grounded) &&
+          // no chão, ou voando (docs/features/060-*.md, Parte 2)
+          (entity.has(Grounded) || flying) &&
           isDashReady(entity) &&
           vitals.stamina >= resolveDashCost(vitals)
 
         if (canDash) {
-          iniciarDash(action, vitals, Math.sin(rot.y), Math.cos(rot.y))
+          // No ar, na direção do voo (câmera + Espaço/C); sem intenção, pra
+          // frente do corpo.
+          const dir = flying
+            ? resolveFlightDashDirection(
+                entity.get(InputState),
+                input,
+                world.queryFirst(OrbitCamera)?.get(OrbitCamera),
+                rot.y,
+              )
+            : { x: Math.sin(rot.y), y: 0, z: Math.cos(rot.y) }
+          iniciarDash(action, vitals, dir.x, dir.z)
+          action.dirY = dir.y
           travarRecargaDoDash(entity)
         } else if (input.primary) {
           const item = heldItem.itemId ? getItem(heldItem.itemId) : null
@@ -250,7 +266,13 @@ export function playerActionSystem(context) {
         // No tick do fim, já deixa a velocidade de saída — o
         // `movementSystem` (que roda ANTES) zerou a velocidade por ainda
         // ver o dash ativo; sem isso sobrava um tick parado no fim.
-        avancarDash(action, vel, delta, resolveDashExitSpeed(entity))
+        avancarDash(
+          action,
+          vel,
+          delta,
+          resolveDashExitSpeed(entity),
+          entity.has(Flying),
+        )
         return
       }
 

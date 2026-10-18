@@ -117,6 +117,16 @@ export function rotateY([x, y, z], yaw) {
 }
 
 /**
+ * Inclina em torno do X local: `pitch` positivo levanta a frente (+Z vai
+ * pra +Y). É o "nariz pra cima" do quadro de quem voa (o dash no ar).
+ */
+export function rotatePitch([x, y, z], pitch) {
+  const cos = Math.cos(pitch)
+  const sin = Math.sin(pitch)
+  return [x, y * cos + z * sin, -y * sin + z * cos]
+}
+
+/**
  * Base de uma partícula "linha de velocidade" (`facing: 'direction'`, o
  * `lookat_direction` do Bedrock): o eixo X do quadro vai ao longo do movimento
  * (`direction`) e a face do quadro (eixo Z) olha pra câmera, o mais que der —
@@ -166,11 +176,12 @@ function anchorPoint(anchor, ctx) {
  * `ctx`: `{ age, progress, length, scale, radius, frame }` — idade do emissor,
  * fração (0..1) já percorrida da janela de emissão, comprimento do golpe,
  * multiplicador de tamanho, raio do golpe e, opcional, o QUADRO do emissor
- * (`frame: { origin: [x, y, z], yaw, roll?, height }`): quando presente, tudo o que o
+ * (`frame: { origin: [x, y, z], yaw, pitch?, roll?, height }`): quando presente, tudo o que o
  * spec calcula (posição, velocidade, aceleração) é no referencial LOCAL da
  * criatura (+Z = pra onde ela olha) e a partícula nasce no MUNDO, na origem e
  * girada pelo `yaw` do quadro — o jeito de um efeito acompanhar quem se move
- * (o dash). `height` (altura do corpo) fica em `ctx.height` pros specs.
+ * (o dash). `pitch` (radianos, opcional) inclina antes do `yaw`: o dash no ar
+ * pra cima ou pra baixo. `height` (altura do corpo) fica em `ctx.height` pros specs.
  * `roll` (radianos, opcional) gira o sprite no plano da tela, somado ao `spin`
  * — o único giro que muda o desenho de um billboard.
  *
@@ -207,15 +218,16 @@ export function spawnParticle(spec, ctx, random) {
   let accel = [ax, ay, az]
   if (ctx.frame) {
     // do referencial da criatura pro mundo
-    const { origin, yaw } = ctx.frame
-    const rotated = rotateY(position, yaw)
+    const { origin, yaw, pitch = 0 } = ctx.frame
+    const toWorld = (v) => rotateY(pitch ? rotatePitch(v, pitch) : v, yaw)
+    const rotated = toWorld(position)
     position = [
       origin[0] + rotated[0],
       origin[1] + rotated[1],
       origin[2] + rotated[2],
     ]
-    velocity = rotateY(velocity, yaw)
-    accel = rotateY(accel, yaw)
+    velocity = toWorld(velocity)
+    accel = toWorld(accel)
   }
 
   const particle = {

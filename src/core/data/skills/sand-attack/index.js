@@ -3,7 +3,7 @@
  * PRECISÃO dos alvos, no formato do `../smokescreen`, ver
  * `../_template/index.js` pro que cada campo significa. Entrou na 059 com
  * valores padrão: forma, VFX e som da Cortina de Fumaça; o refino (areia no
- * lugar da fumaça) fica pra 088.
+ * lugar da fumaça) fica pra 090.
  */
 export const SAND_ATTACK_SKILL = {
   id: 'sand-attack',

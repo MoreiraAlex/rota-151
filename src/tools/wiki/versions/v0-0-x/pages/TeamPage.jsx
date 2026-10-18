@@ -1,10 +1,17 @@
 import { Section } from '@/tools/wiki/components/Article'
 import { Notice } from '@/tools/wiki/components/Notice'
 import { WikiLink } from '@/tools/wiki/components/WikiLink'
-import { formatMeters, formatSeconds } from '@/tools/wiki/wikiFormat'
+import {
+  formatMeters,
+  formatPercent,
+  formatSeconds,
+} from '@/tools/wiki/wikiFormat'
 
 export function TeamPage({ data, version }) {
-  const { party, faint } = data
+  const { party, faint, flight, species } = data
+  const flyers = species
+    .filter((entry) => entry.movement.flight)
+    .map((entry) => entry.name)
 
   return (
     <>
@@ -154,6 +161,48 @@ export function TeamPage({ data, version }) {
             Golpes
           </WikiLink>
           ), e o treinador passa a agir sozinho.
+        </p>
+      </Section>
+
+      <Section id="voo" title="Voar">
+        <p>
+          As criaturas que voam ({flyers.join(', ')}) levantam voo quando você
+          está no controle delas. No ar elas vão pra onde a câmera olha, sobem e
+          descem, voam devagar ou rápido e, sem nenhum comando, ficam pairando.
+          Encostando no chão, pousam.
+        </p>
+        <ul>
+          <li>
+            <strong>Energia</strong>: voar gasta energia o tempo todo, mais no
+            voo rápido, e no ar ela não volta. Pra decolar precisa de pelo menos{' '}
+            {formatPercent(flight.minTakeoffStamina)} da energia.
+          </li>
+          <li>
+            <strong>Altura</strong>: com a energia cheia, a ave sobe até{' '}
+            {formatMeters(flight.maxHeight)} acima do chão. A altura máxima cai
+            junto com a energia, empurrando a ave pra baixo aos poucos; sem
+            energia, ela pousa.
+          </li>
+          <li>
+            <strong>Luta</strong>: no ar ela não usa golpes (pra lutar, pousa),
+            mas ainda dá dash e pode ser atingida. Os selvagens deixam de lado
+            quem voa alto demais pra alcançar e voltam quando ela desce.
+          </li>
+          <li>
+            <strong>Água funda</strong>: dá pra passar por cima, mas a ave não
+            pousa nela: fica rente à água até chegar na margem.
+          </li>
+          <li>
+            Voltando o controle pro treinador com a ave no ar, ela desce sozinha
+            e volta a seguir.
+          </li>
+        </ul>
+        <p>
+          A velocidade e o gasto do voo de cada ave estão na ficha dela no{' '}
+          <WikiLink version={version} to="catalogo/criaturas">
+            Catálogo
+          </WikiLink>
+          .
         </p>
       </Section>
     </>

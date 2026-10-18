@@ -12,7 +12,8 @@ Saída:
 As texturas ficam fora do .glb de propósito: o jogo aplica a variante (default, shiny...)
 pelo nome do material (body, eye, fire), então o mesmo .glb serve para todas.
 """
-import bpy, os, struct, sys, addon_utils
+import bpy, math, os, struct, sys, addon_utils
+from mathutils import Vector
 
 ADDON = "Pokemon-Switch-Model-Importer-Blender-main"
 
@@ -44,6 +45,16 @@ ANIMATIONS = {
     "happy": "00550_glad01", "notice": "00560_notice01", "dislike": "00563_hate01",
     "blink": "08000_eye01", "staticPose": "08201_loop01_loop",
 }
+
+# Voo livre (docs/features/060-ajustes-por-especie.md): o conjunto de voo (2xxxx) das aves.
+# Opcionais e SEM o fallback acima — espécie sem voo não ganha cópia das animações de chão.
+# O voo do dump fica bem acima do chão; no jogo quem sobe é o corpo, então os clipes descem
+# até o chão do idle (`lower_flight_to_ground`), como no conversor do LGPE.
+FLIGHT_ANIMATIONS = {
+    "flyIdle": "20000_defaultwait01_loop", "fly": "20030_walk01_loop", "flyFast": "20100_run01_loop",
+    "flyDashStart": "20140_stepin01_start", "flyDash": "20141_stepin01", "flyDashEnd": "20142_stepin01_end",
+}
+GROUND_TOLERANCE = 0.05  # metros
 
 # Os *_alb.png do dump NÃO são a cor final: o Legends compõe a cor a partir de máscaras (*_lym)
 # e de cores por camada guardadas no material (.trmtr). Por isso a textura é assada (bake)
@@ -173,6 +184,60 @@ def apply_mesh_visibility(arm, action, tracm, bones_by_mesh):
             pb.keyframe_insert(data_path="scale", frame=frame)
     arm.animation_data.action = None
     print(f"VISIBILIDADE {action.name}: {sorted(hidden)}")
+
+
+def lowest_point(arm, action):
+    """Altura (Z do mundo no Blender) do osso mais baixo no clipe todo. Fora da conta a raiz
+    (origin) e os pontos de efeito, que ficam parados na origem ou soltos."""
+    scene = bpy.context.scene
+    arm.animation_data.action = action
+    bones = [pb for pb in arm.pose.bones
+             if pb.name != "origin" and "eff" not in pb.name.lower()]
+    start, end = (int(x) for x in action.frame_range)
+    lowest = math.inf
+    for frame in range(start, end + 1):
+        scene.frame_set(frame)
+        lowest = min(lowest, min((arm.matrix_world @ pb.head).z for pb in bones))
+    return lowest
+
+
+def lower_flight_to_ground(arm, actions):
+    """Desce os clipes de voo que ficam no ar até o chão do idle, pelo osso origin. O
+    deslocamento entra somado ao que o origin já anima (o balanço do voo continua)."""
+    if "idle" not in actions:
+        return
+    ground = lowest_point(arm, actions["idle"])
+    origin = arm.pose.bones["origin"]
+    for name in FLIGHT_ANIMATIONS:
+        action = actions.get(name)
+        if not action:
+            continue
+        height = lowest_point(arm, action) - ground
+        if height <= GROUND_TOLERANCE:
+            continue
+        start = int(action.frame_range[0])
+        arm.animation_data.action = action
+        bpy.context.scene.frame_set(start)
+        # do mundo pro esqueleto, e do esqueleto pro referencial do osso
+        down = arm.matrix_world.to_3x3().inverted() @ Vector((0, 0, -height))
+        to_armature = origin.matrix.to_3x3() @ origin.matrix_basis.to_3x3().inverted()
+        local = to_armature.inverted() @ down
+        curves = {fc.array_index: fc for layer in action.layers for strip in layer.strips
+                  for bag in strip.channelbags for fc in bag.fcurves
+                  if fc.data_path == 'pose.bones["origin"].location'}
+        for i in range(3):
+            fc = curves.get(i)
+            if fc:
+                for key in fc.keyframe_points:
+                    key.co.y += local[i]
+                    key.handle_left.y += local[i]
+                    key.handle_right.y += local[i]
+            else:
+                origin.location[i] = local[i]
+                origin.keyframe_insert(data_path="location", index=i, frame=start)
+                origin.location[i] = 0
+        print(f"NO CHÃO {name}: desceu {height:.2f} m")
+    arm.animation_data.action = None
 
 
 def parse_args():
@@ -311,17 +376,21 @@ def main():
 
     faltando = []
     visibility = []
-    for game_name, legends_name in ANIMATIONS.items():
-        candidates = [legends_name] + [f"{p}{legends_name[1:]}" for p in "21"]
+    actions = {}
+    for game_name, legends_name in {**ANIMATIONS, **FLIGHT_ANIMATIONS}.items():
+        flight = game_name in FLIGHT_ANIMATIONS
+        candidates = [legends_name] + ([] if flight else [f"{p}{legends_name[1:]}" for p in "21"])
         path = next((os.path.join(folder, f"{pm}_00_00_{c}.tranm") for c in candidates
                      if os.path.exists(os.path.join(folder, f"{pm}_00_00_{c}.tranm"))), None)
         if not path:
-            faltando.append(game_name)
+            if not flight:
+                faltando.append(game_name)
             continue
         bpy.ops.import_scene.gfbanm(filepath=path)
         action = bpy.data.actions.get(os.path.basename(path)[:-len(".tranm")])
         action.name = game_name
         action.use_fake_user = True
+        actions[game_name] = action
         tracm = path[:-len(".tranm")] + ".tracm"
         if game_name not in OVERLAY_ANIMATIONS and os.path.exists(tracm):
             visibility.append((action, tracm))
@@ -329,6 +398,7 @@ def main():
     bones_by_mesh = exclusive_bones(arm)
     for action, tracm in visibility:
         apply_mesh_visibility(arm, action, tracm, bones_by_mesh)
+    lower_flight_to_ground(arm, actions)
 
     models = os.path.join(out, "models")
     tex = os.path.join(out, "textures", f"{dex:03d}-{name}", "default")

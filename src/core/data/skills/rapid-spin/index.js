@@ -1,7 +1,7 @@
 /**
  * Rapid Spin — golpe físico corpo a corpo, ver `../_template/index.js` pro
  * que cada campo significa. Entrou na 059 com valores padrão: forma, VFX e
- * som do `../tackle`; o refino fica pra 088. A subida de Velocidade de quem
+ * som do `../tackle`; o refino fica pra 090. A subida de Velocidade de quem
  * usa (série) fica de fora até golpe com dano poder mexer no próprio
  * atributo.
  */

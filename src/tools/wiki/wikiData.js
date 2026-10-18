@@ -612,6 +612,7 @@ export function buildWikiData() {
     STAMINA_BY_HP,
     SPEED_BY_HP,
     PLAYER_ACTIONS,
+    FLIGHT,
   } = GAME_CONFIG
   const speciesList = listWikiSpecies()
 
@@ -726,6 +727,10 @@ export function buildWikiData() {
     party: {
       attackInterval: PARTY_BEHAVIOR.ATTACK_INTERVAL,
       leashRadius: PARTY_BEHAVIOR.LEASH_RADIUS,
+    },
+    flight: {
+      maxHeight: FLIGHT.MAX_HEIGHT,
+      minTakeoffStamina: FLIGHT.MIN_TAKEOFF_STAMINA,
     },
     trainerBattle: {
       safeMin: TRAINER_BATTLE.SAFE_MIN_DISTANCE,

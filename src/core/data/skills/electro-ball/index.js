@@ -2,7 +2,7 @@
  * Bola Elétrica (Electro Ball) — golpe especial à distância, ver
  * `../_template/index.js` pro que cada campo significa. Entrou na 059 com
  * valores padrão: forma da Brasa (`../ember`), VFX e som do impacto genérico
- * do tipo (`'impact'`); o refino fica pra 088. Na série o poder cresce com a
+ * do tipo (`'impact'`); o refino fica pra 090. Na série o poder cresce com a
  * Velocidade de quem usa em relação à do alvo; por enquanto é fixo, o da
  * faixa do meio.
  */

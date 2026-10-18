@@ -5,8 +5,8 @@ import * as THREE from 'three'
 /**
  * Carrega um `.glb` de efeito (rip convertido via `obj2gltf`/
  * `gltf-pipeline -d`, ver `public/assets/effects/`) e devolve um CLONE
- * com material reconstruído pra blending ADITIVO (`MeshBasicMaterial`,
- * mesmo princípio de `flameParticles.js`: a textura original é um mapa de
+ * com material reconstruído pra blending ADITIVO (`MeshBasicMaterial`: a
+ * textura original é um mapa de
  * brilho em fundo preto, pensada pra somar luz, não ocluir — o material
  * PBR opaco que `obj2gltf` gera por padrão não tem esse conceito, porque
  * não existe no `.mtl` de origem).

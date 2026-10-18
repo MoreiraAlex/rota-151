@@ -11,6 +11,8 @@ import {
   CharacterController,
   CombatMode,
   Fainted,
+  FlightStats,
+  Flying,
   Jumping,
   MovementStats,
   Training,
@@ -44,12 +46,27 @@ export function animationStateSystem(context) {
   world
     .query(CharacterController, Velocity, Rotation, ActionState, AnimationState)
     .updateEach(([, vel, rot, action, anim], entity) => {
-      const speed = Math.hypot(vel.x, vel.z)
       const grounded = entity.has(Grounded)
+      // Voando (060): vale a velocidade que o jogador PEDIU, nas três
+      // direções (`Flying.intentSpeed`) — a descida forçada pelo teto da
+      // stamina não troca pairar por voar. O limiar de "rápido" é o meio
+      // entre o voo e o voo rápido.
+      const flight = entity.has(Flying) ? entity.get(FlightStats) : null
+      const speed = flight
+        ? entity.get(Flying).intentSpeed
+        : Math.hypot(vel.x, vel.z)
       const movement = entity.get(MovementStats)
+      let runMinSpeed = movement ? resolveRunMinSpeed(movement) : undefined
+      if (flight) {
+        runMinSpeed = resolveRunMinSpeed({
+          walkSpeed: flight.speed,
+          runSpeed: flight.fastSpeed,
+        })
+      }
       anim.id = resolveAnimationState({
         speed,
-        runMinSpeed: movement ? resolveRunMinSpeed(movement) : undefined,
+        runMinSpeed,
+        flying: !!flight,
         grounded,
         action: action.current,
         fainted: entity.has(Fainted),

@@ -14,7 +14,7 @@ export const CITY = {
   // é posta pela seed, uma por área (core/town/citySites.js,
   // docs/features/058-ajuste-dos-biomas.md), num disco do raio do porte
   // dela (`town.sizes`).
-  // Quase plana e lisa (o chão perfeitamente plano fica para a 081).
+  // Quase plana e lisa (o chão perfeitamente plano fica para a 083).
   relief: {
     baseHeight: 3.5,
     hillHeight: 0.8,

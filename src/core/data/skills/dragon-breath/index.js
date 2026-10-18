@@ -1,7 +1,7 @@
 /**
  * Dragon Breath — golpe especial à distância, ver `../_template/index.js` pro
  * que cada campo significa. Entrou na 059 com valores padrão: VFX e som
- * emprestados da Brasa (`../ember`); o refino fica pra 088. A chance de
+ * emprestados da Brasa (`../ember`); o refino fica pra 090. A chance de
  * paralisar da série fica de fora até o jogo ter paralisia.
  */
 export const DRAGON_BREATH_SKILL = {

@@ -2,7 +2,7 @@
  * Ferrão Venenoso (Poison Sting) — golpe físico corpo a corpo, ver
  * `../_template/index.js` pro que cada campo significa. Entrou na 059 com
  * valores padrão: forma do `../tackle`, VFX e som do impacto genérico do tipo
- * (`'impact'`); o refino fica pra 088. A chance de envenenar da série fica
+ * (`'impact'`); o refino fica pra 090. A chance de envenenar da série fica
  * de fora até o jogo ter envenenamento.
  */
 export const POISON_STING_SKILL = {

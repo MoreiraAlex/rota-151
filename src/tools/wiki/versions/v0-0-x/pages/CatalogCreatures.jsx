@@ -114,6 +114,15 @@ export function CreatureDetailPage({ data, version, id }) {
             ],
             ['Andar', `${formatNumber(entry.movement.walkSpeed)} m/s`],
             ['Correr', `${formatNumber(entry.movement.runSpeed)} m/s`],
+            ...(entry.movement.flight
+              ? [
+                  ['Voar', `${formatNumber(entry.movement.flight.speed)} m/s`],
+                  [
+                    'Voar rápido',
+                    `${formatNumber(entry.movement.flight.fastSpeed)} m/s`,
+                  ],
+                ]
+              : []),
           ]}
         />
         <div className="min-w-0 flex-1 space-y-4">
@@ -233,6 +242,19 @@ export function CreatureDetailPage({ data, version, id }) {
           ]}
           caption="Energia gasta com movimento, com a vida cheia."
         />
+        {entry.movement.flight && (
+          <DataTable
+            head={['Voar (por segundo)', 'Voar rápido (por segundo)']}
+            align={['right', 'right']}
+            rows={[
+              [
+                formatNumber(entry.movement.flight.staminaPerSecond),
+                formatNumber(entry.movement.flight.fastStaminaPerSecond),
+              ],
+            ]}
+            caption="Energia gasta no voo, com a vida cheia. Pairando gasta o mesmo que voar devagar."
+          />
+        )}
       </Section>
     </>
   )
