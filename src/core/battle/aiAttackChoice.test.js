@@ -1,13 +1,14 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { createWorld } from 'koota'
 import { getSpecies } from '../data/species'
+import { getCondition } from '../data/conditions'
 import { GAME_CONFIG } from '../gameConfig'
 import {
   ActionState,
   AttackCooldowns,
   CharacterController,
+  Conditions,
   IndividualValues,
-  LeechSeed,
   Party,
   Position,
   Vitals,
@@ -20,16 +21,15 @@ import {
   resolveReachFor,
   scoreAiAttack,
 } from './aiAttackChoice'
+import { resolveExpectedHits } from './multiHit'
 import { resolveAttackForEntity } from './attackCasting'
 import { resolveStab } from './calculateDamage'
+import { resolveHitTrigger, resolveTriggerFrontEdge } from './hitTrigger'
 import { resolveTypeEffectiveness } from '../data/types'
 
-const {
-  IN_REACH_BONUS,
-  NEAR_BEST_FRACTION,
-  STAT_STAGE_VALUE,
-  LEECH_SEED_VALUE,
-} = GAME_CONFIG.AI_ATTACK
+const { IN_REACH_BONUS, NEAR_BEST_FRACTION, STAT_STAGE_VALUE } =
+  GAME_CONFIG.AI_ATTACK
+const SEED_VALUE = getCondition('leech-seed').ai.value
 const BODY = { capsuleRadius: 0.3, capsuleHalfHeight: 0.3 }
 
 const worlds = []
@@ -50,9 +50,10 @@ function situation(attacker, target, enemies = []) {
   return {
     attacker,
     attackerPos: attacker.get(Position),
+    attackerTrigger: resolveHitTrigger(BODY),
     target,
     targetPos: target.get(Position),
-    targetBody: target.get(CharacterController),
+    targetTrigger: resolveHitTrigger(target.get(CharacterController)),
     enemies: enemies.map((entity) => ({ entity, pos: entity.get(Position) })),
   }
 }
@@ -73,7 +74,7 @@ const SEED = {
   range: 5,
   radius: 0.4,
   damage: null,
-  effects: [{ type: 'leechSeed', fraction: 1 / 16, interval: 2, duration: 6 }],
+  effects: [{ type: 'condition', condition: 'leech-seed' }],
 }
 const SELF_BUFF = {
   id: 'v',
@@ -85,9 +86,12 @@ const SELF_BUFF = {
 }
 
 describe('resolveReachFor', () => {
-  it('range + radius + corpo do alvo; golpe em si mesmo não tem limite', () => {
-    expect(resolveReachFor(HIT, BODY)).toBeCloseTo(1.6)
-    expect(resolveReachFor(SELF_BUFF, BODY)).toBe(Infinity)
+  it('borda de quem ataca + range + raio do trigger do alvo; golpe em si mesmo não tem limite', () => {
+    const trigger = resolveHitTrigger(BODY)
+    expect(resolveReachFor(HIT, trigger, trigger)).toBeCloseTo(
+      resolveTriggerFrontEdge(trigger) + HIT.range + trigger.radius,
+    )
+    expect(resolveReachFor(SELF_BUFF, trigger, trigger)).toBe(Infinity)
   })
 })
 
@@ -121,9 +125,11 @@ describe('scoreAiAttack — só pelos campos da definição', () => {
       STAT_STAGE_VALUE * IN_REACH_BONUS,
     )
     expect(scoreAiAttack(SEED, situation(attacker, target))).toBe(
-      LEECH_SEED_VALUE * IN_REACH_BONUS,
+      SEED_VALUE * IN_REACH_BONUS,
     )
-    target.add(LeechSeed({ timeLeft: 5 }))
+    target.add(
+      Conditions({ list: [{ id: 'leech-seed', timeLeft: 99, modifiers: {} }] }),
+    )
     expect(scoreAiAttack(SEED, situation(attacker, target))).toBe(0)
   })
 
@@ -167,6 +173,45 @@ describe('scoreAiAttack — só pelos campos da definição', () => {
         situation(attacker, target),
       ),
     ).toBe(0)
+  })
+
+  it('vários acertos: a nota conta a média de acertos', () => {
+    const { attacker, spawnEnemy } = setup()
+    const target = spawnEnemy(0, 0.8)
+    const multiHit = { counts: [2, 4], weights: [1, 1], interval: 0.1 }
+    expect(
+      scoreAiAttack({ ...HIT, multiHit }, situation(attacker, target)),
+    ).toBeCloseTo(
+      scoreAiAttack(HIT, situation(attacker, target)) *
+        resolveExpectedHits(multiHit),
+    )
+  })
+
+  it('contra quem apanhou há pouco, o golpe com esse bônus vale mais', () => {
+    const { attacker, spawnEnemy } = setup()
+    const target = spawnEnemy(0, 0.8)
+    const boost = { window: 3, multiplier: 2 }
+    const attack = {
+      ...HIT,
+      damage: { ...HIT.damage, recentDamageBoost: boost },
+    }
+    const calm = scoreAiAttack(attack, situation(attacker, target))
+    target.add(Vitals({ hpDamageAge: 0 }))
+    expect(scoreAiAttack(attack, situation(attacker, target))).toBeCloseTo(
+      calm * boost.multiplier,
+    )
+  })
+
+  it('o que dá a quem usa (`selfEffects`) soma uma vez, avaliado em quem usa', () => {
+    const { attacker, spawnEnemy } = setup()
+    const target = spawnEnemy(0, 0.8)
+    const speedUp = { type: 'statStage', stat: 'speed', stages: 1 }
+    const plain = scoreAiAttack(HIT, situation(attacker, target))
+    const boosted = scoreAiAttack(
+      { ...HIT, selfEffects: [speedUp] },
+      situation(attacker, target),
+    )
+    expect(boosted).toBeGreaterThan(plain)
   })
 
   it('`ai.weight` multiplica a nota', () => {

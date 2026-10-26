@@ -7,11 +7,13 @@ import { storedConditionSystem } from './storedConditionSystem'
 
 const DELTA = 1 / 60
 const BURN = {
+  id: 'burn',
   timeLeft: 5,
   tickTimer: 1,
   fraction: 0.1,
   interval: 1,
-  attackMultiplier: 1,
+  to: null,
+  modifiers: {},
 }
 
 let world
@@ -39,7 +41,7 @@ function burnedPokemon(hp, burn = BURN) {
   pokemon.set(StoredVitals, {
     vitals: { hp, maxHp: 30, stamina: 10, maxStamina: 10 },
   })
-  pokemon.add(StoredConditions({ burn: { ...burn } }))
+  pokemon.add(StoredConditions({ list: [{ ...burn }] }))
   return pokemon
 }
 

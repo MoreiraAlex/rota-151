@@ -84,34 +84,3 @@ export function resolveEffectStart(origin, direction, positionOffset) {
       oz * cosYaw * cosPitch,
   }
 }
-
-/**
- * Como o VFX do golpe gira: orientado pela trajetória REAL (`origin` →
- * `impactPoint`, inclina junto numa rampa), mais o `visual.rotationOffset`
- * (`resolveEffectRotation`). A partida já é a origem do golpe
- * (`resolveAttackOrigin`, com o `positionOffset`). `direction` é a direção
- * travada do golpe — usada quando a trajetória tem comprimento ~0
- * (encostado na parede).
- */
-export function resolveEffectOrientation(
-  origin,
-  direction,
-  impactPoint,
-  rotationOffset,
-) {
-  const path = {
-    x: impactPoint.x - origin.x,
-    y: impactPoint.y - origin.y,
-    z: impactPoint.z - origin.z,
-  }
-  const pathLength = Math.hypot(path.x, path.y, path.z)
-  const pathDirection =
-    pathLength > 1e-6
-      ? {
-          x: path.x / pathLength,
-          y: path.y / pathLength,
-          z: path.z / pathLength,
-        }
-      : direction
-  return resolveEffectRotation(pathDirection, rotationOffset)
-}

@@ -4,7 +4,10 @@ import { disposePhysics, initPhysics } from '@/core/physics/physicsWorld'
 import { resolveMoveSpeed } from '../actions/movementSpeed'
 import { perseguirJogador } from '../actions/wildBehavior'
 import { resolveCreatureAttack } from '../battle/creatureAttack'
+import { resolveReachFor } from '../battle/aiAttackChoice'
+import { resolveHitTrigger } from '../battle/hitTrigger'
 import { getSpecies } from '../data/species'
+import { createMovesState } from '../data/species/moves'
 import { verticalClearance } from '../physics/capsule'
 import { GAME_CONFIG } from '../gameConfig'
 import {
@@ -12,6 +15,7 @@ import {
   AiMovement,
   AttackCooldowns,
   CharacterController,
+  CreatureMoves,
   IndividualValues,
   InputControlled,
   Mood,
@@ -53,7 +57,9 @@ const CHARMANDER = getSpecies('charmander')
 // Um golpe corpo a corpo de dano do kit (sem fixar qual).
 const MELEE_SLOT = ['secondary1', 'secondary2', 'secondary3'].find((slot) => {
   const attack = resolveCreatureAttack(CHARMANDER, slot)
-  return attack?.damage && attack.aim === 'melee' && !attack.damageMode
+  return (
+    attack?.damage && attack.aim === 'melee' && attack.execution !== 'channel'
+  )
 })
 const { SAFE_DISTANCE, ARRIVE_DISTANCE } = GAME_CONFIG.TRAINER_BATTLE
 // Longe dos obstáculos do nível de teste.
@@ -281,76 +287,110 @@ describe('trainerBattleSystem — treinador fora do controle numa luta', () => {
   })
 })
 
+// Pendência da 079: o treinador para a SAFE_DISTANCE − ARRIVE_DISTANCE da
+// criatura e, se o raio da volta da selvagem em volta dela passar da folga até
+// SAFE_MIN_DISTANCE (ou ela recuar pro lado dele, com golpe à distância), ela
+// chega perto demais e ele atravessa a luta pro outro lado. As regressões
+// abaixo cobrem outra coisa (o ponto recalculado, a meia-volta na borda):
+// a selvagem só com o corpo a corpo e a distância segura com o raio da volta.
+function withOrbitMargin(run) {
+  const trigger = resolveHitTrigger(CHARMANDER.body)
+  const melee = resolveCreatureAttack(CHARMANDER, MELEE_SLOT)
+  const orbit =
+    resolveReachFor(melee, trigger, trigger) *
+    GAME_CONFIG.WILD_BEHAVIOR.ATTACK_REACH_FRACTION *
+    GAME_CONFIG.AI_MOVEMENT.STRAFE_DISTANCE_FRACTION
+  const original = GAME_CONFIG.TRAINER_BATTLE.SAFE_DISTANCE
+  GAME_CONFIG.TRAINER_BATTLE.SAFE_DISTANCE = original + orbit
+  try {
+    run()
+  } finally {
+    GAME_CONFIG.TRAINER_BATTLE.SAFE_DISTANCE = original
+  }
+}
+
+// Os golpes da espécie com só o corpo a corpo de dano (`MELEE_SLOT`).
+function meleeOnlyMoves() {
+  const moves = createMovesState(CHARMANDER)
+  const melee = Number(MELEE_SLOT.slice('secondary'.length))
+  for (const slot of Object.keys(moves.slots)) {
+    if (Number(slot) !== melee) moves.slots[slot] = null
+  }
+  return moves
+}
+
 describe('trainerBattleSystem — regressão: andando em círculos', () => {
   // Relatado jogando: "assim que entra em combate, ele fica andando em
   // círculos no mesmo ponto". O ponto seguro era recalculado todo tick pela
   // selvagem mais perto da criatura — que RODEIA a criatura (Parte 2) —, então
   // o ponto girava e ele ia atrás. Luta de verdade (selvagem lutando com a
   // criatura controlada), posições integradas à mão.
-  it('com a selvagem rodeando a criatura, ele se posiciona e quase não anda mais', () => {
-    const { world, player: trainer } = makeWorld({ playerPosition: at(0, 0) })
-    worlds.push(world)
-    trainer.remove(InputControlled)
-    world.spawn(
-      SummonedCreature({ slot: 'slot1', speciesId: 'charmander' }),
-      ...ownedByPlayer(world),
-      InputControlled,
-      PartyBehavior,
-      AiMovement,
-      Position(at(0, 2)),
-      Rotation,
-      Velocity,
-      MovementStats(CHARMANDER.movement),
-      CharacterController(CHARMANDER.body),
-      PhysicsBody,
-      PathState,
-      ActionState,
-      AttackCooldowns,
-      IndividualValues,
-      Mood,
-      vitalsFromSpecies(CHARMANDER),
-    )
-    world.spawn(
-      WildCreature({ speciesId: 'charmander' }),
-      WildBehavior({ temperament: 'hostile' }),
-      AiMovement,
-      Position(at(0, 6)),
-      Rotation,
-      Velocity,
-      MovementStats(CHARMANDER.movement),
-      CharacterController(CHARMANDER.body),
-      PhysicsBody,
-      PathState,
-      WanderState({ homeX: BASE.x, homeZ: BASE.z + 6 }),
-      ActionState,
-      AttackCooldowns,
-      IndividualValues,
-      Mood,
-      vitalsFromSpecies(CHARMANDER),
-    )
-    const events = createEventQueue()
-    let travelled = 0
-    for (let i = 0; i < 600; i++) {
-      events.beginStep()
-      const ctx = { world, delta: DELTA, input: {}, events }
-      creatureAttackSystem(ctx)
-      wildBehaviorSystem(ctx)
-      trainerBattleSystem(ctx)
-      creatureFollowSystem(ctx)
-      world.query(Position, Velocity).updateEach(([pos, vel]) => {
-        pos.x += vel.x * DELTA
-        pos.z += vel.z * DELTA
-      })
-      if (i >= 300) {
-        const vel = trainer.get(Velocity)
-        travelled += Math.hypot(vel.x, vel.z) * DELTA
+  it('com a selvagem rodeando a criatura, ele se posiciona e quase não anda mais', () =>
+    withOrbitMargin(() => {
+      const { world, player: trainer } = makeWorld({ playerPosition: at(0, 0) })
+      worlds.push(world)
+      trainer.remove(InputControlled)
+      world.spawn(
+        SummonedCreature({ slot: 'slot1', speciesId: 'charmander' }),
+        ...ownedByPlayer(world),
+        InputControlled,
+        PartyBehavior,
+        AiMovement,
+        Position(at(0, 2)),
+        Rotation,
+        Velocity,
+        MovementStats(CHARMANDER.movement),
+        CharacterController(CHARMANDER.body),
+        PhysicsBody,
+        PathState,
+        ActionState,
+        AttackCooldowns,
+        IndividualValues,
+        Mood,
+        vitalsFromSpecies(CHARMANDER),
+      )
+      world.spawn(
+        WildCreature({ speciesId: 'charmander' }),
+        WildBehavior({ temperament: 'hostile' }),
+        CreatureMoves(meleeOnlyMoves()),
+        AiMovement,
+        Position(at(0, 6)),
+        Rotation,
+        Velocity,
+        MovementStats(CHARMANDER.movement),
+        CharacterController(CHARMANDER.body),
+        PhysicsBody,
+        PathState,
+        WanderState({ homeX: BASE.x, homeZ: BASE.z + 6 }),
+        ActionState,
+        AttackCooldowns,
+        IndividualValues,
+        Mood,
+        vitalsFromSpecies(CHARMANDER),
+      )
+      const events = createEventQueue()
+      let travelled = 0
+      for (let i = 0; i < 600; i++) {
+        events.beginStep()
+        const ctx = { world, delta: DELTA, input: {}, events }
+        creatureAttackSystem(ctx)
+        wildBehaviorSystem(ctx)
+        trainerBattleSystem(ctx)
+        creatureFollowSystem(ctx)
+        world.query(Position, Velocity).updateEach(([pos, vel]) => {
+          pos.x += vel.x * DELTA
+          pos.z += vel.z * DELTA
+        })
+        if (i >= 300) {
+          const vel = trainer.get(Velocity)
+          travelled += Math.hypot(vel.x, vel.z) * DELTA
+        }
       }
-    }
 
-    expect(trainer.get(TrainerBehavior).state).toBe('safe')
-    // Nos últimos 5s: só correções curtas, não andando sem parar.
-    expect(travelled).toBeLessThan(3)
-  })
+      expect(trainer.get(TrainerBehavior).state).toBe('safe')
+      // Nos últimos 5s: só correções curtas, não andando sem parar.
+      expect(travelled).toBeLessThan(3)
+    }))
 })
 
 describe('trainerBattleSystem — regressão: meia-volta na borda da zona (com física)', () => {
@@ -363,74 +403,76 @@ describe('trainerBattleSystem — regressão: meia-volta na borda da zona (com f
   })
   afterEach(() => disposePhysics())
 
-  it('com a selvagem rodeando, ele sai pro ponto uma vez e não fica parando e saindo', () => {
-    const { world, player: trainer } = makeWorld({ playerPosition: at(0, 0) })
-    worlds.push(world)
-    trainer.remove(InputControlled)
-    const creature = world.spawn(
-      SummonedCreature({ slot: 'slot1', speciesId: 'charmander' }),
-      ...ownedByPlayer(world),
-      InputControlled,
-      PartyBehavior,
-      AiMovement,
-      Position(at(0, 2)),
-      Rotation,
-      Velocity,
-      MovementStats(CHARMANDER.movement),
-      CharacterController(CHARMANDER.body),
-      PhysicsBody,
-      PathState,
-      ActionState,
-      AttackCooldowns,
-      IndividualValues,
-      Mood,
-      vitalsFromSpecies(CHARMANDER),
-    )
-    const wild = world.spawn(
-      WildCreature({ speciesId: 'charmander' }),
-      WildBehavior({ temperament: 'hostile' }),
-      AiMovement,
-      Position(at(0, 9)),
-      Rotation,
-      Velocity,
-      MovementStats(CHARMANDER.movement),
-      CharacterController(CHARMANDER.body),
-      PhysicsBody,
-      PathState,
-      WanderState({ homeX: BASE.x, homeZ: BASE.z + 9 }),
-      ActionState,
-      AttackCooldowns,
-      IndividualValues,
-      Mood,
-      vitalsFromSpecies(CHARMANDER),
-    )
-    const events = createEventQueue()
-    physicsBootstrapSystem({ world, delta: DELTA })
-    perseguirJogador(wild, { provoked: true })
-    wild.set(WildBehavior, { target: creature })
+  it('com a selvagem rodeando, ele sai pro ponto uma vez e não fica parando e saindo', () =>
+    withOrbitMargin(() => {
+      const { world, player: trainer } = makeWorld({ playerPosition: at(0, 0) })
+      worlds.push(world)
+      trainer.remove(InputControlled)
+      const creature = world.spawn(
+        SummonedCreature({ slot: 'slot1', speciesId: 'charmander' }),
+        ...ownedByPlayer(world),
+        InputControlled,
+        PartyBehavior,
+        AiMovement,
+        Position(at(0, 2)),
+        Rotation,
+        Velocity,
+        MovementStats(CHARMANDER.movement),
+        CharacterController(CHARMANDER.body),
+        PhysicsBody,
+        PathState,
+        ActionState,
+        AttackCooldowns,
+        IndividualValues,
+        Mood,
+        vitalsFromSpecies(CHARMANDER),
+      )
+      const wild = world.spawn(
+        WildCreature({ speciesId: 'charmander' }),
+        WildBehavior({ temperament: 'hostile' }),
+        CreatureMoves(meleeOnlyMoves()),
+        AiMovement,
+        Position(at(0, 9)),
+        Rotation,
+        Velocity,
+        MovementStats(CHARMANDER.movement),
+        CharacterController(CHARMANDER.body),
+        PhysicsBody,
+        PathState,
+        WanderState({ homeX: BASE.x, homeZ: BASE.z + 9 }),
+        ActionState,
+        AttackCooldowns,
+        IndividualValues,
+        Mood,
+        vitalsFromSpecies(CHARMANDER),
+      )
+      const events = createEventQueue()
+      physicsBootstrapSystem({ world, delta: DELTA })
+      perseguirJogador(wild, { provoked: true })
+      wild.set(WildBehavior, { target: creature })
 
-    let departures = 0
-    let wasStopped = false
-    for (let i = 0; i < 60 * 15; i++) {
-      events.beginStep()
-      const ctx = { world, delta: DELTA, input: {}, events }
-      creatureAttackSystem(ctx)
-      partyBehaviorSystem(ctx)
-      trainerBattleSystem(ctx)
-      creatureFollowSystem(ctx)
-      wildBehaviorSystem(ctx)
-      characterPhysicsSystem(ctx)
-      physicsStepSystem(ctx)
-      syncPhysicsSystem(ctx)
+      let departures = 0
+      let wasStopped = false
+      for (let i = 0; i < 60 * 15; i++) {
+        events.beginStep()
+        const ctx = { world, delta: DELTA, input: {}, events }
+        creatureAttackSystem(ctx)
+        partyBehaviorSystem(ctx)
+        trainerBattleSystem(ctx)
+        creatureFollowSystem(ctx)
+        wildBehaviorSystem(ctx)
+        characterPhysicsSystem(ctx)
+        physicsStepSystem(ctx)
+        syncPhysicsSystem(ctx)
 
-      const vel = trainer.get(Velocity)
-      const moving = Math.hypot(vel.x, vel.z) > 0
-      const safe = stateOf(trainer) === 'safe'
-      if (safe && moving && wasStopped) departures++
-      wasStopped = safe && !moving
-    }
+        const vel = trainer.get(Velocity)
+        const moving = Math.hypot(vel.x, vel.z) > 0
+        const safe = stateOf(trainer) === 'safe'
+        if (safe && moving && wasStopped) departures++
+        wasStopped = safe && !moving
+      }
 
-    // Uma saída pro ponto (o começo da luta); o código antigo saía 5 vezes.
-    expect(departures).toBeLessThanOrEqual(1)
-  })
+      // Uma saída pro ponto (o começo da luta); o código antigo saía 5 vezes.
+      expect(departures).toBeLessThanOrEqual(1)
+    }))
 })

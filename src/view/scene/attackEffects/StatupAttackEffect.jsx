@@ -9,8 +9,9 @@ import { useParticleAttackEffect } from './useParticleAttackEffect'
  * (config em `view/vfx/statupVfx.js`). O `AttackEffect` nasce nos pés da
  * criatura (`area: 'self'`); `radius` é o raio da espiral.
  */
-export function StatupAttackEffect({ radius, scale = 1 }) {
+export function StatupAttackEffect({ rise, radius, scale = 1 }) {
   const groupRef = useParticleAttackEffect({
+    rise,
     emitters: STATUP_EMITTERS,
     texturePaths: STATUP_TEXTURE_PATHS,
     radius,

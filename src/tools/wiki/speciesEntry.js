@@ -124,9 +124,16 @@ export function resolveSpeciesAttacks(species) {
   }).filter(Boolean)
 }
 
-/** Golpes que a espécie conhece fora dos slots (`species.moves`). */
+/**
+ * Golpes que a espécie conhece fora dos slots: os de `species.moves` que não
+ * são do kit (`species.skills`).
+ */
 export function resolveSpeciesMoves(species) {
-  return (species.moves ?? []).map(resolveSkill).filter(Boolean)
+  const kit = new Set(Object.values(species.skills ?? {}))
+  return (species.moves ?? [])
+    .filter((move) => !kit.has(typeof move === 'string' ? move : move.id))
+    .map(resolveSkill)
+    .filter(Boolean)
 }
 
 /** Velocidades e custo de energia do movimento (corrida, dash, pulo, voo). */

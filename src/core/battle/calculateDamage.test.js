@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { resolveFormulaLevel } from '../data/species/formulaLevel'
 import { createRng } from '../rng'
 import { getSpecies } from '../data/species'
+import { getCondition } from '../data/conditions'
 import { GAME_CONFIG } from '../gameConfig'
 import { TYPE_CHART } from '../data/types'
 import {
@@ -67,6 +68,14 @@ describe('rollCriticalMultiplier', () => {
 
   it('devolve 2 quando o sorteio fica abaixo da chance configurada', () => {
     expect(rollCriticalMultiplier(() => 0)).toBe(2)
+  })
+
+  it('o modificador `critical` multiplica a chance, até sempre', () => {
+    const base = GAME_CONFIG.BATTLE.CRITICAL_HIT_CHANCE
+    const between = () => base * 2
+    expect(rollCriticalMultiplier(between)).toBe(1)
+    expect(rollCriticalMultiplier(between, 4)).toBe(2)
+    expect(rollCriticalMultiplier(() => 0.9999, 1 / base)).toBe(2)
   })
 })
 
@@ -364,8 +373,8 @@ describe('resolveDamageAmount — estágios de atributo (golpes de status)', () 
     expect(special({ attackerStages: { sp_atk: -1 } })).toBeLessThan(special())
   })
 
-  it('queimadura corta o ataque FÍSICO de quem ataca, não o especial', () => {
-    const multiplier = 0.5
+  it('condição que corta o `attack` (queimadura) pega o golpe FÍSICO, não o especial', () => {
+    const multiplier = getCondition('burn').modifiers
     const physical = (burn) =>
       resolveDamageAmount({
         attackerSpecies: species,
@@ -373,7 +382,7 @@ describe('resolveDamageAmount — estágios de atributo (golpes de status)', () 
         defenderSpecies: species,
         defenderIndividualValues: null,
         damage: { power: 40, category: 'physical' },
-        attackerBurnMultiplier: burn,
+        attackerModifiers: burn,
         rng,
       }).amount
     expect(physical(multiplier)).toBeLessThan(physical(undefined))
@@ -385,7 +394,7 @@ describe('resolveDamageAmount — estágios de atributo (golpes de status)', () 
         defenderSpecies: species,
         defenderIndividualValues: null,
         damage: { power: 40, category: 'special' },
-        attackerBurnMultiplier: burn,
+        attackerModifiers: burn,
         rng,
       }).amount
     expect(special(multiplier)).toBe(special(undefined))

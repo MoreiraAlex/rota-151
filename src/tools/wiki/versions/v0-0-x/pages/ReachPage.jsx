@@ -30,9 +30,9 @@ export function ReachPage({ data, version }) {
         <p>Todo golpe tem duas medidas:</p>
         <ul>
           <li>
-            <strong>Alcance</strong> — até onde o golpe vai, a partir de quem
-            ataca. Ele acompanha rampas, mas para antes se bater numa parede ou
-            num desnível.
+            <strong>Alcance</strong> — até onde o golpe vai, contado a partir da{' '}
+            <strong>frente do corpo</strong> de quem ataca. Ele acompanha
+            rampas, mas para antes se bater numa parede ou num desnível.
           </li>
           <li>
             <strong>Raio</strong> — a “grossura” do golpe ao longo de todo o
@@ -40,14 +40,19 @@ export function ReachPage({ data, version }) {
           </li>
         </ul>
         <p>
-          O golpe acerta quando encosta no corpo do alvo. Criaturas maiores têm
-          corpo maior, então são mais fáceis de acertar.
+          A área do golpe começa na frente do corpo de quem ataca e vai até o
+          alcance. Como o alcance conta dessa borda, ele é o mesmo pra criaturas
+          grandes e pequenas: uma criatura grande alcança mais longe só porque o
+          corpo dela já ocupa mais espaço.
+        </p>
+        <p>
+          O golpe acerta quando a área encosta no corpo do alvo. Criaturas
+          maiores têm corpo maior, então são mais fáceis de acertar.
         </p>
         <p>
           Cada golpe sai de uma parte do corpo de quem ataca (a boca, a cauda, a
-          frente do corpo...), e é dali que ele parte e acerta. O alcance,
-          porém, é sempre contado do centro de quem ataca: um golpe que sai da
-          boca não vai mais longe por isso.
+          frente do corpo...), e é dali que o visual parte. Isso não muda até
+          onde ele vai.
         </p>
       </Section>
 
@@ -59,6 +64,10 @@ export function ReachPage({ data, version }) {
           <li>
             <strong>Cone</strong> — acerta todos os inimigos dentro de um leque
             à frente.
+          </li>
+          <li>
+            <strong>Em volta</strong> — acerta todos os inimigos num círculo em
+            volta de quem usa, sem precisar mirar.
           </li>
           <li>
             <strong>Feixe</strong> — usado por golpes canalizados: uma linha que
@@ -87,7 +96,7 @@ export function ReachPage({ data, version }) {
             skill.area === 'self' ? '—' : formatMeters(skill.range, 1),
             formatMeters(skill.radius, 2),
           ])}
-          caption="Medidas padrão de cada golpe. Uma espécie pode usar um golpe com medidas diferentes — veja a página da criatura."
+          caption="O alcance e o raio vêm do jeito do golpe (corpo a corpo, à distância, em área ou em si mesmo) e são iguais pra todas as espécies."
         />
       </Section>
     </>

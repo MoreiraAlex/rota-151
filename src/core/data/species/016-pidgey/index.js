@@ -106,6 +106,8 @@ export const PIDGEY = {
     battleIdle: 'battleIdle',
     appeal: 'appeal',
     hit: 'hit',
+    // atordoada por condição (a paralisia): entra, repete e sai
+    stunned: { start: 'stunStart', loop: 'stunLoop', end: 'stunEnd' },
   },
 
   // Sem mãos: bica do chão, embaixo do bico.
@@ -126,7 +128,8 @@ export const PIDGEY = {
     capsuleRadius: 0.12,
     capsuleHalfHeight: 0.06,
     capsuleAxis: 'y',
-    modelOffset: [0, -0.21, 0],
+    modelOffset: [0, -0.18, 0],
+    trigger: { radius: 0.2, halfLength: 0, angle: 0, offset: { x: 0, z: 0 } },
   },
   movement: {
     walkSpeed: 1.5,
@@ -175,7 +178,14 @@ export const PIDGEY = {
     sp_def: { base: SP_DEF, ev: SP_DEF_EV },
     speed: { base: SPEED, ev: SPEED_EV },
   },
-  moves: [{ id: 'gust', requires: { level: 9 } }],
+  moves: [
+    { id: 'tackle' },
+    {
+      id: 'sand-attack',
+      overrides: { visual: { positionOffset: { x: 0, y: 0, z: 0.15 } } },
+    },
+    { id: 'gust', requires: { level: 9 } },
+  ],
   // Na série o Pidgey é dócil: atacado, joga areia pra se proteger em vez
   // de revidar. Quase todos nascem pacíficos.
   wild: { hostileChance: 0.1 },

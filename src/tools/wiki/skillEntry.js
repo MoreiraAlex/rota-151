@@ -1,4 +1,4 @@
-import { listSkills } from '@/core/data/skills'
+import { applySkillGroup, listSkills } from '@/core/data/skills'
 import { resolveCreatureAttack } from '@/core/battle/creatureAttack'
 import { ATTACK_SLOTS } from '@/core/battle/attackCasting'
 import { resolveMoveAccuracy } from '@/core/battle/accuracy'
@@ -9,6 +9,7 @@ import {
 import {
   isBeamAttack,
   isChannelAttack,
+  isCircleAttack,
   isConeAttack,
   isSelfAttack,
   resolveChannelTickCount,
@@ -32,11 +33,12 @@ export function findWikiSkill(id, registry) {
   return listWikiSkills(registry).find((skill) => skill.id === id) ?? null
 }
 
-/** Forma da área: `'self'` | `'cone'` | `'line'` | `'capsule'`. */
+/** Forma da área: `'self'` | `'cone'` | `'circle'` | `'line'` | `'capsule'`. */
 export function resolveAttackArea(attack) {
   if (isSelfAttack(attack)) return 'self'
   if (isBeamAttack(attack)) return 'line'
   if (isConeAttack(attack)) return 'cone'
+  if (isCircleAttack(attack)) return 'circle'
   return 'capsule'
 }
 
@@ -47,11 +49,13 @@ export function resolveAttackCategory(attack) {
 }
 
 /**
- * Resumo de um golpe como o jogo o enxerga. `baseCooldown` é a recarga com
- * fator de velocidade neutro — a de cada criatura muda com o status
- * `speed` dela (ver página da espécie).
+ * Resumo de um golpe como o jogo o enxerga (com o que o grupo dá,
+ * `applySkillGroup`). `baseCooldown` é a recarga com fator de velocidade
+ * neutro — a de cada criatura muda com o status `speed` dela (ver página da
+ * espécie).
  */
-export function resolveSkillSummary(attack) {
+export function resolveSkillSummary(skill) {
+  const attack = applySkillGroup(skill)
   const weight = resolveAttackWeight(attack)
   const channel = isChannelAttack(attack)
   return {
@@ -81,7 +85,7 @@ export function resolveSkillSummary(attack) {
 /**
  * Quem usa o golpe: espécies com ele num slot (com a versão resolvida da
  * espécie — override, custo pelo nível dela, recarga pela velocidade) e
- * espécies que o conhecem fora dos slots (`species.moves`).
+ * espécies que o conhecem fora dos slots (em `species.moves`, fora do kit).
  */
 export function listSkillUsers(skillId, registry) {
   const users = []
@@ -94,10 +98,12 @@ export function listSkillUsers(skillId, registry) {
       if (slots.includes(entry.slot)) users.push({ species, ...entry })
     }
 
+    // fora dos slots: em `moves`, mas não no kit (esse já entrou acima)
+    const inKit = Object.values(species.skills ?? {}).includes(skillId)
     const knowsAsMove = (species.moves ?? []).some(
       (move) => (typeof move === 'string' ? move : move.id) === skillId,
     )
-    if (knowsAsMove) users.push({ species, slot: null })
+    if (knowsAsMove && !inKit) users.push({ species, slot: null })
   }
   return users
 }

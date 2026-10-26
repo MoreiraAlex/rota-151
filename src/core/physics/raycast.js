@@ -4,8 +4,13 @@ import {
   terrainOnlyFilterFlags,
 } from './physicsWorld'
 
-const isGround = (collider) =>
-  collider.shapeType() === getRapier().ShapeType.HeightField
+// O chão: o heightfield dos chunks — ou uma malha de triângulos, que no jogo
+// não existe e é o chão do laboratório de golpes (`tools/skillLab/`).
+const isGround = (collider) => {
+  const { ShapeType } = getRapier()
+  const type = collider.shapeType()
+  return type === ShapeType.HeightField || type === ShapeType.TriMesh
+}
 
 /**
  * Raycast contra o mundo físico (chão/obstáculos/cápsulas) — usado tanto
@@ -52,7 +57,7 @@ export function castRay(origin, direction, maxDistance, options = {}) {
   const filterFlags = terrainOnly ? terrainOnlyFilterFlags() : undefined
 
   // `groundOnly`: só o relevo (o heightfield dos chunks, montanhas
-  // incluídas) — sem árvore, pedra, caixa nem personagem.
+  // incluídas; `isGround`) — sem árvore, pedra, caixa nem personagem.
   const filterPredicate = groundOnly ? isGround : undefined
 
   const ray = new RAPIER.Ray(origin, direction)

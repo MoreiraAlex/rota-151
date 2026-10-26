@@ -1,4 +1,4 @@
-import { accuracyMultiplier } from './statStages'
+import { accuracyMultiplier, clampStage } from './statStages'
 import { isChannelAttack, isSelfAttack } from './channelAttack'
 import { resolveMasteryAccuracyFactor, rollMasterySuccess } from './moveMastery'
 
@@ -15,9 +15,20 @@ export function resolveMoveAccuracy(attack) {
 }
 
 /**
+ * O estágio que entra no sorteio de acerto, a regra do Pokémon: a PRECISÃO de
+ * quem ataca menos a EVASÃO de quem é atacado (Double Team), no limite de
+ * -6 a +6. `attackerStages`/`targetStages`: `readStatStages`.
+ */
+export function resolveAccuracyStage(attackerStages, targetStages) {
+  return clampStage(
+    (attackerStages?.accuracy ?? 0) - (targetStages?.evasion ?? 0),
+  )
+}
+
+/**
  * Chance (0-1) de o golpe acertar, a regra do Pokémon: precisão do golpe ×
- * multiplicador do estágio de PRECISÃO de quem ataca (`accuracyMultiplier`).
- * Só a precisão existe — não há estágio de evasão. Golpe sem precisão
+ * multiplicador do estágio de acerto (`accuracyMultiplier` — a precisão de
+ * quem ataca menos a evasão do alvo, `resolveAccuracyStage`). Golpe sem precisão
  * (`accuracy: null`) é 1. Limitada a 0-1. O domínio do golpe
  * (`attack.mastery`, docs/features/038-aprendizado-treino-e-dominio-de-
  * golpes.md) multiplica junto — dominado (ou sem domínio) não muda nada.

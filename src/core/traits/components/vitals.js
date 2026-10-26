@@ -14,6 +14,10 @@ import { GAME_CONFIG } from '../../gameConfig'
  * outro (regenerar, drenar, exibir), então separar só adicionaria
  * indireção.
  *
+ * `hpDamageAge` conta em segundos desde o último dano (`-1` = nunca levou):
+ * `applyDamage` zera, `vitalsRegenSystem` conta pra cima — o "apanhou há
+ * pouco" do Assurance (`core/battle/recentDamageBoost.js`).
+ *
  * `hpRegenDelay` conta em segundos quanto falta pra HP voltar a regenerar
  * depois de tomar dano — zero quando pode regenerar normalmente;
  * `hpRegenDelayAfterDamage` é o valor (por espécie) que o reseta pra
@@ -42,6 +46,8 @@ export const Vitals = trait({
   hpRegenPercent: 2,
   hpRegenDelay: 0,
   hpRegenDelayAfterDamage: 5,
+  // segundos desde o último dano (`-1` = nunca) — o Assurance
+  hpDamageAge: -1,
   stamina: 100,
   maxStamina: 100,
   staminaRegenPercent: 10,
@@ -198,6 +204,7 @@ export function applyDamage(vitals, amount, delayAfterDamage) {
   return {
     hp: Math.max(0, vitals.hp - amount),
     hpRegenDelay: delayAfterDamage,
+    hpDamageAge: 0,
   }
 }
 

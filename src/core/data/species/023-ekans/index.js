@@ -87,6 +87,8 @@ export const EKANS = {
     battleIdle: 'battleIdle',
     appeal: 'appeal',
     hit: 'hit',
+    // atordoada por condição (a paralisia): entra, repete e sai
+    stunned: { start: 'stunStart', loop: 'stunLoop', end: 'stunEnd' },
   },
 
   // Sem mãos: come do chão, embaixo da boca.
@@ -150,8 +152,26 @@ export const EKANS = {
     speed: { base: SPEED, ev: SPEED_EV },
   },
   moves: [
+    { id: 'wrap' },
+    {
+      id: 'leer',
+      overrides: { visual: { positionOffset: { x: 0, y: 0.5, z: 0.25 } } },
+    },
+    {
+      id: 'poison-sting',
+      overrides: {
+        animation: { clipKey: 'attackRanged' },
+        visual: { positionOffset: { x: 0, y: 0.4, z: 0.5 } },
+      },
+    },
+
     { id: 'bite', requires: { level: 9 } },
-    { id: 'glare', requires: { level: 12 } },
+    {
+      id: 'glare',
+      requires: { level: 12 },
+      // o olho do Ekans: o mesmo do Leer dele
+      overrides: { visual: { positionOffset: { x: 0, y: 0.5, z: 0.25 } } },
+    },
   ],
   // Na série o Ekans caça em silêncio e dá o bote: mais selvagens nascem
   // agressivos que o Weedle e o Pidgey.

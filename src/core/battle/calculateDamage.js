@@ -51,9 +51,17 @@ export function calculateDamage({
  * precisar saber o valor mágico. `rng` é sempre passado de fora
  * (`gameplayRng`, `core/rng.js`) — regra 3.5 de docs/rules/README.md,
  * sem `Math.random()` em lógica de jogo.
+ *
+ * `chanceMultiplier`: o modificador `critical` das condições de quem ataca
+ * (`readConditionModifiers` — ex.: Focado, do Focus Energy) multiplica a
+ * chance, até sempre.
  */
-export function rollCriticalMultiplier(rng) {
-  return rng() < GAME_CONFIG.BATTLE.CRITICAL_HIT_CHANCE ? 2 : 1
+export function rollCriticalMultiplier(rng, chanceMultiplier = 1) {
+  const chance = Math.min(
+    1,
+    GAME_CONFIG.BATTLE.CRITICAL_HIT_CHANCE * chanceMultiplier,
+  )
+  return rng() < chance ? 2 : 1
 }
 
 /**
@@ -151,7 +159,7 @@ export function resolveDamageAmount({
   attackType,
   attackerStages,
   defenderStages,
-  attackerBurnMultiplier,
+  attackerModifiers,
   weather,
   rng,
 }) {
@@ -166,11 +174,11 @@ export function resolveDamageAmount({
     attackType,
     attackerStages,
     defenderStages,
-    attackerBurnMultiplier,
+    attackerModifiers,
     weather,
   }
   // Sorteado antes do `random` — mesma ordem de consumo do `rng` de antes.
-  const critical = rollCriticalMultiplier(rng)
+  const critical = rollCriticalMultiplier(rng, attackerModifiers?.critical)
   const amount = computeDamage(context, {
     critical,
     random: rollDamageRandomFactor(rng),
@@ -183,7 +191,7 @@ export function resolveDamageAmount({
 }
 
 /**
- * Dano de UM tick de um ataque canalizado (`damageMode: 'channel'`, ver
+ * Dano de UM tick de um ataque canalizado (`execution: 'channel'`, ver
  * `core/battle/channelAttack.js`) — pedido do usuário: o canal não repete o
  * dano cheio a cada tick; o canal INTEIRO vale o dano de um golpe, repartido.
  *
@@ -208,7 +216,7 @@ export function resolveChannelTickDamage({
   attackType,
   attackerStages,
   defenderStages,
-  attackerBurnMultiplier,
+  attackerModifiers,
   weather,
   weight,
   rng,
@@ -225,14 +233,14 @@ export function resolveChannelTickDamage({
     attackType,
     attackerStages,
     defenderStages,
-    attackerBurnMultiplier,
+    attackerModifiers,
     weather,
   }
   const budget = computeDamage(context, {
     critical: 1,
     random: (DAMAGE_RANDOM_MIN + DAMAGE_RANDOM_MAX) / 2,
   })
-  const critical = rollCriticalMultiplier(rng) > 1
+  const critical = rollCriticalMultiplier(rng, attackerModifiers?.critical) > 1
   return {
     amount: budget * weight * (critical ? 2 : 1),
     critical,
@@ -263,11 +271,12 @@ export function computeDamage(context, { critical, random }) {
   // multiplicam o atributo do ataque do atacante e o de defesa do alvo.
   const attackKey = isSpecial ? 'sp_atk' : 'attack'
   const defenseKey = isSpecial ? 'sp_def' : 'defense'
-  // Queimadura (`Burn.attackMultiplier`, do efeito da skill que queimou):
-  // corta o Ataque de quem está queimado — só no golpe físico.
-  const burnMultiplier = isSpecial ? 1 : (context.attackerBurnMultiplier ?? 1)
+  // Condições (`modifiers`, ex.: a queimadura corta o `attack`): multiplicam
+  // o atributo do ataque — o físico olha `attack`, o especial `sp_atk`.
+  const conditionMultiplier = context.attackerModifiers?.[attackKey] ?? 1
   const attackMultiplier =
-    stageMultiplier(context.attackerStages?.[attackKey] ?? 0) * burnMultiplier
+    stageMultiplier(context.attackerStages?.[attackKey] ?? 0) *
+    conditionMultiplier
   const defenseMultiplier = stageMultiplier(
     context.defenderStages?.[defenseKey] ?? 0,
   )

@@ -6,10 +6,11 @@ import { compileGradient } from './particleSimulation'
  * (lá o Growl não tem partícula): é um efeito próprio, no mesmo motor.
  *
  * Cada onda é um arco ")" (`public/assets/effects/growl/wave.png`, branco com
- * alfa) em `facing: 'direction'` — o quadro fica deitado ao longo do movimento,
- * com a convexidade pra frente, e de frente pra câmera. Nasce na boca
+ * alfa) em `facing: 'plane'` — o quadro fica deitado ao longo do movimento,
+ * com a convexidade pra frente, no plano do cone (o do aviso no chão), sem
+ * girar com a câmera (docs/features/061-revisao-das-skills.md). Nasce na boca
  * (`anchor: 'origin'`), viaja até a ponta do cone (`ctx.length` = alcance do
- * golpe) e cresce em altura na proporção da abertura do cone (`ctx.radius` é o
+ * golpe) e alarga na proporção da abertura do cone (`ctx.radius` é o
  * raio na ponta), então o arco acompanha o formato que o indicador mostra.
  *
  * Espaço local: criatura em (0, 0, -length), impacto em (0, 0, 0), +Z na
@@ -28,12 +29,12 @@ export const WAVE_COUNT = 3
 export const WAVE_INTERVAL = 0.15
 export const WAVE_LIFETIME = 0.5
 
-// Altura do arco na boca (m) e espessura (comprimento ao longo do movimento)
-const MIN_HEIGHT = 0.35
+// Largura do arco na boca (m) e espessura (comprimento ao longo do movimento)
+const MIN_WIDTH = 0.35
 const THICKNESS = 0.45
-// Altura do arco na ponta do cone (m): 2 × `radius` do Growl. O spec de
+// Largura do arco na ponta do cone (m): 2 × `radius` do Growl. O spec de
 // tamanho não enxerga o `ctx`, então o valor fica aqui — ajuste junto do `radius`.
-const TIP_HEIGHT = 3
+const TIP_WIDTH = 3
 
 const WAVE_TINT = compileGradient([
   { at: 0, color: '#ffffff' },
@@ -47,7 +48,7 @@ export const GROWL_EMITTERS = Array.from(
     texture: 'wave',
     strip: 1,
     frames: { first: 0, count: 1, fps: 1 },
-    facing: 'direction',
+    facing: 'plane',
     blending: 'additive',
     start: index * WAVE_INTERVAL,
     burst: 1,
@@ -58,8 +59,8 @@ export const GROWL_EMITTERS = Array.from(
     accel: () => [0, 0, 0],
     drag: () => 0,
     lifetime: () => WAVE_LIFETIME,
-    // [comprimento no movimento, altura]: a altura abre junto com o cone
-    size: (t) => [THICKNESS, MIN_HEIGHT + t * (TIP_HEIGHT - MIN_HEIGHT)],
+    // [comprimento no movimento, largura]: a largura abre junto com o cone
+    size: (t) => [THICKNESS, MIN_WIDTH + t * (TIP_WIDTH - MIN_WIDTH)],
     spin: false,
     tint: WAVE_TINT,
   }),

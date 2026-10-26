@@ -29,13 +29,12 @@
  */
 export const VINE_WHIP_SKILL = {
   id: 'vine-whip',
+  description:
+    'Chicoteia com os cipós o primeiro inimigo à frente, até {range:m}, causando dano físico de poder {power}.',
   type: 'grass',
-  duration: 0.2,
-  effectAt: 0.1,
-  range: 2.5,
-  aim: 'melee',
-  castMode: 'instant',
-  radius: 0.35,
+  group: 'melee',
+  duration: 1.2,
+  effectAt: 0.5,
   visual: {
     effectGroup: 'impact',
     impactType: 'grass',

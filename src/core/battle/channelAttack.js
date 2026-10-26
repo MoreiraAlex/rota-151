@@ -1,47 +1,74 @@
 import { rollDamageRandomFactor } from './calculateDamage'
 
 /**
- * Ataque CANALIZADO (`damageMode: 'channel'` na definição — ex.: `ember`,
- * `razor-leaf`): em vez de um impacto único no fim da trajetória, aplica
- * dano em TODOS os alvos dentro do cone a cada `damageInterval` segundos,
- * do `effectAt` até o fim da `duration`. Exige segurar o botão do slot o
- * tempo todo — soltar cancela (`creatureAttackSystem.js`). Ver
- * docs/features/033-skills-de-combate-e-vfx.md.
+ * Ataque CANALIZADO (`execution: 'channel'` — ex.: Water Gun, Razor Leaf): em
+ * vez de um impacto único, aplica dano a cada `damageInterval` segundos, do
+ * `effectAt` até o fim da `duration` — no cone, em todos dentro; na cápsula,
+ * no primeiro corpo (`isBeamAttack`). Exige segurar o botão do slot o tempo
+ * todo — soltar encerra (`creatureAttackSystem.js`). Ver docs/features/
+ * 033-skills-de-combate-e-vfx.md e 061-revisao-das-skills.md.
  */
 export function isChannelAttack(attack) {
-  return attack?.damageMode === 'channel'
+  return attack?.execution === 'channel'
+}
+
+/**
+ * Golpe de CARGA (`execution: 'charge'` — o padrão do grupo `'self'`, ex.:
+ * Growth): o botão fica segurado até o `effectAt` (soltar antes cancela) e
+ * é o único que o dano interrompe na carga (`attackInterrupt.js`).
+ */
+export function isChargeAttack(attack) {
+  return attack?.execution === 'charge'
 }
 
 /**
  * O ataque atinge um CONE (todos os alvos dentro dele) em vez de uma
- * cápsula (o primeiro corpo no caminho)? Todo canalizado é cone, menos o feixe
- * (`isBeamAttack`, cápsula); um golpe de
- * impacto único também pode ser, com `area: 'cone'` (ex.: Growl, que baixa o
- * ataque de TODOS os inimigos à frente). Decide a forma do indicador e do
- * aviso (`AttackShape.jsx`) e quem é atingido (`resolveConeTargets`).
+ * cápsula (o primeiro corpo no caminho)? `area: 'cone'`, que vem do grupo
+ * `'cone'` (`applySkillGroup`, ex.: Growl, Razor Leaf). Decide a forma do
+ * indicador e do aviso (`AttackShape.jsx`) e quem é atingido
+ * (`resolveConeTargets`).
  */
 export function isConeAttack(attack) {
-  if (isBeamAttack(attack)) return false
-  return isChannelAttack(attack) || attack?.area === 'cone'
+  return attack?.area === 'cone'
 }
 
 /**
- * Canalizado em FEIXE (`damageMode: 'channel'` + `area: 'line'` — ex.: Water
- * Gun): em vez do cone que pega todo mundo, a cada tick só o PRIMEIRO corpo na
- * linha (a mesma cápsula do golpe normal, `resolveAttackTarget`) leva a fração
- * do tick; e a criatura controlada continua mirando com a câmera durante o
- * canal inteiro, não só na carga. O resto é o canalizado de sempre: segurar o
- * botão, soltar corta, o canal inteiro vale o dano de um golpe.
+ * O ataque atinge um CÍRCULO em volta de quem usa (todos os alvos dentro
+ * dele)? `area: 'circle'`, do grupo `'circle'` (ex.: o Rapid Spin). O centro
+ * é o corpo de quem ataca e o raio é a borda do trigger dele + o `range`
+ * (`resolveCircleRadius`) — não depende da mira.
+ */
+export function isCircleAttack(attack) {
+  return attack?.area === 'circle'
+}
+
+/**
+ * Golpe de ÁREA — cone ou círculo: acerta TODOS os alvos dentro, no golpe
+ * único e no canalizado (a cápsula pega só o primeiro).
+ */
+export function isAreaAttack(attack) {
+  return isConeAttack(attack) || isCircleAttack(attack)
+}
+
+/**
+ * Canalizado em FEIXE (o canalizado da cápsula — ex.: Water Gun): a cada tick
+ * só o PRIMEIRO corpo na linha (a mesma cápsula do golpe normal,
+ * `resolveAttackTarget`) leva a fração do tick; e a criatura controlada
+ * continua mirando com a câmera durante o canal inteiro, não só na carga. O
+ * resto é o canalizado de sempre: segurar o botão, soltar corta, o canal
+ * inteiro vale o dano de um golpe.
  */
 export function isBeamAttack(attack) {
-  return isChannelAttack(attack) && attack?.area === 'line'
+  return (
+    isChannelAttack(attack) && !isAreaAttack(attack) && !isSelfAttack(attack)
+  )
 }
 
 /**
- * O golpe age em QUEM USOU (`area: 'self'` — ex.: Growth, que sobe o ataque da
- * própria criatura)? Sem trajetória e sem alvo: os `effects` vão no atacante,
- * sem sorteio de precisão, e não há indicador nem aviso no chão
- * (`resolveAttackTelegraphProgress`, `AttackIndicatorView`).
+ * O golpe age em QUEM USOU (`area: 'self'`, do grupo `'self'` — ex.: Growth,
+ * que sobe o ataque da própria criatura)? Sem trajetória e sem alvo: os
+ * `effects` vão no atacante, sem sorteio de precisão, e não há indicador nem
+ * aviso no chão (`resolveAttackTelegraphProgress`, `AttackIndicatorView`).
  */
 export function isSelfAttack(attack) {
   return attack?.area === 'self'

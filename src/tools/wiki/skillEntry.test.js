@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { listSkills } from '@/core/data/skills'
+import { applySkillGroup, listSkills } from '@/core/data/skills'
 import { resolveCreatureAttack } from '@/core/battle/creatureAttack'
 import { resolveAttackWeight } from '@/core/battle/actionCost'
 import {
@@ -55,13 +55,14 @@ describe('resolveSkillSummary', () => {
         expect(summary.category).toBe(resolveAttackCategory(skill))
         expect(summary.power).toBe(skill.damage.power)
       }
-      expect(summary.weight).toBe(resolveAttackWeight(skill))
+      // o peso sai do golpe como o jogo o lança (com o alcance do grupo)
+      expect(summary.weight).toBe(resolveAttackWeight(applySkillGroup(skill)))
       expect(summary.baseCooldown).toBeGreaterThanOrEqual(0)
     }
   })
 
   it('canalizado informa os ticks', () => {
-    const channel = listSkills().filter((s) => s.damageMode === 'channel')
+    const channel = listSkills().filter((s) => s.execution === 'channel')
     for (const skill of channel) {
       expect(resolveSkillSummary(skill).channel.ticks).toBeGreaterThan(0)
     }
@@ -84,8 +85,11 @@ describe('listSkillUsers', () => {
 
   it('golpe conhecido fora dos slots aparece sem slot', () => {
     for (const species of listWikiSpecies()) {
+      const kit = Object.values(species.skills ?? {})
       for (const move of species.moves ?? []) {
         const id = typeof move === 'string' ? move : move.id
+        // os do kit aparecem com o slot (o teste acima)
+        if (kit.includes(id)) continue
         expect(
           listSkillUsers(id).some(
             (u) => u.species.id === species.id && u.slot === null,

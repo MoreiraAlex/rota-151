@@ -2,6 +2,7 @@ import { GAME_CONFIG } from '../gameConfig'
 import { verticalClearance } from '../physics/colliders'
 import { castRay } from '../physics/raycast'
 import { resolveEffectStart } from './attackEffectPlacement'
+import { isCircleAttack, isConeAttack } from './channelAttack'
 
 /**
  * Pontos espaciais de um ataque, separados por conceito — ver
@@ -101,13 +102,55 @@ export function resolveAttackOrigin(pos, direction, attack) {
 }
 
 /**
- * Quanto o golpe anda a partir da origem (`resolveAttackOrigin`). O
- * `range` conta do CENTRO do corpo, então desconta o quanto a origem já
- * andou golpe adentro (`positionOffset.z`): mudar de onde o golpe sai não
- * muda até onde ele chega.
+ * Quanto o golpe anda a partir da origem (`resolveAttackOrigin`). O `range`
+ * conta da BORDA do corpo de quem ataca (`edge`: até onde o trigger dele vai
+ * na direção do golpe, `resolveTriggerEdge` — docs/features/061-*), então
+ * soma a borda e desconta o quanto a origem já andou golpe adentro
+ * (`positionOffset.z`): mudar de onde o golpe sai não muda até onde ele chega.
  */
-export function resolveAttackReach(attack) {
-  return Math.max(0, attack.range - (attack.visual?.positionOffset?.z ?? 0))
+export function resolveAttackReach(attack, edge) {
+  return Math.max(
+    0,
+    edge + attack.range - (attack.visual?.positionOffset?.z ?? 0),
+  )
+}
+
+/**
+ * Onde a ÁREA do golpe começa (docs/features/061-revisao-das-skills.md): a
+ * forma encosta na borda do trigger de quem ataca (`edge`, a mesma de onde o
+ * `range` conta), na direção do golpe, na altura da origem — pra todo golpe
+ * igual, sem depender de onde o VFX sai (`positionOffset`). O cone abre DA
+ * borda; a cápsula tem a ponta de trás nela, então o eixo começa um `radius`
+ * adiante. Vai até o fim da trajetória (`end`); trajetória que parou antes
+ * disso (parede encostada): a área fica no fim dela. O círculo não tem
+ * direção: a área é o centro do corpo de quem ataca (na altura da origem).
+ */
+export function resolveAttackAreaStart(
+  pos,
+  direction,
+  edge,
+  origin,
+  end,
+  attack,
+) {
+  if (isCircleAttack(attack)) return { x: pos.x, y: origin.y, z: pos.z }
+  const length = Math.hypot(direction.x, direction.z)
+  if (length < 1e-9) return { ...origin }
+  const dx = direction.x / length
+  const dz = direction.z / length
+  const start = edge + (isConeAttack(attack) ? 0 : attack.radius)
+  const endAlong = (end.x - pos.x) * dx + (end.z - pos.z) * dz
+  if (endAlong <= start) return { ...end }
+  return { x: pos.x + dx * start, y: origin.y, z: pos.z + dz * start }
+}
+
+/**
+ * Raio do CÍRCULO de um golpe `area: 'circle'`, contado do centro do corpo de
+ * quem ataca: a borda do trigger dele (`edge`, de onde o `range` conta) +
+ * o `range`.
+ */
+export function resolveCircleRadius(attack, edge) {
+  return edge + attack.range
 }
 
 // Eixo comprido da cápsula no espaço LOCAL do corpo — mesma convenção de
@@ -252,6 +295,31 @@ export function resolveContactPoint(axisPoint, pathPoint, capsuleRadius) {
 }
 
 /**
+ * Onde a trajetória `origin→end` ENTRA no trigger (segmento `a→b` de raio
+ * `radius`), no plano do chão: a fração `s` (0-1) do primeiro ponto dela a
+ * `radius` do eixo — a borda virada pra quem ataca. `null` se ela não
+ * entra (só a área do golpe encosta, de lado); 0 se já começa dentro.
+ * A distância até o eixo é convexa ao longo da linha, então basta bissecar
+ * entre a origem e o ponto mais próximo (`closestS`).
+ */
+export function resolveTriggerEntry(origin, end, a, b, radius, closestS) {
+  const distanceAt = (s) => {
+    const point = pointAt(origin, sub(end, origin), s)
+    return closestPointsOnGroundPlane(point, point, a, b).distance
+  }
+  if (distanceAt(0) <= radius) return 0
+  if (distanceAt(closestS) > radius) return null
+  let outside = 0
+  let inside = closestS
+  for (let i = 0; i < 24; i++) {
+    const mid = (outside + inside) / 2
+    if (distanceAt(mid) <= radius) inside = mid
+    else outside = mid
+  }
+  return inside
+}
+
+/**
  * Forma do cone de um ataque canalizado, em "cone de sorvete": triângulo
  * saindo do ápice com a abertura do ataque (`radius / range` de cada lado)
  * e uma MEIA-LUA na ponta, com diâmetro igual à largura ali — a ponta fica
@@ -266,6 +334,20 @@ export function resolveRoundedCone({ length, range, radius }) {
   const slope = range > 0 ? radius / range : 0
   const capCenter = length / (1 + slope)
   return { slope, capCenter, capRadius: slope * capCenter }
+}
+
+/**
+ * O cone do golpe (`isInsideAttackCone`) com o vértice em `start` (a borda do
+ * trigger de quem ataca, `resolveAttackAreaStart`) e a ponta em `end` (o fim
+ * da trajetória — mais perto se ela parou numa parede): a abertura é sempre a
+ * do `range` inteiro.
+ */
+export function resolveAttackCone(attack, start, end) {
+  return {
+    length: Math.hypot(end.x - start.x, end.z - start.z),
+    range: attack.range,
+    radius: attack.radius,
+  }
 }
 
 /**

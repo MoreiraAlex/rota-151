@@ -1,9 +1,13 @@
 import { StatStages } from '../traits'
 
 /**
- * Atributos que têm estágio: os 4 que a fórmula de dano usa mais a PRECISÃO
- * (`accuracy`), que não entra no dano e sim no sorteio de acerto
- * (`core/battle/accuracy.js`).
+ * Atributos que têm estágio: os 4 que a fórmula de dano usa, a PRECISÃO
+ * (`accuracy`) de quem ataca e a EVASÃO (`evasion`) de quem é atacado, que não
+ * entram no dano e sim no sorteio de acerto (`core/battle/accuracy.js`), e a
+ * VELOCIDADE (`speed`), que no tempo real
+ * muda o tempo dos golpes (`speedStageTimeFactor`). O passo de andar não é
+ * atributo: fica com as condições (o modificador `movement`, ex.: a teia do
+ * String Shot).
  */
 export const STAT_STAGE_KEYS = [
   'attack',
@@ -11,6 +15,8 @@ export const STAT_STAGE_KEYS = [
   'sp_atk',
   'sp_def',
   'accuracy',
+  'evasion',
+  'speed',
 ]
 
 /** Limite do estágio (-6 a +6), como no Pokémon. */
@@ -34,13 +40,29 @@ export function accuracyMultiplier(stage) {
   return stage >= 0 ? (3 + stage) / 3 : 3 / (3 - stage)
 }
 
+/**
+ * Quanto o tempo dos golpes (`duration`/`effectAt`) multiplica pelo estágio
+ * de Velocidade: a mesma curva do `speed` no tempo do golpe
+ * (`calculateAttackDurationFactor`, inversa da raiz), aplicada ao
+ * multiplicador do estágio — fora da faixa do fator do `speed`, então vale
+ * pra criatura de qualquer velocidade.
+ */
+export function speedStageTimeFactor(stage) {
+  return 1 / Math.sqrt(stageMultiplier(stage))
+}
+
+/** Estágio de Velocidade de `entity` (0 sem o trait). */
+export function readSpeedStage(entity) {
+  return entity?.has?.(StatStages) ? entity.get(StatStages).speedStage : 0
+}
+
 export function clampStage(stage) {
   return Math.min(Math.max(stage, -STAT_STAGE_LIMIT), STAT_STAGE_LIMIT)
 }
 
-/** Estágios atuais de uma criatura: `{ attack, defense, sp_atk, sp_def, accuracy }` (0 sem o trait). */
+/** Estágios atuais de uma criatura: `{ attack, defense, sp_atk, sp_def, accuracy, evasion, speed }` (0 sem o trait). */
 export function readStatStages(entity) {
-  const stages = { attack: 0, defense: 0, sp_atk: 0, sp_def: 0, accuracy: 0 }
+  const stages = Object.fromEntries(STAT_STAGE_KEYS.map((key) => [key, 0]))
   if (!entity?.has?.(StatStages)) return stages
 
   const state = entity.get(StatStages)

@@ -20,7 +20,7 @@ export const TRAINING_SLOT = 'training'
  * - `'secondary1-3'` (Q/E/R) → o golpe daquele slot no `moveSet` da criatura
  *   (`resolveEntityMoveSet`), com os `overrides` que a espécie declara pra
  *   ele (`resolveSpeciesMoveReference`). Sem `moveSet` (wiki, previews), o
- *   kit da espécie (`species.skills`);
+ *   kit da espécie (`species.skills`, com os `overrides` de `moves`);
  * - `'training'` → o golpe em treino (só existe no `moveSet`).
  *
  * `null` quando não há nada nesse slot — quem chama trata como "sem ataque
@@ -28,7 +28,6 @@ export const TRAINING_SLOT = 'training'
  */
 export function resolveCreatureAttack(species, slot, moveSet) {
   if (!species) return null
-  if (!moveSet) return resolveSkill(species.skills?.[skillNumber(slot)])
   const move = resolveSlotMove(species, slot, moveSet)
   if (!move) return null
   return resolveSkill(resolveSpeciesMoveReference(species, move.id))

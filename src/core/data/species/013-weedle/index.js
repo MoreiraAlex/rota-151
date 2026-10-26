@@ -78,6 +78,8 @@ export const WEEDLE = {
     battleIdle: 'battleIdle',
     appeal: 'appeal',
     hit: 'hit',
+    // atordoada por condição (a paralisia): entra, repete e sai
+    stunned: { start: 'stunStart', loop: 'stunLoop', end: 'stunEnd' },
   },
 
   // Sem mãos: come do chão, embaixo da cabeça.
@@ -99,6 +101,7 @@ export const WEEDLE = {
     capsuleHalfHeight: 0.04,
     capsuleAxis: 'y',
     modelOffset: [0, -0.12, 0],
+    trigger: { radius: 0.15, halfLength: 0, angle: 0, offset: { x: 0, z: 0 } },
   },
   movement: {
     walkSpeed: 0.8,
@@ -139,7 +142,27 @@ export const WEEDLE = {
     sp_def: { base: SP_DEF, ev: SP_DEF_EV },
     speed: { base: SPEED, ev: SPEED_EV },
   },
-  moves: [{ id: 'bug-bite', requires: { level: 9 } }],
+  moves: [
+    {
+      id: 'poison-sting',
+      overrides: {
+        animation: { clipKey: 'attackAlt' },
+        visual: { positionOffset: { x: 0, y: 0, z: 0.2 } },
+      },
+    },
+    {
+      id: 'string-shot',
+      overrides: {
+        visual: { positionOffset: { x: 0, y: 0.025, z: 0.15 } },
+      },
+    },
+
+    {
+      id: 'bug-bite',
+      overrides: { animation: { clipKey: 'attack' } },
+      requires: { level: 9 },
+    },
+  ],
   // Na série o Weedle usa o ferrão pra se defender (o agressivo é o
   // Beedrill): a maioria nasce pacífica e revida se apanhar.
   wild: { hostileChance: 0.25 },

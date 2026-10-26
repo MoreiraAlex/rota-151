@@ -2,8 +2,11 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { createWorld } from 'koota'
 import { StatStages } from '@/core/traits'
 import {
+  STAT_STAGE_KEYS,
   STAT_STAGE_LIMIT,
   applyStatStageEffect,
+  readSpeedStage,
+  speedStageTimeFactor,
   clampStage,
   listActiveStatStages,
   readStatStages,
@@ -45,13 +48,9 @@ describe('applyStatStageEffect / readStatStages', () => {
   const growl = { type: 'statStage', stat: 'attack', stages: -1, duration: 15 }
 
   it('criatura sem o trait lê zeros', () => {
-    expect(readStatStages(spawn())).toEqual({
-      attack: 0,
-      defense: 0,
-      sp_atk: 0,
-      sp_def: 0,
-      accuracy: 0,
-    })
+    expect(readStatStages(spawn())).toEqual(
+      Object.fromEntries(STAT_STAGE_KEYS.map((key) => [key, 0])),
+    )
   })
 
   it('o primeiro efeito adiciona o trait, baixa o estágio e dá o tempo', () => {
@@ -111,11 +110,9 @@ describe('applyStatStageEffect / readStatStages', () => {
     })
 
     expect(readStatStages(entity)).toEqual({
+      ...Object.fromEntries(STAT_STAGE_KEYS.map((key) => [key, 0])),
       attack: -1,
       defense: 2,
-      sp_atk: 0,
-      sp_def: 0,
-      accuracy: 0,
     })
     expect(entity.get(StatStages).attackTime).toBe(15)
     expect(entity.get(StatStages).defenseTime).toBe(8)
@@ -138,7 +135,7 @@ describe('applyStatStageEffect / readStatStages', () => {
     expect(
       applyStatStageEffect(entity, {
         type: 'statStage',
-        stat: 'speed',
+        stat: 'hp',
         stages: -1,
       }),
     ).toBeNull()
@@ -204,5 +201,39 @@ describe('accuracyMultiplier — a fórmula de precisão do Pokémon', () => {
       { stat: 'accuracy', stage: -1 },
     ])
     world.destroy()
+  })
+})
+
+describe('estágio de Velocidade', () => {
+  const worlds = []
+  afterEach(() => {
+    while (worlds.length) worlds.pop().destroy()
+  })
+  function spawn() {
+    const world = createWorld()
+    worlds.push(world)
+    return world.spawn()
+  }
+  const web = { type: 'statStage', stat: 'speed', stages: -2, duration: 15 }
+
+  it('a Velocidade é um atributo com estágio', () => {
+    const entity = spawn()
+    expect(readSpeedStage(entity)).toBe(0)
+    applyStatStageEffect(entity, web)
+    expect(readSpeedStage(entity)).toBe(web.stages)
+  })
+
+  it('baixa: golpe mais demorado; alta: mais rápido', () => {
+    expect(speedStageTimeFactor(0)).toBe(1)
+    expect(speedStageTimeFactor(-2)).toBeGreaterThan(1)
+    expect(speedStageTimeFactor(2)).toBeLessThan(1)
+  })
+
+  it('o tempo segue a raiz inversa do multiplicador do estágio', () => {
+    for (const stage of [-6, -1, 3]) {
+      expect(speedStageTimeFactor(stage)).toBeCloseTo(
+        1 / Math.sqrt(stageMultiplier(stage)),
+      )
+    }
   })
 })

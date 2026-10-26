@@ -2,12 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { createWorld } from 'koota'
 import { comecarAComer, isEating } from '../actions/eating'
 import { listItems } from '../data/items'
-import {
-  attackResolved,
-  burnDamaged,
-  createEventQueue,
-  leechSeedDrained,
-} from '../events'
+import { attackResolved, conditionTicked, createEventQueue } from '../events'
 import {
   ActionState,
   DroppedFood,
@@ -62,12 +57,19 @@ describe('eatingInterruptSystem', () => {
     ['golpe com dano', (target) => hit(target, 5)],
     [
       'queimadura',
-      (target) => burnDamaged({ target, source: null, damage: 2 }),
+      (target) =>
+        conditionTicked({ target, source: null, condition: 'burn', damage: 2 }),
     ],
     [
       'Leech Seed',
       (target) =>
-        leechSeedDrained({ target, source: null, damage: 2, healed: 2 }),
+        conditionTicked({
+          target,
+          source: null,
+          condition: 'leech-seed',
+          damage: 2,
+          healed: 2,
+        }),
     ],
   ])('tomar dano (%s) derruba a comida', (_, makeEvent) => {
     const { world, eater, events, tick } = setup()

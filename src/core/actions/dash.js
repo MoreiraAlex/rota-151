@@ -1,6 +1,7 @@
 import { GAME_CONFIG } from '../gameConfig'
 import { DashCooldown } from '../traits'
 import { resolveDashCost } from './stamina'
+import { readConditionModifier } from './conditions'
 
 /**
  * Velocidade do dash em `elapsed` segundos: `SPEED` constante e, nos
@@ -61,6 +62,8 @@ export function avancarDash(action, vel, delta, exitSpeed, vertical = false) {
 
 /** O dash da entidade saiu da recarga (`DashCooldown`; sem o trait, pronto). */
 export function isDashReady(entity) {
+  // passo zerado por condição (Preso, o Wrap): o dash também não sai
+  if (!(readConditionModifier(entity, 'movement') > 0)) return false
   return (entity.get(DashCooldown)?.timeLeft ?? 0) <= 0
 }
 

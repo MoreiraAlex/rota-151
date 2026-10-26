@@ -6,6 +6,7 @@ import {
   hexToRgb,
   particleSize,
   resolveBeamBasis,
+  riseAt,
   rotateY,
   rotatePitch,
   sampleCurve,
@@ -340,6 +341,96 @@ describe('spawnParticle / stepPathParticle — movimento por trajetória (path)'
     expect(particle.x).toBeCloseTo(11)
 
     expect(stepPathParticle(SPEC, particle, 0.6)).toBe(false) // passou da vida
+  })
+
+  it('a velocidade é o deslocamento do passo (pro quadro esticado na direção do movimento)', () => {
+    const particle = spawnParticle(SPEC, CTX, () => 0.5)
+    stepPathParticle(SPEC, particle, 0.25)
+    // sobe 1 m/s × escala 2, sem andar no plano
+    expect(particle.vy).toBeCloseTo(2)
+    expect(particle.vx).toBeCloseTo(0)
+    expect(particle.vz).toBeCloseTo(0)
+  })
+})
+
+describe('perfil do terreno (`frame.rise`) — a partícula sobe e desce com o chão', () => {
+  // Plano até `flat`, depois sobe `climb` até `flat + run`.
+  const flat = 1
+  const run = 2
+  const climb = 0.8
+  const RISE = [
+    [0, 0],
+    [flat, 0],
+    [flat + run, climb],
+  ]
+
+  it('riseAt interpola entre as amostras e fica na ponta fora delas', () => {
+    expect(riseAt(RISE, flat / 2)).toBeCloseTo(0)
+    expect(riseAt(RISE, flat + run / 2)).toBeCloseTo(climb / 2)
+    expect(riseAt(RISE, -1)).toBeCloseTo(0)
+    expect(riseAt(RISE, flat + run + 5)).toBeCloseTo(climb)
+  })
+
+  it('com velocidade: andando golpe adentro, o y acompanha o perfil', () => {
+    const spec = {
+      anchor: 'impact',
+      direction: () => [0, 0, 1],
+      speed: () => 1,
+      accel: () => [0, 0, 0],
+      drag: () => 0,
+      lifetime: () => 10,
+      size: () => 1,
+    }
+    const frame = { origin: [0, 2, 0], yaw: 0, height: 0, rise: RISE }
+    const ctx = { age: 0, progress: 0, length: 0, scale: 1, radius: 0, frame }
+    const particle = spawnParticle(spec, ctx, () => 0.5)
+    expect(particle.y).toBeCloseTo(frame.origin[1])
+
+    stepParticle(particle, flat + run / 2) // 1 m/s
+    expect(particle.z).toBeCloseTo(flat + run / 2)
+    expect(particle.y).toBeCloseTo(frame.origin[1] + climb / 2)
+
+    stepParticle(particle, run) // passou do fim do perfil
+    expect(particle.y).toBeCloseTo(frame.origin[1] + climb)
+  })
+
+  it('sem quadro, o perfil do sistema (`ctx.rise`) vale no espaço do grupo: a distância é o Z local', () => {
+    const spec = {
+      anchor: 'origin',
+      direction: () => [0, 0, 1],
+      speed: () => 1,
+      accel: () => [0, 0, 0],
+      drag: () => 0,
+      lifetime: () => 10,
+      size: () => 1,
+    }
+    const length = flat + run
+    // criatura em -length, impacto em 0: o mesmo perfil, deslocado
+    const rise = RISE.map(([d, h]) => [d - length, h])
+    const ctx = { age: 0, progress: 0, length, scale: 1, radius: 0, rise }
+    const particle = spawnParticle(spec, ctx, () => 0.5)
+    expect(particle.z).toBeCloseTo(-length)
+    expect(particle.y).toBeCloseTo(0)
+
+    stepParticle(particle, flat + run / 2)
+    expect(particle.y).toBeCloseTo(climb / 2)
+  })
+
+  it('com path: a posição refeita do zero também ganha o perfil', () => {
+    const spec = {
+      anchor: 'impact',
+      path: (age) => [0, 0, age],
+      lifetime: () => 10,
+      size: () => 0.1,
+    }
+    const frame = { origin: [0, 0, 0], yaw: 0, height: 0, rise: RISE }
+    const ctx = { age: 0, progress: 0, length: 0, scale: 1, radius: 0, frame }
+    const particle = spawnParticle(spec, ctx, () => 0.5)
+
+    stepPathParticle(spec, particle, flat + run / 2)
+    expect(particle.y).toBeCloseTo(climb / 2)
+    stepPathParticle(spec, particle, run / 4)
+    expect(particle.y).toBeCloseTo(riseAt(RISE, flat + (3 * run) / 4))
   })
 })
 

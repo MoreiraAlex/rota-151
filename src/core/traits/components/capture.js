@@ -68,15 +68,15 @@ export const BeingCaptured = trait()
  * na bola — recolhido ou capturado. Continuam correndo lá dentro
  * (`storedConditionSystem`) e voltam pra criatura ao invocar.
  *
- * - `burn` — `{ timeLeft, tickTimer, fraction, interval, attackMultiplier }`
- *   (mesma forma do `Burn`), ou `null`.
+ * - `list` — as condições que ficam na bola (`keepsInBall`), na mesma forma
+ *   das entradas de `Conditions`.
  *
  * Trait AoS (objeto por campo). Dono de escrita: `guardarCondicoes`
  * (`core/actions/conditions.js`, no recolher e na captura),
  * `storedConditionSystem` (conta e tira) e `devolverCondicoes` (no invocar).
  */
 export const StoredConditions = trait(() => ({
-  burn: null,
+  list: [],
 }))
 
 /**

@@ -2,21 +2,38 @@ import { GAME_CONFIG } from '../gameConfig'
 import { gameplayRng } from '../rng'
 import {
   AttackCooldowns,
-  CharacterController,
   IndividualValues,
   Position,
+  Rotation,
   Vitals,
   resolveEntityLevel,
 } from '../traits'
 import { ATTACK_SLOTS, resolveAttackForEntity } from './attackCasting'
+import { readSpeedStage } from './statStages'
+import { resolveLungeDistance } from './attackLunge'
 import { resolveEntityMoveSet } from './creatureAttack'
 import { resolveMasteryAccuracyFactor } from './moveMastery'
-import { isInsideAttackCone } from './attackGeometry'
+import {
+  isTriggerInsideCircle,
+  isTriggerInsideCone,
+  resolveTriggerFrontEdge,
+} from './hitTrigger'
+import { resolveCircleRadius } from './attackGeometry'
 import { evaluateEffect } from './aiEffectEvaluators'
 import { fitsEnergyReserve } from './aiEnergy'
-import { isConeAttack, isSelfAttack } from './channelAttack'
+import { isAreaAttack, isCircleAttack, isSelfAttack } from './channelAttack'
 import { resolveStab } from './calculateDamage'
-import { resolveCombatantSpecies } from './attackTargets'
+import { resolveExpectedHits } from './multiHit'
+import { applySpeedPower } from './speedPower'
+import {
+  applyPowerMultiplier,
+  resolveRecentDamageMultiplier,
+} from './recentDamageBoost'
+import {
+  resolveCombatantSpecies,
+  resolveEntityHitTrigger,
+  resolveEntityTriggerSegment,
+} from './attackTargets'
 import {
   isImmuneToStatusSkill,
   resolveSkillType,
@@ -30,28 +47,65 @@ function horizontalDistance(a, b) {
 
 /**
  * Até onde (m, centro a centro, no plano) `attack` alcança um alvo com este
- * corpo: trajetória (`range`) + grossura (`radius`) + raio do corpo do alvo
- * — a mesma conta da detecção de acerto. Golpe em si mesmo: `Infinity` (não
- * precisa chegar perto de ninguém).
+ * trigger (`hitTrigger.js`): a borda da frente do trigger de quem ataca
+ * (de onde o `range` conta — ela lança virada pro alvo) + o `range` (a
+ * distância máxima da área do golpe) + a arrancada, se o golpe tiver
+ * (`resolveLungeDistance`) + o raio do trigger do alvo — a mesma
+ * conta da detecção de acerto, sem o deslocamento/comprimento do trigger do
+ * alvo (fica um pouco aquém, do lado seguro). Golpe em si mesmo: `Infinity`
+ * (não precisa chegar perto de ninguém).
  */
-export function resolveReachFor(attack, targetBody) {
+export function resolveReachFor(attack, attackerTrigger, targetTrigger) {
   if (isSelfAttack(attack)) return Infinity
-  return attack.range + attack.radius + (targetBody?.capsuleRadius ?? 0)
+  return (
+    resolveTriggerFrontEdge(attackerTrigger) +
+    attack.range +
+    resolveLungeDistance(attack) +
+    (targetTrigger?.radius ?? 0)
+  )
 }
 
 /**
  * Quem o golpe atingiria, mirado no alvo agora: em si mesmo → quem usou; em
- * cone → todo inimigo dentro do cone virado pro alvo (o alvo conta sempre);
- * senão → só o alvo.
+ * cone → todo inimigo dentro do cone virado pro alvo; em círculo → todo
+ * inimigo dentro do círculo em volta dela (o alvo conta sempre); senão → só
+ * o alvo.
  */
 function resolveRecipients(attack, situation) {
-  const { attacker, attackerPos, target, targetPos, enemies } = situation
+  const { attacker, attackerPos, attackerTrigger, target, targetPos, enemies } =
+    situation
   if (isSelfAttack(attack)) return [attacker]
-  if (!isConeAttack(attack)) return [target]
+  if (!isAreaAttack(attack)) return [target]
+  if (isCircleAttack(attack)) {
+    const radius = resolveCircleRadius(
+      attack,
+      resolveTriggerFrontEdge(attackerTrigger),
+    )
+    const recipients = [target]
+    for (const enemy of enemies) {
+      if (enemy.entity === target) continue
+      const segment = resolveEntityTriggerSegment(
+        enemy.entity,
+        enemy.pos,
+        enemy.entity.get(Rotation),
+      )
+      if (isTriggerInsideCircle(attackerPos, radius, segment)) {
+        recipients.push(enemy.entity)
+      }
+    }
+    return recipients
+  }
 
   const direction = {
     x: targetPos.x - attackerPos.x,
     z: targetPos.z - attackerPos.z,
+  }
+  // o cone abre da borda da frente (`resolveAttackAreaStart`), o `range` todo
+  const length = Math.hypot(direction.x, direction.z) || 1
+  const edge = resolveTriggerFrontEdge(attackerTrigger)
+  const apex = {
+    x: attackerPos.x + (direction.x / length) * edge,
+    z: attackerPos.z + (direction.z / length) * edge,
   }
   const cone = {
     length: attack.range,
@@ -61,14 +115,16 @@ function resolveRecipients(attack, situation) {
   const recipients = [target]
   for (const enemy of enemies) {
     if (enemy.entity === target) continue
-    const body = enemy.entity.get(CharacterController)
     if (
-      isInsideAttackCone(
-        attackerPos,
+      isTriggerInsideCone(
+        apex,
         direction,
         cone,
-        enemy.pos,
-        body?.capsuleRadius ?? 0,
+        resolveEntityTriggerSegment(
+          enemy.entity,
+          enemy.pos,
+          enemy.entity.get(Rotation),
+        ),
       )
     ) {
       recipients.push(enemy.entity)
@@ -94,23 +150,62 @@ function resolveTypeFactor(attack, attackerTypes, recipient) {
   )
 }
 
+// Um lado do golpe como o dano o enxerga (espécie, IV e nível).
+function combatSide(entity) {
+  const species = resolveCombatantSpecies(entity)
+  return {
+    entity,
+    species,
+    individualValues: entity?.has?.(IndividualValues)
+      ? entity.get(IndividualValues)
+      : null,
+    level: resolveEntityLevel(entity, species),
+  }
+}
+
+/**
+ * O poder que o golpe teria em `recipient` agora, como o dano calcula: pela
+ * Velocidade de cada um (Electro Ball), × o bônus contra quem apanhou há
+ * pouco (Assurance) e × a média de acertos (Fury Attack). Sem dano, 0.
+ */
+export function resolveAiPower(attack, attacker, recipient) {
+  if (!attack.damage) return 0
+  const bySpeed = attack.damage.speedPower
+    ? applySpeedPower(
+        attack.damage,
+        combatSide(attacker),
+        combatSide(recipient),
+      )
+    : attack.damage
+  const vitals = recipient?.has?.(Vitals) ? recipient.get(Vitals) : null
+  const damage = applyPowerMultiplier(
+    bySpeed,
+    resolveRecentDamageMultiplier(attack.damage, vitals),
+  )
+  return (damage.power ?? 0) * resolveExpectedHits(attack.multiHit)
+}
+
 /**
  * Nota de um golpe pra IA, só pelos CAMPOS da definição (nunca pelo id):
- * `damage.power` por inimigo atingido + o valor de cada `effects[]` em cada
+ * o poder em cada inimigo atingido (`resolveAiPower` — com a Velocidade, o
+ * bônus de quem apanhou há pouco e a média de acertos) + o valor de cada `effects[]` em cada
  * atingido (`evaluateEffect`, um avaliador por tipo de efeito), × bônus se já
  * alcança o alvo (`IN_REACH_BONUS`), × `ai.weight` (ajuste fino opcional da
  * skill). O tipo multiplica o valor em cada atingido (`resolveTypeFactor`:
- * STAB × efetividade; golpe que não pega vale 0 nele). Golpe em si mesmo com inimigo perto (`SELF_CAST_SAFE_DISTANCE`) vale
+ * STAB × efetividade; golpe que não pega vale 0 nele). O que o golpe dá a
+ * quem usa (`selfEffects`, ex.: o Rapid Spin) soma uma vez, avaliado em quem
+ * usa, quando o golpe pega alguém. Golpe em si mesmo com inimigo perto (`SELF_CAST_SAFE_DISTANCE`) vale
  * 0 — a carga seria interrompida por dano. Golpe com domínio baixo
  * (docs/features/038-*) vale menos, na proporção da chance de sair
  * (`resolveMasteryAccuracyFactor`).
  *
- * `situation`: `{ attacker, attackerPos, target, targetPos, targetBody,
- * enemies: [{ entity, pos }] }`.
+ * `situation`: `{ attacker, attackerPos, attackerTrigger, target, targetPos,
+ * targetTrigger, enemies: [{ entity, pos }] }`.
  */
 export function scoreAiAttack(attack, situation) {
   const { IN_REACH_BONUS, SELF_CAST_SAFE_DISTANCE } = GAME_CONFIG.AI_ATTACK
-  const { attackerPos, targetPos, targetBody, enemies } = situation
+  const { attackerPos, attackerTrigger, targetPos, targetTrigger, enemies } =
+    situation
   const self = isSelfAttack(attack)
 
   if (
@@ -124,7 +219,6 @@ export function scoreAiAttack(attack, situation) {
   }
 
   const recipients = resolveRecipients(attack, situation)
-  const power = attack.damage?.power ?? 0
   const attackerTypes = resolveSpeciesTypes(
     resolveCombatantSpecies(situation.attacker),
   )
@@ -133,16 +227,23 @@ export function scoreAiAttack(attack, situation) {
     const typeFactor = self
       ? 1
       : resolveTypeFactor(attack, attackerTypes, recipient)
-    let value = self ? 0 : power
+    let value = self ? 0 : resolveAiPower(attack, situation.attacker, recipient)
     for (const effect of attack.effects ?? []) {
       value += evaluateEffect(effect, recipient, { ally: self })
     }
     score += value * typeFactor
   }
+  // o que dá a quem usa: só vale se ele pegar alguém (o efeito é no acerto)
+  if (!self && score > 0 && situation.attacker) {
+    for (const effect of attack.selfEffects ?? []) {
+      score += evaluateEffect(effect, situation.attacker, { ally: true })
+    }
+  }
   if (score <= 0) return 0
 
   const distance = horizontalDistance(attackerPos, targetPos)
-  if (distance <= resolveReachFor(attack, targetBody)) score *= IN_REACH_BONUS
+  if (distance <= resolveReachFor(attack, attackerTrigger, targetTrigger))
+    score *= IN_REACH_BONUS
   return (
     score *
     (attack.ai?.weight ?? 1) *
@@ -181,6 +282,7 @@ function resolveReadyAttack(entity, species, slot) {
     entity.get(IndividualValues),
     resolveEntityLevel(entity, species),
     resolveEntityMoveSet(entity, species),
+    readSpeedStage(entity),
   )
   if (!attack) return null
   if (entity.get(Vitals).stamina < attack.staminaCost) return null
@@ -210,7 +312,8 @@ export function planAiAttack(
   plannedSlot = null,
   rng = gameplayRng,
 ) {
-  const targetBody = target.get(CharacterController)
+  const attackerTrigger = resolveEntityHitTrigger(entity)
+  const targetTrigger = resolveEntityHitTrigger(target)
   const vitals = entity.get(Vitals)
 
   const ready = []
@@ -227,15 +330,19 @@ export function planAiAttack(
 
   const planned = affordable.find(({ slot }) => slot === plannedSlot)
   if (planned) {
-    return { ...planned, reach: resolveReachFor(planned.attack, targetBody) }
+    return {
+      ...planned,
+      reach: resolveReachFor(planned.attack, attackerTrigger, targetTrigger),
+    }
   }
 
   const situation = {
     attacker: entity,
     attackerPos: entity.get(Position),
+    attackerTrigger,
     target,
     targetPos: target.get(Position),
-    targetBody,
+    targetTrigger,
     enemies,
   }
   const candidates = affordable.map(({ slot, attack }) => ({
@@ -248,6 +355,6 @@ export function planAiAttack(
   return {
     slot: picked.slot,
     attack: picked.attack,
-    reach: resolveReachFor(picked.attack, targetBody),
+    reach: resolveReachFor(picked.attack, attackerTrigger, targetTrigger),
   }
 }

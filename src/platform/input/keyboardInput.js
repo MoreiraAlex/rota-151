@@ -53,7 +53,7 @@ const EDGE_KEY_MAP = {
 }
 
 // Botões de ataque que TAMBÉM expõem estado contínuo ("está segurando"),
-// além do pulso — ataque canalizado (`damageMode: 'channel'`, ver
+// além do pulso — ataque canalizado (`execution: 'channel'`, ver
 // docs/features/033-skills-de-combate-e-vfx.md) exige segurar a tecla
 // até o fim; soltar cancela.
 const HELD_EDGE_ACTIONS = new Set(['secondary1', 'secondary2', 'secondary3'])

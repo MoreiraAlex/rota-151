@@ -5,8 +5,8 @@ import {
   attackResolved,
   attackUsed,
   berriesHarvested,
-  burnApplied,
-  burnDamaged,
+  conditionApplied,
+  conditionTicked,
   creatureFainted,
   experienceGained,
   foragedNothing,
@@ -17,6 +17,7 @@ import {
 } from '@/core/events'
 import { listItems } from '@/core/data/items'
 import { listSkills } from '@/core/data/skills'
+import { getCondition, listConditions } from '@/core/data/conditions'
 import { Party, Pokemon, SummonedCreature, WildCreature } from '@/core/traits'
 import { formatSpeciesName } from './formatName'
 import {
@@ -125,16 +126,13 @@ describe('formatBattleLogEvent', () => {
     ).toEqual([])
   })
 
-  it('golpe de status sem semente não repete o que o atributo já diz', () => {
+  it('golpe de status não repete o que o atributo e a condição já dizem', () => {
     const { ally, wild } = setup()
-    const statusSkill = listSkills().find(
-      (skill) =>
-        !skill.damage &&
-        !skill.effects?.some((effect) => effect.type === 'leechSeed'),
-    )
-    expect(
-      texts(resolved(ally, wild, { attackId: statusSkill.id, status: true })),
-    ).toEqual([])
+    for (const statusSkill of listSkills().filter((skill) => !skill.damage)) {
+      expect(
+        texts(resolved(ally, wild, { attackId: statusSkill.id, status: true })),
+      ).toEqual([])
+    }
   })
 
   it('atributo, falha, desmaio, XP e golpe aprendido', () => {
@@ -185,15 +183,47 @@ describe('formatBattleLogEvent', () => {
     )
   })
 
-  it('queimadura: aplicada e cada tick, com o nome do alvo', () => {
+  it.each(listConditions().map((condition) => condition.id))(
+    'condição (%s): aplicada e cada tick, com o nome do alvo e o HP',
+    (condition) => {
+      const { ally, wild } = setup()
+      const { feedback } = getCondition(condition)
+      const applied = texts(
+        conditionApplied({
+          target: wild,
+          source: ally,
+          attackId: SKILL.id,
+          condition,
+        }),
+      )
+      const tick = texts(
+        conditionTicked({ target: wild, source: ally, condition, damage: 3 }),
+      )
+      expect(applied).toHaveLength(feedback.applied ? 1 : 0)
+      expect(tick).toHaveLength(feedback.tick ? 1 : 0)
+      if (feedback.applied) {
+        expect(applied[0]).toContain(formatCombatantName(wild))
+      }
+      if (feedback.tick) {
+        expect(tick[0]).toContain(formatCombatantName(wild))
+        expect(tick[0]).toContain('3')
+      }
+    },
+  )
+
+  it('condição aplicada num golpe de treino não entra', () => {
     const { ally, wild } = setup()
-    const [applied] = texts(
-      burnApplied({ target: wild, source: ally, attackId: SKILL.id }),
-    )
-    const [tick] = texts(burnDamaged({ target: wild, source: ally, damage: 3 }))
-    expect(applied).toContain(formatCombatantName(wild))
-    expect(tick).toContain(formatCombatantName(wild))
-    expect(tick).toContain('3')
+    expect(
+      texts(
+        conditionApplied({
+          target: wild,
+          source: ally,
+          attackId: SKILL.id,
+          slot: 'training',
+          condition: 'burn',
+        }),
+      ),
+    ).toEqual([])
   })
 
   it('evento desconhecido não entra', () => {

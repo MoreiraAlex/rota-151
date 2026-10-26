@@ -32,9 +32,9 @@ function fakeSpecies() {
 }
 
 describe('applyDamage', () => {
-  it('desconta hp e reseta o delay de regeneração', () => {
+  it('desconta hp, reseta o delay de regeneração e zera o tempo desde o dano', () => {
     const result = applyDamage({ hp: 50, maxHp: 100 }, 20, 3)
-    expect(result).toEqual({ hp: 30, hpRegenDelay: 3 })
+    expect(result).toEqual({ hp: 30, hpRegenDelay: 3, hpDamageAge: 0 })
   })
 
   it('não deixa hp abaixo de zero', () => {

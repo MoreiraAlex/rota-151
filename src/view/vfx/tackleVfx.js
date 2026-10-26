@@ -1,4 +1,4 @@
-import { compileGradient } from './particleSimulation'
+import { compileGradient, sampleCurve } from './particleSimulation'
 
 /**
  * Tackle em partículas — tradução manual das definições do Cobblemon
@@ -77,6 +77,42 @@ export const TACKLE_EMITTERS = [
     drag: () => 0.25,
     lifetime: (ctx, rnd) => 0.35 + rnd[8] * 0.15,
     size: () => 0.15,
+    spin: false,
+    tint: SPARK_TINT,
+  },
+]
+
+// quickattack_targetsparks.particle.json — as faíscas do Quick Attack: saem
+// retas de um ponto, sem gravidade, freando, e encolhem no fim da vida.
+const QUICK_SPARK_SIZE = [1, 1, 1, 0.9, 0]
+
+/**
+ * O acerto do Quick Attack (docs/features/061-revisao-das-skills.md): o mesmo
+ * clarão do Tackle (`tackle_target`) com as faíscas próprias dele
+ * (`quickattack_targetsparks`).
+ */
+export const QUICK_ATTACK_EMITTERS = [
+  TACKLE_EMITTERS.find((spec) => spec.id === 'hit'),
+  {
+    id: 'quickSparks',
+    texture: 'orb',
+    strip: 4,
+    vertical: true,
+    frames: { first: 2, count: 3, step: -1, stretch: true },
+    blending: 'normal',
+    start: 0,
+    burst: 8,
+    anchor: 'impact',
+    direction: (ctx, rnd) => [
+      (rnd[4] * 2 - 1) * 0.91,
+      -0.81 + rnd[5] * 1.82,
+      (rnd[6] * 2 - 1) * 0.91,
+    ],
+    speed: () => 10,
+    accel: () => [0, 0, 0],
+    drag: () => 4,
+    lifetime: (ctx, rnd) => 0.35 + rnd[8] * 0.15,
+    size: (t) => 0.125 * sampleCurve(QUICK_SPARK_SIZE, t),
     spin: false,
     tint: SPARK_TINT,
   },

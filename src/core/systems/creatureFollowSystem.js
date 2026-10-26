@@ -26,6 +26,7 @@ import {
   WildCreature,
   ChunkFrozen,
 } from '../traits'
+import { readConditionModifier } from '../actions/conditions'
 
 /**
  * Todo personagem que NÃO está sendo pilotado agora anda em direção a quem
@@ -339,7 +340,12 @@ export function creatureFollowSystem(context) {
         // alvo (já não precisa).
         dirX = avoidX
         dirZ = avoidZ
-        speed = resolveMoveSpeed(stats, vitals, false)
+        speed = resolveMoveSpeed(
+          stats,
+          vitals,
+          false,
+          readConditionModifier(entity, 'movement'),
+        )
         // Só desviando: não está navegando rumo a nada (ver `PathState.target`).
         entity.set(PathState, {
           ...previous,
@@ -434,6 +440,7 @@ export function creatureFollowSystem(context) {
           stats,
           vitals,
           gait === 'run' && !resting && tentarCorrer(vitals, delta),
+          readConditionModifier(entity, 'movement'),
         )
       }
 

@@ -135,8 +135,24 @@ export const SPECIES_TEMPLATE = {
     // local, em unidades de mundo — não escala com `model.scale`). Ajusta
     // junto toda vez que capsuleRadius/capsuleHalfHeight/capsuleAxis mudam.
     modelOffset: [0, 0, 0],
+    // Opcional — TRIGGER de acerto (`core/battle/hitTrigger.js`,
+    // docs/features/061-revisao-das-skills.md): a forma NO CHÃO que um golpe
+    // precisa TOCAR (ou atravessar) pra acertar esta criatura — separada da
+    // cápsula de colisão acima. É uma pílula 2D que gira com o corpo:
+    // `radius` = meia-largura, `halfLength` = metade do meio reto (0 =
+    // círculo), `angle` (graus) em relação à frente do corpo (0 = ao longo
+    // dela, 90 = atravessada), `offset` (m) no chão a partir do centro do
+    // corpo (+Z pra frente, +X pro lado). Campo ausente cai no derivado da
+    // cápsula de colisão (em pé → círculo; deitada → pílula ao longo do
+    // eixo). Ajuste no laboratório de golpes (`/tools/lab-golpes`).
+    // trigger: {
+    //   radius: 0.5,
+    //   halfLength: 0,
+    //   angle: 0,
+    //   offset: { x: 0, z: 0 },
+    // },
     // De onde cada golpe sai não é da espécie: é o `visual.positionOffset`
-    // do golpe (override por espécie em `skills`/`moves`).
+    // do golpe (override por espécie em `moves`).
   },
   movement: {
     // Unidades por segundo (1 unidade = 1 metro).
@@ -220,12 +236,12 @@ export const SPECIES_TEMPLATE = {
   // docs/backlog.md). Os golpes são os ÚNICOS ataques da criatura — não
   // existe ataque básico (docs/features/039-tipos-e-combate-classico.md, Parte 5):
   // - `skills` (Q/E/R) — o kit inicial: chave = número do slot (1 = Q, 2 = E,
-  //   3 = R; slots `secondary1-3`), valor = REFERÊNCIA ao registro
-  //   compartilhado (`core/data/skills/<id>/`), reaproveitada entre
-  //   espécies; override por espécie sem duplicar a definição:
+  //   3 = R; slots `secondary1-3`), valor = SÓ o id de um golpe de `moves`
+  //   (abaixo). Os overrides da espécie ficam no golpe, em `moves`, nunca
+  //   aqui:
   //      skills: {
-  //        1: 'ember',                                   // Q, como está
-  //        2: { id: 'tackle', overrides: { range: 1 } }, // E, ajustada
+  //        1: 'ember', // Q
+  //        2: 'tackle', // E
   //      },
   // Slot vazio simplesmente não dispara — nada quebra (sem golpe nenhum, a
   // criatura não luta).
@@ -343,15 +359,19 @@ export const SPECIES_TEMPLATE = {
   //        },
   //      },
   stats: {},
-  // LEARNSET — golpes que a criatura pode aprender além do kit (`skills`),
+  // GOLPES — TODOS os que a criatura tem ou pode ter: os do kit (`skills`,
+  // acima, que só aponta o id) e o learnset, cada um com os `overrides` da
+  // espécie (campo a campo por cima do golpe base — `resolveSkill`),
   // docs/features/038-aprendizado-treino-e-dominio-de-golpes.md. Cumprindo
   // `requires`, o golpe fica APTO (não aprende sozinho): o treinador treina
   // a criatura perto de um objeto de treino e ela aprende com domínio baixo.
-  // Sem `requires`, fica apto de imediato. `overrides` igual ao de `skills`.
-  // Hoje só `level` é avaliado; outra condição conta como não cumprida.
+  // Sem `requires` (os do kit), fica apto de imediato. Hoje só `level` é
+  // avaliado; outra condição conta como não cumprida.
   //      moves: [
+  //        { id: 'ember', overrides: { effectAt: 0.4 } }, // do kit
+  //        { id: 'tackle' }, // do kit, como está
   //        { id: 'smokescreen', requires: { level: 5 } },
-  //        { id: 'flamethrower', requires: { level: 19 }, overrides: { range: 2 } },
+  //        { id: 'flamethrower', requires: { level: 19 }, overrides: { duration: 2 } },
   //      ],
   moves: [],
   // Opcional — tipo(s) elemental(is) da espécie (1 ou 2, ids de

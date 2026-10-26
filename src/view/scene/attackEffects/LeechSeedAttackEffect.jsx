@@ -14,8 +14,9 @@ import { useParticleAttackEffect } from './useParticleAttackEffect'
  * brilhos (config em `view/vfx/leechSeedVfx.js`). O `AttackEffect` nasce no
  * alvo; quem lançou fica em (0, 0, -`length`).
  */
-export function LeechSeedAttackEffect({ radius, length = 0, scale = 1 }) {
+export function LeechSeedAttackEffect({ rise, radius, length = 0, scale = 1 }) {
   const groupRef = useParticleAttackEffect({
+    rise,
     emitters: LEECH_SEED_EMITTERS,
     texturePaths: LEECH_SEED_TEXTURE_PATHS,
     length,
@@ -27,11 +28,17 @@ export function LeechSeedAttackEffect({ radius, length = 0, scale = 1 }) {
 
 /**
  * Visual do grupo `'leech-drain'` (cada drenagem da semente, solto pelo
- * `leechSeedSystem.js`): estouro de orbes e brotos no alvo, e orbes em espiral
+ * `conditionSystem.js`): estouro de orbes e brotos no alvo, e orbes em espiral
  * indo dele até quem plantou, que fica em (0, 0, -`length`).
  */
-export function LeechDrainAttackEffect({ radius, length = 0, scale = 1 }) {
+export function LeechDrainAttackEffect({
+  rise,
+  radius,
+  length = 0,
+  scale = 1,
+}) {
   const groupRef = useParticleAttackEffect({
+    rise,
     emitters: LEECH_DRAIN_EMITTERS,
     texturePaths: LEECH_SEED_TEXTURE_PATHS,
     length,
@@ -45,8 +52,9 @@ export function LeechDrainAttackEffect({ radius, length = 0, scale = 1 }) {
  * Visual do grupo `'leech-drain-solo'`: a drenagem quando quem plantou já não
  * existe (recolhido) — só o estouro e os brotos no alvo.
  */
-export function LeechDrainSoloAttackEffect({ radius, scale = 1 }) {
+export function LeechDrainSoloAttackEffect({ rise, radius, scale = 1 }) {
   const groupRef = useParticleAttackEffect({
+    rise,
     emitters: LEECH_DRAIN_SOLO_EMITTERS,
     texturePaths: LEECH_SEED_TEXTURE_PATHS,
     radius,

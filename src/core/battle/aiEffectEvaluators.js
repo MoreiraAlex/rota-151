@@ -1,10 +1,7 @@
 import { GAME_CONFIG } from '../gameConfig'
-import {
-  Burn,
-  LeechSeed,
-  StatStages,
-  resolveCreatureSpeciesId,
-} from '../traits'
+import { StatStages, resolveCreatureSpeciesId } from '../traits'
+import { readCondition } from '../actions/conditions'
+import { getCondition, resolveConditionEffect } from '../data/conditions'
 import { getSpecies } from '../data/species'
 import { resolveSpeciesTypes } from '../data/types'
 import { STAT_STAGE_LIMIT, readStatStages } from './statStages'
@@ -44,33 +41,40 @@ export function evaluateStatStageEffect(effect, recipient, { ally }) {
 }
 
 /**
- * Semente (`{ type: 'leechSeed', ... }`): vale cheio num inimigo sem semente;
- * 0 com uma ativa (plantar de novo só renovaria), voltando a valer perto de
- * secar (`EFFECT_REFRESH_TIME`). Nunca em quem usou.
+ * Condição (`{ type: 'condition', condition, chance, ... }`): o `ai.value`
+ * da condição × `chance` em quem ela serve sem ela — num inimigo, ou, se a
+ * condição for boa (`beneficial`, ex.: Focado), em quem usa/aliado; 0 com
+ * uma ativa (aplicar de novo só renovaria), voltando a valer perto de acabar
+ * (`EFFECT_REFRESH_TIME`). 0 em quem é de um tipo imune (`immuneTypes`) e no
+ * lado errado.
  */
-export function evaluateLeechSeedEffect(effect, recipient, { ally }) {
-  const { LEECH_SEED_VALUE, EFFECT_REFRESH_TIME } = GAME_CONFIG.AI_ATTACK
-  if (ally) return 0
-  const seed = recipient.get(LeechSeed)
-  if (seed && seed.timeLeft > EFFECT_REFRESH_TIME) return 0
-  return LEECH_SEED_VALUE
-}
-
-/**
- * Queimadura (`{ type: 'burn', chance, ... }`): `BURN_VALUE × chance` num
- * inimigo sem queimadura (ou perto de apagar, `EFFECT_REFRESH_TIME`); 0 em
- * quem é de um tipo imune (`immuneTypes`) e em quem usou.
- */
-export function evaluateBurnEffect(effect, recipient, { ally }) {
-  const { BURN_VALUE, EFFECT_REFRESH_TIME } = GAME_CONFIG.AI_ATTACK
-  if (ally) return 0
+export function evaluateConditionEffect(effect, recipient, { ally }) {
+  const { EFFECT_REFRESH_TIME } = GAME_CONFIG.AI_ATTACK
+  const condition = resolveConditionEffect(effect)
+  if (!condition || ally !== Boolean(condition.beneficial)) return 0
   const types = resolveSpeciesTypes(
     getSpecies(resolveCreatureSpeciesId(recipient)),
   )
-  if (types.some((type) => effect.immuneTypes?.includes(type))) return 0
-  const burn = recipient.get(Burn)
-  if (burn && burn.timeLeft > EFFECT_REFRESH_TIME) return 0
-  return BURN_VALUE * (effect.chance ?? 1)
+  if (types.some((type) => condition.immuneTypes?.includes(type))) return 0
+  const active = readCondition(recipient, condition.id)
+  if (active && active.timeLeft > EFFECT_REFRESH_TIME) return 0
+  return (condition.ai?.value ?? 0) * condition.chance
+}
+
+/**
+ * Soltar de condições (`{ type: 'removeConditions', conditions }`, ex.: o
+ * Rapid Spin saindo do Wrap): em quem usa, o `ai.value` de cada condição da
+ * lista que ele TEM agora (e que não é boa pra ele); no inimigo, 0.
+ */
+export function evaluateRemoveConditionsEffect(effect, recipient, { ally }) {
+  if (!ally) return 0
+  let value = 0
+  for (const id of effect.conditions ?? []) {
+    const condition = getCondition(id)
+    if (!condition || condition.beneficial) continue
+    if (readCondition(recipient, id)) value += condition.ai?.value ?? 0
+  }
+  return value
 }
 
 /**
@@ -82,8 +86,8 @@ export function evaluateBurnEffect(effect, recipient, { ally }) {
  */
 export const AI_EFFECT_EVALUATORS = {
   statStage: evaluateStatStageEffect,
-  leechSeed: evaluateLeechSeedEffect,
-  burn: evaluateBurnEffect,
+  condition: evaluateConditionEffect,
+  removeConditions: evaluateRemoveConditionsEffect,
 }
 
 /** Valor de um efeito pra IA; tipo sem avaliador vale 0. */

@@ -16,27 +16,25 @@
  */
 export const SMOKESCREEN_SKILL = {
   id: 'smokescreen',
+  description:
+    'Solta uma nuvem de fumaça em leque à frente. Todos os inimigos dentro dela têm a Precisão reduzida em {effects.0.stages:abs} nível por {effects.0.duration:s} e passam a errar mais golpes. Usar de novo acumula a redução e renova o tempo.',
   type: 'normal',
-  duration: 1.2,
+  group: 'cone',
+  duration: 2,
   effectAt: 0.5,
-  range: 3,
-  aim: 'ranged',
-  castMode: 'instant',
-  area: 'cone',
-  // abertura do cone: `radius / range` (tangente do meio-ângulo)
-  radius: 1.5,
   accuracy: 100,
+  execution: 'instant',
   // Sem dano: nada "apanha", e `attackResolved` sai com `status: true`.
   damage: null,
   effects: [{ type: 'statStage', stat: 'accuracy', stages: -1, duration: 30 }],
   visual: {
     effectGroup: 'smokescreen',
     // sopro + a vida da fumaça (`view/vfx/smokescreenVfx.js`)
-    effectVisualDuration: 2.5,
+    effectVisualDuration: 1,
     targetEffectGroup: 'smokescreen-target',
     // fumaça do alvo: emissão + vida das partículas
     targetEffectVisualDuration: 3,
-    scale: 1,
+    scale: 1.5,
     revealDuration: 0,
     rotationOffset: { x: 0, y: 0, z: 0 },
     positionOffset: { x: 0, y: 0, z: 0 },

@@ -58,6 +58,144 @@ export const ATTACK_SOUND_GROUPS = {
     refDistance: 2,
     clips: ['/assets/audio/attack/absorb-charge/attack-01.ogg'],
   },
+  // Bite — o `move.bite.target` do Cobblemon (`sounds/move/bite/`, volume 0.8
+  // lá): as presas fechando, no instante da mordida (o Bite só tem o do alvo).
+  'bite-target': {
+    volume: 0.18,
+    refDistance: 2,
+    clips: ['/assets/audio/attack/bite-target/attack-01.ogg'],
+  },
+  // Bug Bite — o Cobblemon não tem o golpe: o `move.leechlife.target`
+  // (`sounds/move/leechlife/`, a mordida do Leech Life, no mesmo volume do
+  // Bite lá).
+  'bug-bite-target': {
+    volume: 0.18,
+    refDistance: 2,
+    clips: ['/assets/audio/attack/bug-bite-target/attack-01.ogg'],
+  },
+  // Peck — o Cobblemon não tem o golpe: o `move.aerialace.target`
+  // (`sounds/move/aerialace/`, o corte do Aerial Ace batendo no alvo).
+  'peck-target': {
+    volume: 0.18,
+    refDistance: 2,
+    clips: ['/assets/audio/attack/peck-target/attack-01.ogg'],
+  },
+  // Assurance — o Cobblemon não tem o golpe: o `move.pursuit.target`
+  // (`sounds/move/pursuit/`, o acerto do Pursuit, Sombrio como ele na série).
+  'assurance-target': {
+    volume: 0.18,
+    refDistance: 2,
+    clips: ['/assets/audio/attack/assurance-target/attack-01.ogg'],
+  },
+  // Leer — o `move.scaryface.actor` do Cobblemon (`sounds/move/scaryface/`),
+  // que a linha do tempo do Leer de lá toca junto do brilho no olho; só o
+  // começo dele (escolha do usuário), com um fade no corte.
+  'leer-actor': {
+    volume: 0.18,
+    refDistance: 2,
+    clips: ['/assets/audio/attack/leer-actor/attack-01.ogg'],
+  },
+  // Wrap — o Cobblemon não tem o golpe: o `move.infestation.target`
+  // (`sounds/move/infestation/`, o Infestation, que também prende), escolhido
+  // de ouvido pelo usuário entre os candidatos.
+  'wrap-target': {
+    volume: 0.18,
+    refDistance: 2,
+    clips: ['/assets/audio/attack/wrap-target/attack-01.ogg'],
+  },
+  // Paralisia pegando (o Glare) — o `status.nonvolatile.paralysis.actor` do
+  // Cobblemon (`sounds/status/nonvolatile/`), que lá toca quando as faíscas
+  // da paralisia nascem.
+  'paralysis-target': {
+    volume: 0.18,
+    refDistance: 2,
+    clips: ['/assets/audio/attack/paralysis-target/attack-01.ogg'],
+  },
+  // Thunder Shock — o `move.thundershock.*` do Cobblemon (`sounds/move/
+  // thundershock/`): o choque saindo de quem usa e acertando o alvo.
+  'thunder-shock-actor': {
+    volume: 0.18,
+    refDistance: 2,
+    clips: ['/assets/audio/attack/thunder-shock-actor/attack-01.ogg'],
+  },
+  'thunder-shock-target': {
+    volume: 0.18,
+    refDistance: 2,
+    clips: ['/assets/audio/attack/thunder-shock-target/attack-01.ogg'],
+  },
+  // Thunder Wave — o `move.thunderwave.*` do Cobblemon (`sounds/move/
+  // thunderwave/`): a onda saindo e chegando no alvo.
+  'thunder-wave-actor': {
+    volume: 0.18,
+    refDistance: 2,
+    clips: ['/assets/audio/attack/thunder-wave-actor/attack-01.ogg'],
+  },
+  'thunder-wave-target': {
+    volume: 0.18,
+    refDistance: 2,
+    clips: ['/assets/audio/attack/thunder-wave-target/attack-01.ogg'],
+  },
+  // Double Team — o `move.doubleteam.actor` do Cobblemon (`sounds/move/
+  // doubleteam/`).
+  'double-team-actor': {
+    volume: 0.18,
+    refDistance: 2,
+    clips: ['/assets/audio/attack/double-team-actor/attack-01.ogg'],
+  },
+  // Electro Ball — o Cobblemon não tem o golpe: a bola saindo é a do Shadow
+  // Ball (`sounds/move/shadowball/`) e o acerto, o do Thunderbolt
+  // (`sounds/move/thunderbolt/`).
+  'electro-ball-actor': {
+    volume: 0.18,
+    refDistance: 2,
+    clips: ['/assets/audio/attack/electro-ball-actor/attack-01.ogg'],
+  },
+  'electro-ball-target': {
+    volume: 0.18,
+    refDistance: 2,
+    clips: ['/assets/audio/attack/electro-ball-target/attack-01.ogg'],
+  },
+  // Rapid Spin — o vento do pião, em loop na janela do giro
+  // (`audio.actionGroup`); o Cobblemon não tem o golpe: o `gust_actor`
+  // (`sounds/move/gust/`), escolhido de ouvido pelo usuário.
+  'gust-actor': {
+    volume: 0.18,
+    refDistance: 2,
+    clips: ['/assets/audio/attack/gust-actor/attack-01.ogg'],
+  },
+  // Quick Attack — o `move.quickattack.*` do Cobblemon (`sounds/move/
+  // quickattack/`): a arrancada (som de carga, enquanto ela corre) e o
+  // acerto.
+  'quick-attack-actor': {
+    volume: 0.18,
+    refDistance: 2,
+    clips: ['/assets/audio/attack/quick-attack-actor/attack-01.ogg'],
+  },
+  'quick-attack-target': {
+    volume: 0.18,
+    refDistance: 2,
+    clips: ['/assets/audio/attack/quick-attack-target/attack-01.ogg'],
+  },
+  // Gust — o `move.gust.target` (`sounds/move/gust/`): o vento batendo no
+  // alvo (o do atacante é o `gust-actor`, acima).
+  'gust-target': {
+    volume: 0.18,
+    refDistance: 2,
+    clips: ['/assets/audio/attack/gust-target/attack-01.ogg'],
+  },
+  // String Shot — o `move.stringshot.*` do Cobblemon (`sounds/move/
+  // stringshot/`): o disparo dos fios e a teia grudando no alvo, este mais
+  // baixo (a mesma proporção de volume de lá).
+  'string-shot-actor': {
+    volume: 0.2,
+    refDistance: 2,
+    clips: ['/assets/audio/attack/string-shot-actor/attack-01.ogg'],
+  },
+  'string-shot-target': {
+    volume: 0.1,
+    refDistance: 2,
+    clips: ['/assets/audio/attack/string-shot-target/attack-01.ogg'],
+  },
 }
 
 // Impacto genérico por TIPO (`audio.group: 'impact'` — ver
@@ -95,6 +233,7 @@ for (const move of [
   'ember',
   'flamethrower',
   'smokescreen',
+  'sand-attack',
   'leech-seed',
   'water-gun',
 ]) {
@@ -104,6 +243,16 @@ for (const move of [
       refDistance: 2,
       clips: [`/assets/audio/attack/${move}-${part}/attack-01.ogg`],
     }
+  }
+}
+
+// Razor Leaf — o Cobblemon tem DOIS sons de quem usa (`razorleaf_actor_1`, as
+// folhas subindo, e `_actor_2`, o disparo) e o do alvo.
+for (const part of ['actor-1', 'actor-2', 'target']) {
+  ATTACK_SOUND_GROUPS[`razor-leaf-${part}`] = {
+    volume: 0.18,
+    refDistance: 2,
+    clips: [`/assets/audio/attack/razor-leaf-${part}/attack-01.ogg`],
   }
 }
 
@@ -131,11 +280,59 @@ export const ATTACK_SOUND_COMPOSITES = {
     { group: 'smokescreen-actor', delay: 0 },
     { group: 'smokescreen-target', delay: 0 },
   ],
+  // O do alvo espera o vento chegar (a pausa da linha do tempo do
+  // Cobblemon, `GUST_TRAVEL` no visual).
+  gust: [
+    { group: 'gust-actor', delay: 0 },
+    { group: 'gust-target', delay: 0.3 },
+  ],
+  // O do alvo espera a areia chegar (a pausa da linha do tempo do
+  // Cobblemon, `SAND_TRAVEL` no visual).
+  'sand-attack': [
+    { group: 'sand-attack-actor', delay: 0 },
+    { group: 'sand-attack-target', delay: 0.3 },
+  ],
+  // O do alvo espera os fios chegarem (a pausa da linha do tempo do
+  // Cobblemon).
+  // O Glare: o som do Scary Face (o mesmo trecho do Leer) e, quando o olhar
+  // chega (`GLARE_DELAY` no visual), a paralisia pegando.
+  // O Thunder Shock: lá o de quem usa toca no começo do gesto; aqui os dois
+  // vão juntos no acerto (o som de carga repete e corta no `effectAt`).
+  'thunder-shock': [
+    { group: 'thunder-shock-actor', delay: 0 },
+    { group: 'thunder-shock-target', delay: 0 },
+  ],
+  // O Thunder Wave: o do alvo espera a onda chegar (`WAVE_TRAVEL` no visual).
+  'thunder-wave': [
+    { group: 'thunder-wave-actor', delay: 0 },
+    { group: 'thunder-wave-target', delay: 0.35 },
+  ],
+  // O Electro Ball: o do alvo espera a bola chegar (`BALL_TRAVEL` no visual).
+  'electro-ball': [
+    { group: 'electro-ball-actor', delay: 0 },
+    { group: 'electro-ball-target', delay: 0.3 },
+  ],
+  glare: [
+    { group: 'leer-actor', delay: 0 },
+    { group: 'paralysis-target', delay: 0.3 },
+  ],
+  'string-shot': [
+    { group: 'string-shot-actor', delay: 0 },
+    { group: 'string-shot-target', delay: 0.3 },
+  ],
   // O do alvo espera a semente pousar (o voo do visual, `leechSeedVfx.js`) —
   // aqui o efeito não é dano instantâneo, a 1ª drenagem só vem depois.
   'leech-seed': [
     { group: 'leech-seed-actor', delay: 0 },
     { group: 'leech-seed-target', delay: 0.35 },
+  ],
+  // Subida das folhas e acerto junto do 1º tick (o golpe é instantâneo); o
+  // segundo som de quem usa vem no meio da rajada (no Cobblemon, o do alvo
+  // espera as folhas chegarem).
+  'razor-leaf': [
+    { group: 'razor-leaf-actor-1', delay: 0 },
+    { group: 'razor-leaf-target', delay: 0 },
+    { group: 'razor-leaf-actor-2', delay: 0.35 },
   ],
   // O do alvo junto do jato: o golpe é instantâneo (no Cobblemon, 0.3 s depois).
   'water-gun': [
@@ -246,6 +443,8 @@ export function resolveAttackSounds(species) {
  * - `'charge'` (`audio.chargeGroup`, ex.: o Growth): do disparo até o
  *   `effectAt` (enquanto `isAttackCharging`) — para no efeito ou numa
  *   interrupção.
+ * - `'lunge'` (`audio.lungeGroup`, ex.: o Quick Attack): uma vez, inteiro,
+ *   quando a arrancada começa (o `effectAt`).
  * - `'action'` (`audio.actionGroup`, ex.: o Tail Whip): do `effectAt` até a
  *   ação ACABAR (fim da `duration`) — cortado no fim se for mais longo,
  *   repetido se for mais curto.
@@ -257,8 +456,12 @@ export function resolveAttackLoopSounds(species) {
   const sounds = {}
   for (const [key, attack] of listSpeciesAttacks(species)) {
     const audio = attack.audio
-    const phase = audio?.chargeGroup ? 'charge' : 'action'
-    const group = audio?.chargeGroup ?? audio?.actionGroup
+    const phase = audio?.chargeGroup
+      ? 'charge'
+      : audio?.lungeGroup
+        ? 'lunge'
+        : 'action'
+    const group = audio?.chargeGroup ?? audio?.lungeGroup ?? audio?.actionGroup
     const spec = group ? getAttackSoundGroup(group) : null
     if (spec) sounds[key] = { ...spec, phase }
   }

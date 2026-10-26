@@ -22,14 +22,12 @@
  */
 export const EMBER_SKILL = {
   id: 'ember',
+  description:
+    'Cospe uma brasa no primeiro inimigo à frente, até {range:m}, causando dano especial de poder {power}. Tem {effects.0.chance:%} de chance de queimar: o alvo perde {effects.0.tick.fraction:%} da vida máxima a cada {effects.0.tick.interval:s} e o Ataque físico dele cai pra {effects.0.modifiers.attack:%}, por {effects.0.duration:s}. Não pega em Pokémon do tipo Fogo.',
   type: 'fire',
-  duration: 0.5,
-  effectAt: 0.25,
-  range: 8,
-  aim: 'ranged',
-  castMode: 'instant',
-  radius: 0.35,
-  damageInterval: 0.25,
+  group: 'ranged',
+  duration: 1.2,
+  effectAt: 0.95,
   visual: {
     effectGroup: 'ember',
     effectVisualDuration: 2,
@@ -52,17 +50,7 @@ export const EMBER_SKILL = {
   },
   // Especial, poder de referência: o de "Ember" nos jogos originais.
   damage: { power: 40, category: 'special' },
-  // Chance de queimar (regra clássica do golpe) — ver `burn` no
-  // `../_template/index.js`.
-  effects: [
-    {
-      type: 'burn',
-      chance: 0.1,
-      fraction: 1 / 16,
-      interval: 2,
-      duration: 8,
-      attackMultiplier: 0.5,
-      immuneTypes: ['fire'],
-    },
-  ],
+  // Chance de queimar (regra clássica do golpe) — a queimadura é
+  // `core/data/conditions/burn/`.
+  effects: [{ type: 'condition', condition: 'burn', chance: 0.1 }],
 }

@@ -1,4 +1,6 @@
 import CRY_CLIP from './clips/cry.json'
+import TAIL_WHIP_CLIP from './clips/tail-whip.json'
+import STUNNED_CLIP from './clips/stunned.json'
 import { LGPE_EYE_ATLAS } from '../lgpeEyeAtlas'
 
 const LEVEL = 5
@@ -55,7 +57,13 @@ export const RATTATA = {
   },
 
   clips: {
+    // Paralisado (atordoado): o modelo não tem `stun`, então o tremor de
+    // choque por cima do `idle` (preview "Tremor de Paralisia").
+    stunned: STUNNED_CLIP,
     cry: CRY_CLIP,
+    // A cauda abanando por cima do `attackRanged` (a camada sobre a
+    // embutida, `base` no clipe).
+    tailWhip: TAIL_WHIP_CLIP,
   },
   nativeAnimations: {
     roar: 'roar',
@@ -98,7 +106,8 @@ export const RATTATA = {
     capsuleRadius: 0.15,
     capsuleHalfHeight: 0.1,
     capsuleAxis: 'z',
-    modelOffset: [0, -0.165, -0.05],
+    modelOffset: [0, -0.15, -0.05],
+    trigger: { radius: 0.2, halfLength: 0.1, angle: 0, offset: { x: 0, z: 0 } },
   },
   movement: {
     walkSpeed: 2.25,
@@ -141,6 +150,13 @@ export const RATTATA = {
     speed: { base: SPEED, ev: SPEED_EV },
   },
   moves: [
+    { id: 'tackle' },
+    {
+      id: 'tail-whip',
+      overrides: { animation: { clipKey: 'tailWhip' }, effectAt: 0.25 },
+    },
+    { id: 'quick-attack' },
+
     { id: 'focus-energy', requires: { level: 7 } },
     { id: 'bite', requires: { level: 10 } },
   ],

@@ -1,4 +1,5 @@
 import { GAME_CONFIG } from '../gameConfig'
+import { getCondition } from '../data/conditions'
 
 /**
  * Chance de captura (docs/features/043-captura.md), no estilo Gen 3:
@@ -8,7 +9,7 @@ import { GAME_CONFIG } from '../gameConfig'
  * - `taxa`: `species.capture.rate` (escala 0-255 da série; maior = mais fácil),
  *   ou `CAPTURE.DEFAULT_RATE`;
  * - `bola`: `item.pokeball.captureMultiplier`;
- * - `condição`: `CAPTURE.CONDITION_BONUS` da condição que ele tem (a maior);
+ * - `condição`: o `captureBonus` da condição que ele tem (o maior);
  * - `costas`: `CAPTURE.BACK_STRIKE_BONUS` no acerto pelas costas.
  *
  * Desmaiado conta como HP 0 (o fator de HP no máximo). Com `a` no teto
@@ -32,9 +33,9 @@ export function resolveBallMultiplier(item) {
  * de ids, ex.: `['burn']`); sem condição, 1.
  */
 export function resolveConditionBonus(conditions = []) {
-  const bonuses = GAME_CONFIG.CAPTURE.CONDITION_BONUS
   return conditions.reduce(
-    (best, condition) => Math.max(best, bonuses[condition] ?? 1),
+    (best, condition) =>
+      Math.max(best, getCondition(condition)?.captureBonus ?? 1),
     1,
   )
 }

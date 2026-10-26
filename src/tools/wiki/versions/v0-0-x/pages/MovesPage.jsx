@@ -100,11 +100,11 @@ export function MovesPage({ data, version }) {
           dois lados: dá pra ver o golpe da selvagem chegando e sair da área.
         </p>
         <p>
-          Golpes de <strong>status</strong> podem ser{' '}
-          <strong>interrompidos</strong>: se quem está preparando tomar dano
-          antes do golpe acontecer, o golpe é cancelado e a criatura fica
-          atordoada por {formatSeconds(battle.hitStun)}. Golpes de dano não são
-          interrompidos.
+          Golpes que <strong>carregam</strong> — os que agem em quem usou —
+          podem ser <strong>interrompidos</strong>: se quem está carregando
+          tomar dano antes do golpe acontecer, o golpe é cancelado e a criatura
+          fica atordoada por {formatSeconds(battle.hitStun)}. Os outros golpes
+          não são interrompidos.
         </p>
       </Section>
 
@@ -130,6 +130,32 @@ export function MovesPage({ data, version }) {
             continua mirando enquanto o golpe dura.
           </li>
         </ul>
+      </Section>
+
+      <Section id="especiais" title="Golpes com regras próprias">
+        <ul>
+          <li>
+            <strong>Vários acertos</strong> — alguns golpes acertam mais de uma
+            vez seguida no mesmo alvo; quantas vezes é sorteado a cada uso. Só o
+            primeiro acerto pode errar, e cada um tem o próprio dano.
+          </li>
+          <li>
+            <strong>Poder que muda</strong> — alguns golpes ficam mais fortes
+            conforme a luta: pela Velocidade de quem usa comparada à do alvo, ou
+            contra quem levou dano há pouco.
+          </li>
+          <li>
+            <strong>Arrancada</strong> — alguns golpes avançam até o alvo antes
+            de acertar, alcançando mais longe que o corpo a corpo comum.
+          </li>
+        </ul>
+        <p>
+          A página de cada golpe, no{' '}
+          <WikiLink version={version} to="catalogo/golpes">
+            catálogo
+          </WikiLink>
+          , mostra os números.
+        </p>
       </Section>
 
       <Section id="combate" title="Em combate">

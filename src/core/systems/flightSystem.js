@@ -33,6 +33,7 @@ import {
   Vitals,
   resolveEntityLevel,
 } from '../traits'
+import { readConditionModifier } from '../actions/conditions'
 
 /**
  * Voo livre (docs/features/060-ajustes-por-especie.md, Parte 2) de quem tem
@@ -126,7 +127,10 @@ export function flightSystem(context) {
           delta,
           intent.active && !!flightInput.run,
         )
-        const speed = fast ? flight.fastSpeed : flight.speed
+        // A condição que freia o passo (a teia) freia o voo também.
+        const speed =
+          (fast ? flight.fastSpeed : flight.speed) *
+          readConditionModifier(entity, 'movement')
         // Velocidade que o jogador PEDIU (não a que o teto força): é por ela
         // que a animação escolhe entre pairar e voar.
         const intentSpeed = intent.active

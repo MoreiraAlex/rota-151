@@ -411,6 +411,14 @@ export const GAME_CONFIG = {
     // do golpe). `false` = trava no disparo, como antes. Só vale pra criatura
     // controlada (a IA mira uma vez, no disparo).
     ATTACK_WINDUP_STEERING: true,
+    // Golpe com arrancada (`lunge` da skill, `core/battle/attackLunge.js`):
+    // vão (m) que sobra entre a borda da frente de quem arranca e a do
+    // primeiro alvo no caminho quando ela para — dentro do alcance do golpe,
+    // sem empurrar o corpo do alvo.
+    LUNGE_STOP_GAP: 0.3,
+    // Fração do `effectAt` em que a arrancada chega: termina um pouco antes
+    // do acerto, que é resolvido antes do passo da física do mesmo tick.
+    LUNGE_WINDOW: 0.9,
     // Segundos sem lançar ataque até a criatura sair do modo combate
     // (`CombatMode`, `combatModeSystem.js`) — cada ataque reinicia a conta.
     COMBAT_MODE_TIMEOUT: 10,
@@ -418,10 +426,6 @@ export const GAME_CONFIG = {
     // golpe de status interrompido por dano: segundos em que toca a animação
     // de hit e não faz nada. Por espécie: `actions.hit.duration`.
     HIT_STUN_DURATION: 0.67,
-    // Quanto tempo (s) o visual de cada drenagem do Leech Seed fica na cena
-    // (`leechSeedSystem.js`, grupo `'leech-drain'`) — cobre os orbes indo do
-    // alvo até quem plantou e o estouro no alvo.
-    LEECH_DRAIN_EFFECT_DURATION: 1.6,
     // Combate 2.5D (`core/battle/attackGeometry.js`): diferença máxima
     // (m) entre as elevações dos pés de atacante e alvo, cada uma medida
     // em relação ao terreno logo abaixo dela. Acima disso, o alvo está
@@ -544,11 +548,8 @@ export const GAME_CONFIG = {
     INVENTORY_FULL_COLOR: '#ff9e80',
     // Cores dos textos de efetividade de tipo (docs/features/039-tipos-e-combate-classico.md), iguais pros dois lados: "Super efetivo!", "Pouco
     // efetivo…" e "Não afeta…".
-    // Cor do selo de cada condição de status (HUD/etiqueta) e do texto dela
-    // no log.
-    CONDITION_COLORS: {
-      burn: '#e8590c',
-    },
+    // A cor do selo e do log de cada condição é dela (`feedback.color`,
+    // `core/data/conditions/`).
     EFFECTIVENESS_COLORS: {
       super: '#ff8a3d',
       weak: '#9fb3c8',
@@ -606,6 +607,14 @@ export const GAME_CONFIG = {
       EDGE_OPACITY: 0.9,
       // Altura (m) acima do chão — evita o leque "piscar" dentro do chão.
       GROUND_LIFT: 0.03,
+      // A forma (indicador e aviso) acompanha o relevo: é uma malha com no
+      // máximo este passo (m) entre fileiras, e cada vértice desce até o
+      // chão por um raio que sai `DRAPE_RAY_UP` (m) acima da trajetória e
+      // desce até `DRAPE_RAY_DOWN` (m) abaixo dela. Passo menor = segue
+      // melhor o relevo, com mais raios por frame.
+      DRAPE_STEP: 0.25,
+      DRAPE_RAY_UP: 3,
+      DRAPE_RAY_DOWN: 10,
       // Desenha o leque por cima de tudo (sem teste de profundidade) — a
       // criatura não tampa mais a parte embaixo dela. Efeito colateral:
       // também aparece através de parede/obstáculo/terraço. `false` volta
@@ -916,11 +925,8 @@ export const GAME_CONFIG = {
     DEFAULT_RATE: 45,
     // Teto do valor `a` da fórmula (Gen 3): daí pra cima captura direto.
     MAX_CAPTURE_VALUE: 255,
-    // Bônus de condição na fórmula (multiplica `a`), por condição; sem
-    // condição, × 1. Hoje só existe a queimadura.
-    CONDITION_BONUS: {
-      burn: 1.5,
-    },
+    // O bônus de condição na fórmula (multiplica `a`) é de cada condição
+    // (`captureBonus`, `core/data/conditions/`).
     // Pelas costas (Legends Arceus): acertar um selvagem que não percebeu o
     // treinador (vagando) vindo de trás multiplica `a` por BACK_STRIKE_BONUS.
     // "De trás" = o ângulo entre a frente dele e a direção de onde a bola
@@ -1113,6 +1119,53 @@ export const GAME_CONFIG = {
     // selvagem. A criatura do time, ao trocar de alvo, pega a de menos vida.
     FINISH_BONUS: 2,
   },
+  // Grupos de golpe (docs/features/061-revisao-das-skills.md): o `group` de
+  // cada golpe dá o alcance (RANGE, m, contado da borda do trigger de quem
+  // ataca), a largura (RADIUS, m: a meia-largura da cápsula ou do cone na
+  // ponta; no 'self', o tamanho do VFX; no 'circle', o raio do VFX — o tamanho
+  // do círculo é o RANGE), a forma (AREA: cápsula sem ela) e o
+  // `aim` da IA — fixos por grupo, aplicados em `resolveSkill`
+  // (`core/data/skills/index.js`). EXECUTION é o modo de execução padrão
+  // (o golpe ou a espécie trocam).
+  ATTACK_GROUPS: {
+    melee: {
+      RANGE: 1.4,
+      RADIUS: 0.5,
+      AREA: null,
+      AIM: 'melee',
+      EXECUTION: 'instant',
+    },
+    ranged: {
+      RANGE: 6,
+      RADIUS: 0.35,
+      AREA: null,
+      AIM: 'ranged',
+      EXECUTION: 'instant',
+    },
+    cone: {
+      RANGE: 3,
+      RADIUS: 3.5,
+      AREA: 'cone',
+      AIM: 'ranged',
+      EXECUTION: 'instant',
+    },
+    // Área em volta de quem usa: todos dentro do círculo (centro no corpo,
+    // raio = a borda do trigger + RANGE).
+    circle: {
+      RANGE: 1,
+      RADIUS: 0.5,
+      AREA: 'circle',
+      AIM: 'ranged',
+      EXECUTION: 'instant',
+    },
+    self: {
+      RANGE: 0,
+      RADIUS: 0.5,
+      AREA: 'self',
+      AIM: 'ranged',
+      EXECUTION: 'charge',
+    },
+  },
   // Custo de energia e recarga das ações das CRIATURAS, por fórmula
   // (`core/battle/actionCost.js`, docs/features/035-balanceamento-
   // de-acoes-e-correcoes.md) — adaptada da fórmula de dano. `staminaCost`/`cooldown`
@@ -1127,7 +1180,8 @@ export const GAME_CONFIG = {
     // mais — bater de longe é mais seguro...
     RANGED_MIN_RANGE: 5,
     RANGED_BONUS: 1.25,
-    // ...e × CONE_BONUS em cone (pode pegar mais de um inimigo).
+    // ...e × CONE_BONUS em área, cone ou círculo (pode pegar mais de um
+    // inimigo).
     CONE_BONUS: 1.3,
     // Peso do movimento das criaturas, na mesma conta (`resolveLevelCost`):
     // corrida POR SEGUNDO, dash e pulo.
@@ -1155,11 +1209,8 @@ export const GAME_CONFIG = {
     // Cada estágio já acumulado no sentido do efeito multiplica o valor por
     // isto: acumula, mas bater passa a valer mais.
     STAT_STAGE_DECAY: 2 / 3,
-    // Valor de plantar uma semente (efeito `leechSeed`).
-    LEECH_SEED_VALUE: 35,
-    // Valor de queimar o alvo (efeito `burn`), já com a certeza — o golpe
-    // multiplica pela `chance` do efeito.
-    BURN_VALUE: 40,
+    // O valor de aplicar uma condição é dela (`ai.value`,
+    // `core/data/conditions/`).
     // Efeito ativo com até estes segundos sobrando volta a valer cheio
     // (renovar antes de acabar).
     EFFECT_REFRESH_TIME: 3,
@@ -1208,7 +1259,7 @@ export const GAME_CONFIG = {
     // recarga do jogador, `DashCooldown`; custo da entidade, 035.)
     // Aproximando: dá dash se ainda faltar mais que isto (m) até o alcance.
     DASH_CLOSE_DISTANCE: 5,
-    // Feixe da IA (canal em `area: 'line'`): quanto (rad/s) ele gira no
+    // Feixe da IA (canalizado na cápsula, `isBeamAttack`): quanto (rad/s) ele gira no
     // máximo pra seguir o alvo — dá pra escapar correndo de lado.
     BEAM_TURN_SPEED: 1.5,
   },

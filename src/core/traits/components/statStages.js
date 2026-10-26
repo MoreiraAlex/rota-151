@@ -11,8 +11,10 @@ import { trait } from 'koota'
  *
  * Campos planos (`attackStage`/`attackTime`, `defenseStage`/`defenseTime`,
  * `sp_atkStage`/`sp_atkTime`, `sp_defStage`/`sp_defTime`,
- * `accuracyStage`/`accuracyTime` — a precisão, ver `core/battle/accuracy.js`) por causa do
- * armazenamento do koota. A criatura não nasce com o trait: ele é
+ * `accuracyStage`/`accuracyTime` — a precisão, `evasionStage`/`evasionTime` —
+ * a evasão, ver `core/battle/accuracy.js`,
+ * `speedStage`/`speedTime` — o tempo dos golpes, ver
+ * `core/battle/statStages.js`) por causa do armazenamento do koota. A criatura não nasce com o trait: ele é
  * adicionado no primeiro efeito (`applyStatStageEffect`).
  *
  * Dono de escrita: `applyStatStageEffect` (chamado por `creatureAttackSystem`
@@ -30,4 +32,8 @@ export const StatStages = trait({
   sp_defTime: 0,
   accuracyStage: 0,
   accuracyTime: 0,
+  evasionStage: 0,
+  evasionTime: 0,
+  speedStage: 0,
+  speedTime: 0,
 })

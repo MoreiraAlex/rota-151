@@ -5,6 +5,9 @@ import { EMBER_EMITTERS } from './emberVfx'
 import { FLAMETHROWER_EMITTERS } from './flamethrowerVfx'
 import { TACKLE_EMITTERS } from './tackleVfx'
 import { SCRATCH_EMITTERS } from './scratchVfx'
+import { BITE_EMITTERS } from './biteVfx'
+import { DRAGON_BREATH_EMITTERS } from './dragonBreathVfx'
+import { RAPID_SPIN_EMITTERS } from './rapidSpinVfx'
 import { DASH_EMITTERS } from './dashVfx'
 import { ABSORB_CHARGE_EMITTERS } from './absorbChargeVfx'
 import { STATUP_EMITTERS } from './statupVfx'
@@ -40,6 +43,10 @@ function fakeTextures() {
     splash: new THREE.Texture(),
     foam: new THREE.Texture(),
     swipe: new THREE.Texture(),
+    spinLines: new THREE.Texture(),
+    bite: new THREE.Texture(),
+    spark: new THREE.Texture(),
+    spinSmoke: new THREE.Texture(),
   }
 }
 
@@ -297,6 +304,115 @@ describe('createParticleSystem (Tackle)', () => {
     expect(
       Math.max(...liveSprites(big).map((sprite) => sprite.scale.x)),
     ).toBeCloseTo(2)
+  })
+})
+
+describe('createParticleSystem (Dragon Breath)', () => {
+  const LENGTH = 4
+  const buildBreath = () =>
+    build({ emitters: DRAGON_BREATH_EMITTERS, length: LENGTH })
+  const emitterOf = (id) =>
+    DRAGON_BREATH_EMITTERS.find((emitter) => emitter.id === id)
+
+  it('o sopro sai da boca rumo ao alvo e a explosão já nasce no alvo', () => {
+    const system = buildBreath()
+    system.update(1 / 60)
+    const sprites = liveSprites(system)
+    expect(sprites.length).toBeGreaterThan(0)
+    // boca em z = -length, alvo em z = 0
+    expect(sprites.some((s) => s.position.z < -LENGTH / 2)).toBe(true)
+    expect(sprites.some((s) => Math.abs(s.position.z) < 0.5)).toBe(true)
+
+    run(system, 0.2)
+    const breath = liveSprites(system).filter((s) => s.position.z < -0.5)
+    const ahead = breath.filter((s) => s.position.z > -LENGTH + 0.5)
+    expect(ahead.length).toBeGreaterThan(0)
+  })
+
+  it('o sopro dura a emissão dele e tudo acaba antes do visual do golpe', () => {
+    const { duration } = emitterOf('breath')
+    const system = buildBreath()
+    run(system, duration - 0.1)
+    expect(system.isDone()).toBe(false)
+    // emissão + a vida máxima de uma partícula (1.4 s no original)
+    run(system, 0.1 + 1.4 + 0.1)
+    expect(system.isDone()).toBe(true)
+  })
+
+  it('a cor é verde-azulada do começo ao fim, não a do fogo', () => {
+    for (const id of ['breath', 'burst']) {
+      for (const { rgb } of emitterOf(id).tint) {
+        const [r, g, b] = rgb
+        expect(g).toBeGreaterThan(r)
+        expect(b).toBeGreaterThan(r)
+      }
+    }
+  })
+})
+
+describe('createParticleSystem (Rapid Spin)', () => {
+  const buildSpin = () =>
+    build({ emitters: RAPID_SPIN_EMITTERS, length: 0, random: seededRandom(7) })
+  const swirlOf = (system) =>
+    liveSprites(system).filter((sprite) => sprite.isMesh)
+
+  it('o ar gira em volta do corpo, num raio fixo, esticado na direção do giro', () => {
+    const system = buildSpin()
+    run(system, 0.1)
+    const swirl = swirlOf(system)
+    expect(swirl.length).toBeGreaterThan(0)
+    const radii = swirl.map((s) => Math.hypot(s.position.x, s.position.z))
+    expect(Math.max(...radii) - Math.min(...radii)).toBeLessThan(0.2)
+    // o risco (eixo X do quadro) fica deitado na tangente do círculo
+    for (const sprite of swirl) {
+      const along = new THREE.Vector3(1, 0, 0).applyQuaternion(
+        sprite.quaternion,
+      )
+      const out = new THREE.Vector3(
+        sprite.position.x,
+        0,
+        sprite.position.z,
+      ).normalize()
+      expect(Math.abs(along.dot(out))).toBeLessThan(0.35)
+    }
+  })
+
+  it('emite enquanto o golpe gira e acaba sozinho depois', () => {
+    const system = buildSpin()
+    run(system, 0.5)
+    expect(system.isDone()).toBe(false)
+    system.endEmission()
+    run(system, 1.5)
+    expect(system.isDone()).toBe(true)
+  })
+})
+
+describe('createParticleSystem (Bite)', () => {
+  const buildBite = () =>
+    build({ emitters: BITE_EMITTERS, length: 0, random: seededRandom(3) })
+  const sparksStart = BITE_EMITTERS.find((e) => e.id === 'sparks').start
+
+  it('a mordida nasce golpe adentro e aparece aos poucos (alfa), as faíscas vêm depois', () => {
+    const system = buildBite()
+    system.update(1 / 60)
+    const [bite] = liveSprites(system)
+    expect(liveSprites(system)).toHaveLength(1)
+    expect(bite.position.z).toBeGreaterThan(0)
+    const appearing = bite.material.opacity
+
+    run(system, 0.1)
+    expect(bite.material.opacity).toBeGreaterThan(appearing)
+    expect(liveSprites(system)).toHaveLength(1)
+
+    run(system, sparksStart)
+    const count = BITE_EMITTERS.find((e) => e.id === 'sparks').burst
+    expect(liveSprites(system)).toHaveLength(1 + count)
+  })
+
+  it('tudo acaba dentro do visual do golpe', () => {
+    const system = buildBite()
+    run(system, 0.6)
+    expect(system.isDone()).toBe(true)
   })
 })
 

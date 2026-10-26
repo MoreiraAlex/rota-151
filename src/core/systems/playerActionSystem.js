@@ -33,6 +33,7 @@ import {
   Flying,
   OrbitCamera,
 } from '../traits'
+import { readConditionModifier } from '../actions/conditions'
 
 /**
  * Velocidade de lançamento do arremesso: reto na direção de `aimPoint`,
@@ -112,7 +113,15 @@ function resolveDashExitSpeed(entity) {
 
   const intent = Math.min(1, Math.hypot(input.x, input.z))
   if (intent === 0) return 0
-  return intent * resolveMoveSpeed(stats, entity.get(Vitals), input.run)
+  return (
+    intent *
+    resolveMoveSpeed(
+      stats,
+      entity.get(Vitals),
+      input.run,
+      readConditionModifier(entity, 'movement'),
+    )
+  )
 }
 
 /**

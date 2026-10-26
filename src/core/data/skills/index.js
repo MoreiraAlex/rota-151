@@ -1,3 +1,4 @@
+import { GAME_CONFIG } from '../../gameConfig'
 /**
  * Registro de GOLPES (skills) de criatura — os ataques compartilhados entre
  * espécies, nos slots `secondary1-3` (Q/E/R). São os ÚNICOS ataques da
@@ -99,10 +100,31 @@ export function listSkills(registry = SKILL_REGISTRY) {
 
 // Seções da definição de ataque que aceitam override CAMPO A CAMPO (não
 // substituição inteira) — ver docstring de `resolveSkill`
-// abaixo. `duration`/`effectAt`/`range`/`radius`/`staminaCost`/`cooldown`
+// abaixo. `duration`/`effectAt`/`execution`/`staminaCost`/`cooldown`
 // (fora de seção nenhuma) já são sobrescritos direto pelo spread, não
 // precisam entrar aqui.
-const OVERRIDABLE_SECTIONS = ['visual', 'audio', 'animation']
+export const OVERRIDABLE_SECTIONS = ['visual', 'audio', 'animation']
+
+/**
+ * O que o GRUPO do golpe dá (`GAME_CONFIG.ATTACK_GROUPS`, docs/features/
+ * 061-revisao-das-skills.md): `range`, `radius`, `area` e `aim`, fixos —
+ * ganham de qualquer valor escrito no golpe ou na espécie —, e o
+ * `execution` padrão, que o golpe ou a espécie trocam.
+ */
+export function applySkillGroup(skill) {
+  const profile = GAME_CONFIG.ATTACK_GROUPS[skill.group]
+  if (!profile) return skill
+  const resolved = {
+    ...skill,
+    range: profile.RANGE,
+    radius: profile.RADIUS,
+    aim: profile.AIM,
+    execution: skill.execution ?? profile.EXECUTION,
+  }
+  if (profile.AREA) resolved.area = profile.AREA
+  else delete resolved.area
+  return resolved
+}
 
 /**
  * Resolve a definição de VERDADE de uma habilidade a partir da referência
@@ -122,6 +144,9 @@ const OVERRIDABLE_SECTIONS = ['visual', 'audio', 'animation']
  *   não apaga `visual.effectGroup`/`.revealDuration` da base, só troca
  *   `rotationOffset`).
  *
+ * Por último entra o GRUPO do golpe (`applySkillGroup`): alcance, largura,
+ * forma e `aim` vêm dele, não da definição.
+ *
  * Sem referência (`null`/`undefined`, espécie sem esse slot configurado)
  * ou id desconhecido, devolve `null` — quem chama trata
  * isso como "esta criatura não tem esse ataque", sem quebrar (mesmo
@@ -135,7 +160,7 @@ export function resolveSkill(reference) {
   if (!base) return null
 
   const overrides = typeof reference === 'string' ? null : reference.overrides
-  if (!overrides) return base
+  if (!overrides) return applySkillGroup(base)
 
   const resolved = { ...base, ...overrides }
   for (const section of OVERRIDABLE_SECTIONS) {
@@ -143,5 +168,5 @@ export function resolveSkill(reference) {
       resolved[section] = { ...base[section], ...overrides[section] }
     }
   }
-  return resolved
+  return applySkillGroup(resolved)
 }

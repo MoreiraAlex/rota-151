@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import { getSpecies } from '@/core/data/species'
+import { getCondition } from '@/core/data/conditions'
 import {
   isBackStrike,
   resolveBallMultiplier,
@@ -80,10 +81,16 @@ describe('chance de captura', () => {
     expect(resolveBallMultiplier(null)).toBe(1)
   })
 
-  it('bônus de condição: o da config pra queimado, 1 sem condição', () => {
+  it('bônus de condição: o da condição (o maior), 1 sem condição', () => {
     expect(resolveConditionBonus([])).toBe(1)
     expect(resolveConditionBonus(['burn'])).toBe(
-      GAME_CONFIG.CAPTURE.CONDITION_BONUS.burn,
+      getCondition('burn').captureBonus,
+    )
+    expect(resolveConditionBonus(['leech-seed', 'burn'])).toBe(
+      Math.max(
+        getCondition('burn').captureBonus,
+        getCondition('leech-seed').captureBonus,
+      ),
     )
     expect(resolveConditionBonus(['desconhecida'])).toBe(1)
   })

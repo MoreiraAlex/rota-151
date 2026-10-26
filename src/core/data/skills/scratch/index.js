@@ -5,13 +5,12 @@
  */
 export const SCRATCH_SKILL = {
   id: 'scratch',
+  description:
+    'Arranha com as garras o primeiro inimigo à frente, até {range:m}, causando dano físico de poder {power}.',
   type: 'normal',
-  duration: 0.5,
-  effectAt: 0.25,
-  range: 1.4,
-  aim: 'melee',
-  castMode: 'instant',
-  radius: 0.3,
+  group: 'melee',
+  duration: 1.2,
+  effectAt: 0.5,
   visual: {
     effectGroup: 'scratch',
     effectVisualDuration: 0.6,

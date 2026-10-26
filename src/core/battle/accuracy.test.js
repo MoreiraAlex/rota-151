@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import {
   DEFAULT_ACCURACY,
+  resolveAccuracyStage,
   resolveHitChance,
   resolveMoveAccuracy,
   rollHit,
 } from './accuracy'
+import { STAT_STAGE_LIMIT } from './statStages'
 
 describe('resolveMoveAccuracy', () => {
   it('sem `accuracy` é 100; `null` é "nunca erra"', () => {
@@ -48,5 +50,28 @@ describe('rollHit', () => {
 
   it('precisão 0 sempre erra', () => {
     expect(rollHit({ accuracy: 0 }, 0, () => 0)).toBe(false)
+  })
+})
+
+describe('resolveAccuracyStage — precisão de quem ataca menos a evasão do alvo', () => {
+  it('a evasão do alvo baixa o estágio de acerto, a precisão sobe', () => {
+    expect(resolveAccuracyStage({ accuracy: 0 }, { evasion: 1 })).toBe(-1)
+    expect(resolveAccuracyStage({ accuracy: 1 }, { evasion: 1 })).toBe(0)
+    expect(resolveAccuracyStage({ accuracy: 2 }, {})).toBe(2)
+  })
+
+  it('fica no limite dos estágios', () => {
+    const limit = STAT_STAGE_LIMIT
+    expect(resolveAccuracyStage({ accuracy: -limit }, { evasion: limit })).toBe(
+      -limit,
+    )
+  })
+
+  it('com evasão, a chance de acertar cai', () => {
+    const attack = { accuracy: 100 }
+    const stage = resolveAccuracyStage({ accuracy: 0 }, { evasion: 1 })
+    expect(resolveHitChance(attack, stage)).toBeLessThan(
+      resolveHitChance(attack, 0),
+    )
   })
 })

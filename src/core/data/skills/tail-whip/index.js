@@ -20,15 +20,12 @@
  */
 export const TAIL_WHIP_SKILL = {
   id: 'tail-whip',
+  description:
+    'Abana a cauda em leque à frente. Todos os inimigos dentro dele têm a Defesa reduzida em {effects.0.stages:abs} nível por {effects.0.duration:s}. Usar de novo acumula a redução e renova o tempo.',
   type: 'normal',
+  group: 'cone',
   duration: 1,
-  effectAt: 0.6,
-  range: 3,
-  aim: 'ranged',
-  castMode: 'instant',
-  area: 'cone',
-  // abertura do cone: `radius / range` (tangente do meio-ângulo)
-  radius: 1.5,
+  effectAt: 0.75,
   accuracy: 100,
   // Sem dano: nada "apanha", e `attackResolved` sai com `status: true`.
   damage: null,
@@ -40,7 +37,7 @@ export const TAIL_WHIP_SKILL = {
     // uma abanada (varrida e brilhos) na frente da criatura, no `effectAt`,
     // presa à criatura (`view/vfx/tailWhipVfx.js`)
     actionGroup: 'tail-whip',
-    scale: 3,
+    scale: 2,
     revealDuration: 0,
     // aqui o efeito gira em volta do PRÓPRIO pivô (na frente do corpo), sem sair
     // do lugar: `y` vira a direção dos brilhos (0 = pro alvo) e `z` gira as

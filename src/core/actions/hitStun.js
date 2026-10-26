@@ -30,7 +30,28 @@ export function iniciarAtordoamento(action, species) {
   action.pendingSlot = null
 }
 
-/** A criatura está atordoada (ação `'hit'`) agora? */
+/**
+ * Põe a criatura atordoada por uma CONDIÇÃO (a ação `'stunned'`, ex.: a
+ * paralisia do Glare): interrompe o que estiver fazendo e fica parada até a
+ * condição acabar — quem encerra é `creatureHitStunSystem.js`, pela condição,
+ * não por uma duração. Mesmo efeito da `'hit'`: nada anda, ataca, pula nem
+ * voa enquanto dura.
+ */
+export function iniciarAtordoamentoPorCondicao(action) {
+  action.current = 'stunned'
+  action.elapsed = 0
+  action.animationSpeed = 1
+  action.animationFrames = null
+  action.animationKey = null
+  action.pendingSlot = null
+}
+
+/**
+ * A criatura está atordoada agora — pelo acerto (ação `'hit'`) ou por uma
+ * condição (`'stunned'`)?
+ */
 export function isHitStunned(entity) {
-  return entity.has(ActionState) && entity.get(ActionState).current === 'hit'
+  if (!entity.has(ActionState)) return false
+  const { current } = entity.get(ActionState)
+  return current === 'hit' || current === 'stunned'
 }

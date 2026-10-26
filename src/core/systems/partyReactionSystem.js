@@ -56,13 +56,13 @@ export function partyReactionSystem(context) {
 }
 
 /**
- * Golpe (mesmo errando) ou drenagem do Leech Seed numa criatura que está
- * treinando: o treino acaba (`pararTreino`).
+ * Golpe (mesmo errando) ou tick de condição (semente, queimadura...) numa
+ * criatura que está treinando: o treino acaba (`pararTreino`).
  */
 function stopTrainingIfAttacked(event) {
   const target =
     event.type === EVENT_TYPES.ATTACK_RESOLVED ||
-    event.type === EVENT_TYPES.LEECH_SEED_DRAINED
+    event.type === EVENT_TYPES.CONDITION_TICKED
       ? event.target
       : null
   if (!target?.isAlive?.() || !target.has(Training)) return

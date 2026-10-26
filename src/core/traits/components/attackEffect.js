@@ -52,11 +52,11 @@ export const DEFAULT_ATTACK_EFFECT_GROUP = 'punch'
  *   escondida dentro do componente de view. Multiplicado por cima da
  *   constante de normalização do rip que cada componente já tem
  *   (`*_BASE_SCALE`) e de `radius`.
- * - `length` (metros) — distância da PARTIDA do golpe (de onde ele sai da
- *   criatura, já com `visual.positionOffset`) até o ponto onde esta entidade
- *   nasce. O efeito nasce no
- *   impacto, orientado pela trajetória (+Z local = direção do golpe), então
- *   a criatura fica em (0, 0, -`length`) no espaço local — é o que um VFX
+ * - `length` (metros, no chão) — distância da PARTIDA do golpe (de onde ele
+ *   sai da criatura, já com `visual.positionOffset`) até o ponto onde esta
+ *   entidade nasce. O efeito nasce no impacto, virado na direção do golpe na
+ *   horizontal (+Z local), então a criatura fica em `-length` no Z local (a
+ *   altura do caminho é a do terreno, `AttackPath`) — é o que um VFX
  *   que SAI da criatura (jato de fogo, projétil) precisa saber. Os grupos
  *   que nascem só no impacto (`'punch'`, `'tackle'`) ignoram. `0` = não
  *   informado.
@@ -66,10 +66,27 @@ export const DEFAULT_ATTACK_EFFECT_GROUP = 'punch'
  *   informado (cai em `'normal'`). Vem de `attack.visual.impactType` ou,
  *   na falta, do tipo do golpe (`attack.type`). Os outros grupos ignoram.
  *
+ * - `bodyWidth`/`bodyLength`/`bodyHeight` — o corpo do ALVO (m,
+ *   `resolveBodyExtent`) no efeito que nasce nele (`targetEffectGroup`), pra
+ *   o visual acompanhar o tamanho de quem levou (a teia do String Shot);
+ *   `0` = não informado. O `Rotation` desse efeito é o do alvo.
+ *
  * Dono de escrita: `creatureAttackSystem` (spawna, no instante `effectAt`
  * da ação `'attack'`); `attackEffectSystem` (conta `lifetime` pra baixo,
  * destrói a entidade ao chegar a zero).
  */
+/**
+ * A trajetória do golpe que gerou um `AttackEffect`, ponto a ponto no MUNDO
+ * (`resolveAttackPath`, `core/battle/attackTrajectory.js`: da origem até o
+ * fim, subindo e descendo com o terreno). A view tira dela o perfil de altura
+ * que as partículas seguem (docs/features/061-revisao-das-skills.md) — numa
+ * rampa, a brasa sobe com o chão em vez de atravessar o morro. Golpe em si
+ * mesmo não tem.
+ *
+ * Dono de escrita: `creatureAttackSystem` (junto do `AttackEffect`).
+ */
+export const AttackPath = trait(() => ({ points: [] }))
+
 export const AttackEffect = trait({
   lifetime: 0,
   radius: 0.5,
@@ -78,6 +95,9 @@ export const AttackEffect = trait({
   visualScale: 1,
   length: 0,
   impactType: '',
+  bodyWidth: 0,
+  bodyLength: 0,
+  bodyHeight: 0,
 })
 
 /**
@@ -136,7 +156,7 @@ export const AttackCooldowns = trait({
 /**
  * Slot cujo ataque está com o INDICADOR aberto, esperando confirmação
  * (`'secondary1-3'`, ou `null` sem indicador). Só existe pra
- * ataque com `castMode: 'confirm'` (`core/data/skills/<id>/index.js`):
+ * o lançamento em `'confirm'` (opção do jogador, `resolveCastMode`):
  * apertar o botão abre o indicador; apertar de novo (ou clicar) lança.
  *
  * Dono de escrita: `creatureAttackSystem.js`. Leitor:

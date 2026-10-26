@@ -13,8 +13,9 @@ import { useParticleAttackEffect } from './useParticleAttackEffect'
  * `view/vfx/waterGunVfx.js`). O `AttackEffect` nasce no impacto; quem atacou
  * fica em (0, 0, -`length`).
  */
-export function WaterGunAttackEffect({ radius, length = 0, scale = 1 }) {
+export function WaterGunAttackEffect({ rise, radius, length = 0, scale = 1 }) {
   const groupRef = useParticleAttackEffect({
+    rise,
     emitters: WATER_GUN_EMITTERS,
     texturePaths: WATER_GUN_TEXTURE_PATHS,
     length,
@@ -30,8 +31,9 @@ export function WaterGunAttackEffect({ radius, length = 0, scale = 1 }) {
  * agora. O jato em si é o efeito de canal (`'water-jet'`,
  * `ContinuousAttackEffectsView.jsx`).
  */
-export function WaterGunHitAttackEffect({ radius, scale = 1 }) {
+export function WaterGunHitAttackEffect({ rise, radius, scale = 1 }) {
   const groupRef = useParticleAttackEffect({
+    rise,
     emitters: WATER_GUN_HIT_EMITTERS,
     texturePaths: WATER_GUN_TEXTURE_PATHS,
     radius,

@@ -18,8 +18,14 @@ const DENSITY = 0.6
  * Dura o tempo das camadas do VFX (`flamethrowerVfx.js`) — a skill precisa de `visual.effectVisualDuration` ≥ isso,
  * senão o efeito some no meio.
  */
-export function FlamethrowerAttackEffect({ radius, length = 0, scale = 1 }) {
+export function FlamethrowerAttackEffect({
+  rise,
+  radius,
+  length = 0,
+  scale = 1,
+}) {
   const groupRef = useParticleAttackEffect({
+    rise,
     emitters: FLAMETHROWER_EMITTERS,
     length,
     radius,

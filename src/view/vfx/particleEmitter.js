@@ -50,7 +50,35 @@ const FADE_OUT_FRACTION = 0.15
  * Bedrock): em vez de um sprite que sempre encara a câmera, um quadro esticado
  * na direção do movimento com a face virada pra câmera — `setCameraPosition`
  * (atualizada a cada frame por quem usa) diz onde ela está.
+ *
+ * **Pivô na ponta de trás** (`pivot: 'tail'`, só nos quadros): o quadro cresce
+ * a partir da posição da partícula, na direção do movimento, em vez de
+ * crescer pros dois lados — todos os fios saindo da mesma boca.
+ *
+ * **Sorteio do efeito** (`ctx.seed`): randoms sorteadas uma vez quando o
+ * sistema nasce, iguais pra todas as partículas dele — o que muda de um
+ * efeito pro outro mas não entre as partículas de um (as `rnd` de cada spec
+ * são por partícula).
+ *
+ * **Corpo** (`body`: `{ width, length, height }`, ou no `setFrame`): o
+ * tamanho de quem o efeito cobre, em `ctx.body` e no 3º argumento do `size`.
+ *
+ * **Quadro no plano do golpe** (`facing: 'plane'`): o mesmo quadro esticado
+ * na direção do movimento, mas com a face virada pra `spec.normal` (no
+ * espaço do efeito; padrão `[0, 1, 0]`, deitado no chão como o cone do
+ * golpe) — não muda com a câmera. Com `spec.axis`, o eixo do quadro é esse
+ * (fixo) em vez da direção do movimento: o quadro pode andar pra onde está
+ * virado (os anéis do Thunder Wave, de pé, indo até o alvo).
  */
+
+// Quantas randoms o `ctx.seed` tem.
+const SEED_COUNT = 4
+
+// Face padrão do quadro `facing: 'plane'`: pra cima, no plano do golpe.
+const PLANE_NORMAL = [0, 1, 0]
+
+// Partícula desenhada como quadro (Mesh) em vez de sprite.
+const isQuad = (spec) => spec.facing === 'direction' || spec.facing === 'plane'
 
 // Geometria do quadro das linhas de velocidade — compartilhada por todas.
 const BEAM_GEOMETRY = new THREE.PlaneGeometry(1, 1)
@@ -62,6 +90,10 @@ export function createParticleSystem({
   scale = 1,
   density = 1,
   random = Math.random,
+  // perfil do terreno no espaço do grupo (`particleSimulation.js`, `rise`)
+  rise = null,
+  // corpo de quem o efeito cobre (ver o cabeçalho)
+  body = null,
 }) {
   const group = new THREE.Group()
   const runtimes = emitters.map((spec) => ({
@@ -72,6 +104,9 @@ export function createParticleSystem({
     cycle: 0,
   }))
   const live = []
+  // randoms sorteadas uma vez por sistema (`ctx.seed`): o que todas as
+  // partículas de UM efeito dividem (ex.: o ponto de uma bicada do Fury Attack)
+  const seed = Array.from({ length: SEED_COUNT }, () => random())
   const pools = new Map()
   const allSprites = []
   let time = 0
@@ -119,16 +154,15 @@ export function createParticleSystem({
           ? THREE.AdditiveBlending
           : THREE.NormalBlending,
     }
-    const sprite =
-      spec.facing === 'direction'
-        ? new THREE.Mesh(
-            BEAM_GEOMETRY,
-            new THREE.MeshBasicMaterial({
-              ...materialOptions,
-              side: THREE.DoubleSide,
-            }),
-          )
-        : new THREE.Sprite(new THREE.SpriteMaterial(materialOptions))
+    const sprite = isQuad(spec)
+      ? new THREE.Mesh(
+          BEAM_GEOMETRY,
+          new THREE.MeshBasicMaterial({
+            ...materialOptions,
+            side: THREE.DoubleSide,
+          }),
+        )
+      : new THREE.Sprite(new THREE.SpriteMaterial(materialOptions))
     group.add(sprite)
     allSprites.push(sprite)
     return sprite
@@ -153,7 +187,10 @@ export function createParticleSystem({
       radius,
       scale,
       frame,
+      rise,
       height: frame?.height ?? 0,
+      body: frame?.body ?? body,
+      seed,
     }
     live.push({
       spec,
@@ -223,15 +260,25 @@ export function createParticleSystem({
     const [sizeX, sizeY] = Array.isArray(size) ? size : [size, size]
     sprite.scale.set(sizeX, sizeY, 1)
     if (spec.facing === 'direction') orientBeam(sprite, state)
+    if (spec.facing === 'plane') orientPlane(sprite, spec, state)
+    if (spec.pivot === 'tail' && isQuad(spec)) {
+      // o eixo X do quadro já é a direção do movimento
+      beamBasis.x.multiplyScalar(sizeX / 2)
+      sprite.position.add(beamBasis.x)
+    }
     // `tintAt` (opcional): o gradiente nem sempre anda na mesma velocidade
     // da vida (ex.: `interpolant` do Flamethrower multiplica por uma random)
     const tintT = spec.tintAt ? spec.tintAt(t, state.rnd) : t
     const [r, g, b] = sampleGradient(spec.tint, tintT)
     sprite.material.color.setRGB(r, g, b, THREE.SRGBColorSpace)
-    // `opacity` (opcional): o alfa fixo do `tinting` do Bedrock (ex.: 0.56)
+    // `opacity` (opcional): o alfa fixo do `tinting` do Bedrock (ex.: 0.56);
+    // `alpha(t, rnd)` (opcional): o alfa que muda com a vida (o gradiente
+    // ARGB do Bedrock — ex.: a mordida do Bite, que aparece e some)
     sprite.material.opacity =
-      (spec.opacity ?? 1) * Math.min(1, (1 - t) / FADE_OUT_FRACTION)
-    if (spec.facing !== 'direction') {
+      (spec.opacity ?? 1) *
+      (spec.alpha ? spec.alpha(t, state.rnd) : 1) *
+      Math.min(1, (1 - t) / FADE_OUT_FRACTION)
+    if (!isQuad(spec)) {
       sprite.material.rotation = state.spin * (Math.PI / 2) + (state.roll ?? 0)
     }
     const frame = frameAt(state.age, spec.frames, state.life)
@@ -259,7 +306,19 @@ export function createParticleSystem({
           cameraPosition.z - state.z,
         ]
       : [0, 0, 1]
-    const basis = resolveBeamBasis([state.vx, state.vy, state.vz], toCamera)
+    applyBasis(mesh, resolveBeamBasis([state.vx, state.vy, state.vz], toCamera))
+  }
+
+  // O mesmo quadro ao longo do movimento, com a face pra `spec.normal`.
+  function orientPlane(mesh, spec, state) {
+    const normal = spec.normal ?? PLANE_NORMAL
+    // `axis`: o eixo do quadro fixo, sem seguir o movimento (o anel de pé
+    // que anda na direção pra onde está virado)
+    const along = spec.axis ?? [state.vx, state.vy, state.vz]
+    applyBasis(mesh, resolveBeamBasis(along, normal))
+  }
+
+  function applyBasis(mesh, basis) {
     beamBasis.x.fromArray(basis.x)
     beamBasis.y.fromArray(basis.y)
     beamBasis.z.fromArray(basis.z)

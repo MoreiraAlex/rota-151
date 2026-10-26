@@ -1,4 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
+import { resolveReachFor } from '@/core/battle/aiAttackChoice'
+import { resolveHitTrigger } from '@/core/battle/hitTrigger'
 import { makeWorld, ownedByPlayer } from '@/test/makeWorld'
 import { desmaiar } from '../actions/faint'
 import { defenderGrupo } from '../actions/partyBehavior'
@@ -56,7 +58,9 @@ const SLOTS = ['secondary1', 'secondary2', 'secondary3']
 // Um golpe corpo a corpo de dano do kit (sem fixar qual).
 const MELEE_SLOT = SLOTS.find((slot) => {
   const attack = resolveCreatureAttack(CHARMANDER, slot)
-  return attack?.damage && attack.aim === 'melee' && !attack.damageMode
+  return (
+    attack?.damage && attack.aim === 'melee' && attack.execution !== 'channel'
+  )
 })
 // Só o golpe corpo a corpo pronto (os outros travados em cooldown) — os testes
 // de distância/intervalo não dependem do sorteio do golpe.
@@ -212,7 +216,8 @@ describe('partyReactionSystem — sempre defensiva', () => {
 
 describe('partyBehaviorSystem — lutando', () => {
   const melee = resolveCreatureAttack(CHARMANDER, MELEE_SLOT)
-  const REACH = melee.range + melee.radius + CHARMANDER.body.capsuleRadius
+  const TRIGGER = resolveHitTrigger(CHARMANDER.body)
+  const REACH = resolveReachFor(melee, TRIGGER, TRIGGER)
 
   function tick(world) {
     partyBehaviorSystem({ world, delta: DELTA })
@@ -366,11 +371,17 @@ describe('partyBehaviorSystem — habilidades (escolha do golpe)', () => {
     creatureFollowSystem({ world, delta: DELTA })
   }
 
-  it('a 6m, com só o Ember pronto, para e pede o Ember de longe', () => {
+  it('dentro do alcance do Ember (longe do corpo a corpo), com só ele pronto, para e pede o Ember de longe', () => {
     const { world } = setup()
     const mine = spawnPartyCreature(world, at(0, 3), 'slot1', { skills: true })
     mine.set(AttackCooldowns, { secondary1: 999, secondary2: 999 })
-    const wild = spawnWild(world, at(0, 9))
+    // um pouco antes de onde ela pararia pra lançar o Ember
+    const trigger = resolveHitTrigger(CHARMANDER.body)
+    const ember = resolveCreatureAttack(CHARMANDER, 'secondary3')
+    const stop =
+      resolveReachFor(ember, trigger, trigger) *
+      GAME_CONFIG.PARTY_BEHAVIOR.ATTACK_REACH_FRACTION
+    const wild = spawnWild(world, at(0, 3 + stop - 0.2))
     defenderGrupo(mine, wild)
 
     tick(world)

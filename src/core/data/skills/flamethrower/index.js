@@ -22,22 +22,21 @@
  */
 export const FLAMETHROWER_SKILL = {
   id: 'flamethrower',
+  description:
+    'Canalizado: enquanto segura, solta um jato de fogo em leque à frente, até {range:m}. Todos os inimigos dentro dele levam dano especial de poder {power}, dividido ao longo do jato; soltar antes encerra o golpe com menos dano. Cada alvo tem {effects.0.chance:%} de chance de ser queimado por {effects.0.duration:s}.',
   type: 'fire',
-  duration: 0.5,
-  effectAt: 0.25,
-  range: 3,
-  aim: 'ranged',
-  castMode: 'instant',
-  radius: 0.8,
+  group: 'cone',
+  duration: 2,
+  effectAt: 0.95,
   // Canalizado: dano em toda a área do cone a cada `damageInterval` s,
   // do `effectAt` até o fim; segurar o botão até o fim, soltar cancela
   // (ver `core/battle/channelAttack.js`). Intervalo de partida — a definir.
-  damageMode: 'channel',
+  execution: 'channel',
   damageInterval: 0.25,
   visual: {
     effectGroup: 'flamethrower',
     effectVisualDuration: 2.5,
-    scale: 1,
+    scale: 2,
     revealDuration: 0,
     rotationOffset: { x: 0, y: 0, z: 0 },
     positionOffset: { x: 0, y: 0, z: 0 },
@@ -56,17 +55,7 @@ export const FLAMETHROWER_SKILL = {
   },
   // Especial, poder de referência: o de "Ember" nos jogos originais.
   damage: { power: 90, category: 'special' },
-  // Chance de queimar (regra clássica do golpe) — ver `burn` no
-  // `../_template/index.js`.
-  effects: [
-    {
-      type: 'burn',
-      chance: 0.1,
-      fraction: 1 / 16,
-      interval: 2,
-      duration: 8,
-      attackMultiplier: 0.5,
-      immuneTypes: ['fire'],
-    },
-  ],
+  // Chance de queimar (regra clássica do golpe) — a queimadura é
+  // `core/data/conditions/burn/`.
+  effects: [{ type: 'condition', condition: 'burn', chance: 0.1 }],
 }

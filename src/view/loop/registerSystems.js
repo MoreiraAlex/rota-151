@@ -27,8 +27,7 @@ import { partySummonSystem } from '@/core/systems/partySummonSystem'
 import { summonBallSystem } from '@/core/systems/summonBallSystem'
 import { creatureAppealSystem } from '@/core/systems/creatureAppealSystem'
 import { creatureHitStunSystem } from '@/core/systems/creatureHitStunSystem'
-import { leechSeedSystem } from '@/core/systems/leechSeedSystem'
-import { burnSystem } from '@/core/systems/burnSystem'
+import { conditionSystem } from '@/core/systems/conditionSystem'
 import { storedConditionSystem } from '@/core/systems/storedConditionSystem'
 import { captureBallSystem } from '@/core/systems/captureBallSystem'
 import { captureAimSystem } from '@/core/systems/captureAimSystem'
@@ -52,6 +51,7 @@ import { summonEffectsSystem } from '@/core/systems/summonEffectsSystem'
 import { waterSplashSystem } from '@/core/systems/waterSplashSystem'
 import { characterPhysicsSystem } from '@/core/systems/characterPhysicsSystem'
 import { flightSystem } from '@/core/systems/flightSystem'
+import { attackLungeSystem } from '@/core/systems/attackLungeSystem'
 import { physicsStepSystem } from '@/core/systems/physicsStepSystem'
 import { syncPhysicsSystem } from '@/core/systems/syncPhysicsSystem'
 import { animationStateSystem } from '@/core/systems/animationStateSystem'
@@ -84,6 +84,7 @@ import { recallAudioSystem } from '@/view/systems/recallAudioSystem'
 import { attackAudioSystem } from '@/view/systems/attackAudioSystem'
 import { hitFlashSystem } from '@/view/systems/hitFlashSystem'
 import { damageNumberSystem } from '@/view/systems/damageNumberSystem'
+import { afterimageSystem } from '@/view/systems/afterimageSystem'
 import { battleLogSystem } from '@/view/systems/battleLogSystem'
 
 let registered = false
@@ -227,11 +228,10 @@ export function registerGameSystems() {
   // Logo depois do ataque: avança o atordoamento de quem teve um golpe de
   // status interrompido (a ação `'hit'`, iniciada pelo ataque).
   registerSystem(GAME_PHASES.SIMULATION, creatureHitStunSystem)
-  // Antes do desmaio: quem a drenagem do Leech Seed zerar desmaia no mesmo tick.
-  registerSystem(GAME_PHASES.SIMULATION, leechSeedSystem)
-  // Idem pra queimadura.
-  registerSystem(GAME_PHASES.SIMULATION, burnSystem)
-  // A queimadura de quem está na bola (recolhido/capturado) continua —
+  // Antes do desmaio: quem o tick de uma condição (semente, queimadura...)
+  // zerar desmaia no mesmo tick.
+  registerSystem(GAME_PHASES.SIMULATION, conditionSystem)
+  // As condições de quem está na bola (recolhido/capturado) continua —
   // docs/features/043-captura.md.
   registerSystem(GAME_PHASES.SIMULATION, storedConditionSystem)
   // Quem come uma fruta cura aos poucos (docs/features/042-itens-da-beta.md)
@@ -270,6 +270,9 @@ export function registerGameSystems() {
   // Voo livre (060): depois de todo mundo que escreve a velocidade (no ar
   // ela é toda dele) e logo antes da física.
   registerSystem(GAME_PHASES.SIMULATION, flightSystem)
+  // Arrancada do golpe (Quick Attack, 061): depois de quem para a criatura
+  // que está golpeando, logo antes da física.
+  registerSystem(GAME_PHASES.SIMULATION, attackLungeSystem)
   registerSystem(GAME_PHASES.SIMULATION, characterPhysicsSystem)
   registerSystem(GAME_PHASES.SIMULATION, physicsStepSystem)
   registerSystem(GAME_PHASES.SIMULATION, syncPhysicsSystem)
@@ -333,6 +336,8 @@ export function registerGameSystems() {
   registerSystem(GAME_PHASES.PRESENTATION, hitFlashSystem)
   // Número de dano acima de quem apanhou — mesmo evento.
   registerSystem(GAME_PHASES.PRESENTATION, damageNumberSystem)
+  // Vultos do golpe (`visual.afterimages`, o Double Team) — `attackUsed`.
+  registerSystem(GAME_PHASES.PRESENTATION, afterimageSystem)
   // Log de batalha em texto ("Charmander usou Ember!") — mesmos eventos.
   registerSystem(GAME_PHASES.PRESENTATION, battleLogSystem)
   registerSystem(GAME_PHASES.PRESENTATION, eyeBlinkSystem)

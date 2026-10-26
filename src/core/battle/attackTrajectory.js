@@ -46,6 +46,29 @@ export function resolveAttackImpactPoint(
   direction,
   range,
   excludeColliderHandle,
+  options,
+) {
+  const path = resolveAttackPath(
+    origin,
+    direction,
+    range,
+    excludeColliderHandle,
+    options,
+  )
+  return path[path.length - 1]
+}
+
+/**
+ * A trajetória inteira do golpe (`resolveAttackImpactPoint`), ponto a ponto:
+ * da origem até o fim, uma amostra a cada `ATTACK_PATH_SAMPLE_STEP` — subindo
+ * e descendo com o terreno. É o que um visual que segue o chão precisa (a
+ * rajada do Razor Leaf numa rampa); o último ponto é o fim da trajetória.
+ */
+export function resolveAttackPath(
+  origin,
+  direction,
+  range,
+  excludeColliderHandle,
   { terrainOnly = false } = {},
 ) {
   const { ATTACK_PATH_SAMPLE_STEP, GROUND_PROBE_DISTANCE } = GAME_CONFIG.BATTLE
@@ -66,14 +89,16 @@ export function resolveAttackImpactPoint(
       y: origin.y,
       z: origin.z + dirZ * range,
     }
-    return (
+    return [
+      origin,
       castSegment(origin, flatEnd, excludeColliderHandle, terrainOnly) ??
-      flatEnd
-    )
+        flatEnd,
+    ]
   }
 
   const heightAboveGround = origin.y - originGround
   const probeHeight = MAX_CLIMB_STEP + GROUND_PROBE_MARGIN
+  const path = [origin]
   let previous = origin
   let previousGround = originGround
   let travelled = 0
@@ -102,19 +127,27 @@ export function resolveAttackImpactPoint(
         y: previous.y,
         z: z + dirZ * GROUND_PROBE_MARGIN,
       }
-      return (
-        castSegment(previous, flatNext, excludeColliderHandle, terrainOnly) ??
-        previous
+      const edge = castSegment(
+        previous,
+        flatNext,
+        excludeColliderHandle,
+        terrainOnly,
       )
+      if (edge) path.push(edge)
+      return path
     }
 
     const next = { x, y: ground + heightAboveGround, z }
     const hit = castSegment(previous, next, excludeColliderHandle, terrainOnly)
-    if (hit) return hit
+    if (hit) {
+      path.push(hit)
+      return path
+    }
 
+    path.push(next)
     previous = next
     previousGround = ground
   }
 
-  return previous
+  return path
 }

@@ -5,10 +5,12 @@ import {
   resolveAnimationFallback,
 } from '@/core/data/animationStates'
 import {
+  applyAdditiveClip,
   applyAnimationClip,
   blendFromPose,
   capturePose,
   resolveClipSpeed,
+  restorePose,
 } from '@/core/animation/applyAnimationClip'
 import { getAnimatedBonesEntry } from '@/view/registry/animationRegistry'
 import { resolveHitStopScale } from '@/view/registry/hitStopRegistry'
@@ -101,6 +103,15 @@ const EMPTY_CLIP = { bones: {} }
  * reinicia nada. **Piscar** (`species.nativeBlink`) é uma camada por cima
  * do corpo no mesmo mixer (`view/animation/nativeBlink.js`), não um estado.
  *
+ * **Camada por cima da embutida** (docs/features/061-revisao-das-skills.md):
+ * um clipe procedural com `base` (ex.: `{ base: 'attackRanged', bones: {
+ * Tail1: … } }`) toca a animação embutida `base` e, depois do mixer, soma as
+ * curvas dele só nos ossos do clipe, a partir da pose que o mixer escreveu
+ * (`applyAdditiveClip`) — o gesto nativo com a cauda abanando. Antes do
+ * mixer do quadro seguinte esses ossos voltam à pose de base: o mixer só
+ * reescreve osso cuja trilha muda, e sem isso a camada se acumularia (mesmo
+ * cuidado do `mouthSyncSystem`). Relógio próprio, zerado ao entrar.
+ *
  * **Ação repetida** (ataque logo após ataque): o `AnimationState.id` não
  * muda, então a troca é detectada por `ActionState.elapsed` voltar pra
  * trás — reinicia o gesto (procedural ou embutido) como uma troca normal.
@@ -125,12 +136,14 @@ export function animationSystem(context) {
     updateShownState(entry, anim.id, action)
 
     if (entry.native?.action) {
+      undoOverlay(entry)
       updateNativeAnimationBlink(entry.native, delta)
       advanceNativeAnimation(entry.native, delta, {
         animationSpeed: action.animationSpeed || 1,
         direction: anim.direction,
       })
       entry.cyclePhase = nativeCyclePhase(entry.native)
+      applyOverlay(entry, anim, action, delta)
     } else {
       applyProceduralClip(entry, anim, action, delta)
       applyPendingBlend(entry, delta)
@@ -187,6 +200,27 @@ function enterState(
   const hadPrevious = previousClipId !== null
   entry.clipId = clipId
   if (oneShot) entry.elapsed = 0
+  clearOverlay(entry)
+
+  // Clipe procedural com `base`: a embutida toca e a camada vai por cima.
+  const overlay = entry.clips?.[clipId]
+  if (overlay?.base && hasNativeAnimation(entry.native, overlay.base)) {
+    entry.blend = null
+    enterNativeState(entry.native, overlay.base, {
+      oneShot,
+      fade: hadPrevious ? resolveBlend(entry.native, overlay.base) : 0,
+      frames,
+      duration,
+    })
+    entry.overlay = {
+      clip: overlay,
+      bones: pickBones(entry.bones, overlay),
+      oneShot,
+      elapsed: 0,
+      basePose: null,
+    }
+    return
+  }
 
   // Destino embutido: o crossfade é do próprio mixer (ver `playPhase` em
   // nativeAnimationPlayer.js) — nada de pose escrita por fora nos ossos.
@@ -223,6 +257,44 @@ function resolveClipId(entry, stateId, animationKey = null) {
 
 function hasAnimation(entry, id) {
   return hasNativeAnimation(entry.native, id) || Boolean(entry.clips?.[id])
+}
+
+// Só os ossos que o clipe da camada mexe.
+function pickBones(bones, clip) {
+  const picked = {}
+  for (const name of Object.keys(clip.bones ?? {})) {
+    if (bones[name]) picked[name] = bones[name]
+  }
+  return picked
+}
+
+// Os ossos da camada voltam à pose de base (antes do mixer do quadro).
+function undoOverlay(entry) {
+  const overlay = entry.overlay
+  if (overlay?.basePose) restorePose(overlay.basePose, overlay.bones)
+}
+
+function clearOverlay(entry) {
+  undoOverlay(entry)
+  entry.overlay = null
+}
+
+// Fotografa a pose que o mixer escreveu e soma a camada por cima.
+function applyOverlay(entry, anim, action, delta) {
+  const overlay = entry.overlay
+  if (!overlay) return
+  overlay.elapsed += delta * anim.direction
+  overlay.basePose = capturePose(overlay.bones)
+  const speed = overlay.oneShot
+    ? action.animationSpeed || 1
+    : resolveClipSpeed(overlay.clip)
+  applyAdditiveClip(
+    overlay.clip,
+    overlay.bones,
+    overlay.basePose,
+    overlay.elapsed,
+    speed,
+  )
 }
 
 function applyProceduralClip(entry, anim, action, delta) {

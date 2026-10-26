@@ -1,5 +1,11 @@
 import { GAME_CONFIG } from '@/core/gameConfig'
 import { listBiomes } from '@/core/data/biomes'
+import {
+  getCondition,
+  listConditions,
+  resolveConditionEffect,
+} from '@/core/data/conditions'
+import { formatSkillDescription } from '@/view/shared/skillDescription'
 import { WEATHER_TYPES } from '@/core/weather/weatherMap'
 import {
   TYPE_CHART,
@@ -22,6 +28,7 @@ import {
   stageMultiplier,
 } from '@/core/battle/statStages'
 import { DEFAULT_ACCURACY } from '@/core/battle/accuracy'
+import { isChannelAttack } from '@/core/battle/channelAttack'
 import {
   resolveBallMultiplier,
   resolveCaptureChance,
@@ -81,10 +88,13 @@ import {
   resolveSkillSummary,
 } from './skillEntry'
 import {
+  describeCondition,
   describeEffect,
+  describeSkillMechanics,
   formatName,
   resolveConditionCaptureBonus,
 } from './wikiFormat'
+import { applySkillGroup, resolveSkill } from '@/core/data/skills'
 
 /**
  * O "retrato" de números da wiki: TUDO que as páginas mostram, num objeto
@@ -173,7 +183,7 @@ function buildAttack(entry) {
     category: resolveAttackCategory(attack),
     power: attack.damage?.power ?? null,
     area: resolveAttackArea(attack),
-    channel: attack.damageMode === 'channel',
+    channel: isChannelAttack(attack),
     range: attack.range,
     cost: entry.staminaCost,
     cooldown: entry.cooldown,
@@ -309,6 +319,9 @@ function buildSkill(skill) {
     effectAt: summary.effectAt,
     channel: summary.channel,
     effects: summary.effects.map(describeEffect),
+    // o texto do golpe pro jogador e as mecânicas especiais dele
+    description: formatSkillDescription(resolveSkill(skill.id)),
+    mechanics: describeSkillMechanics(applySkillGroup(skill)),
     weight: summary.weight,
     trainingHours: resolveTrainingHours(skill),
     baseCooldown: summary.baseCooldown,
@@ -399,23 +412,39 @@ function buildTypes() {
 
 /**
  * A queimadura como o jogo aplica hoje — os valores do primeiro golpe que
- * queima (`effects` com `type: 'burn'`); `null` se nenhum queima.
+ * queima (efeito de condição `'burn'`); `null` se nenhum queima.
  */
 function buildBurn() {
   for (const skill of listWikiSkills()) {
-    const burn = skill.effects?.find((effect) => effect.type === 'burn')
+    const burn = (skill.effects ?? [])
+      .map((effect) => resolveConditionEffect(effect))
+      .find((condition) => condition?.id === 'burn')
     if (!burn) continue
     return {
-      chance: burn.chance ?? 1,
-      fraction: burn.fraction ?? 0,
-      interval: burn.interval ?? 0,
-      duration: burn.duration ?? 0,
-      attackMultiplier: burn.attackMultiplier ?? 1,
+      chance: burn.chance,
+      fraction: burn.tick?.fraction ?? 0,
+      interval: burn.tick?.interval ?? 0,
+      duration: burn.duration,
+      attackMultiplier: burn.modifiers.attack ?? 1,
       immuneTypes: burn.immuneTypes ?? [],
       captureBonus: resolveConditionCaptureBonus('burn'),
     }
   }
   return null
+}
+
+/**
+ * Todas as condições que um golpe deixa no alvo (ou em quem usou), com o
+ * texto pelos comportamentos de cada uma.
+ */
+function buildConditions() {
+  return listConditions().map((condition) => ({
+    id: condition.id,
+    name: condition.label,
+    text: describeCondition(condition),
+    keepsInBall: condition.keepsInBall === true,
+    beneficial: condition.beneficial === true,
+  }))
 }
 
 /** Cada golpe de dano de cada criatura contra a primeira da lista. */
@@ -651,8 +680,8 @@ export function buildWikiData() {
       rangedBonus: ACTION_COST.RANGED_BONUS,
       coneBonus: ACTION_COST.CONE_BONUS,
       stageWeight: AI_ATTACK.STAT_STAGE_VALUE,
-      drainWeight: AI_ATTACK.LEECH_SEED_VALUE,
-      burnWeight: AI_ATTACK.BURN_VALUE,
+      drainWeight: getCondition('leech-seed')?.ai.value ?? 0,
+      burnWeight: getCondition('burn')?.ai.value ?? 0,
       runWeight: ACTION_COST.RUN_WEIGHT_PER_SECOND,
       dashWeight: ACTION_COST.DASH_WEIGHT,
       jumpWeight: ACTION_COST.JUMP_WEIGHT,
@@ -743,6 +772,7 @@ export function buildWikiData() {
     items: buildItems(),
     types: buildTypes(),
     burn: buildBurn(),
+    conditions: buildConditions(),
     experience: buildExperience(speciesList),
     moves: buildMoves(),
     species: speciesList.map(buildSpecies),

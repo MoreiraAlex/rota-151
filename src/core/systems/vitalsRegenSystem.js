@@ -19,6 +19,9 @@ import {
 export function regenerateVitals(vitals, delta) {
   let changed = false
 
+  // o relógio desde o último dano (`-1` = nunca levou)
+  if (vitals.hpDamageAge >= 0) vitals.hpDamageAge += delta
+
   if (vitals.hpRegenDelay > 0) {
     vitals.hpRegenDelay = Math.max(0, vitals.hpRegenDelay - delta)
     changed = true

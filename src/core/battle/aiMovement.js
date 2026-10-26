@@ -14,7 +14,6 @@ import { steerTowards } from '../steering'
 import {
   ActionState,
   AiMovement,
-  CharacterController,
   Grounded,
   IndividualValues,
   PartyBehavior,
@@ -24,14 +23,20 @@ import {
   resolveEntityLevel,
 } from '../traits'
 import { resolveAttackForEntity } from './attackCasting'
+import { readSpeedStage } from './statStages'
 import { resolveEntityMoveSet } from './creatureAttack'
-import { isInsideAttackCone } from './attackGeometry'
+import { isInsideAttackCone, resolveCircleRadius } from './attackGeometry'
 import { resolveAttackHitTime } from './attackTelegraph'
-import { isConeAttack, isSelfAttack } from './channelAttack'
+import { isCircleAttack, isConeAttack, isSelfAttack } from './channelAttack'
 import { isActiveCombatant } from './combatTargets'
+import {
+  resolveEntityHitTrigger,
+  resolveEntityTriggerEdge,
+} from './attackTargets'
+import { readConditionModifier } from '../actions/conditions'
 
 /**
- * Se `pos` (corpo de raio `bodyRadius`) está dentro da área do golpe que
+ * Se `pos` (trigger de acerto de raio `bodyRadius`) está dentro da área do golpe que
  * `attacker` está CARREGANDO agora — a mesma forma do aviso no chão (cone, ou
  * a cápsula do golpe normal/feixe), da posição do atacante na direção travada
  * (`ActionState.dir*`). Devolve `{ attacker, elapsed, timeLeft, exitDistance,
@@ -51,10 +56,18 @@ export function resolveIncomingAttack(attacker, attackerPos, pos, bodyRadius) {
     attacker.get(IndividualValues),
     resolveEntityLevel(attacker, species),
     resolveEntityMoveSet(attacker, species),
+    readSpeedStage(attacker),
   )
   if (!attack || isSelfAttack(attack)) return null
   const hitAt = resolveAttackHitTime(action, attack)
   if (hitAt === null || action.elapsed >= hitAt) return null
+  if (isCircleAttack(attack)) {
+    return resolveIncomingCircle(attacker, attackerPos, pos, bodyRadius, {
+      attack,
+      elapsed: action.elapsed,
+      timeLeft: hitAt - action.elapsed,
+    })
+  }
 
   const dirLength = Math.hypot(action.dirX, action.dirZ)
   if (dirLength < 1e-6) return null
@@ -62,8 +75,11 @@ export function resolveIncomingAttack(attacker, attackerPos, pos, bodyRadius) {
   const dz = action.dirZ / dirLength
   const px = pos.x - attackerPos.x
   const pz = pos.z - attackerPos.z
-  const along = px * dx + pz * dz
   const across = px * dz - pz * dx
+  // A área começa na borda do trigger do atacante (`resolveAttackAreaStart`)
+  // e vai o `range` dali.
+  const edge = resolveEntityTriggerEdge(attacker, { x: dx, z: dz })
+  const along = px * dx + pz * dz - edge
 
   let halfWidth
   if (isConeAttack(attack)) {
@@ -72,16 +88,21 @@ export function resolveIncomingAttack(attacker, attackerPos, pos, bodyRadius) {
       range: attack.range,
       radius: attack.radius,
     }
-    if (
-      !isInsideAttackCone(attackerPos, { x: dx, z: dz }, cone, pos, bodyRadius)
-    ) {
+    const apex = { x: attackerPos.x + dx * edge, z: attackerPos.z + dz * edge }
+    if (!isInsideAttackCone(apex, { x: dx, z: dz }, cone, pos, bodyRadius)) {
       return null
     }
     const slope = attack.range > 0 ? attack.radius / attack.range : 0
     halfWidth = slope * Math.min(Math.max(along, 0), attack.range)
   } else {
-    // Cápsula: do atacante até o fim do `range`, grossura `radius`.
-    const t = Math.min(Math.max(along, 0), attack.range)
+    // Cápsula: grossura `radius`, a ponta de trás na borda e a da frente no
+    // alcance (a distância máxima — `resolveCapsuleAreaEnd`).
+    const t =
+      edge +
+      Math.min(
+        Math.max(along, attack.radius),
+        Math.max(attack.radius, attack.range - attack.radius),
+      )
     const gap = Math.hypot(px - dx * t, pz - dz * t)
     if (gap > attack.radius + bodyRadius) return null
     halfWidth = attack.radius
@@ -97,6 +118,32 @@ export function resolveIncomingAttack(attacker, attackerPos, pos, bodyRadius) {
     // (dz, -dx) tem `across` positivo.
     dodgeX: dz * side,
     dodgeZ: -dx * side,
+  }
+}
+
+/**
+ * O círculo (`area: 'circle'`) em volta de quem ataca pega ela? O desvio é
+ * pra FORA, pra longe do centro, até sair do raio (`resolveCircleRadius`, da
+ * borda do trigger de quem ataca) com o corpo inteiro.
+ */
+function resolveIncomingCircle(attacker, attackerPos, pos, bodyRadius, hit) {
+  const radius = resolveCircleRadius(
+    hit.attack,
+    resolveEntityTriggerEdge(attacker, { x: 0, z: 1 }),
+  )
+  const px = pos.x - attackerPos.x
+  const pz = pos.z - attackerPos.z
+  const distance = Math.hypot(px, pz)
+  if (distance > radius + bodyRadius) return null
+  const out =
+    distance > 1e-6 ? { x: px / distance, z: pz / distance } : { x: 1, z: 0 }
+  return {
+    attacker,
+    elapsed: hit.elapsed,
+    timeLeft: hit.timeLeft,
+    exitDistance: radius + bodyRadius - distance,
+    dodgeX: out.x,
+    dodgeZ: out.z,
   }
 }
 
@@ -214,13 +261,19 @@ function decideFightMove(entity, movement, fight, rng) {
   const uz = distance > 1e-6 ? toZ / distance : 1
   const moving = { pos, rot, vel, stats }
   const runOrWalk = () =>
-    resolveMoveSpeed(stats, vitals, !resting && tentarCorrer(vitals, delta))
+    resolveMoveSpeed(
+      stats,
+      vitals,
+      !resting && tentarCorrer(vitals, delta),
+      readConditionModifier(entity, 'movement'),
+    )
   const faceTarget = () => {
     rot.y = lerpAngle(rot.y, Math.atan2(ux, uz), stats.turnSpeed * delta)
   }
 
   // 1. Desvio.
-  const bodyRadius = entity.get(CharacterController)?.capsuleRadius ?? 0
+  // O que o golpe precisa tocar é o trigger de acerto (`hitTrigger.js`).
+  const bodyRadius = resolveEntityHitTrigger(entity).radius
   const incoming = resting ? null : findIncomingAttack(pos, bodyRadius, enemies)
   if (!incoming) {
     movement.dodgeAttacker = null
@@ -232,7 +285,13 @@ function decideFightMove(entity, movement, fight, rng) {
     }
     if (movement.dodgeReact && incoming.elapsed >= config.DODGE_REACTION_TIME) {
       const runTime =
-        incoming.exitDistance / resolveMoveSpeed(stats, vitals, true)
+        incoming.exitDistance /
+        resolveMoveSpeed(
+          stats,
+          vitals,
+          true,
+          readConditionModifier(entity, 'movement'),
+        )
       if (runTime > incoming.timeLeft && canDash(entity, vitals, resting)) {
         startAiDash(
           entity,
@@ -294,7 +353,12 @@ function decideFightMove(entity, movement, fight, rng) {
       rng() * (config.STRAFE_SWITCH_MAX - config.STRAFE_SWITCH_MIN)
   }
   const speed =
-    resolveMoveSpeed(stats, vitals, false) * config.STRAFE_SPEED_FACTOR
+    resolveMoveSpeed(
+      stats,
+      vitals,
+      false,
+      readConditionModifier(entity, 'movement'),
+    ) * config.STRAFE_SPEED_FACTOR
   // De lado (perpendicular ao alvo) + uma correção radial pra não ir se
   // afastando (andar na tangente abre o círculo) nem sair do alcance.
   const desired = Number.isFinite(stopDistance)

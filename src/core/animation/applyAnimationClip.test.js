@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
+  applyAdditiveClip,
   applyAnimationClip,
   capturePose,
   applyBlendedAnimationClip,
@@ -345,5 +346,44 @@ describe('applyAnimationClip — clipe de keyframes gravados', () => {
     applyAnimationClip(clip, bones, duration, speed) // fim exato do gesto
     expectQuaternionCloseTo(bones.arm.bone.quaternion, IDENTITY)
     expect(bones.arm.bone.position.y).toBeCloseTo(0) // envolveu de volta ao frame 0 — mesma pose do início, o gesto "fechou"
+  })
+})
+
+describe('applyAdditiveClip — camada por cima da pose de base', () => {
+  it('a rotação compõe em cima da pose de BASE (não da de descanso)', () => {
+    const bones = { tail: makeEntry(), hip: makeEntry() }
+    const base = quaternionFromAxisAngle('x', 0.7)
+    const basePose = {
+      tail: {
+        quaternion: base,
+        position: { x: 0, y: 0.2, z: 0 },
+        scale: { x: 1, y: 1, z: 1 },
+      },
+      hip: {
+        quaternion: IDENTITY,
+        position: { x: 0, y: 0, z: 0 },
+        scale: { x: 1, y: 1, z: 1 },
+      },
+    }
+    const delta = 0.3
+    const clip = {
+      bones: {
+        tail: {
+          rotation: { z: { type: 'constant', value: delta } },
+          position: { y: { type: 'constant', value: 0.1 } },
+        },
+      },
+    }
+    bones.hip.bone.quaternion.set(0.1, 0.2, 0.3, 0.9)
+
+    applyAdditiveClip(clip, bones, basePose, 0, 1)
+
+    expectQuaternionCloseTo(
+      bones.tail.bone.quaternion,
+      multiplyQuaternions(base, quaternionFromAxisAngle('z', delta)),
+    )
+    expect(bones.tail.bone.position.y).toBeCloseTo(0.3)
+    // osso fora do clipe não é tocado
+    expect(bones.hip.bone.quaternion.x).toBeCloseTo(0.1)
   })
 })

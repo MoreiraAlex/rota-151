@@ -50,8 +50,15 @@ export {
   isHitStunned,
   resolveHitStunDuration,
 } from './hitStun'
-export { plantarSemente, resolveLeechDrain } from './leechSeed'
-export { queimar, readBurnAttackMultiplier, resolveBurnDamage } from './burn'
+export {
+  aplicarCondicao,
+  readCondition,
+  listActiveConditions,
+  readConditionModifier,
+  readConditionModifiers,
+  removerCondicoes,
+  resolveConditionTick,
+} from './conditions'
 export {
   registrarParticipante,
   distribuirExperiencia,

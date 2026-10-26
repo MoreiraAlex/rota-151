@@ -19,9 +19,12 @@ const TWO_PI = Math.PI * 2
  *   positiva e uma negativa. Bom pra afundo de quadril/corpo.
  * - sum: soma várias curvas — pra combinar padrões (ex.: dois senos com
  *   frequências diferentes, como o Cobblemon faz na perna do Bulbasaur).
+ * - linear: rampa — `amplitude` por ciclo, sem voltar. É o que dá um giro
+ *   que só cresce (o pião do Rapid Spin: N voltas por ação), que seno
+ *   nenhum consegue; somada a senos, dá o giro com aceleração.
  *
  * `frequencyScale`, `phaseTurns` e `timeOffset` são opcionais em todo tipo
- * baseado em seno: `phaseTurns` desloca em fração de ciclo (0.5 = meio ciclo,
+ * baseado em seno (e na rampa, contados em ciclos): `phaseTurns` desloca em fração de ciclo (0.5 = meio ciclo,
  * equivalente a π radianos) — mais fácil de escrever à mão que radianos.
  * `timeOffset` desloca em segundos (fixo, não escala com a velocidade) — é o
  * que dá o efeito de atraso/chicote entre segmentos de um rabo, por exemplo.
@@ -36,6 +39,8 @@ export function evaluateCurve(curve, t, freq) {
       return clamp(sineWave(curve, t, freq), curve.min, curve.max)
     case 'absSine':
       return Math.abs(sineWave(curve, t, freq))
+    case 'linear':
+      return cycles(curve, t, freq) * curve.amplitude
     case 'sum':
       return curve.curves.reduce(
         (total, inner) => total + evaluateCurve(inner, t, freq),
@@ -44,6 +49,15 @@ export function evaluateCurve(curve, t, freq) {
     default:
       return 0
   }
+}
+
+// Quantos ciclos já passaram (o ângulo do seno em voltas).
+function cycles(curve, t, freq) {
+  return (
+    ((t - (curve.timeOffset ?? 0)) * freq * (curve.frequencyScale ?? 1)) /
+      TWO_PI +
+    (curve.phaseTurns ?? 0)
+  )
 }
 
 function sineWave(curve, t, freq) {

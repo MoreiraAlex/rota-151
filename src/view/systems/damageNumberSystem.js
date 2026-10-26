@@ -20,6 +20,8 @@ const STAT_LABELS = {
   sp_atk: 'Atq. Esp.',
   sp_def: 'Def. Esp.',
   accuracy: 'Precisão',
+  evasion: 'Evasão',
+  speed: 'Velocidade',
 }
 
 /** Texto de status: "Ataque ↓" (uma seta por estágio, no máximo 3). */
@@ -102,18 +104,8 @@ export function damageNumberSystem(context) {
       spawnInterruptText(event, cameraRight)
       continue
     }
-    if (event.type === EVENT_TYPES.LEECH_SEED_DRAINED) {
-      spawnLeechNumbers(event, cameraRight)
-      continue
-    }
-    // tick da queimadura: só o número do dano no alvo
-    if (event.type === EVENT_TYPES.BURN_DAMAGED) {
-      spawnHeadNumber(event.target, {
-        text: formatDamage(event.damage),
-        kind: 'damage',
-        color: resolveFeedbackColor('damage', resolveSide(event.target)),
-        right: cameraRight,
-      })
+    if (event.type === EVENT_TYPES.CONDITION_TICKED) {
+      spawnConditionNumbers(event, cameraRight)
       continue
     }
     if (spawnCaptureText(event, cameraRight)) continue
@@ -204,7 +196,9 @@ export function damageNumberSystem(context) {
  * dele) e "+N" na cor de atributo que sobe em quem plantou, se ele recuperou
  * alguma coisa (já cheio, recolhido ou desmaiado: nada).
  */
-function spawnLeechNumbers(event, right) {
+// Tick de condição: o dano no alvo e, se curou quem aplicou (semente), o
+// "+N" nele.
+function spawnConditionNumbers(event, right) {
   const { target, source, damage, healed } = event
   spawnHeadNumber(target, {
     text: formatDamage(damage),

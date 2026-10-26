@@ -1,30 +1,34 @@
 /**
  * Mordida (Bite) — golpe físico corpo a corpo, ver `../_template/index.js`
- * pro que cada campo significa. Entrou na 059 com valores padrão: forma e
- * VFX do `../scratch`, som de impacto; o refino fica pra 090. A chance de
- * fazer o alvo recuar (série) fica de fora até o jogo ter esse efeito.
+ * pro que cada campo significa. VFX e som do Bite do Cobblemon: as presas
+ * fechando e as faíscas no alvo (`view/vfx/biteVfx.js`) e o som da mordida.
+ * Como na série, tem chance de fazer o alvo RECUAR (`core/data/conditions/
+ * flinch/`): ele para na hora o que estava fazendo, atordoado por um
+ * instante.
  * Tipo Normal, como na Gen 1: a tabela de tipos do jogo é a dela, sem
  * Sombrio (`core/data/types/index.js`).
  */
 export const BITE_SKILL = {
   id: 'bite',
+  description:
+    'Morde com força o primeiro inimigo à frente, até {range:m}, causando dano físico de poder {power}, com {effects.0.chance:%} de chance de fazer ele recuar: para na hora o que estava fazendo.',
   type: 'normal',
-  duration: 0.5,
-  effectAt: 0.25,
-  range: 1.4,
-  aim: 'melee',
-  castMode: 'instant',
-  radius: 0.3,
+  group: 'melee',
+  duration: 1.2,
+  effectAt: 0.5,
   visual: {
-    effectGroup: 'scratch',
+    effectGroup: 'bite',
+    // a mordida (0.55 s) e as faíscas (0.15 s depois, 0.35 s de vida)
     effectVisualDuration: 0.6,
-    scale: 1,
+    scale: 0.75,
     revealDuration: 0,
     rotationOffset: { x: 0, y: 0, z: 0 },
     positionOffset: { x: 0, y: 0, z: 0 },
   },
-  audio: { group: 'impact' },
+  audio: { group: 'bite-target' },
   animation: { clipKey: 'attackAlt' },
   // Físico, poder de referência: o de "Bite" nos jogos originais.
   damage: { power: 60, category: 'physical' },
+  // a chance de recuo da série
+  effects: [{ type: 'condition', condition: 'flinch', chance: 0.3 }],
 }

@@ -1,11 +1,11 @@
 import Image from 'next/image'
-import { GAME_CONFIG } from '@/core/gameConfig'
 import { CREATURE_TINTS } from '@/view/creatureTints'
 import { ATTACK_COLORS } from '@/view/attackColors'
 import { resolveFeedbackColor, resolveSide } from '@/view/vfx/feedbackColors'
 import { useStatStages } from './useStatStages'
 import { useConditions } from './useConditions'
 import { getType } from '@/core/data/types'
+import { getCondition } from '@/core/data/conditions'
 import {
   resolveGrowthRate,
   resolveLevelProgress,
@@ -96,6 +96,8 @@ const STAT_LABELS = {
   sp_atk: 'ATQ.E',
   sp_def: 'DEF.E',
   accuracy: 'PREC',
+  evasion: 'EVA',
+  speed: 'VEL',
 }
 
 /**
@@ -144,10 +146,10 @@ export function StatStageBadges({ entity, compact = false, align = 'center' }) {
 }
 
 /**
- * Selo das condições de status (docs/features/039-tipos-e-combate-classico.md,
- * Parte 4) — hoje só a queimadura, "QUEIMADO" na cor dela
- * (`GAME_CONFIG.FEEDBACK.CONDITION_COLORS`). Sem condição, nada. `compact` e
- * `align` como em `StatStageBadges`.
+ * Selo das condições (docs/features/039-tipos-e-combate-classico.md, Parte
+ * 4): o `label` de cada uma na cor dela (`feedback.color`,
+ * `core/data/conditions/`), só as que têm selo. Sem condição, nada.
+ * `compact` e `align` como em `StatStageBadges`.
  */
 export function ConditionBadges({ entity, compact = false, align = 'center' }) {
   const conditions = useConditions(entity)
@@ -163,19 +165,17 @@ export function ConditionBadges({ entity, compact = false, align = 'center' }) {
           key={condition}
           className="rounded px-1 font-mono font-bold uppercase leading-tight text-white"
           style={{
-            backgroundColor: GAME_CONFIG.FEEDBACK.CONDITION_COLORS[condition],
+            backgroundColor: getCondition(condition)?.feedback?.color,
             textShadow: '0 1px 1px rgba(0, 0, 0, 0.6)',
             fontSize: compact ? '7px' : '9px',
           }}
         >
-          {CONDITION_LABELS[condition] ?? condition}
+          {getCondition(condition)?.label ?? condition}
         </span>
       ))}
     </div>
   )
 }
-
-const CONDITION_LABELS = { burn: 'Queimado' }
 
 /**
  * Selo de UM tipo elemental (docs/features/039-tipos-e-combate-classico.md): o nome

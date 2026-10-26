@@ -19,11 +19,13 @@ export function resolveSpeedMultiplier(vitals) {
 
 /**
  * Velocidade de andar (`running` false) ou correr (true) da entidade agora:
- * `walkSpeed`/`runSpeed` da espécie × `resolveSpeedMultiplier`. Regra única
- * de quem anda/corre (jogador, time seguindo/lutando, selvagem vagando/
- * perseguindo/fugindo).
+ * `walkSpeed`/`runSpeed` da espécie × `resolveSpeedMultiplier` × o
+ * modificador de passo das condições (`modifier`, o `movement` de
+ * `readConditionModifier` — ex.: a teia do String Shot). Regra única de quem
+ * anda/corre (jogador, time seguindo/lutando, selvagem vagando/perseguindo/
+ * fugindo).
  */
-export function resolveMoveSpeed(stats, vitals, running) {
+export function resolveMoveSpeed(stats, vitals, running, modifier = 1) {
   const base = running ? stats.runSpeed : stats.walkSpeed
-  return base * resolveSpeedMultiplier(vitals)
+  return base * resolveSpeedMultiplier(vitals) * modifier
 }

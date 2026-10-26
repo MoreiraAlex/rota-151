@@ -26,6 +26,8 @@ const localCamera = new THREE.Vector3()
  * descartado no cleanup voltaria a ser usado já destruído.
  *
  * `length`/`radius`/`scale` vêm do `AttackEffect` (ver `AttackEffectView.jsx`);
+ * `rise`, o perfil do terreno no espaço do efeito (`AttackPath`), as
+ * partículas seguem (`particleSimulation.js`) — `null` = reto;
  * `density` alivia um efeito pesado (multiplica a taxa de todos os emissores).
  * `texturePaths`: `{ [chave]: caminho }` das texturas que os specs citam (padrão:
  * as de fogo, `fireParticleKit.js`).
@@ -37,6 +39,8 @@ export function useParticleAttackEffect({
   radius,
   scale = 1,
   density = 1,
+  rise = null,
+  body = null,
 }) {
   const textures = useTexture(texturePaths)
   const groupRef = useRef()
@@ -50,6 +54,8 @@ export function useParticleAttackEffect({
       radius,
       scale,
       density,
+      rise,
+      body,
     })
     const parent = groupRef.current
     parent.add(system.group)
@@ -59,7 +65,7 @@ export function useParticleAttackEffect({
       system.dispose()
       systemRef.current = null
     }
-  }, [emitters, textures, length, radius, scale, density])
+  }, [emitters, textures, length, radius, scale, density, rise, body])
 
   useFrame((state, delta) => {
     const system = systemRef.current

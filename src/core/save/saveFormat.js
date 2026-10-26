@@ -10,16 +10,19 @@ import { PARTY_SLOT_IDS } from '../traits'
  * O schema é a fronteira: o adapter (cliente) e a rota da API (servidor)
  * validam com ele antes de o dado entrar no jogo ou no banco.
  */
-export const SAVE_VERSION = 2
+export const SAVE_VERSION = 3
 
 const numberRecord = z.record(z.string(), z.number())
 
-const burnSchema = z.object({
+// Uma condição guardada (a mesma forma das entradas de `Conditions`).
+const conditionSchema = z.object({
+  id: z.string().min(1),
   timeLeft: z.number(),
   tickTimer: z.number(),
   fraction: z.number(),
   interval: z.number(),
-  attackMultiplier: z.number(),
+  to: z.enum(['source']).nullable(),
+  modifiers: numberRecord,
 })
 
 const moveSlotSchema = z
@@ -39,7 +42,7 @@ export const pokemonSaveSchema = z.object({
   }),
   storedVitals: numberRecord.nullable(),
   faintTimeLeft: z.number().min(0).nullable(),
-  conditions: z.object({ burn: burnSchema.nullable() }).nullable(),
+  conditions: z.array(conditionSchema).nullable(),
   location: z.discriminatedUnion('kind', [
     z.object({ kind: z.literal('party'), slot: z.enum(PARTY_SLOT_IDS) }),
     z.object({ kind: z.literal('inventory'), cell: z.number().int().min(0) }),
@@ -109,9 +112,28 @@ export const saveSchema = z.object({
  *
  * - 1 → 2 (docs/features/055-itens-no-mundo.md): entram os itens do mundo,
  *   começando sem nada mexido.
+ * - 2 → 3 (docs/features/061-revisao-das-skills.md): as condições viram uma
+ *   lista (`{ burn }` → `[{ id: 'burn', ... }]`).
  */
 const MIGRATIONS = {
   1: (save) => ({ ...save, worldItems: { chunks: {}, foraged: {} } }),
+  2: (save) => ({
+    ...save,
+    pokemon: (save.pokemon ?? []).map((pokemon) => ({
+      ...pokemon,
+      conditions: migrateLegacyConditions(pokemon.conditions),
+    })),
+  }),
+}
+
+// `{ burn: { ..., attackMultiplier } }` (versão 2) → a lista da versão 3.
+function migrateLegacyConditions(conditions) {
+  const burn = conditions?.burn
+  if (!burn) return null
+  const { attackMultiplier, ...rest } = burn
+  return [
+    { id: 'burn', ...rest, to: null, modifiers: { attack: attackMultiplier } },
+  ]
 }
 
 /**

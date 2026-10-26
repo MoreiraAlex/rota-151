@@ -2,6 +2,7 @@ import { EVENT_TYPES } from '@/core/events'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import { getItem } from '@/core/data/items'
 import { getSkill } from '@/core/data/skills'
+import { getCondition } from '@/core/data/conditions'
 import { Pokemon, WildCreature, resolveCreatureSpeciesId } from '@/core/traits'
 import { formatSpeciesName } from './formatName'
 import { resolveFeedbackColor, resolveSide } from '../vfx/feedbackColors'
@@ -21,6 +22,8 @@ const STAT_NAMES = {
   sp_atk: 'O Ataque Especial',
   sp_def: 'A Defesa Especial',
   accuracy: 'A Precisão',
+  evasion: 'A Evasão',
+  speed: 'A Velocidade',
 }
 
 const EFFECTIVENESS_SUFFIX = {
@@ -96,20 +99,8 @@ function formatResolved(event) {
   if (event.effectiveness === 'immune') {
     return [line(`Não afeta ${name}…`, FEEDBACK.EFFECTIVENESS_COLORS.immune)]
   }
-  // golpe de status: quem fala é o `statStageChanged`; a semente fala aqui
-  if (event.status) {
-    const seeds = getSkill(event.attackId)?.effects?.some(
-      (effect) => effect.type === 'leechSeed',
-    )
-    return seeds
-      ? [
-          line(
-            `${name} foi semeado!`,
-            resolveFeedbackColor('debuff', resolveSide(target)),
-          ),
-        ]
-      : []
-  }
+  // golpe de status: quem fala é o `statStageChanged` e o `conditionApplied`
+  if (event.status) return []
 
   const color = resolveFeedbackColor(
     event.critical ? 'crit' : 'damage',
@@ -126,6 +117,24 @@ function formatResolved(event) {
   }
   const amount = Math.max(1, Math.round(event.damage))
   return [line(`${name} perdeu ${amount} de HP.${suffix}`, color)]
+}
+
+/**
+ * A linha de uma condição (`feedback.applied`/`feedback.tick` da condição,
+ * `core/data/conditions/`): `{alvo}` vira o nome e `{hp}` o dano do tick. Cor
+ * da condição, ou a do lado (`kind`) sem cor própria.
+ */
+function formatConditionLine(event, key, kind) {
+  const feedback = getCondition(event.condition)?.feedback
+  const template = feedback?.[key]
+  if (!template) return []
+  const amount = Math.max(1, Math.round(event.damage ?? 0))
+  const text = template
+    .replaceAll('{alvo}', formatCombatantName(event.target))
+    .replaceAll('{hp}', String(amount))
+  const color =
+    feedback.color ?? resolveFeedbackColor(kind, resolveSide(event.target))
+  return [line(text, color)]
 }
 
 /**
@@ -174,31 +183,11 @@ export function formatBattleLogEvent(event) {
           FEEDBACK.INTERRUPT_COLOR,
         ),
       ]
-    case EVENT_TYPES.LEECH_SEED_DRAINED: {
-      const amount = Math.max(1, Math.round(event.damage))
-      return [
-        line(
-          `A semente drenou ${amount} de HP de ${formatCombatantName(event.target)}!`,
-          resolveFeedbackColor('damage', resolveSide(event.target)),
-        ),
-      ]
-    }
-    case EVENT_TYPES.BURN_APPLIED:
-      return [
-        line(
-          `${formatCombatantName(event.target)} foi queimado!`,
-          FEEDBACK.CONDITION_COLORS.burn,
-        ),
-      ]
-    case EVENT_TYPES.BURN_DAMAGED: {
-      const amount = Math.max(1, Math.round(event.damage))
-      return [
-        line(
-          `${formatCombatantName(event.target)} sofre com a queimadura (${amount} de HP)!`,
-          FEEDBACK.CONDITION_COLORS.burn,
-        ),
-      ]
-    }
+    case EVENT_TYPES.CONDITION_APPLIED:
+      if (event.slot && !isLoggedSlot(event.slot)) return []
+      return formatConditionLine(event, 'applied', 'debuff')
+    case EVENT_TYPES.CONDITION_TICKED:
+      return formatConditionLine(event, 'tick', 'damage')
     case EVENT_TYPES.CREATURE_FAINTED:
       // Registro (`Pokemon`): desmaiou queimando dentro da bola (043).
       if (event.entity?.has?.(Pokemon)) {

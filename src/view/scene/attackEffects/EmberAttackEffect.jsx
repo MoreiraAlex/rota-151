@@ -16,8 +16,9 @@ import { useParticleAttackEffect } from './useParticleAttackEffect'
  * `scale` (de `attack.visual.scale`) multiplica o TAMANHO das partículas;
  * `radius` (de `attack.radius`) dá o raio das brasas que sobem do alvo.
  */
-export function EmberAttackEffect({ radius, length = 0, scale = 1 }) {
+export function EmberAttackEffect({ rise, radius, length = 0, scale = 1 }) {
   const groupRef = useParticleAttackEffect({
+    rise,
     emitters: EMBER_EMITTERS,
     length,
     radius,

@@ -1,14 +1,19 @@
 import { useEffect, useState } from 'react'
-import { Burn } from '@/core/traits'
+import { listActiveConditions } from '@/core/actions/conditions'
+import { getCondition } from '@/core/data/conditions'
 
 const NONE = []
 const POLL_MS = 100
 
-/** Condições ativas de uma entidade, na ordem de exibição (`['burn']`...). */
+/**
+ * Condições ativas de uma entidade que mostram selo (`feedback.badge`), na
+ * ordem em que entraram (`['burn']`...).
+ */
 export function listConditions(entity) {
   if (!entity?.isAlive?.()) return NONE
-  const conditions = []
-  if (entity.has(Burn)) conditions.push('burn')
+  const conditions = listActiveConditions(entity).filter(
+    (id) => getCondition(id)?.feedback?.badge,
+  )
   return conditions.length ? conditions : NONE
 }
 
@@ -17,7 +22,7 @@ function sameConditions(a, b) {
 }
 
 /**
- * Condições de status ativas de uma entidade (queimadura...), pra HUD mostrar
+ * Condições ativas de uma entidade (queimadura...), pra HUD mostrar
  * o selo (docs/features/039-tipos-e-combate-classico.md, Parte 4). Mesmo esquema de
  * `useStatStages`: lê o ECS a cada `POLL_MS` e só atualiza quando a LISTA
  * muda — o tempo da condição decresce a todo tick, e assinar o trait faria o

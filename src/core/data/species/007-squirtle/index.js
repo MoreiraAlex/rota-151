@@ -1,4 +1,5 @@
 import CRY_CLIP from './clips/cry.json'
+import SPIN_CLIP from './clips/spin.json'
 
 const LEVEL = 5
 
@@ -52,6 +53,7 @@ export const SQUIRTLE = {
 
   clips: {
     cry: CRY_CLIP,
+    spin: SPIN_CLIP,
   },
   nativeAnimations: {
     roar: 'roar',
@@ -88,6 +90,9 @@ export const SQUIRTLE = {
     battleIdle: 'battleIdle',
     appeal: 'appeal',
     hit: 'hit',
+    // atordoada por condição (a paralisia): entra, repete e sai
+    stunned: { start: 'stunStart', loop: 'stunLoop', end: 'stunEnd' },
+    charge: { loop: 'charge' },
   },
 
   // Onde fica a fruta enquanto come (docs/features/042-itens-da-beta.md,
@@ -110,6 +115,7 @@ export const SQUIRTLE = {
     capsuleHalfHeight: 0.07,
     capsuleAxis: 'y',
     modelOffset: [0, -0.26, 0],
+    trigger: { radius: 0.3, halfLength: 0, angle: 0, offset: { x: 0, z: 0 } },
   },
   movement: {
     walkSpeed: 2.25,
@@ -142,22 +148,9 @@ export const SQUIRTLE = {
     jumpGroup: 'default',
   },
   skills: {
-    1: {
-      id: 'tackle',
-      overrides: {
-        range: 1.4,
-        duration: 1,
-        effectAt: 0.6,
-        animation: { clipKey: 'attackAlt' },
-      },
-    },
-    2: {
-      id: 'water-gun',
-      overrides: {
-        visual: { positionOffset: { x: 0, y: 0, z: 0.5 }, scale: 1.5 },
-      },
-    },
-    3: { id: 'tail-whip' },
+    1: 'tackle',
+    2: 'water-gun',
+    3: 'tail-whip',
   },
 
   stats: {
@@ -170,6 +163,22 @@ export const SQUIRTLE = {
     speed: { base: SPEED, ev: SPEED_EV },
   },
   moves: [
+    {
+      id: 'tackle',
+      overrides: {
+        duration: 1,
+        effectAt: 0.6,
+        animation: { clipKey: 'attackAlt' },
+      },
+    },
+    {
+      id: 'water-gun',
+      overrides: {
+        visual: { positionOffset: { x: 0, y: 0, z: 0.5 }, scale: 1.5 },
+      },
+    },
+    { id: 'tail-whip' },
+
     { id: 'withdraw', requires: { level: 6 } },
     { id: 'rapid-spin', requires: { level: 9 } },
     { id: 'bite', requires: { level: 12 } },

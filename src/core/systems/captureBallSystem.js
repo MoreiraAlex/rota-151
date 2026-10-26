@@ -64,7 +64,7 @@ const SLIDE_STEPS = 3
  * As trocas de fase que mexem em outras entidades ficam pra depois do
  * `updateEach` (um `set` lá dentro num trait da query seria sobrescrito).
  *
- * Headless. Fase: simulation — depois do `burnSystem`/`faintSystem` (quem
+ * Headless. Fase: simulation — depois do `conditionSystem`/`faintSystem` (quem
  * desmaia na bola já está desmaiado ao resolver) e antes do
  * `characterPhysicsSystem`.
  */

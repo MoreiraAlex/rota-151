@@ -67,6 +67,9 @@ export const CATERPIE = {
     battleIdle: 'battleIdle',
     appeal: 'appeal',
     hit: 'hit',
+    // atordoada por condição (a paralisia): sem `stun` no modelo, o
+    // descanso dele (entra, repete e sai)
+    stunned: { start: 'restStart', loop: 'restLoop', end: 'restEnd' },
   },
 
   // Sem mãos: come do chão, embaixo da boca.
@@ -87,6 +90,7 @@ export const CATERPIE = {
     capsuleHalfHeight: 0.04,
     capsuleAxis: 'y',
     modelOffset: [0, -0.12, 0],
+    trigger: { radius: 0.15, halfLength: 0, angle: 0, offset: { x: 0, z: 0 } },
   },
   movement: {
     walkSpeed: 0.8,
@@ -127,7 +131,18 @@ export const CATERPIE = {
     sp_def: { base: SP_DEF, ev: SP_DEF_EV },
     speed: { base: SPEED, ev: SPEED_EV },
   },
-  moves: [{ id: 'bug-bite', requires: { level: 9 } }],
+  moves: [
+    { id: 'tackle' },
+    {
+      id: 'string-shot',
+      overrides: {
+        visual: {
+          positionOffset: { x: 0, y: 0.025, z: 0.2 },
+        },
+      },
+    },
+    { id: 'bug-bite', requires: { level: 9 } },
+  ],
   // Na série o Caterpie não tem como atacar de verdade: se defende soltando
   // um cheiro ruim pelas antenas. Quase todo nasce pacífico e só revida.
   wild: { hostileChance: 0.15 },

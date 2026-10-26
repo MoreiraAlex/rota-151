@@ -2,6 +2,7 @@ import { resolveMoveSpeed } from '../actions/movementSpeed'
 import { tentarCorrer } from '../actions/stamina'
 import { resolveGroupLeader } from '../actions/owner'
 import { faceMovement, resolveIncomingAttack } from '../battle/aiMovement'
+import { resolveEntityHitTrigger } from '../battle/attackTargets'
 import {
   findNearest,
   isActiveCombatant,
@@ -11,7 +12,6 @@ import { GAME_CONFIG } from '../gameConfig'
 import { lerpAngle } from '../math'
 import { steerTowards } from '../steering'
 import {
-  CharacterController,
   MovementStats,
   OwnedBy,
   Party,
@@ -160,7 +160,8 @@ export function trainerBattleSystem(context) {
       }
 
       // 1. Desvio.
-      const bodyRadius = entity.get(CharacterController)?.capsuleRadius ?? 0
+      // O que o golpe precisa tocar é o trigger de acerto (`hitTrigger.js`).
+      const bodyRadius = resolveEntityHitTrigger(entity).radius
       const incoming = findIncoming(pos, bodyRadius, wilds)
       if (incoming) {
         const speed = run()

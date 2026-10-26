@@ -18,8 +18,9 @@ import { useParticleAttackEffect } from './useParticleAttackEffect'
  * `effectVisualDuration` do ataque precisa ser ≥ isso,
  * senão as faíscas somem no meio.
  */
-export function ScratchAttackEffect({ radius, scale = 1 }) {
+export function ScratchAttackEffect({ rise, radius, scale = 1 }) {
   const groupRef = useParticleAttackEffect({
+    rise,
     emitters: SCRATCH_EMITTERS,
     texturePaths: SCRATCH_TEXTURE_PATHS,
     radius,

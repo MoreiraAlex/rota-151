@@ -10,12 +10,11 @@ import {
   resolveBaseXp,
 } from '@/core/data/species/experience'
 import { desmaiar } from './faint'
-import { queimar } from './burn'
+import { aplicarCondicao, readCondition } from './conditions'
 import { findPartyPokemon, resolvePokemonBallId } from './pokemon'
 import {
   BallOnGround,
   BeingCaptured,
-  Burn,
   CaptureBall,
   CaptureTarget,
   CreatureLevel,
@@ -45,12 +44,14 @@ import {
 
 const BALLS = listItems().filter((item) => item.category === 'pokeball')
 const BALL_ID = BALLS[0].id
+// O selvagem do teste é de qualquer tipo: sem imunidade.
 const BURN_EFFECT = {
-  type: 'burn',
+  type: 'condition',
+  condition: 'burn',
   chance: 1,
-  fraction: 0.05,
-  interval: 1,
   duration: 10,
+  tick: { fraction: 0.05, interval: 1 },
+  immuneTypes: [],
 }
 
 let world
@@ -131,7 +132,7 @@ describe('comecarCaptura', () => {
     fainted.set(Vitals, { hp: 0 })
     fainted.add(Fainted)
     const burned = spawnWild(world)
-    queimar(burned, null, BURN_EFFECT, () => 0)
+    aplicarCondicao(burned, null, BURN_EFFECT, () => 0)
 
     const [weakest] = BALLS
     const best = BALLS.reduce((a, b) =>
@@ -234,12 +235,11 @@ describe('capturarSelvagem', () => {
 
   it('queimado: a queimadura vai junto pro registro', () => {
     const wild = spawnWild(world)
-    queimar(wild, null, BURN_EFFECT, () => 0)
+    aplicarCondicao(wild, null, BURN_EFFECT, () => 0)
     const pokemon = capturarSelvagem(world, events, startCapture(wild))
 
-    expect(pokemon.get(StoredConditions).burn.timeLeft).toBe(
-      BURN_EFFECT.duration,
-    )
+    const [stored] = pokemon.get(StoredConditions).list
+    expect(stored).toMatchObject({ id: 'burn', timeLeft: BURN_EFFECT.duration })
   })
 
   it('desmaiado: entra desmaiado na bola', () => {
@@ -332,9 +332,9 @@ describe('selvagemEscapou', () => {
 
   it('o selvagem queimado continua queimado depois do escape', () => {
     const wild = spawnWild(world)
-    queimar(wild, null, BURN_EFFECT, () => 0)
+    aplicarCondicao(wild, null, BURN_EFFECT, () => 0)
     selvagemEscapou(world, events, startCapture(wild), () => 0.99)
-    expect(wild.has(Burn)).toBe(true)
+    expect(readCondition(wild, 'burn')).not.toBe(null)
     expect(wild.has(BeingCaptured)).toBe(false)
   })
 })

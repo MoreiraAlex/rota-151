@@ -4,6 +4,9 @@ import { createWorld } from 'koota'
 import { getPlayerSpecies, getSpecies } from '@/core/data/species'
 import { resolveCreatureAttack } from '@/core/battle/creatureAttack'
 import { resolveSkill } from '@/core/data/skills'
+import { resolveSpeciesMoveReference } from '@/core/data/species/moves'
+import { resolveConditionEffect } from '@/core/data/conditions'
+import { readCondition } from '@/core/actions/conditions'
 import { resolveChannelTickDamage } from '@/core/battle/calculateDamage'
 import {
   isConeAttack,
@@ -25,6 +28,10 @@ import {
 } from '@/core/data/species/stats'
 import { resolveGroundY } from '@/core/battle/attackGeometry'
 import {
+  resolveHitTrigger,
+  resolveTriggerFrontEdge,
+} from '@/core/battle/hitTrigger'
+import {
   addStaticBox,
   initTestTerrain,
   settleTerrain,
@@ -34,6 +41,7 @@ import {
   AttackAim,
   AttackCooldowns,
   AttackEffect,
+  AttackPath,
   AttackPulse,
   CombatMode,
   CryPulse,
@@ -42,14 +50,13 @@ import {
   CharacterController,
   IndividualValues,
   InputControlled,
-  LeechSeed,
   OrbitCamera,
   Party,
   PhysicsBody,
   Position,
   resolveMaxStamina,
   Rotation,
-  SeededBy,
+  conditionSource,
   StatStages,
   SummonedCreature,
   Vitals,
@@ -63,7 +70,10 @@ import {
   resolveAttackForEntity,
   resolveCastMode,
 } from '@/core/battle/attackCasting'
-import { resolveAttackImpactPoint } from '@/core/battle/attackTrajectory'
+import {
+  resolveAttackImpactPoint,
+  resolveAttackPath,
+} from '@/core/battle/attackTrajectory'
 import { resolveAttackTarget } from '@/core/battle/attackTargets'
 import {
   resolveEffectStart,
@@ -92,20 +102,42 @@ function meleeSlotOf(speciesId) {
     return (
       attack?.damage &&
       attack.aim === 'melee' &&
-      !attack.damageMode &&
+      attack.execution !== 'channel' &&
       !attack.area
     )
   })
 }
 
 /**
+ * Põe `reference` (`'id'` ou `{ id, overrides }`) no slot `number` da espécie,
+ * no formato dos dados (o id em `skills`, a entrada exata em `moves`, sem os
+ * overrides que a espécie já tinha pra ele), e devolve quem desfaz.
+ */
+function setSlotMove(species, number, reference) {
+  const originalSkill = species.skills[number]
+  const originalMoves = species.moves
+  const entry = typeof reference === 'string' ? { id: reference } : reference
+  species.skills[number] = entry.id
+  species.moves = [
+    entry,
+    ...(originalMoves ?? []).filter(
+      (move) => (typeof move === 'string' ? move : move.id) !== entry.id,
+    ),
+  ]
+  return () => {
+    species.skills[number] = originalSkill
+    species.moves = originalMoves
+  }
+}
+
+/**
  * Troca o golpe do `slot` da espécie por uma versão com `overrides` por cima
- * (o mesmo caminho do jogo: `skills[N].overrides`) e devolve quem desfaz.
+ * dos que a espécie já tem (o mesmo caminho do jogo: a entrada em `moves`) e
+ * devolve quem desfaz.
  */
 function overrideSkill(species, slot, overrides) {
   const number = Number(slot.slice(-1))
-  const original = species.skills[number]
-  const reference = typeof original === 'string' ? { id: original } : original
+  const reference = resolveSpeciesMoveReference(species, species.skills[number])
   const merged = { ...reference.overrides, ...overrides }
   // seções mescladas campo a campo, como o `resolveSkill` faz
   for (const section of ['visual', 'audio', 'animation']) {
@@ -116,10 +148,7 @@ function overrideSkill(species, slot, overrides) {
       }
     }
   }
-  species.skills[number] = { id: reference.id, overrides: merged }
-  return () => {
-    species.skills[number] = original
-  }
+  return setSlotMove(species, number, { id: reference.id, overrides: merged })
 }
 
 // Espécie estável de teste (o Bulbasaur) — o ataque é exclusivo de
@@ -151,6 +180,11 @@ function expectedBasicChannelTicks(creature) {
   )
 }
 const BULBASAUR_BODY = getSpecies('bulbasaur').body
+// Até onde o trigger vai na frente do corpo — o `range` conta dali.
+const frontEdgeOf = (speciesId) =>
+  resolveTriggerFrontEdge(resolveHitTrigger(getSpecies(speciesId).body))
+const BULBASAUR_EDGE = frontEdgeOf('bulbasaur')
+const CHARMANDER_EDGE = frontEdgeOf('charmander')
 
 const spawnedWorlds = []
 function spawnWorld() {
@@ -340,7 +374,7 @@ describe('creatureAttackSystem', () => {
     const pos = effect.get(Position)
     expect(pos.x).toBeCloseTo(2)
     expect(pos.y).toBeCloseTo(1)
-    expect(pos.z).toBeCloseTo(3 + ATTACK.range)
+    expect(pos.z).toBeCloseTo(3 + BULBASAUR_EDGE + ATTACK.range)
     expect(effect.get(AttackEffect).radius).toBeCloseTo(ATTACK.radius)
     expect(effect.get(AttackEffect).effectGroup).toBe(ATTACK.visual.effectGroup)
     expect(effect.get(AttackEffect).revealDuration).toBeCloseTo(
@@ -353,10 +387,12 @@ describe('creatureAttackSystem', () => {
       ATTACK.visual.effectVisualDuration,
     )
     // distância da origem do golpe até onde o VFX nasce (o fim da trajetória)
-    expect(effect.get(AttackEffect).length).toBeCloseTo(ATTACK.range)
+    expect(effect.get(AttackEffect).length).toBeCloseTo(
+      BULBASAUR_EDGE + ATTACK.range,
+    )
   })
 
-  it('visual.positionOffset do ataque move a ORIGEM do golpe (core e VFX): a trajetória sai dela e o range continua contado do centro', () => {
+  it('visual.positionOffset do ataque move a ORIGEM do golpe (core e VFX): a trajetória sai dela e o range continua contado da borda do corpo', () => {
     // yaw 0 (sem câmera: +Z), nível: x → +X, y → +Y, z → +Z (golpe adentro)
     const offset = { x: 0.5, y: 0.25, z: 0.2 }
     const restore = overrideSkill(getSpecies('bulbasaur'), SLOT, {
@@ -371,15 +407,15 @@ describe('creatureAttackSystem', () => {
       const effect = advanceUntilEffectSpawns(world)
 
       // a trajetória inteira andou com a origem; o fim continua no range
-      // contado do centro do corpo
+      // contado da borda do corpo
       const impact = effect.get(Position)
       expect(impact.x).toBeCloseTo(pos.x + offset.x)
       expect(impact.y).toBeCloseTo(pos.y + offset.y)
-      expect(impact.z).toBeCloseTo(pos.z + ATTACK.range)
+      expect(impact.z).toBeCloseTo(pos.z + BULBASAUR_EDGE + ATTACK.range)
 
       // o VFX vai da origem até o impacto, reto golpe adentro
       expect(effect.get(AttackEffect).length).toBeCloseTo(
-        ATTACK.range - offset.z,
+        BULBASAUR_EDGE + ATTACK.range - offset.z,
       )
       const esperada = resolveEffectRotation({ x: 0, y: 0, z: 1 }, null)
       expect(effect.get(Rotation).x).toBeCloseTo(esperada.x)
@@ -387,6 +423,20 @@ describe('creatureAttackSystem', () => {
     } finally {
       restore()
     }
+  })
+
+  it('o efeito guarda o caminho do golpe (da origem ao fim) e fica virado na horizontal — a altura vem do terreno', () => {
+    const world = spawnWorld()
+    const pos = { x: 2, y: 1, z: 3 }
+    spawnControlledCreature(world, { position: pos })
+
+    tick(world, PRESS)
+    const effect = advanceUntilEffectSpawns(world)
+
+    const { points } = effect.get(AttackPath)
+    expect(points[0]).toEqual(pos)
+    expect(points[points.length - 1].z).toBeCloseTo(effect.get(Position).z)
+    expect(effect.get(Rotation).x).toBeCloseTo(0)
   })
 
   it('impactType do AttackEffect: visual.impactType, senão o tipo do golpe, senão vazio', () => {
@@ -480,8 +530,9 @@ describe('creatureAttackSystem', () => {
       const ember = resolveCreatureAttack(getSpecies('charmander'), EMBER_SLOT)
       const effect = runUntilEffect(world)
       const pos = effect.get(Position)
-      expect(pos.x).toBeCloseTo(START.x + turned.x * ember.range)
-      expect(pos.z).toBeCloseTo(START.z + turned.z * ember.range)
+      const reach = CHARMANDER_EDGE + ember.range
+      expect(pos.x).toBeCloseTo(START.x + turned.x * reach)
+      expect(pos.z).toBeCloseTo(START.z + turned.z * reach)
     })
 
     it('depois do effectAt a direção TRAVA: girar a câmera não mexe mais no golpe', () => {
@@ -531,11 +582,11 @@ describe('creatureAttackSystem', () => {
     })
   })
 
-  it('o override da espécie no golpe (ex.: range) é respeitado de ponta a ponta', () => {
+  it('o alcance é o do GRUPO do golpe: um range escrito na espécie não vale', () => {
     const charmander = getSpecies('charmander')
     const slot = meleeSlotOf('charmander')
-    const range = resolveCreatureAttack(charmander, slot).range + 0.2
-    const restore = overrideSkill(charmander, slot, { range })
+    const attack = resolveCreatureAttack(charmander, slot)
+    const restore = overrideSkill(charmander, slot, { range: attack.range + 1 })
     try {
       const world = spawnWorld()
       spawnControlledCreature(world, {
@@ -545,9 +596,11 @@ describe('creatureAttackSystem', () => {
       tick(world, { [slot]: true })
       const effect = advanceUntilEffectSpawns(world)
 
-      // Sem câmera, direção cai no fallback (0,0,1) — z reflete o range
-      // sobrescrito.
-      expect(effect.get(Position).z).toBeCloseTo(range)
+      // Sem câmera, direção cai no fallback (0,0,1): o fim é o alcance do
+      // grupo, contado da borda.
+      expect(effect.get(Position).z).toBeCloseTo(
+        CHARMANDER_EDGE + GAME_CONFIG.ATTACK_GROUPS[attack.group].RANGE,
+      )
     } finally {
       restore()
     }
@@ -616,9 +669,10 @@ describe('creatureAttackSystem', () => {
 
     const effect = advanceUntilEffectSpawns(world)
     const pos = effect.get(Position)
-    expect(pos.x).toBeCloseTo((direction.x / horizontalLength) * tackle.range)
+    const reach = CHARMANDER_EDGE + tackle.range
+    expect(pos.x).toBeCloseTo((direction.x / horizontalLength) * reach)
     expect(pos.y).toBeCloseTo(startPos.y)
-    expect(pos.z).toBeCloseTo((direction.z / horizontalLength) * tackle.range)
+    expect(pos.z).toBeCloseTo((direction.z / horizontalLength) * reach)
     expect(effect.get(Rotation).y).toBeCloseTo(creature.get(Rotation).y)
     expect(effect.get(Rotation).x).toBeCloseTo(0)
   })
@@ -648,9 +702,10 @@ describe('creatureAttackSystem', () => {
     const pos = effect.get(Position)
     const horizontalLength = Math.hypot(direction.x, direction.z)
     expect(direction.y).toBeLessThan(0) // premissa: câmera olha pra baixo
-    expect(pos.x).toBeCloseTo((direction.x / horizontalLength) * ember.range)
+    const reach = CHARMANDER_EDGE + ember.range
+    expect(pos.x).toBeCloseTo((direction.x / horizontalLength) * reach)
     expect(pos.y).toBeCloseTo(startPos.y)
-    expect(pos.z).toBeCloseTo((direction.z / horizontalLength) * ember.range)
+    expect(pos.z).toBeCloseTo((direction.z / horizontalLength) * reach)
     expect(effect.get(Rotation).y).toBeCloseTo(creature.get(Rotation).y)
     expect(effect.get(Rotation).x).toBeCloseTo(0)
   })
@@ -1051,6 +1106,29 @@ describe('resolveAttackImpactPoint — trajetória 2.5D acompanhando o terreno',
     expect(point.y - resolveGroundY(0, 5, 8, 10)).toBeCloseTo(0.45)
   })
 
+  it('o caminho inteiro (resolveAttackPath) sobe com a rampa e termina no fim da trajetória', async () => {
+    await initTestTerrain()
+    addStaticBox({
+      center: [0, 0, 5],
+      halfExtents: [2, 0.1, 5],
+      rotation: { axis: 'x', angle: -0.3 },
+    })
+    settleTerrain()
+    const groundAt = (z) => resolveGroundY(0, 5, z, 10)
+    const origin = { x: 0, y: groundAt(5) + 0.45, z: 5 }
+    const height = origin.y - groundAt(5)
+
+    const path = resolveAttackPath(origin, FORWARD, 3, -1)
+
+    expect(path[0]).toEqual(origin)
+    expect(path[path.length - 1]).toEqual(
+      resolveAttackImpactPoint(origin, FORWARD, 3, -1),
+    )
+    for (const point of path) {
+      expect(point.y - groundAt(point.z)).toBeCloseTo(height)
+    }
+  })
+
   it('parede no caminho: para na face da parede', async () => {
     await initTestTerrain()
     addStaticBox({ center: [0, 1, 2], halfExtents: [2, 1, 0.1] }) // face em z=1.9
@@ -1121,8 +1199,12 @@ describe('resolveAttackTarget — combate 2.5D ao longo da trajetória', () => {
     const target = hit(world)
 
     expect(target.entity).toBe(wild)
-    // Trajetória atravessa o eixo do corpo — contato é o próprio ponto dela.
-    expect(target.contactPoint).toEqual({ x: 0, y: 1, z: 2 })
+    // Trajetória atravessa o corpo — contato é onde ela ENTRA no trigger: na
+    // linha dela, na frente do centro do alvo (virado pra quem ataca).
+    expect(target.contactPoint.x).toBeCloseTo(0)
+    expect(target.contactPoint.y).toBeCloseTo(1)
+    expect(target.contactPoint.z).toBeLessThan(2)
+    expect(target.contactPoint.z).toBeGreaterThan(ORIGIN.z)
   })
 
   it('altura absoluta não importa: alvo mais alto/baixo na horizontal certa é atingido', () => {
@@ -1134,25 +1216,29 @@ describe('resolveAttackTarget — combate 2.5D ao longo da trajetória', () => {
     expect(hit(world)?.entity).toBe(acima)
   })
 
-  it('alvo de lado: acerta se radius + capsuleRadius alcança no plano, contato na superfície do corpo', () => {
+  it('alvo de lado: acerta se radius + o raio do trigger alcança no plano, contato na borda do trigger', () => {
     const world = spawnWorld()
-    // Alcance lateral = RADIUS + capsuleRadius do charmander (cápsula em pé).
-    const { capsuleRadius } = getSpecies('charmander').body
-    const x = RADIUS + capsuleRadius - 0.1
+    // Alcance lateral = RADIUS + o raio do trigger do charmander (círculo).
+    const { radius: triggerRadius } = resolveHitTrigger(
+      getSpecies('charmander').body,
+    )
+    const x = RADIUS + triggerRadius - 0.1
     spawnWildCreature(world, { position: { x, y: 1, z: 2 } })
 
     const target = hit(world)
 
     expect(target).not.toBeNull()
-    expect(target.contactPoint.x).toBeCloseTo(x - capsuleRadius)
+    expect(target.contactPoint.x).toBeCloseTo(x - triggerRadius)
     expect(target.contactPoint.y).toBeCloseTo(1)
     expect(target.contactPoint.z).toBeCloseTo(2)
   })
 
-  it('ignora alvo de lado fora de radius + capsuleRadius', () => {
+  it('ignora alvo de lado fora de radius + o raio do trigger', () => {
     const world = spawnWorld()
-    const { capsuleRadius } = getSpecies('charmander').body
-    const x = RADIUS + capsuleRadius + 0.1
+    const { radius: triggerRadius } = resolveHitTrigger(
+      getSpecies('charmander').body,
+    )
+    const x = RADIUS + triggerRadius + 0.1
     spawnWildCreature(world, { position: { x, y: 1, z: 2 } })
 
     expect(hit(world)).toBeNull()
@@ -1221,6 +1307,36 @@ describe('resolveAttackTarget — combate 2.5D ao longo da trajetória', () => {
     expect(hit(world, origin, impact, ON_GROUND)).toBeNull()
     // Atacante também no ar, na mesma faixa: aí combate normalmente.
     expect(hit(world, origin, impact, 1.2)).not.toBeNull()
+  })
+
+  it('alvo mais alto: o contato fica na altura do golpe sobre o chão do alvo (na diagonal), não na de quem ataca', async () => {
+    await initTestTerrain()
+    // Degrau baixo (a trajetória sobe) começando no meio do caminho.
+    const step = GAME_CONFIG.PATHFINDING.MAX_CLIMB_STEP / 2
+    addStaticBox({ center: [0, step / 2, 4], halfExtents: [2, step / 2, 3] })
+    settleTerrain()
+    const groundAt = (z) => resolveGroundY(0, 5, z, 10)
+    const origin = { x: 0, y: 0.45, z: 0 }
+    const targetZ = 2
+    const body = getSpecies('charmander').body
+    const world = spawnWorld()
+    spawnWildCreature(world, {
+      position: {
+        x: 0,
+        y: groundAt(targetZ) + verticalClearance(body),
+        z: targetZ,
+      },
+    })
+    const impact = resolveAttackImpactPoint(origin, { x: 0, y: 0, z: 1 }, 3, -1)
+
+    const target = hit(world, origin, impact)
+
+    expect(target).not.toBeNull()
+    // premissa: o alvo está mais alto que quem ataca
+    expect(groundAt(targetZ)).toBeGreaterThan(groundAt(origin.z))
+    expect(target.contactPoint.y).toBeCloseTo(
+      groundAt(targetZ) + (origin.y - groundAt(origin.z)),
+    )
   })
 
   it('borda de terraço bloqueia, mesmo com os dois "no chão" (elevação 0 cada um)', async () => {
@@ -1346,10 +1462,10 @@ describe('creatureAttackSystem — dano de verdade', () => {
   it('VFX nasce no ponto de CONTATO quando acerta, e no fim da trajetória quando erra', () => {
     const world = spawnWorld()
     spawnBulbasaurAttacker(world)
-    const { range } = ATTACK
+    const reach = BULBASAUR_EDGE + ATTACK.range
     spawnWildCreature(world, {
       speciesId: 'charmander',
-      position: { x: 0, y: 1, z: range / 2 },
+      position: { x: 0, y: 1, z: reach / 2 },
     })
 
     events.drain()
@@ -1362,13 +1478,13 @@ describe('creatureAttackSystem — dano de verdade', () => {
     // não no fim do alcance.
     expect(hit.result).toBe('hit')
     expect(hitEffect.get(Position).z).toBeCloseTo(hit.contactPoint.z)
-    expect(hitEffect.get(Position).z).toBeLessThan(range - 0.1)
+    expect(hitEffect.get(Position).z).toBeLessThan(reach - 0.1)
 
     const empty = spawnWorld()
     spawnBulbasaurAttacker(empty)
     tick(empty, PRESS)
     const missEffect = advanceUntilEffectSpawns(empty)
-    expect(missEffect.get(Position).z).toBeCloseTo(range)
+    expect(missEffect.get(Position).z).toBeCloseTo(reach)
   })
 
   it('WildCreature fora da trajetória não recebe dano', () => {
@@ -1577,16 +1693,11 @@ describe('creatureAttackSystem — modo combate', () => {
   })
 })
 
-describe('resolveCastMode', () => {
-  it('segue a definição do ataque; sem o campo, lança na hora', () => {
-    expect(resolveCastMode({ castMode: 'confirm' }, null)).toBe('confirm')
-    expect(resolveCastMode({ castMode: 'instant' }, null)).toBe('instant')
-    expect(resolveCastMode({}, null)).toBe('instant')
-  })
-
-  it('override (modo debug) ganha da definição', () => {
-    expect(resolveCastMode({ castMode: 'instant' }, 'confirm')).toBe('confirm')
-    expect(resolveCastMode({}, 'confirm')).toBe('confirm')
+describe('resolveCastMode — opção do jogador, não do golpe', () => {
+  it('sem a opção, lança na hora; com ela, a dela', () => {
+    expect(resolveCastMode(null)).toBe('instant')
+    expect(resolveCastMode('confirm')).toBe('confirm')
+    expect(resolveCastMode('instant')).toBe('instant')
   })
 })
 
@@ -1801,17 +1912,19 @@ describe('resolveAttackTarget — lado do jogador (golpe de selvagem)', () => {
   })
 })
 
-describe('creatureAttackSystem — ataque canalizado (damageMode channel)', () => {
-  // Golpe de referência do bulbasaur trocado por um canalizado só dentro do teste: dano a cada
-  // 0.25s de 0.25 até 1s (4 ticks), cone de 3m com meia-largura 1.5 na
-  // ponta, cooldown 1s. Sem câmera, a direção é +Z a partir de (0,1,0).
+describe('creatureAttackSystem — ataque canalizado (execution channel)', () => {
+  // Golpe de referência do bulbasaur trocado por um canalizado em cone só
+  // dentro do teste: dano a cada 0.25s de 0.25 até 1s (4 ticks), a forma do
+  // grupo 'cone', cooldown 1s. Sem câmera, a direção é +Z a partir de (0,1,0).
   const CHANNEL = {
-    damageMode: 'channel',
+    group: 'cone',
+    execution: 'channel',
     damageInterval: 0.25,
     duration: 1,
     effectAt: 0.25,
-    range: 3,
-    radius: 1.5,
+    // os do grupo (que ganha de qualquer valor escrito), pras contas do teste
+    range: GAME_CONFIG.ATTACK_GROUPS.cone.RANGE,
+    radius: GAME_CONFIG.ATTACK_GROUPS.cone.RADIUS,
     cooldown: 1,
   }
 
@@ -2029,12 +2142,11 @@ describe('Growl — a primeira skill de STATUS (sem dano, baixa o ataque dos ini
   // tackle ali) — restaura no fim.
   function withGrowl(run) {
     const charmander = getSpecies('charmander')
-    const original = charmander.skills[1]
-    charmander.skills[1] = 'growl'
+    const restore = setSlotMove(charmander, 1, 'growl')
     try {
       run()
     } finally {
-      charmander.skills[1] = original
+      restore()
     }
   }
 
@@ -2122,12 +2234,14 @@ describe('Growl — a primeira skill de STATUS (sem dano, baixa o ataque dos ini
     // mexer no `gameplayRng`.
     function withInaccurateGrowl(run) {
       const charmander = getSpecies('charmander')
-      const original = charmander.skills[1]
-      charmander.skills[1] = { id: 'growl', overrides: { accuracy: 0 } }
+      const restore = setSlotMove(charmander, 1, {
+        id: 'growl',
+        overrides: { accuracy: 0 },
+      })
       try {
         run()
       } finally {
-        charmander.skills[1] = original
+        restore()
       }
     }
 
@@ -2385,8 +2499,11 @@ describe('Growl — a primeira skill de STATUS (sem dano, baixa o ataque dos ini
 
 // Ticks até o `effectAt` do Growth (com folga) — sai da skill, que o usuário
 // balanceia à vontade.
+// Até o efeito do golpe no slot 1 do charmander (o Growth destes testes, com
+// o override que o teste tiver posto).
 function ticksUntilGrowthEffect() {
-  return Math.ceil(resolveSkill('growth').effectAt / DELTA) + 10
+  const growth = resolveCreatureAttack(getSpecies('charmander'), 'secondary1')
+  return Math.ceil(growth.effectAt / DELTA) + 10
 }
 
 // Q segurado — golpe em si mesmo exige o botão durante a carga.
@@ -2396,12 +2513,11 @@ describe('Growth — skill de status em SI MESMO (sobe Ataque e Ataque Especial 
   // Growth no slot 1 do charmander só nestes testes — restaura no fim.
   function withGrowth(run) {
     const charmander = getSpecies('charmander')
-    const original = charmander.skills[1]
-    charmander.skills[1] = 'growth'
+    const restore = setSlotMove(charmander, 1, 'growth')
     try {
       run()
     } finally {
-      charmander.skills[1] = original
+      restore()
     }
   }
 
@@ -2581,11 +2697,11 @@ describe('Growth — skill de status em SI MESMO (sobe Ataque e Ataque Especial 
     withGrowth(() => {
       // efeito antes do fim da ação, seja qual for o balanceamento atual do
       // Growth (com `effectAt` = `duration` não sobra animação depois)
-      const charmander = getSpecies('charmander')
-      charmander.skills[1] = {
+      // (o `withGrowth` desfaz)
+      setSlotMove(getSpecies('charmander'), 1, {
         id: 'growth',
         overrides: { duration: 2, effectAt: 1 },
-      }
+      })
       const { world, creature } = setup()
 
       castGrowth(world, creature)
@@ -2618,12 +2734,11 @@ describe('Growth — skill de status em SI MESMO (sobe Ataque e Ataque Especial 
 describe('interrupção de golpe de STATUS por dano (só na carga)', () => {
   function withGrowth(run) {
     const charmander = getSpecies('charmander')
-    const original = charmander.skills[1]
-    charmander.skills[1] = 'growth'
+    const restore = setSlotMove(charmander, 1, 'growth')
     try {
       run()
     } finally {
-      charmander.skills[1] = original
+      restore()
     }
   }
 
@@ -2729,15 +2844,72 @@ describe('interrupção de golpe de STATUS por dano (só na carga)', () => {
   })
 })
 
-describe('Leech Seed — planta a semente no alvo (quem drena é o leechSeedSystem)', () => {
+describe('golpe de dano em CÍRCULO (`group: circle`) — acerta todos em volta', () => {
+  function withCircleHit(run) {
+    const charmander = getSpecies('charmander')
+    // precisão `null` (nunca erra): o sorteio fica de fora
+    const restore = setSlotMove(charmander, 1, {
+      id: 'tackle',
+      overrides: { group: 'circle', accuracy: null },
+    })
+    try {
+      run(resolveCreatureAttack(charmander, 'secondary1'))
+    } finally {
+      restore()
+    }
+  }
+
+  function cast(world, creature) {
+    tick(world, { secondary1: true })
+    for (let i = 0; i < 240 && !creature.has(AttackPulse); i++) tick(world, {})
+    expect(creature.has(AttackPulse)).toBe(true)
+  }
+
+  it('quem está na frente, atrás e do lado leva dano; quem está fora do raio, não', () => {
+    withCircleHit((attack) => {
+      const world = spawnWorld()
+      const creature = spawnControlledCreature(world, {
+        speciesId: 'charmander',
+      })
+      // dentro: a menos do `range` da borda dos dois triggers
+      const near = attack.range * 0.5
+      const inside = [
+        { x: 0, y: 1, z: near },
+        { x: 0, y: 1, z: -near },
+        { x: near, y: 1, z: 0 },
+      ].map((position) => spawnWildCreature(world, { position }))
+      const outside = spawnWildCreature(world, {
+        position: { x: 0, y: 1, z: -(attack.range * 3) },
+      })
+      const hp = (entity) => entity.get(Vitals).hp
+      const before = [...inside, outside].map(hp)
+
+      events.drain()
+      cast(world, creature)
+
+      inside.forEach((target, i) => expect(hp(target)).toBeLessThan(before[i]))
+      expect(hp(outside)).toBe(before[3])
+      const resolved = events
+        .drain()
+        .filter((event) => event.type === EVENT_TYPES.ATTACK_RESOLVED)
+      expect(resolved.map((event) => event.target)).toEqual(
+        expect.arrayContaining(inside),
+      )
+      expect(resolved).toHaveLength(inside.length)
+      // um visual de impacto em cada um que levou o golpe
+      expect(world.query(AttackEffect)).toHaveLength(inside.length)
+    })
+  })
+})
+
+describe('Leech Seed — planta a semente no alvo (quem drena é o conditionSystem)', () => {
   function withLeechSeed(reference, run) {
     const charmander = getSpecies('charmander')
-    const original = charmander.skills[1]
-    charmander.skills[1] = reference
+    const restore = setSlotMove(charmander, 1, reference)
     try {
       run()
     } finally {
-      charmander.skills[1] = original
+      restore()
     }
   }
 
@@ -2764,12 +2936,13 @@ describe('Leech Seed — planta a semente no alvo (quem drena é o leechSeedSyst
       const hp = target.get(Vitals).hp
       cast(world, creature)
 
-      expect(target.has(LeechSeed)).toBe(true)
-      expect(target.targetFor(SeededBy)).toBe(creature)
+      const seed = readCondition(target, 'leech-seed')
+      expect(target.targetFor(conditionSource('leech-seed'))).toBe(creature)
       const [effect] = resolveSkill('leech-seed').effects
-      expect(target.get(LeechSeed)).toMatchObject({
-        timeLeft: effect.duration,
-        interval: effect.interval,
+      const condition = resolveConditionEffect(effect)
+      expect(seed).toMatchObject({
+        timeLeft: condition.duration,
+        interval: condition.tick.interval,
       })
       expect(target.get(Vitals).hp).toBe(hp)
     })
@@ -2779,22 +2952,47 @@ describe('Leech Seed — planta a semente no alvo (quem drena é o leechSeedSyst
     withLeechSeed({ id: 'leech-seed', overrides: { accuracy: 0 } }, () => {
       const { world, creature, target } = setup()
       cast(world, creature)
-      expect(target.has(LeechSeed)).toBe(false)
+      expect(readCondition(target, 'leech-seed')).toBe(null)
     })
+  })
+
+  it('VFX nasce no CONTATO com o alvo perto, e no fim da trajetória quando erra', () => {
+    const effectAt = (accuracy) => {
+      let point = null
+      withLeechSeed({ id: 'leech-seed', overrides: { accuracy } }, () => {
+        const { world, creature } = setup()
+        events.drain()
+        cast(world, creature)
+        const [effect] = world.query(AttackEffect)
+        const [resolved] = events
+          .drain()
+          .filter((event) => event.type === EVENT_TYPES.ATTACK_RESOLVED)
+        point = { effect: effect.get(Position), resolved }
+      })
+      return point
+    }
+
+    const hit = effectAt(null)
+    expect(hit.effect.z).toBeCloseTo(hit.resolved.contactPoint.z)
+    const miss = effectAt(0)
+    expect(miss.effect.z).toBeGreaterThan(hit.effect.z)
+    expect(miss.effect.z).toBeCloseTo(miss.resolved.impactPoint.z)
   })
 })
 
-describe('creatureAttackSystem — canalizado em FEIXE (area line)', () => {
+describe('creatureAttackSystem — canalizado em FEIXE (cápsula)', () => {
   // Básico do bulbasaur trocado por um feixe só dentro do teste: 4 ticks (0.25 a
-  // 1 s), cápsula de 3 m de alcance. Sem física, a trajetória vai até o alcance.
+  // 1 s), a cápsula do grupo 'ranged'. Sem física, a trajetória vai até o
+  // alcance.
   const BEAM = {
-    damageMode: 'channel',
+    group: 'ranged',
+    execution: 'channel',
     damageInterval: 0.25,
-    area: 'line',
     duration: 1,
     effectAt: 0.25,
-    range: 3,
-    radius: 0.35,
+    // os do grupo (que ganha de qualquer valor escrito), pras contas do teste
+    range: GAME_CONFIG.ATTACK_GROUPS.ranged.RANGE,
+    radius: GAME_CONFIG.ATTACK_GROUPS.ranged.RADIUS,
     cooldown: 1,
   }
 
@@ -2853,7 +3051,7 @@ describe('creatureAttackSystem — canalizado em FEIXE (area line)', () => {
 
   it('a forma é a cápsula, não o cone (indicador, aviso e alvos)', () => {
     expect(isConeAttack({ ...BEAM })).toBe(false)
-    expect(isConeAttack({ ...BEAM, area: undefined })).toBe(true)
+    expect(isConeAttack({ ...BEAM, area: 'cone' })).toBe(true)
   })
 
   it('a criatura controlada continua mirando com a câmera DEPOIS do effectAt (o cone, não)', () => {
@@ -2884,7 +3082,7 @@ describe('creatureAttackSystem — canalizado em FEIXE (area line)', () => {
     }
 
     expect(steeredAfterEffect({})).toBe(true)
-    expect(steeredAfterEffect({ area: undefined })).toBe(false)
+    expect(steeredAfterEffect({ group: 'cone' })).toBe(false)
   })
 
   it('cada tick solta o efeito de impacto do feixe (`channelHitGroup`) onde bateu', () => {
@@ -2904,6 +3102,40 @@ describe('creatureAttackSystem — canalizado em FEIXE (area line)', () => {
         expect(hits.length).toBeGreaterThanOrEqual(3)
         // no corpo da frente, não no fim do alcance (3 m)
         expect(hits[0].get(Position).z).toBeLessThan(1.5)
+      },
+    )
+  })
+
+  it('no CONE, cada tick solta o efeito na FRENTE de cada alvo dentro dele', () => {
+    withBeamBasic(
+      {
+        group: 'cone',
+        visual: { effectGroup: 'none', channelHitGroup: 'razor-leaf-hit' },
+      },
+      () => {
+        const world = spawnWorld()
+        spawnControlledCreature(world, { position: { x: 0, y: 1, z: 0 } })
+        const near = { x: 0, y: 1, z: 1 }
+        const far = { x: 0, y: 1, z: 2.2 }
+        spawnWildCreature(world, { position: near, sturdy: true })
+        spawnWildCreature(world, { position: far, sturdy: true })
+
+        tick(world, { [beamSlot]: true, primaryHeld: true })
+        events.drain()
+        for (let t = 0; t < 1.1; t += DELTA) tick(world, { primaryHeld: true })
+        const ticks = events
+          .drain()
+          .filter((e) => e.type === EVENT_TYPES.ATTACK_RESOLVED && e.channel)
+
+        const hits = world
+          .query(AttackEffect)
+          .filter((e) => e.get(AttackEffect).effectGroup === 'razor-leaf-hit')
+        // um por alvo por tick (os dois estão no cone)
+        expect(hits.length).toBe(ticks.length)
+        const zs = hits.map((e) => e.get(Position).z)
+        // na frente de cada um, virado pra quem ataca, não no centro
+        expect(zs.some((z) => z < near.z && z > 0)).toBe(true)
+        expect(zs.some((z) => z < far.z && z > near.z)).toBe(true)
       },
     )
   })

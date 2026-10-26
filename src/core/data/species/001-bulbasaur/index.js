@@ -97,6 +97,8 @@ export const BULBASAUR = {
     battleIdle: 'battleIdle',
     appeal: 'appeal',
     hit: 'hit',
+    // atordoada por condição (a paralisia): entra, repete e sai
+    stunned: { start: 'stunStart', loop: 'stunLoop', end: 'stunEnd' },
     charge: { loop: 'charge' },
   },
 
@@ -151,34 +153,9 @@ export const BULBASAUR = {
     jumpGroup: 'default',
   },
   skills: {
-    1: {
-      id: 'growl',
-      overrides: {
-        audio: {
-          cry: false,
-          clips: ['/assets/audio/voices/001-bulbasaur/cry-02.wav'],
-          volume: 2,
-          refDistance: 4,
-        },
-      },
-    },
-    2: {
-      id: 'tackle',
-      overrides: {
-        range: 1.4,
-        duration: 1,
-        effectAt: 0.4,
-        animation: { clipKey: 'attackBasicAlt' },
-      },
-    },
-    3: {
-      id: 'vine-whip',
-      overrides: {
-        range: 2,
-        duration: 0.8,
-        effectAt: 0.4,
-      },
-    },
+    1: 'growl',
+    2: 'tackle',
+    3: 'vine-whip',
   },
   stats: {
     hp: { base: HP, ev: HP_EV, regenPercent: 0.25, regenDelay: 10 },
@@ -190,8 +167,50 @@ export const BULBASAUR = {
     speed: { base: SPEED, ev: SPEED_EV },
   },
   moves: [
+    {
+      id: 'growl',
+      overrides: {
+        audio: {
+          cry: false,
+          clips: ['/assets/audio/voices/001-bulbasaur/cry-02.wav'],
+          volume: 2,
+          refDistance: 4,
+        },
+        effectAt: 0.3,
+        visual: { positionOffset: { x: 0, y: 0, z: 0.45 } },
+      },
+    },
+    {
+      id: 'tackle',
+      overrides: {
+        duration: 0.8,
+        effectAt: 0.4,
+        animation: { clipKey: 'attackBasicAlt' },
+        animationFrames: 1,
+      },
+    },
+    {
+      id: 'vine-whip',
+      overrides: {
+        duration: 0.8,
+        effectAt: 0.4,
+      },
+    },
+
     { id: 'growth', requires: { level: 6 } },
-    { id: 'leech-seed', requires: { level: 9 } },
-    { id: 'razor-leaf', requires: { level: 12 } },
+    {
+      id: 'leech-seed',
+      requires: { level: 9 },
+      overrides: { visual: { positionOffset: { x: 0, y: 0.5, z: 0 } } },
+    },
+    {
+      id: 'razor-leaf',
+      requires: { level: 12 },
+      overrides: {
+        duration: 1.5,
+        effectAt: 0.75,
+        visual: { positionOffset: { x: 0, y: 0.5, z: 0 } },
+      },
+    },
   ],
 }

@@ -3,21 +3,26 @@ import { isImmuneToStatusSkill, resolveSpeciesTypes } from '../data/types'
 import {
   attackInterrupted,
   attackResolved,
-  burnApplied,
+  conditionApplied,
   statStageChanged,
 } from '../events'
 import { isInterruptible } from './attackInterrupt'
-import { applyStatStageEffect, readStatStages } from './statStages'
+import {
+  applyStatStageEffect,
+  readSpeedStage,
+  readStatStages,
+} from './statStages'
 import { iniciarAtordoamento } from '../actions/hitStun'
-import { plantarSemente } from '../actions/leechSeed'
-import { queimar } from '../actions/burn'
+import { aplicarCondicao, removerCondicoesPorId } from '../actions/conditions'
 import { gameplayRng } from '../rng'
-import { rollHit } from './accuracy'
+import { resolveAccuracyStage, rollHit } from './accuracy'
+import { resolveBodyExtent } from '../physics/capsule'
 import { finishAttack, resolveAttackForEntity } from './attackCasting'
 import { resolveEntityMoveSet } from './creatureAttack'
 import {
   ActionState,
   AttackEffect,
+  CharacterController,
   IndividualValues,
   Position,
   Rotation,
@@ -27,21 +32,29 @@ import {
 
 /**
  * Aplica os `effects` da skill em cada alvo — `statStage` (estágio de
- * atributo) e `leechSeed` (planta a semente, `plantarSemente`; quem drena é o
- * `leechSeedSystem`) — e emite os eventos: um `statStageChanged` por atributo que MUDOU de verdade (já no
+ * atributo) e `condition` (`aplicarCondicao`; quem conta o tempo é o
+ * `conditionSystem`) — e emite os eventos: um `statStageChanged` por atributo que MUDOU de verdade (já no
  * limite = nada) e um `attackResolved` com `status: true` e `damage: 0` por
  * alvo — conta como acerto pra reação (a selvagem se provoca, o time
  * defende), mas brilho, hit stop e número de dano o ignoram. Alvo de um tipo
  * em `attack.immuneTypes` (ex.: Leech Seed em Planta) não recebe nada: só o
  * `attackResolved` com `effectiveness: 'immune'` ("Não afeta…").
+ *
+ * Devolve os alvos que o golpe ACERTOU (passaram na precisão, imunes
+ * inclusive) — o VFX do golpe de alvo único nasce no contato com eles.
  */
 export function applyAttackEffects(world, events, context) {
   const { entity, action, attack, targets, origin, impactPoint } = context
-  const accuracyStage = readStatStages(entity).accuracy
+  const attackerStages = readStatStages(entity)
+  const hits = []
 
   for (const target of targets) {
     // Precisão: cada alvo do cone tem o PRÓPRIO sorteio (como no Pokémon, um
     // golpe de status também pode errar) — errou, nenhum efeito nele.
+    const accuracyStage = resolveAccuracyStage(
+      attackerStages,
+      readStatStages(target.entity),
+    )
     if (!rollHit(attack, accuracyStage, gameplayRng)) {
       events.emit(
         attackResolved({
@@ -60,6 +73,7 @@ export function applyAttackEffects(world, events, context) {
       )
       continue
     }
+    hits.push(target)
     if (isImmuneToStatusSkill(attack, resolveSpeciesTypes(target.species))) {
       events.emit(
         attackResolved({
@@ -78,23 +92,13 @@ export function applyAttackEffects(world, events, context) {
       )
       continue
     }
-    // VFX no corpo de CADA alvo atingido (ex.: a fumaça do Smokescreen)
-    if (attack.visual?.targetEffectGroup && target.entity.has(Position)) {
-      const { x, y, z } = target.entity.get(Position)
-      world.spawn(
-        Position({ x, y, z }),
-        Rotation,
-        AttackEffect({
-          lifetime: attack.visual.targetEffectVisualDuration ?? 1,
-          radius: attack.radius,
-          effectGroup: attack.visual.targetEffectGroup,
-          impactType: '',
-          visualScale: attack.visual.scale ?? 1,
-          length: 0,
-        }),
-      )
-    }
-    applyEffectsToTarget(events, { entity, attack, target })
+    spawnTargetEffect(world, attack, target.entity)
+    applyEffectsToTarget(events, {
+      entity,
+      attack,
+      target,
+      slot: action.pendingSlot,
+    })
     events.emit(
       attackResolved({
         attacker: entity,
@@ -110,25 +114,36 @@ export function applyAttackEffects(world, events, context) {
       }),
     )
   }
+  return hits
 }
 
 /**
- * Os `effects` de um golpe num alvo, um por tipo: `leechSeed` (planta a
- * semente — quem drena é o `leechSeedSystem`), `burn` (sorteia a chance e
- * queima — quem tira HP é o `burnSystem`; emite `burnApplied`) e `statStage`
- * (um `statStageChanged` por atributo que MUDOU de verdade).
+ * Os `effects` de um golpe num alvo (ou `effects`, se vier), um por tipo:
+ * `condition` (sorteia a chance e aplica — quem conta o tempo é o
+ * `conditionSystem`; emite `conditionApplied`), `removeConditions` (tira as
+ * condições `conditions` que ele tiver — ex.: o Rapid Spin se soltando do
+ * Wrap) e `statStage` (um `statStageChanged` por atributo que MUDOU de
+ * verdade).
  */
-function applyEffectsToTarget(events, { entity, attack, target }) {
-  for (const effect of attack.effects ?? []) {
-    if (plantarSemente(target.entity, entity, effect)) continue
-    const burned = queimar(target.entity, entity, effect, gameplayRng)
-    if (burned !== null) {
-      if (burned) {
+function applyEffectsToTarget(
+  events,
+  { entity, attack, target, slot, effects = attack.effects },
+) {
+  for (const effect of effects ?? []) {
+    if (effect?.type === 'removeConditions') {
+      removerCondicoesPorId(target.entity, effect.conditions ?? [])
+      continue
+    }
+    const applied = aplicarCondicao(target.entity, entity, effect, gameplayRng)
+    if (applied !== null) {
+      if (applied) {
         events.emit(
-          burnApplied({
+          conditionApplied({
             target: target.entity,
             source: entity,
             attackId: attack.id,
+            slot,
+            condition: effect.condition,
           }),
         )
       }
@@ -153,32 +168,33 @@ function applyEffectsToTarget(events, { entity, attack, target }) {
  * `attackResolved` do dano, então aqui não tem sorteio de precisão nem evento
  * de acerto a mais — só os efeitos (cada um com a própria chance, se tiver).
  */
-export function applySecondaryEffects(events, { entity, attack, target }) {
+export function applySecondaryEffects(
+  events,
+  { entity, attack, target, slot },
+) {
   if (!attack.effects?.length) return
-  applyEffectsToTarget(events, { entity, attack, target })
+  applyEffectsToTarget(events, { entity, attack, target, slot })
 }
 
 /**
- * Aplica os `effects` de um golpe em SI MESMO (`area: 'self'` — ex.: Growth)
- * no próprio atacante: um `statStageChanged` por atributo que MUDOU (já no
- * limite = nada), com `attacker` e `target` iguais — é o que acende o brilho
- * e o texto "Ataque ↑" nele. Sem sorteio de precisão (no Pokémon, golpe em si
- * mesmo não erra) e sem `attackResolved`: não houve alvo, então ninguém se
- * provoca nem defende.
+ * Aplica os `effects` de um golpe em SI MESMO (`area: 'self'` — ex.: Growth,
+ * Focus Energy) no próprio atacante — ou, com `effects`, os efeitos que um
+ * golpe de DANO dá em quem usou (`selfEffects`, ex.: o Rapid Spin) —, como
+ * num alvo: um `statStageChanged` por
+ * atributo que MUDOU (já no limite = nada), com `attacker` e `target` iguais
+ * — é o que acende o brilho e o texto "Ataque ↑" nele —, e a condição (ex.:
+ * Focado) com o `conditionApplied`. Sem sorteio de precisão (no Pokémon,
+ * golpe em si mesmo não erra) e sem `attackResolved`: não houve alvo, então
+ * ninguém se provoca nem defende.
  */
-export function applySelfEffects(events, { entity, attack }) {
-  for (const effect of attack.effects ?? []) {
-    const change = applyStatStageEffect(entity, effect)
-    if (!change || change.delta === 0) continue
-    events.emit(
-      statStageChanged({
-        attacker: entity,
-        target: entity,
-        attackId: attack.id,
-        ...change,
-      }),
-    )
-  }
+export function applySelfEffects(events, { entity, attack, slot, effects }) {
+  applyEffectsToTarget(events, {
+    entity,
+    attack,
+    target: { entity },
+    slot,
+    effects: effects ?? attack.effects,
+  })
 }
 
 /**
@@ -205,6 +221,7 @@ export function interruptStatusAttacks(events, damaged) {
       entity.get(IndividualValues),
       resolveEntityLevel(entity, species),
       resolveEntityMoveSet(entity, species),
+      readSpeedStage(entity),
     )
     if (!isInterruptible(action, attack)) continue
 
@@ -214,4 +231,31 @@ export function interruptStatusAttacks(events, damaged) {
     entity.set(ActionState, action)
     events.emit(attackInterrupted({ entity, attackId: attack.id, slot }))
   }
+}
+
+/**
+ * VFX no corpo de um alvo atingido (`visual.targetEffectGroup` — ex.: a
+ * fumaça do Smokescreen, os anéis do Wrap), virado como ele e com o tamanho
+ * do corpo dele. Vale no golpe só de efeito e no de dano (`attackImpact.js`).
+ */
+export function spawnTargetEffect(world, attack, target) {
+  if (!attack.visual?.targetEffectGroup || !target.has(Position)) return
+  const { x, y, z } = target.get(Position)
+  const controller = target.get(CharacterController)
+  const extent = controller ? resolveBodyExtent(controller) : null
+  world.spawn(
+    Position({ x, y, z }),
+    Rotation({ y: target.get(Rotation)?.y ?? 0 }),
+    AttackEffect({
+      lifetime: attack.visual.targetEffectVisualDuration ?? 1,
+      radius: attack.radius,
+      effectGroup: attack.visual.targetEffectGroup,
+      impactType: '',
+      visualScale: attack.visual.scale ?? 1,
+      length: 0,
+      bodyWidth: extent?.width ?? 0,
+      bodyLength: extent?.length ?? 0,
+      bodyHeight: extent?.height ?? 0,
+    }),
+  )
 }

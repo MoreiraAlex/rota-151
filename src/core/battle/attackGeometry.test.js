@@ -13,12 +13,14 @@ import {
   isWithinCombatHeight,
   isWithinFlyingTargetHeight,
   resolveAttackOrigin,
+  resolveAttackAreaStart,
   resolveAttackReach,
   resolveCapsuleSegment,
   resolveContactPoint,
   resolveFootElevation,
   resolveGroundPoint,
   resolveGroundY,
+  resolveTriggerEntry,
 } from './attackGeometry'
 
 const STANDING = {
@@ -75,25 +77,72 @@ describe('resolveAttackOrigin', () => {
   })
 })
 
-describe('resolveAttackReach', () => {
-  it('sem offset, anda o range inteiro', () => {
-    expect(resolveAttackReach({ range: 3, visual: {} })).toBe(3)
+describe('resolveAttackAreaStart — a área começa na borda do trigger', () => {
+  const POS = { x: 0, y: 1, z: 0 }
+  const FORWARD = { x: 0, y: 0, z: 1 }
+  const EDGE = 0.4
+  const END = { x: 0, y: 1, z: 5 }
+  // a origem do golpe (de onde o VFX sai) mais à frente, de propósito
+  const ORIGIN = { x: 0, y: 1.2, z: 1 }
+
+  it('cápsula: o eixo começa um radius depois da borda (a ponta de trás nela)', () => {
+    const attack = { range: 3, radius: 0.5 }
+    const start = resolveAttackAreaStart(
+      POS,
+      FORWARD,
+      EDGE,
+      ORIGIN,
+      END,
+      attack,
+    )
+    expect(start.z).toBeCloseTo(EDGE + attack.radius)
+    expect(start.y).toBeCloseTo(ORIGIN.y)
   })
 
-  it('o range conta do centro: a saída empurrada pra frente desconta o z', () => {
-    const attack = {
-      range: 3,
-      visual: { positionOffset: { x: 0, y: 0, z: 1 } },
-    }
-    expect(1 + resolveAttackReach(attack)).toBeCloseTo(attack.range)
+  it('cone: o vértice na borda', () => {
+    const attack = { range: 3, radius: 1.5, area: 'cone' }
+    const start = resolveAttackAreaStart(
+      POS,
+      FORWARD,
+      EDGE,
+      ORIGIN,
+      END,
+      attack,
+    )
+    expect(start.z).toBeCloseTo(EDGE)
+  })
+
+  it('trajetória que parou antes da borda (parede encostada): fica no fim dela', () => {
+    const attack = { range: 3, radius: 0.5 }
+    const wall = { x: 0, y: 1, z: EDGE / 2 }
+    expect(
+      resolveAttackAreaStart(POS, FORWARD, EDGE, ORIGIN, wall, attack),
+    ).toEqual(wall)
+  })
+})
+
+describe('resolveAttackReach', () => {
+  const EDGE = 0.4
+
+  it('sem offset, anda a borda do corpo + o range', () => {
+    const attack = { range: 3, visual: {} }
+    expect(resolveAttackReach(attack, EDGE)).toBeCloseTo(EDGE + attack.range)
+  })
+
+  it('o range conta da borda: a saída empurrada pra frente desconta o z', () => {
+    const offset = { x: 0, y: 0, z: 1 }
+    const attack = { range: 3, visual: { positionOffset: offset } }
+    expect(offset.z + resolveAttackReach(attack, EDGE)).toBeCloseTo(
+      EDGE + attack.range,
+    )
   })
 
   it('nunca fica negativo', () => {
     const attack = {
       range: 1,
-      visual: { positionOffset: { x: 0, y: 0, z: 2 } },
+      visual: { positionOffset: { x: 0, y: 0, z: 2 + EDGE } },
     }
-    expect(resolveAttackReach(attack)).toBe(0)
+    expect(resolveAttackReach(attack, EDGE)).toBe(0)
   })
 })
 
@@ -181,6 +230,28 @@ describe('resolveContactPoint', () => {
       0.5,
     )
     expect(contact).toEqual({ x: 0, y: 0, z: 0.1 })
+  })
+})
+
+describe('resolveTriggerEntry', () => {
+  const origin = { x: 0, y: 1, z: 0 }
+  const end = { x: 0, y: 1, z: 4 }
+  const center = { x: 0, y: 0, z: 2 }
+  const radius = 0.5
+
+  it('trajetória atravessando o trigger: entra na borda virada pra origem', () => {
+    const s = resolveTriggerEntry(origin, end, center, center, radius, 0.5)
+    expect(s * end.z).toBeCloseTo(center.z - radius)
+  })
+
+  it('só de raspão (não entra): null', () => {
+    const side = { x: 0.8, y: 0, z: 2 }
+    expect(resolveTriggerEntry(origin, end, side, side, radius, 0.5)).toBeNull()
+  })
+
+  it('origem já dentro do trigger: 0', () => {
+    const near = { x: 0, y: 0, z: 0.2 }
+    expect(resolveTriggerEntry(origin, end, near, near, radius, 0.05)).toBe(0)
   })
 })
 

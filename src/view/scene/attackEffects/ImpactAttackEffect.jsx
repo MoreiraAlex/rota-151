@@ -24,12 +24,13 @@ import { useParticleAttackEffect } from './useParticleAttackEffect'
  * Dura o tempo das camadas do VFX do tipo (`impactVfx.js`; alguns tipos
  * duram mais que outros) — o `effectVisualDuration` do ataque precisa ser ≥ isso.
  */
-export function ImpactAttackEffect({ radius, scale = 1, impactType }) {
+export function ImpactAttackEffect({ rise, radius, scale = 1, impactType }) {
   const type = resolveImpactType(impactType)
   const emitters = useMemo(() => buildImpactEmitters(type), [type])
   const texturePaths = useMemo(() => impactTexturePaths(type), [type])
 
   const groupRef = useParticleAttackEffect({
+    rise,
     emitters,
     texturePaths,
     radius,

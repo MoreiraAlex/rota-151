@@ -1,10 +1,12 @@
 import { isChannelAttack } from './channelAttack'
+import { resolveImpactAt, resolveLungeTime } from './attackLunge'
 
 /**
  * Instante (segundos desde o disparo) em que o golpe em andamento ACONTECE —
- * o `effectAt` real da ENTIDADE. O básico tem `duration`/`effectAt`
+ * o acerto real da ENTIDADE: o `effectAt`, mais a arrancada se o golpe tiver
+ * (`resolveImpactAt`, `attackLunge.js`). O básico tem `duration`/`effectAt`
  * escalados pelo `speed` (`creatureAttackSystem.js`), sempre na mesma
- * proporção — então basta a razão da definição (`effectAt / duration`)
+ * proporção — então basta a razão da definição (acerto / `duration`)
  * aplicada à duração real da ação (`1 / ActionState.animationSpeed`).
  *
  * É o fim da CARGA: o aviso no chão enche até aqui, e um golpe de status
@@ -16,7 +18,19 @@ export function resolveAttackHitTime(action, attack) {
   if (!(attack.duration > 0) || !(attack.effectAt > 0)) return null
 
   const actionDuration = 1 / (action.animationSpeed || 1)
-  return (attack.effectAt / attack.duration) * actionDuration
+  return (resolveImpactAt(attack) / attack.duration) * actionDuration
+}
+
+/**
+ * A ARRANCADA do golpe está acontecendo agora (`lunge`, `attackLunge.js`)?
+ * Do `effectAt` até o acerto, em segundos reais. É quando tocam o visual e o
+ * som da arrancada (`visual.lungeGroup`/`audio.lungeGroup`).
+ */
+export function isAttackLunging(action, attack) {
+  const hitAt = resolveAttackHitTime(action, attack)
+  if (hitAt === null || resolveLungeTime(attack) <= 0) return false
+  const start = (attack.effectAt / resolveImpactAt(attack)) * hitAt
+  return action.elapsed >= start && action.elapsed < hitAt
 }
 
 /**
@@ -30,7 +44,7 @@ export function resolveAttackHitTime(action, attack) {
  * Completa (1) no instante do DANO (`effectAt`, `resolveAttackHitTime`), não
  * no fim da `duration`: o aviso só serve pra esquiva se "cheio" significar
  * "acertou agora". Depois do dano devolve `null` (o leque some — o VFX
- * assume). Vale também pro ataque CANALIZADO (`damageMode: 'channel'`): o
+ * assume). Vale também pro ataque CANALIZADO (`execution: 'channel'`): o
  * leque some assim que enche, mesmo com o canal continuando (pedido do
  * usuário).
  *
@@ -54,7 +68,7 @@ export function isAttackCharging(action, attack) {
 }
 
 /**
- * O canal do golpe está RODANDO agora — golpe canalizado (`damageMode:
+ * O canal do golpe está RODANDO agora — golpe canalizado (`execution:
  * 'channel'`), já passado o instante do efeito (a carga acabou) e a ação ainda
  * em andamento (soltar o botão encerra a ação)? É quando roda o visual de canal
  * (`visual.channelGroup` — ex.: o jato do Water Gun seguindo a mira).

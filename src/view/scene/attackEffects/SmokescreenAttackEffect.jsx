@@ -10,8 +10,14 @@ import { useParticleAttackEffect } from './useParticleAttackEffect'
  * ver docs/features/033-skills-de-combate-e-vfx.md): o sopro e a nuvem de fumaça ao longo do cone, saindo da boca (o `AttackEffect` nasce na ponta do cone; a criatura fica em (0, 0, -`length`)).
  * Config das partículas em `view/vfx/smokescreenVfx.js`.
  */
-export function SmokescreenAttackEffect({ radius, length = 0, scale = 1 }) {
+export function SmokescreenAttackEffect({
+  rise,
+  radius,
+  length = 0,
+  scale = 1,
+}) {
   const groupRef = useParticleAttackEffect({
+    rise,
     emitters: SMOKESCREEN_EMITTERS,
     texturePaths: SMOKESCREEN_TEXTURE_PATHS,
     length,

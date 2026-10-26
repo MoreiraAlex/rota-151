@@ -17,8 +17,9 @@ import { useParticleAttackEffect } from './useParticleAttackEffect'
  * `effectVisualDuration` do ataque precisa ser ≥ isso, senão
  * as faíscas somem no meio.
  */
-export function TackleAttackEffect({ radius, scale = 1 }) {
+export function TackleAttackEffect({ rise, radius, scale = 1 }) {
   const groupRef = useParticleAttackEffect({
+    rise,
     emitters: TACKLE_EMITTERS,
     texturePaths: TACKLE_TEXTURE_PATHS,
     radius,

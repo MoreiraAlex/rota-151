@@ -8,6 +8,7 @@ import { getSpecies } from '@/core/data/species'
 import { resolveEntityAttack } from '@/core/battle/creatureAttack'
 import { resolveAttackTelegraphProgress } from '@/core/battle/attackTelegraph'
 import { isSelfAttack } from '@/core/battle/channelAttack'
+import { resolveEntityTriggerEdge } from '@/core/battle/attackTargets'
 import {
   ActionState,
   CharacterController,
@@ -81,12 +82,14 @@ export function AttackTelegraphView() {
           paintAttackShape(shape, PAINT[kind])
           paintedRefs.current[used] = kind
         }
+        const direction = { x: action.dirX, y: action.dirY, z: action.dirZ }
         placeAttackShape(shape, {
           pos: entity.get(Position),
           body: entity.get(CharacterController),
           colliderHandle: entity.get(PhysicsBody).colliderHandle,
           attack,
-          direction: { x: action.dirX, y: action.dirY, z: action.dirZ },
+          direction,
+          edge: resolveEntityTriggerEdge(entity, direction),
           progress,
         })
         shape.root.visible = true

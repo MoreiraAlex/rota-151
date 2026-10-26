@@ -8,12 +8,9 @@
 export const PUNCH_SKILL = {
   id: 'punch',
   type: 'normal',
-  duration: 0.5,
-  effectAt: 0.25,
-  range: 1.4,
-  aim: 'melee',
-  castMode: 'instant',
-  radius: 0.3,
+  group: 'melee',
+  duration: 1.2,
+  effectAt: 0.5,
   visual: {
     effectGroup: 'punch',
     effectVisualDuration: 0.35,

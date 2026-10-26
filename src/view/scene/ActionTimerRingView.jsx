@@ -65,10 +65,13 @@ function createRing(innerRadius) {
  * recriadas só quando esse raio muda (troca de criatura controlada) —
  * este componente é o dono delas e chama `dispose()` ao trocar/desmontar.
  *
+ * `follow`: a marca de quem o anel segue — no jogo, a criatura controlada
+ * (`InputControlled`); o laboratório de golpes passa o atacante dele.
+ *
  * `useFrame` aqui é a exceção documentada de componente puramente visual:
  * só LÊ estado do ECS e reposiciona os próprios meshes.
  */
-export function ActionTimerRingView() {
+export function ActionTimerRingView({ follow = InputControlled }) {
   const groupRef = useRef()
   const trackRef = useRef()
   const fillRef = useRef()
@@ -84,7 +87,7 @@ export function ActionTimerRingView() {
     if (!group) return
 
     const controlled = world.queryFirst(
-      InputControlled,
+      follow,
       ActionState,
       CharacterController,
       Position,

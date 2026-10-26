@@ -1,6 +1,7 @@
 import { entrarEmCombate } from '../actions/combat'
 import { defenderGrupo, voltarASeguir } from '../actions/partyBehavior'
 import { planAiAttack } from '../battle/aiAttackChoice'
+import { resolveEntityHitTrigger } from '../battle/attackTargets'
 import { resolveResting } from '../battle/aiEnergy'
 import { advanceAiDash, moveInFight } from '../battle/aiMovement'
 import {
@@ -15,7 +16,6 @@ import { getSpecies } from '../data/species'
 import { GAME_CONFIG } from '../gameConfig'
 import {
   ActionState,
-  CharacterController,
   Fainted,
   InputControlled,
   MovementStats,
@@ -198,7 +198,7 @@ export function partyBehaviorSystem(context) {
         behavior.attackSlot = plan?.slot ?? null
         const reach =
           plan?.reach ??
-          resolveAttackReach(entity, species, target.get(CharacterController))
+          resolveAttackReach(entity, species, resolveEntityHitTrigger(target))
         // Sem golpe nenhum na espécie: só acompanha o alvo de perto.
         const stopDistance = (reach ?? 1) * ATTACK_REACH_FRACTION
 

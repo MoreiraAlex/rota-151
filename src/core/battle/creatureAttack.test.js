@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { getSkill } from '../data/skills'
+import { resolveSkill } from '../data/skills'
 import {
   TRAINING_SLOT,
   resolveCreatureAttack,
@@ -9,10 +9,8 @@ import { createWorld } from 'koota'
 import { CreatureMoves, Training } from '../traits'
 
 const SPECIES = {
-  skills: {
-    1: 'ember',
-    2: { id: 'ember', overrides: { range: 9 } },
-  },
+  skills: { 1: 'ember', 2: 'scratch' },
+  moves: [{ id: 'ember' }, { id: 'scratch', overrides: { duration: 9 } }],
 }
 
 describe('resolveCreatureAttack', () => {
@@ -20,11 +18,11 @@ describe('resolveCreatureAttack', () => {
     expect(resolveCreatureAttack(SPECIES, 'primary')).toBeNull()
   })
 
-  it('secondaryN resolve a habilidade N de `skills` (compartilhada, com override por espécie)', () => {
+  it('secondaryN resolve o golpe N de `skills` (compartilhado, com o override da espécie em `moves`)', () => {
     expect(resolveCreatureAttack(SPECIES, 'secondary1')).toEqual(
-      getSkill('ember'),
+      resolveSkill('ember'),
     )
-    expect(resolveCreatureAttack(SPECIES, 'secondary2').range).toBe(9)
+    expect(resolveCreatureAttack(SPECIES, 'secondary2').duration).toBe(9)
   })
 
   it('slot vazio, espécie sem golpes ou sem espécie → null', () => {
@@ -34,10 +32,10 @@ describe('resolveCreatureAttack', () => {
   })
 
   it('com moveSet, o golpe vem da criatura, com os overrides da espécie', () => {
-    const moveSet = { 1: null, 2: { id: 'ember', mastery: 1 }, 3: null }
+    const moveSet = { 1: null, 2: { id: 'scratch', mastery: 1 }, 3: null }
     expect(resolveCreatureAttack(SPECIES, 'secondary1', moveSet)).toBeNull()
-    expect(resolveCreatureAttack(SPECIES, 'secondary2', moveSet).id).toBe(
-      'ember',
+    expect(resolveCreatureAttack(SPECIES, 'secondary2', moveSet).duration).toBe(
+      9,
     )
   })
 

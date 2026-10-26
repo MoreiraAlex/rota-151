@@ -4,14 +4,13 @@ export const EVENT_TYPES = {
   ATTACK_RESOLVED: 'attackResolved',
   STAT_STAGE_CHANGED: 'statStageChanged',
   ATTACK_INTERRUPTED: 'attackInterrupted',
-  LEECH_SEED_DRAINED: 'leechSeedDrained',
+  CONDITION_APPLIED: 'conditionApplied',
+  CONDITION_TICKED: 'conditionTicked',
   EXPERIENCE_GAINED: 'experienceGained',
   LEVELED_UP: 'leveledUp',
   ATTACK_FAILED: 'attackFailed',
   ATTACK_USED: 'attackUsed',
   CREATURE_FAINTED: 'creatureFainted',
-  BURN_APPLIED: 'burnApplied',
-  BURN_DAMAGED: 'burnDamaged',
   MOVE_UNLOCKED: 'moveUnlocked',
   MOVE_READY_TO_LEARN: 'moveReadyToLearn',
   MOVE_LEARNED: 'moveLearned',
@@ -46,7 +45,7 @@ export const EVENT_TYPES = {
  * @property {boolean} status golpe de STATUS (`damage: 0`, sem dano — ex.: Growl):
  *   conta como acerto pra reação (a selvagem se provoca, o time defende), mas
  *   brilho, congelar de animação e número de dano ignoram
- * @property {boolean} channel tick de um ataque canalizado (`damageMode:
+ * @property {boolean} channel tick de um ataque canalizado (`execution:
  *   'channel'`) — efeitos de impacto "pesados" (hit stop) ignoram
  * @property {number} channelTick índice do tick no canalizado (`0` = o
  *   primeiro; `0` fora do canal) — o texto de efetividade só sai no primeiro
@@ -55,6 +54,13 @@ export const EVENT_TYPES = {
  *   `'neutral'` num miss e em golpe de status. `'immune'`: acertou mas não
  *   pegou (sem dano nem efeito) — brilho e hit stop ignoram, o texto é
  *   "Não afeta…"; golpe de status com `immuneTypes` também
+ * @property {boolean} boosted o acerto levou o poder maior contra quem apanhou
+ *   há pouco (`core/battle/recentDamageBoost.js`, o Assurance)
+ * @property {number} hitIndex qual acerto do golpe de vários acertos (`0` = o
+ *   primeiro; `0` fora dele — `core/battle/multiHit.js`, o Fury Attack)
+ * @property {number} hitCount quantos acertos o golpe sorteou (`1` fora dele)
+ * @property {number | null} power o poder que o golpe de dano usou neste alvo
+ *   (com os bônus — Assurance, Electro Ball); `null` fora do golpe único
  */
 
 /**
@@ -86,6 +92,10 @@ export function attackResolved({
   status = false,
   missed = false,
   effectiveness = 'neutral',
+  boosted = false,
+  hitIndex = 0,
+  hitCount = 1,
+  power = null,
 }) {
   return {
     type: EVENT_TYPES.ATTACK_RESOLVED,
@@ -104,6 +114,10 @@ export function attackResolved({
     channelTick,
     status,
     effectiveness,
+    boosted,
+    hitIndex,
+    hitCount,
+    power,
   }
 }
 
@@ -178,35 +192,37 @@ export function attackInterrupted({ entity, attackId, slot }) {
 }
 
 /**
- * @typedef {object} LeechSeedDrainedEvent
- * @property {'leechSeedDrained'} type
- * @property {import('koota').Entity} target quem tem a semente (perdeu HP)
- * @property {import('koota').Entity | null} source quem plantou (ganhou HP), ou
- *   `null` se já não existe (recolhido, destruído)
+ * @typedef {object} ConditionTickedEvent
+ * @property {'conditionTicked'} type
+ * @property {import('koota').Entity} target quem tem a condição (perdeu HP)
+ * @property {import('koota').Entity | null} source quem aplicou, ou `null` se
+ *   já não existe (recolhido, destruído)
+ * @property {string} condition o id da condição (`core/data/conditions/`)
  * @property {number} damage HP tirado do alvo
- * @property {number} healed HP que quem plantou de fato recuperou (0 sem
- *   `source`, desmaiado ou já cheio)
+ * @property {number} healed HP que quem aplicou de fato recuperou (0 sem
+ *   cura pra ele, sem `source`, desmaiado ou já cheio)
  */
 
 /**
- * Uma drenagem do Leech Seed aconteceu (o estado — `Vitals` dos dois — já foi
- * aplicado; o evento é só o aviso).
+ * Um tick de condição tirou HP (o estado — `Vitals` — já foi aplicado; o
+ * evento é só o aviso).
  *
- * - Quem emite: `leechSeedSystem.js`, a cada `interval` da semente.
- * - Quem consome: `view/systems/damageNumberSystem.js` (número de dano no alvo
- *   e "+N" de cura em quem plantou). Drenado uma vez por frame; sem
- *   consumidor, some. Não provoca reação (não é `attackResolved`) nem
- *   interrompe golpe de status.
+ * - Quem emite: `conditionSystem.js`, a cada `interval` da condição.
+ * - Quem consome: `view/systems/damageNumberSystem.js` (número de dano no
+ *   alvo e "+N" de cura em quem aplicou), o log, a comida e o treino.
+ *   Drenado uma vez por frame; sem consumidor, some. Não provoca reação
+ *   (não é `attackResolved`) nem interrompe golpe.
  *
- * @returns {LeechSeedDrainedEvent}
+ * @returns {ConditionTickedEvent}
  */
-export function leechSeedDrained({ target, source, damage, healed }) {
+export function conditionTicked({ target, source, condition, damage, healed }) {
   return {
-    type: EVENT_TYPES.LEECH_SEED_DRAINED,
+    type: EVENT_TYPES.CONDITION_TICKED,
     target,
     source: source ?? null,
+    condition,
     damage,
-    healed,
+    healed: healed ?? 0,
   }
 }
 
@@ -392,41 +408,29 @@ export function moveLearned({
 }
 
 /**
- * Uma criatura foi queimada por um golpe (o `Burn` já foi aplicado — o
- * evento é só o aviso). Renovar uma queimadura também emite.
+ * Uma criatura pegou uma condição de um golpe (o `Conditions` já foi
+ * aplicado — o evento é só o aviso). Renovar também emite.
  *
- * - Quem emite: `applyEffectToTarget` (`core/battle/attackStatusEffects.js`).
+ * - Quem emite: `applyEffectsToTarget` (`core/battle/attackStatusEffects.js`).
  * - Quem consome: `view/systems/battleLogSystem.js` ("X foi queimado!").
  *   Drenado uma vez por frame; sem consumidor, some.
  *
- * @returns {{ type: 'burnApplied', target: import('koota').Entity, source: import('koota').Entity | null, attackId: string }}
+ * @returns {{ type: 'conditionApplied', target: import('koota').Entity, source: import('koota').Entity | null, attackId: string, slot: string | null, condition: string }}
  */
-export function burnApplied({ target, source, attackId }) {
+export function conditionApplied({
+  target,
+  source,
+  attackId,
+  slot,
+  condition,
+}) {
   return {
-    type: EVENT_TYPES.BURN_APPLIED,
+    type: EVENT_TYPES.CONDITION_APPLIED,
     target,
     source: source ?? null,
     attackId,
-  }
-}
-
-/**
- * A queimadura tirou HP (um tick). Como a drenagem da semente, é dano
- * passivo: não provoca reação nem interrompe golpe.
- *
- * - Quem emite: `core/systems/burnSystem.js`.
- * - Quem consome: `view/systems/damageNumberSystem.js` (número no alvo) e
- *   `view/systems/battleLogSystem.js`. Drenado uma vez por frame; sem
- *   consumidor, some.
- *
- * @returns {{ type: 'burnDamaged', target: import('koota').Entity, source: import('koota').Entity | null, damage: number }}
- */
-export function burnDamaged({ target, source, damage }) {
-  return {
-    type: EVENT_TYPES.BURN_DAMAGED,
-    target,
-    source: source ?? null,
-    damage,
+    slot: slot ?? null,
+    condition,
   }
 }
 

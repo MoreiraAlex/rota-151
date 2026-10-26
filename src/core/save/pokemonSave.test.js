@@ -8,7 +8,7 @@ import {
 } from '../actions/pokemon'
 import {
   BallOnGround,
-  Burn,
+  Conditions,
   CreatureLevel,
   CreatureMoves,
   Fainted,
@@ -30,11 +30,13 @@ import { restorePokemon, serializePokemon } from './pokemonSave'
 const SPECIES_ID = 'charmander'
 const OTHER_SPECIES_ID = 'bulbasaur'
 const BURN = {
+  id: 'burn',
   timeLeft: 3,
   tickTimer: 1,
   fraction: 0.1,
   interval: 2,
-  attackMultiplier: 0.5,
+  to: null,
+  modifiers: { attack: 0.5 },
 }
 
 const worlds = []
@@ -53,7 +55,7 @@ function summon(world, pokemon, { vitals, burn = null, fainted = null }) {
     SummonedCreature({ speciesId: pokemon.get(Pokemon).speciesId }),
     SummonedFrom(pokemon),
     Vitals(vitals),
-    ...(burn ? [Burn(burn)] : []),
+    ...(burn ? [Conditions({ list: [burn] })] : []),
     ...(fainted ? [Fainted(fainted)] : []),
   )
 }
@@ -104,7 +106,7 @@ describe('serializePokemon', () => {
     const saved = serializePokemon(world, player, pokemon)
 
     expect(saved.storedVitals.hp).toBe(1)
-    expect(saved.conditions).toEqual({ burn: BURN })
+    expect(saved.conditions).toEqual([BURN])
     expect(saved.faintTimeLeft).toBe(7)
     // Só lê: o registro continua sem nada guardado.
     expect(pokemon.has(StoredConditions)).toBe(false)
@@ -119,7 +121,7 @@ describe('restorePokemon', () => {
     original.set(Pokemon, { ...original.get(Pokemon), ballId: 'great-ball' })
     original.set(StoredVitals, { vitals: { ...Vitals.schema, hp: 2 } })
     original.add(StoredFaint({ timeLeft: 4 }))
-    original.add(StoredConditions({ burn: { ...BURN } }))
+    original.add(StoredConditions({ list: [{ ...BURN }] }))
     const saved = serializePokemon(world, player, original)
 
     const target = setup()

@@ -65,7 +65,7 @@ import { trait } from 'koota'
  * da `'attack'` quando a espécie a tiver (docs/features/033-skills-de-combate-e-vfx.md).
  *
  * `channelWeights`/`channelTick` — só em ataque CANALIZADO
- * (`damageMode: 'channel'`): as frações do dano total, uma por tick,
+ * (`execution: 'channel'`): as frações do dano total, uma por tick,
  * sorteadas no disparo (`rollChannelWeights`, somam 1), e o índice do
  * próximo tick. `null`/`0` fora disso. Dono: `creatureAttackSystem`.
  *
@@ -73,6 +73,17 @@ import { trait } from 'koota'
  * secundário do golpe neste lançamento (ex.: a chance de queimar), pra cada
  * alvo sortear uma vez só (`applyChannelTick`). Lista transitória de
  * entidades, zerada no disparo e no fim. `null` fora disso.
+ *
+ * `channelMultipliers` — só no CANALIZADO: o bônus de poder de quem apanhou
+ * há pouco (Assurance) de cada alvo, medido antes do primeiro tick nele e
+ * mantido o canal inteiro (`{ [entidade]: multiplicador }`). `null` fora
+ * disso; zerado no disparo e no fim.
+ *
+ * `multiHit` — só no golpe de VÁRIOS acertos (`attack.multiHit`, o Fury
+ * Attack), depois que o primeiro acerto pegou um alvo:
+ * `{ target, offset, count, done }` — o alvo, o contato em relação à
+ * posição dele, quantos acertos foram sorteados e quantos já foram
+ * (`core/battle/multiHit.js`). `null` fora disso; zerado no disparo e no fim.
  *
  * `pendingSlot` guarda QUAL slot a ação em andamento diz respeito, com
  * significado diferente por ação (mesmo campo reaproveitado, não um por
@@ -110,6 +121,8 @@ export const ActionState = trait({
   channelWeights: null,
   channelTick: 0,
   channelEffectTargets: null,
+  channelMultipliers: null,
+  multiHit: null,
   dirX: 0,
   dirY: 0,
   dirZ: 0,

@@ -89,6 +89,7 @@ export function MoveDetailPage({ data, version, id }) {
         />
         <div className="min-w-0 flex-1">
           <Section id="como-funciona" title="Como funciona">
+            {skill.description ? <p>{skill.description}</p> : null}
             <ul>
               <li>
                 {skill.category === 'status'
@@ -107,6 +108,9 @@ export function MoveDetailPage({ data, version, id }) {
                   ).
                 </li>
               ) : null}
+              {skill.mechanics.map((line) => (
+                <li key={line}>{line}</li>
+              ))}
               {skill.effects.map((effect) => (
                 <li key={effect}>{effect}</li>
               ))}

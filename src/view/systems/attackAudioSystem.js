@@ -8,6 +8,7 @@ import { resolveEntityAttack } from '@/core/battle/creatureAttack'
 import { resolveAttackSoundKey } from '@/core/data/audio/attackSound'
 import {
   isAttackCharging,
+  isAttackLunging,
   isAttackPastEffect,
 } from '@/core/battle/attackTelegraph'
 import { getAttackAudioEntries } from '@/view/registry/attackAudioRegistry'
@@ -39,7 +40,9 @@ import { pickRandomVariation } from '@/view/audio/pickRandomVariation'
  * daquele slot (`isAttackCharging` — do disparo até o `effectAt`, a mesma
  * janela do aviso no chão); o da AÇÃO (`audio.actionGroup`) toca do `effectAt`
  * até a ação daquele slot acabar (`isAttackPastEffect` — cortado no fim da
- * `duration`). Os dois param numa interrupção (a ação some).
+ * `duration`); o da ARRANCADA (`audio.lungeGroup`) toca uma vez, inteiro, no
+ * começo dela (`isAttackLunging`). Carga e ação param numa interrupção (a
+ * ação some).
  *
  * Vive na view. Fase: presentation, perto de `dashAudioSystem`/
  * `jumpAudioSystem`/`summonAudioSystem` (mesma família — sem dependência
@@ -49,10 +52,14 @@ export function attackAudioSystem(context) {
   const delta = context?.delta ?? 0
 
   for (const [entity, entry] of getAttackAudioEntries()) {
+    // Destruída neste frame: o registro só sai quando a view desmontar.
+    if (!entity.isAlive()) continue
     const playing = resolveLoopingKeys(entity)
     for (const [key, voice] of Object.entries(entry.loops)) {
-      if (key === playing[voice.phase]) playLoopVoice(voice)
-      else stopLoopVoice(voice)
+      // a arrancada toca UMA vez, inteira (não repete nem é cortada)
+      const once = voice.phase === 'lunge'
+      if (key === playing[voice.phase]) playLoopVoice(voice, !once)
+      else if (!once) stopLoopVoice(voice)
     }
 
     if (entity.has(AttackPulse)) {
@@ -92,7 +99,9 @@ function playVoice({ audio, buffers }) {
  */
 function resolveLoopingKeys(entity) {
   const action = entity.has(ActionState) ? entity.get(ActionState) : null
-  if (action?.current !== 'attack') return { action: null, charge: null }
+  if (action?.current !== 'attack') {
+    return { action: null, charge: null, lunge: null }
+  }
   const attack = resolveEntityAttack(
     entity,
     getSpecies(resolveCreatureSpeciesId(entity)),
@@ -102,13 +111,14 @@ function resolveLoopingKeys(entity) {
   return {
     action: isAttackPastEffect(action, attack) ? key : null,
     charge: isAttackCharging(action, attack) ? key : null,
+    lunge: isAttackLunging(action, attack) ? key : null,
   }
 }
 
-function playLoopVoice({ audio, buffers }) {
+function playLoopVoice({ audio, buffers }, loop = true) {
   if (audio.isPlaying || buffers.length === 0) return
   audio.setBuffer(pickRandomVariation(buffers))
-  audio.setLoop(true)
+  audio.setLoop(loop)
   audio.play()
 }
 

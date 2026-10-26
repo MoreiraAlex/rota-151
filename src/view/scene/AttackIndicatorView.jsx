@@ -8,6 +8,7 @@ import { resolveAttackDirection } from '@/core/battle/attackAim'
 import { getSpecies } from '@/core/data/species'
 import { resolveEntityAttack } from '@/core/battle/creatureAttack'
 import { isSelfAttack } from '@/core/battle/channelAttack'
+import { resolveEntityTriggerEdge } from '@/core/battle/attackTargets'
 import { AttackShape, placeAttackShape } from './AttackShape'
 import {
   AttackAim,
@@ -67,17 +68,19 @@ export function AttackIndicatorView() {
 
     const pos = controlled.get(Position)
     const physicsBody = controlled.get(PhysicsBody)
+    const direction = resolveAttackDirection(
+      world,
+      pos,
+      physicsBody.colliderHandle,
+      species,
+    )
     placeAttackShape(shape, {
       pos,
       body: controlled.get(CharacterController),
       colliderHandle: physicsBody.colliderHandle,
       attack,
-      direction: resolveAttackDirection(
-        world,
-        pos,
-        physicsBody.colliderHandle,
-        species,
-      ),
+      direction,
+      edge: resolveEntityTriggerEdge(controlled, direction),
     })
   })
 

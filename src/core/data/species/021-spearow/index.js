@@ -1,6 +1,7 @@
 import CRY_CLIP from './clips/cry.json'
 import WALK_CLIP from './clips/walk.json'
 import RUN_CLIP from './clips/run.json'
+import STUNNED_CLIP from './clips/stunned.json'
 import { LGPE_EYE_ATLAS } from '../lgpeEyeAtlas'
 
 const LEVEL = 5
@@ -69,6 +70,9 @@ export const SPEAROW = {
   },
 
   clips: {
+    // Paralisado (atordoado): o modelo não tem `stun`, então o tremor de
+    // choque por cima do `idle` (preview "Tremor de Paralisia").
+    stunned: STUNNED_CLIP,
     cry: CRY_CLIP,
     walk: WALK_CLIP,
     run: RUN_CLIP,
@@ -118,7 +122,8 @@ export const SPEAROW = {
     capsuleRadius: 0.12,
     capsuleHalfHeight: 0.06,
     capsuleAxis: 'y',
-    modelOffset: [0, -0.21, 0],
+    modelOffset: [0, -0.18, 0],
+    trigger: { radius: 0.2, halfLength: 0, angle: 0, offset: { x: 0, z: 0 } },
   },
   movement: {
     walkSpeed: 1.5,
@@ -169,6 +174,20 @@ export const SPEAROW = {
     speed: { base: SPEED, ev: SPEED_EV },
   },
   moves: [
+    { id: 'peck' },
+    {
+      id: 'growl',
+      overrides: {
+        audio: {
+          cry: false,
+          clips: ['/assets/audio/voices/021-spearow/cry-01.wav'],
+          volume: 2,
+          refDistance: 4,
+        },
+      },
+    },
+    { id: 'leer' },
+
     { id: 'assurance', requires: { level: 8 } },
     { id: 'fury-attack', requires: { level: 11 } },
   ],

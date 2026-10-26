@@ -22,6 +22,7 @@ import {
 import { resolveDashCost } from '../actions/stamina'
 import { resolveAttackForEntity } from './attackCasting'
 import { resolveReachFor } from './aiAttackChoice'
+import { resolveHitTrigger } from './hitTrigger'
 import { isChannelAttack, isSelfAttack } from './channelAttack'
 import {
   advanceAiDash,
@@ -44,6 +45,7 @@ const MELEE_SLOT = ['secondary1', 'secondary2', 'secondary3'].find((slot) => {
   )
 })
 const BODY = CHARMANDER.body
+const TRIGGER = resolveHitTrigger(BODY)
 const MOVE = GAME_CONFIG.AI_MOVEMENT
 const DASH = GAME_CONFIG.PLAYER_ACTIONS.dash
 const REACT = () => 0 // sorteio sempre reage
@@ -315,7 +317,7 @@ describe('moveInFight — recuo, aproximação e dash', () => {
     const plan = {
       slot: 'secondary3',
       attack: ember,
-      reach: resolveReachFor(ember, BODY),
+      reach: resolveReachFor(ember, TRIGGER, TRIGGER),
     }
 
     // Vira pra trás aos poucos (`turnSpeed`) e anda pra onde está virada.
@@ -335,7 +337,7 @@ describe('moveInFight — recuo, aproximação e dash', () => {
     const plan = {
       slot: MELEE_SLOT,
       attack: basic,
-      reach: resolveReachFor(basic, BODY),
+      reach: resolveReachFor(basic, TRIGGER, TRIGGER),
     }
     expect(run(mover, target, { plan, stopDistance: 1.3 })).not.toBe('retreat')
   })

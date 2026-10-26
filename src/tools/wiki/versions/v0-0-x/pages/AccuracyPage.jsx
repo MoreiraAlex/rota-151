@@ -20,17 +20,19 @@ export function AccuracyPage({ data, version }) {
         <Formula>
           <p>
             <strong>Chance de acertar</strong> = precisão do golpe ×
-            multiplicador da Precisão de quem ataca × fator de domínio
+            multiplicador (Precisão de quem ataca − Evasão do alvo) × fator de
+            domínio
           </p>
           <p className="text-muted-foreground">Nunca passa de 100%.</p>
         </Formula>
         <p>
-          A Precisão de quem ataca começa normal e pode ser baixada por golpes
-          de status (
+          A Precisão de quem ataca e a <strong>Evasão</strong> do alvo começam
+          normais e mudam com golpes de status (
           <WikiLink version={version} to="batalha/efeitos">
             Efeitos em batalha
           </WikiLink>
-          ). Com ela baixa, até golpes de {battle.defaultAccuracy}% passam a
+          ). Os dois níveis se descontam um do outro: com a Precisão baixa, ou
+          com o alvo esquivo, até golpes de {battle.defaultAccuracy}% passam a
           errar.
         </p>
         <p>
@@ -47,10 +49,14 @@ export function AccuracyPage({ data, version }) {
         <ul>
           <li>Golpes que agem só em quem usou.</li>
           <li>As partes de um golpe canalizado.</li>
+          <li>
+            Os acertos seguintes de um golpe que acerta várias vezes: só o
+            primeiro pode errar.
+          </li>
         </ul>
         <p>
-          Não existe esquiva: só a Precisão de quem ataca conta. Quando um golpe
-          erra, aparece <strong>“Errou!”</strong> e nada acontece com o alvo.
+          Quando um golpe erra, aparece <strong>“Errou!”</strong> e nada
+          acontece com o alvo.
         </p>
         <p>
           Esses golpes que nunca erram (e os sem precisão) ainda podem{' '}

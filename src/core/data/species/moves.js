@@ -6,11 +6,13 @@ import { getSkill } from '../skills'
  * apto e o formato do estado por criatura (`CreatureMoves`,
  * `core/traits/components/creatureMoves.js`).
  *
- * - `species.skills` (`{1,2,3}`) é o KIT INICIAL: nasce aprendido e dominado.
- * - `species.moves` é o LEARNSET: `[{ id, requires?, overrides? }]`. Sem
- *   `requires`, o golpe fica apto de imediato.
- * - Os dois juntos formam a lista de golpes que a criatura pode ter (o kit
- *   também entra: um golpe do kit esquecido pode ser treinado de novo).
+ * - `species.moves` é a lista de TODOS os golpes que a criatura tem ou pode
+ *   ter: `[{ id, requires?, overrides? }]` — os do kit e o learnset, cada
+ *   um com os `overrides` da espécie. Sem `requires`, o golpe fica apto de
+ *   imediato.
+ * - `species.skills` (`{1,2,3}`) é o KIT INICIAL: só o id, por slot, de um
+ *   golpe de `moves` — nasce aprendido e dominado. Nunca leva override.
+ * - Um golpe do kit esquecido pode ser treinado de novo (está em `moves`).
  *
  * O estado guarda só o id e o domínio de cada slot; a referência completa
  * (com os `overrides` da espécie) sai daqui, por `resolveSpeciesMoveReference`.
@@ -31,18 +33,13 @@ export function normalizeMoveReference(reference) {
 }
 
 /**
- * Referência (`{ id, overrides }`) de um golpe NESTA espécie: procura no kit
- * (`skills`) e depois no learnset (`moves`), pra manter os `overrides` da
- * espécie. Golpe que a espécie não declara cai na definição base (sem
- * overrides); id desconhecido no registro, `null`.
+ * Referência (`{ id, overrides }`) de um golpe NESTA espécie: a entrada dele
+ * em `moves`, com os `overrides` da espécie. Golpe que a espécie não declara
+ * cai na definição base (sem overrides); id desconhecido no registro, `null`.
  */
 export function resolveSpeciesMoveReference(species, moveId) {
   if (!moveId || !getSkill(moveId)) return null
 
-  for (const reference of Object.values(species?.skills ?? {})) {
-    const normalized = normalizeMoveReference(reference)
-    if (normalized?.id === moveId) return normalized
-  }
   for (const entry of species?.moves ?? []) {
     const normalized = normalizeMoveReference(entry)
     if (normalized?.id === moveId) return normalized
@@ -51,9 +48,10 @@ export function resolveSpeciesMoveReference(species, moveId) {
 }
 
 /**
- * Todos os golpes que a espécie pode ter: o kit inicial (sem condição) e o
- * learnset, na ordem, sem repetir id e só com golpes que existem no registro.
- * Cada item: `{ id, requires }` (`requires` `null` = sem condição).
+ * Todos os golpes que a espécie pode ter: o kit inicial primeiro (sem
+ * condição) e o resto de `moves`, na ordem, sem repetir id e só com golpes
+ * que existem no registro. Cada item: `{ id, requires }` (`requires` `null` =
+ * sem condição).
  */
 export function listLearnset(species) {
   const seen = new Set()

@@ -391,4 +391,57 @@ describe('animationSystem — animações embutidas', () => {
     const progress = ctx.entry.elapsed * 2
     expect(ctx.entry.cyclePhase).toBeCloseTo(progress - Math.floor(progress))
   })
+
+  it('clipe com `base`: toca a embutida e soma a camada por cima, sem acumular', () => {
+    world = createWorld()
+    const root = new THREE.Object3D()
+    const hip = new THREE.Bone()
+    hip.name = 'hip'
+    const tail = new THREE.Bone()
+    tail.name = 'tail'
+    root.add(hip)
+    root.add(tail)
+    // a embutida mexe no quadril e não tem trilha da cauda (o mixer nunca
+    // reescreve a cauda: é o caso em que a camada acumularia)
+    const native = createNativeAnimationPlayer(
+      root,
+      [hipY('idle', 1, 0, 0), hipY('ranged', 1, 2, 2)],
+      { idle: 'idle', attackRanged: 'ranged' },
+    )
+    const offset = 0.5
+    entity = world.spawn(AnimationState, ActionState)
+    registerAnimatedBones(entity, {
+      bones: resolveBones({ bones: [hip, tail] }),
+      clips: {
+        wag: {
+          base: 'attackRanged',
+          bones: {
+            tail: { rotation: { z: { type: 'constant', value: offset } } },
+          },
+        },
+      },
+      native,
+    })
+    tick(world)
+
+    entity.set(AnimationState, { id: 'attack' })
+    entity.set(ActionState, {
+      current: 'attack',
+      elapsed: 0,
+      animationSpeed: 1,
+      animationKey: 'wag',
+    })
+    const tailAngle = () =>
+      2 * Math.acos(Math.min(1, Math.abs(tail.quaternion.w)))
+    for (let i = 0; i < 5; i++) tick(world)
+    expect(ctxClipName(native)).toBe('ranged')
+    expect(hip.position.y).toBeCloseTo(2)
+    expect(tailAngle()).toBeCloseTo(offset)
+
+    // saiu do estado: a cauda volta à pose de base
+    entity.set(ActionState, { current: null, animationKey: null })
+    entity.set(AnimationState, { id: 'idle' })
+    tick(world)
+    expect(tailAngle()).toBeCloseTo(0)
+  })
 })

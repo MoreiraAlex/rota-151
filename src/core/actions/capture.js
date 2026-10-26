@@ -21,7 +21,6 @@ import {
   AttackAim,
   BallOnGround,
   BeingCaptured,
-  Burn,
   CaptureAim,
   CaptureBall,
   CaptureTarget,
@@ -45,7 +44,7 @@ import {
   WildBehavior,
   WildCreature,
 } from '../traits'
-import { guardarCondicoes } from './conditions'
+import { guardarCondicoes, listActiveConditions } from './conditions'
 import { distribuirExperiencia } from './experience'
 import { acordar } from './faint'
 import { hasFreeCell } from './inventory'
@@ -75,11 +74,6 @@ export function isBeingCaptured(entity) {
   return !!entity?.has?.(BeingCaptured)
 }
 
-/** Ids das condições ativas da criatura (pro bônus da fórmula). */
-function listConditions(entity) {
-  return entity.has(Burn) ? ['burn'] : []
-}
-
 /**
  * O selvagem não percebeu o treinador: vagando, fora do modo combate e sem
  * ninguém na tabela de ameaça. Desmaiado não conta (não "olha" pra lado
@@ -103,7 +97,7 @@ export function resolveWildShakeChance(wild, item, backStrike) {
     maxHp: vitals?.maxHp ?? 0,
     rate: resolveSpeciesCaptureRate(species),
     ballMultiplier: resolveBallMultiplier(item),
-    conditionBonus: resolveConditionBonus(listConditions(wild)),
+    conditionBonus: resolveConditionBonus(listActiveConditions(wild)),
     backStrikeBonus: backStrike ? GAME_CONFIG.CAPTURE.BACK_STRIKE_BONUS : 1,
   })
   return resolveShakeChance(value)

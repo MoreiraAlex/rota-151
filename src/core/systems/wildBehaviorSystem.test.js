@@ -1,4 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { resolveReachFor } from '@/core/battle/aiAttackChoice'
+import { resolveHitTrigger } from '@/core/battle/hitTrigger'
 import { ownedByPlayer } from '@/test/makeWorld'
 import { createWorld } from 'koota'
 import {
@@ -71,7 +73,9 @@ const SLOTS = ['secondary1', 'secondary2', 'secondary3']
 // Um golpe corpo a corpo de dano do kit (sem fixar qual).
 const MELEE_SLOT = SLOTS.find((slot) => {
   const attack = resolveCreatureAttack(SPECIES, slot)
-  return attack?.damage && attack.aim === 'melee' && !attack.damageMode
+  return (
+    attack?.damage && attack.aim === 'melee' && attack.execution !== 'channel'
+  )
 })
 // Só o golpe corpo a corpo pronto (os outros travados em cooldown) — os testes
 // de distância/intervalo não dependem do sorteio do golpe.
@@ -291,10 +295,11 @@ describe('wildBehaviorSystem — pacífica', () => {
 })
 
 describe('wildBehaviorSystem — atacando e gastando fôlego', () => {
-  // Alcance centro a centro: range + radius do golpe + raio do corpo do
-  // alvo (o mesmo charmander).
+  // Alcance centro a centro: o da IA (`resolveReachFor`), da borda dela até o
+  // trigger do alvo (o mesmo charmander).
   const melee = resolveCreatureAttack(SPECIES, MELEE_SLOT)
-  const REACH = melee.range + melee.radius + SPECIES.body.capsuleRadius
+  const TRIGGER = resolveHitTrigger(SPECIES.body)
+  const REACH = resolveReachFor(melee, TRIGGER, TRIGGER)
 
   it('perseguindo com o alvo ao alcance: pede golpe e respeita o intervalo', () => {
     const { wild, player, tick, movePlayer } = setup()
@@ -530,10 +535,17 @@ describe('wildBehaviorSystem — alvo por ameaça ou proximidade', () => {
 })
 
 describe('wildBehaviorSystem — habilidades (escolha do golpe)', () => {
-  it('a 6m, com só o Ember pronto, para e pede o Ember de longe', () => {
+  it('dentro do alcance do Ember (longe do corpo a corpo), com só ele pronto, para e pede o Ember de longe', () => {
     const { wild, tick, movePlayer } = setup({ skills: true })
     wild.set(AttackCooldowns, { secondary1: 999, secondary2: 999 })
-    movePlayer(6)
+    // um pouco antes de onde ela pararia pra lançar o Ember
+    const trigger = resolveHitTrigger(SPECIES.body)
+    const ember = resolveCreatureAttack(SPECIES, 'secondary3')
+    movePlayer(
+      resolveReachFor(ember, trigger, trigger) *
+        GAME_CONFIG.WILD_BEHAVIOR.ATTACK_REACH_FRACTION -
+        0.2,
+    )
 
     tick() // decide perseguir, planeja e já pede (alvo ao alcance)
 

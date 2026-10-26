@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { isChannelAttack } from '@/core/battle/channelAttack'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import { computeDamage } from '@/core/battle/calculateDamage'
 import { resolveSkillType } from '@/core/data/types'
@@ -29,7 +30,7 @@ describe('resolveDamagePreview', () => {
   it('faixa sem crítico e com crítico, pela mesma conta do jogo', () => {
     const { DAMAGE_RANDOM_MIN, DAMAGE_RANDOM_MAX } = GAME_CONFIG.BATTLE
     everyAttack(({ attacker, defender, slot, attack }) => {
-      if (!attack.damage || attack.damageMode === 'channel') return
+      if (!attack.damage || isChannelAttack(attack)) return
       const preview = resolveDamagePreview({
         attacker: side(attacker),
         defender: side(defender),
@@ -60,7 +61,7 @@ describe('resolveDamagePreview', () => {
   it('canalizado: total = dano médio de um golpe, repartido nos ticks', () => {
     const { DAMAGE_RANDOM_MIN, DAMAGE_RANDOM_MAX } = GAME_CONFIG.BATTLE
     everyAttack(({ attacker, defender, slot, attack }) => {
-      if (attack.damageMode !== 'channel' || !attack.damage) return
+      if (!isChannelAttack(attack) || !attack.damage) return
       const preview = resolveDamagePreview({
         attacker: side(attacker),
         defender: side(defender),
@@ -99,7 +100,7 @@ describe('resolveDamagePreview', () => {
 
   it('estágio de ataque positivo aumenta o dano; precisão negativa baixa o acerto', () => {
     everyAttack(({ attacker, defender, slot, attack }) => {
-      if (!attack.damage || attack.damageMode === 'channel') return
+      if (!attack.damage || isChannelAttack(attack)) return
       const key = attack.damage.category === 'special' ? 'sp_atk' : 'attack'
       const neutral = resolveDamagePreview({
         attacker: side(attacker),

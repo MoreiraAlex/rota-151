@@ -10,6 +10,7 @@ import {
 } from '../data/species/stats'
 import {
   isChannelAttack,
+  isChargeAttack,
   isSelfAttack,
   resolveChannelTickCount,
   rollChannelWeights,
@@ -19,6 +20,7 @@ import { GAME_CONFIG } from '../gameConfig'
 import { entrarEmCombate } from '../actions/combat'
 import { gameplayRng } from '../rng'
 import { AttackCooldowns } from '../traits'
+import { readSpeedStage, speedStageTimeFactor } from './statStages'
 import { withActionCost } from './actionCost'
 import { resolveFormulaLevel } from '../data/species/formulaLevel'
 
@@ -67,6 +69,25 @@ function resolveScaledDuration(attack, speedFactor) {
   return {
     duration: attack.duration * speedFactor,
     effectAt: attack.effectAt * speedFactor,
+    // a arrancada (`lunge.duration`) escala junto: o acerto continua na
+    // mesma fração da ação
+    ...(attack.lunge?.duration
+      ? {
+          lunge: {
+            ...attack.lunge,
+            duration: attack.lunge.duration * speedFactor,
+          },
+        }
+      : {}),
+    // o intervalo entre os acertos do golpe de vários acertos também
+    ...(attack.multiHit?.interval
+      ? {
+          multiHit: {
+            ...attack.multiHit,
+            interval: attack.multiHit.interval * speedFactor,
+          },
+        }
+      : {}),
   }
 }
 
@@ -89,6 +110,10 @@ function resolveScaledDuration(attack, speedFactor) {
  * domínio do golpe (docs/features/038-aprendizado-treino-e-dominio-de-
  * golpes.md) multiplica energia e recarga, e vai junto no ataque
  * (`attack.mastery`) pro sorteio de precisão/falha.
+ *
+ * `speedStage` — estágio de Velocidade DESTA criatura agora
+ * (`readSpeedStage`): alonga ou encurta o tempo do golpe
+ * (`speedStageTimeFactor`); custo e recarga não mudam.
  */
 export function resolveAttackForEntity(
   species,
@@ -96,6 +121,7 @@ export function resolveAttackForEntity(
   individualValues,
   level = species?.level ?? 1,
   moveSet = null,
+  speedStage = 0,
 ) {
   const attack = resolveCreatureAttack(species, slot, moveSet)
   if (!attack) return null
@@ -109,7 +135,14 @@ export function resolveAttackForEntity(
     level,
     speedFactor: speedFactor ?? 1,
   })
-  return withMastery(costed, resolveSlotMove(species, slot, moveSet)?.mastery)
+  const staged =
+    speedStage !== 0
+      ? {
+          ...costed,
+          ...resolveScaledDuration(costed, speedStageTimeFactor(speedStage)),
+        }
+      : costed
+  return withMastery(staged, resolveSlotMove(species, slot, moveSet)?.mastery)
 }
 
 // Domínio baixo: mais energia e mais recarga. Sem domínio, igual.
@@ -158,6 +191,7 @@ function resolveCastableAttack(castContext, slot) {
     individualValues,
     level,
     moveSet,
+    readSpeedStage(castContext.entity),
   )
   if (!attack) return null
   if (vitals.stamina < attack.staminaCost) return null
@@ -218,6 +252,8 @@ export function tryStartAttack(
     : null
   action.channelTick = 0
   action.channelEffectTargets = isChannelAttack(attack) ? [] : null
+  action.channelMultipliers = null
+  action.multiHit = null
   vitals.stamina -= attack.staminaCost
   vitals.staminaRegenDelay = vitals.staminaRegenDelayAfterUse
   // Cooldown NÃO começa aqui — só quando a ação terminar (passo 4).
@@ -243,13 +279,13 @@ export function tryStartAttack(
 }
 
 /**
- * `castMode` efetivo do ataque: `castModeOverride` (`context.settings`,
- * hoje só o modo debug — F2 força `'confirm'` em tudo) ganha da definição
- * do ataque; ausente na definição = `'instant'`.
+ * Como o botão lança: `'confirm'` (o 1º aperto mostra o alcance, o 2º
+ * lança) ou `'instant'`. É opção do JOGADOR, não do golpe (docs/features/
+ * 061-revisao-das-skills.md) — `castModeOverride` (`context.settings`; hoje
+ * só o modo debug, F2, liga o `'confirm'`). Sem ela, `'instant'`.
  */
-export function resolveCastMode(attack, castModeOverride) {
-  if (castModeOverride) return castModeOverride
-  return attack.castMode === 'confirm' ? 'confirm' : 'instant'
+export function resolveCastMode(castModeOverride) {
+  return castModeOverride ?? 'instant'
 }
 
 /**
@@ -272,10 +308,11 @@ export function handleAttackPress(castContext, aim, input, castModeOverride) {
       individualValues,
       level,
       moveSet,
+      readSpeedStage(castContext.entity),
     )
     if (!attack) continue
 
-    if (resolveCastMode(attack, castModeOverride) === 'confirm') {
+    if (resolveCastMode(castModeOverride) === 'confirm') {
       if (cooldowns[slot] > 0) continue
       aim.slot = slot
       return
@@ -310,18 +347,20 @@ export function finishAttack(entity, action, attack, cooldowns = null) {
   action.channelWeights = null
   action.channelTick = 0
   action.channelEffectTargets = null
+  action.channelMultipliers = null
+  action.multiHit = null
 }
 
 /**
- * O golpe em andamento exige o botão do slot SEGURADO agora? O canalizado,
- * o tempo todo (soltar corta o canal). O golpe em si mesmo (`area: 'self'`,
- * Growth), só durante a CARGA (`isAttackCharging`) — pedido do usuário,
- * igual ao canalizado: soltar antes do efeito cancela; depois que o efeito
+ * O golpe em andamento exige o botão do slot SEGURADO agora? O canalizado
+ * (`execution: 'channel'`), o tempo todo (soltar corta o canal). O de carga
+ * (`'charge'`, o padrão do grupo `'self'` — Growth), só durante a CARGA
+ * (`isAttackCharging`): soltar antes do efeito cancela; depois que o efeito
  * saiu, o resto da animação não depende do botão.
  */
 export function requiresHold(action, attack) {
   if (isChannelAttack(attack)) return true
-  return isSelfAttack(attack) && isAttackCharging(action, attack)
+  return isChargeAttack(attack) && isAttackCharging(action, attack)
 }
 
 /**

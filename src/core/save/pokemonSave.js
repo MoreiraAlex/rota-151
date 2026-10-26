@@ -12,9 +12,10 @@ import {
   resolveInventoryCapacity,
   resolveInventoryCells,
 } from '../actions/inventory'
+import { listStorable } from '../actions/conditions'
 import {
   BallOnGround,
-  Burn,
+  Conditions,
   CreatureLevel,
   CreatureMoves,
   Fainted,
@@ -31,8 +32,8 @@ import {
  * Um Pokémon no save (docs/features/044-salvar-o-jogo.md) — forma em
  * `pokemonSaveSchema` (`saveFormat.js`).
  *
- * Em campo, ele é salvo como se tivesse sido recolhido: a vida, a
- * queimadura e o desmaio vêm da criatura (mesmo que `storeOutOfField`, do
+ * Em campo, ele é salvo como se tivesse sido recolhido: a vida,
+ * as condições e o desmaio vêm da criatura (mesmo que `storeOutOfField`, do
  * `partySummonSystem.js`, guardaria), sem mexer no mundo. A bola caída no
  * chão (`BallOnGround`) não é salva: saiu do jogo, some.
  */
@@ -74,23 +75,23 @@ function resolveSaveLocation(trainer, pokemon) {
 
 function resolveFieldState(creature) {
   const vitals = creature.get(Vitals)
-  const burn = creature.get(Burn)
+  const conditions = listStorable(creature.get(Conditions)?.list)
   const fainted = creature.get(Fainted)
   return {
     storedVitals: vitals ? { ...vitals } : null,
     faintTimeLeft: fainted ? Math.max(0, fainted.timeLeft) : null,
-    conditions: burn && burn.timeLeft > 0 ? { burn: { ...burn } } : null,
+    conditions: conditions.length ? conditions : null,
   }
 }
 
 function resolveStoredState(pokemon) {
   const vitals = pokemon.get(StoredVitals)?.vitals
   const faint = pokemon.get(StoredFaint)
-  const burn = pokemon.get(StoredConditions)?.burn
+  const conditions = listStorable(pokemon.get(StoredConditions)?.list)
   return {
     storedVitals: vitals ? { ...vitals } : null,
     faintTimeLeft: faint ? faint.timeLeft : null,
-    conditions: burn ? { burn: { ...burn } } : null,
+    conditions: conditions.length ? conditions : null,
   }
 }
 
@@ -118,8 +119,8 @@ export function restorePokemon(world, trainer, saved) {
   if (saved.faintTimeLeft != null) {
     pokemon.add(StoredFaint({ timeLeft: saved.faintTimeLeft }))
   }
-  if (saved.conditions?.burn) {
-    pokemon.add(StoredConditions({ burn: { ...saved.conditions.burn } }))
+  if (saved.conditions?.length) {
+    pokemon.add(StoredConditions({ list: listStorable(saved.conditions) }))
   }
 
   placeRestored(world, trainer, pokemon, saved.location)

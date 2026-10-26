@@ -4,7 +4,7 @@
  * diante). Ver docs/features/033-skills-de-combate-e-vfx.md e
  * `../_template/index.js` pro que cada campo significa.
  *
- * `area: 'self'` (`isSelfAttack`, `core/battle/channelAttack.js`): sem
+ * `group: 'self'` (`isSelfAttack`, `core/battle/channelAttack.js`): sem
  * trajetória e sem alvo — os `effects` vão no próprio atacante no
  * `effectAt`, sem sorteio de precisão e sem provocar ninguém; sem indicador
  * de mira nem aviso no chão. O `AttackEffect` nasce nos PÉS da criatura.
@@ -22,19 +22,18 @@
  */
 export const GROWTH_SKILL = {
   id: 'growth',
+  description:
+    'Concentra a energia do sol e cresce: o Ataque e o Ataque Especial sobem {effects.0.stages} nível por {effects.0.duration:s}. Levar dano durante a concentração interrompe o golpe.',
   type: 'normal',
+  group: 'self',
   // o atributo sobe no `effectAt`, durante a `charge` do Bulbasaur
-  duration: 3,
-  effectAt: 3,
-  range: 0,
-  castMode: 'instant',
-  area: 'self',
-  radius: 0.5,
+  duration: 1.25,
+  effectAt: 1,
   // Sem dano: só sobe os atributos de quem usou.
   damage: null,
   effects: [
-    { type: 'statStage', stat: 'attack', stages: 1, duration: 60 },
-    { type: 'statStage', stat: 'sp_atk', stages: 1, duration: 60 },
+    { type: 'statStage', stat: 'attack', stages: 1, duration: 15 },
+    { type: 'statStage', stat: 'sp_atk', stages: 1, duration: 15 },
   ],
   visual: {
     effectGroup: 'statup',

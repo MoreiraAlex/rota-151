@@ -74,7 +74,11 @@ export function sampleCurve(nodes, t) {
 export function frameAt(age, frames, life) {
   const progress =
     frames.stretch && life ? (age / life) * frames.count : age * frames.fps
-  const index = Math.min(Math.floor(progress), frames.count - 1)
+  // `loop`: recomeça do primeiro quadro (o raio do Thunder Shock); sem ele,
+  // para no último
+  const index = frames.loop
+    ? Math.floor(progress) % frames.count
+    : Math.min(Math.floor(progress), frames.count - 1)
   return frames.first + (frames.step ?? 1) * index
 }
 
@@ -183,7 +187,11 @@ function anchorPoint(anchor, ctx) {
  * (o dash). `pitch` (radianos, opcional) inclina antes do `yaw`: o dash no ar
  * pra cima ou pra baixo. `height` (altura do corpo) fica em `ctx.height` pros specs.
  * `roll` (radianos, opcional) gira o sprite no plano da tela, somado ao `spin`
- * — o único giro que muda o desenho de um billboard.
+ * — o único giro que muda o desenho de um billboard. `rise` (opcional): o
+ * perfil do TERRENO ao longo do golpe, `[[distância, altura], ...]` (m, no
+ * chão a partir da origem; altura relativa a ela) — a partícula sobe e desce
+ * com ele enquanto anda (`followTerrain`), como a trajetória do golpe numa
+ * rampa, em vez de seguir reta.
  *
  * Spec com `path` (o `particle_motion_parametric` do Bedrock): em vez de
  * velocidade e aceleração, a posição é uma FUNÇÃO da idade — ver
@@ -245,6 +253,10 @@ export function spawnParticle(spec, ctx, random) {
     life: spec.lifetime(ctx, rnd),
     rnd,
     scale: ctx.scale,
+    // o corpo de quem o efeito cobre (`{ width, length, height }`), ou `null`
+    body: ctx.body ?? null,
+    // o comprimento do golpe quando nasceu (o raio que vai até o alvo)
+    length: ctx.length ?? 0,
     // giro inicial em quartos de volta: `true` sorteia 0..3; uma função
     // devolve o valor (pode ser negativo, ex.: o -90° do Scratch)
     spin:
@@ -254,6 +266,25 @@ export function spawnParticle(spec, ctx, random) {
           ? Math.floor(random() * 4)
           : 0,
     roll: ctx.frame?.roll ?? 0,
+    // quanto do perfil do terreno já está somado no `y`
+    lift: 0,
+  }
+  // o perfil do quadro (no mundo) ou o do sistema (no espaço do grupo, que já
+  // está no impacto virado pro golpe: a distância é o Z local)
+  const terrainFrame = ctx.frame?.rise
+    ? ctx.frame
+    : ctx.rise
+      ? { origin: [0, 0, 0], yaw: 0, rise: ctx.rise }
+      : null
+  if (terrainFrame) {
+    const { origin, yaw, rise } = terrainFrame
+    particle.terrain = {
+      x: origin[0],
+      z: origin[2],
+      forwardX: Math.sin(yaw),
+      forwardZ: Math.cos(yaw),
+      rise,
+    }
   }
   if (parametric) {
     // ponto de nascimento no MUNDO e o referencial pra girar o `path`
@@ -268,7 +299,42 @@ export function spawnParticle(spec, ctx, random) {
     }
     placeOnPath(spec, particle)
   }
+  followTerrain(particle)
   return particle
+}
+
+/**
+ * Altura do perfil `rise` (`[[distância, altura], ...]`, distância crescente)
+ * a `distance` m da origem, interpolada entre as amostras; antes da primeira
+ * ou depois da última, a da ponta.
+ */
+export function riseAt(rise, distance) {
+  if (distance <= rise[0][0]) return rise[0][1]
+  for (let i = 1; i < rise.length; i++) {
+    const [d1, h1] = rise[i]
+    if (distance <= d1) {
+      const [d0, h0] = rise[i - 1]
+      const t = d1 > d0 ? (distance - d0) / (d1 - d0) : 1
+      return h0 + (h1 - h0) * t
+    }
+  }
+  return rise[rise.length - 1][1]
+}
+
+/**
+ * Partícula com perfil de terreno (`frame.rise`): acerta o `y` pela altura do
+ * perfil onde ela está agora (a distância golpe adentro, no chão). Sem perfil,
+ * nada.
+ */
+function followTerrain(particle) {
+  const terrain = particle.terrain
+  if (!terrain) return
+  const along =
+    (particle.x - terrain.x) * terrain.forwardX +
+    (particle.z - terrain.z) * terrain.forwardZ
+  const lift = riseAt(terrain.rise, along)
+  particle.y += lift - particle.lift
+  particle.lift = lift
 }
 
 /**
@@ -280,8 +346,17 @@ export function spawnParticle(spec, ctx, random) {
  * nascimento, `radius`, `height`, `length`). Devolve `false` quando a vida acabou.
  */
 export function stepPathParticle(spec, particle, dt) {
+  const { x, y, z } = particle
   particle.age += dt
   placeOnPath(spec, particle)
+  followTerrain(particle)
+  // a velocidade é o deslocamento do passo: o quadro esticado na direção do
+  // movimento (`facing: 'direction'`) também funciona no caminho
+  if (dt > 0) {
+    particle.vx = (particle.x - x) / dt
+    particle.vy = (particle.y - y) / dt
+    particle.vz = (particle.z - z) / dt
+  }
   return particle.age < particle.life
 }
 
@@ -298,6 +373,8 @@ function placeOnPath(spec, particle) {
   particle.x = particle.anchor[0] + x
   particle.y = particle.anchor[1] + y
   particle.z = particle.anchor[2] + z
+  // posição refeita do zero: o perfil do terreno volta a ser somado
+  particle.lift = 0
 }
 
 /**
@@ -313,17 +390,21 @@ export function stepParticle(particle, dt) {
   particle.x += particle.vx * dt
   particle.y += particle.vy * dt
   particle.z += particle.vz * dt
+  followTerrain(particle)
   return particle.age < particle.life
 }
 
 /**
  * Tamanho da partícula agora, em metros, já multiplicado pela escala do golpe:
  * um número (lado do quadrado) ou, pra linha de velocidade, `[comprimento,
- * espessura]` — o spec devolve o tamanho cru e a mesma forma volta.
+ * espessura]` — o spec devolve o tamanho cru e a mesma forma volta. O spec
+ * recebe também o corpo (`particle.body`, `null` sem corpo), pro efeito que
+ * cobre a criatura acompanhar o tamanho dela, e o comprimento do golpe
+ * (`particle.length`), pro raio que vai de quem usa até o alvo.
  */
 export function particleSize(spec, particle) {
   const t = particle.age / particle.life
-  const size = spec.size(t, particle.rnd)
+  const size = spec.size(t, particle.rnd, particle.body, particle.length)
   if (Array.isArray(size)) {
     return size.map((value) => Math.max(0, value) * particle.scale)
   }

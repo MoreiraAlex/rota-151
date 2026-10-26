@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { listSkills } from '../skills'
+import { listSpecies } from './index'
 import {
   MAX_MASTERY,
   MOVE_SLOTS,
+  normalizeMoveReference,
   createMovesState,
   findEmptyMoveSlot,
   findMoveSlot,
@@ -15,11 +17,10 @@ import {
 const [first, second, third, fourth] = listSkills().map((skill) => skill.id)
 
 const SPECIES = {
-  skills: {
-    1: first,
-    2: { id: second, overrides: { range: 99 } },
-  },
+  skills: { 1: first, 2: second },
   moves: [
+    { id: first },
+    { id: second, overrides: { range: 99 } },
     { id: third, requires: { level: 10 } },
     { id: fourth, overrides: { radius: 7 } },
     { id: second },
@@ -120,5 +121,29 @@ describe('resolveMoveStatus', () => {
 
     state.slots[3].mastery = MAX_MASTERY
     expect(resolveMoveStatus(state, entry, { level: 10 })).toBe('mastered')
+  })
+})
+
+describe('formato dos golpes nas espécies', () => {
+  it('o kit (`skills`) só aponta ids de golpes que estão em `moves`, sem condição', () => {
+    for (const species of listSpecies()) {
+      for (const value of Object.values(species.skills ?? {})) {
+        expect(typeof value).toBe('string')
+        const entry = (species.moves ?? []).find(
+          (move) => normalizeMoveReference(move)?.id === value,
+        )
+        expect(entry, `${species.id}: ${value} fora de moves`).toBeDefined()
+        expect(entry.requires ?? null).toBeNull()
+      }
+    }
+  })
+
+  it('cada golpe aparece uma vez só em `moves`', () => {
+    for (const species of listSpecies()) {
+      const ids = (species.moves ?? []).map(
+        (move) => normalizeMoveReference(move)?.id,
+      )
+      expect(new Set(ids).size).toBe(ids.length)
+    }
   })
 })

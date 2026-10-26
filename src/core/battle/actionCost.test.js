@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { resolveFormulaLevel } from '../data/species/formulaLevel'
 import { getSpecies } from '../data/species'
 import { resolveSkill } from '../data/skills'
+import { getCondition } from '../data/conditions'
 import { GAME_CONFIG } from '../gameConfig'
+import { resolveExpectedHits } from './multiHit'
 import {
   resolveAttackCooldown,
   resolveAttackWeight,
@@ -19,13 +21,43 @@ const {
   RANGED_BONUS,
   CONE_BONUS,
 } = GAME_CONFIG.ACTION_COST
-const { STAT_STAGE_VALUE, LEECH_SEED_VALUE } = GAME_CONFIG.AI_ATTACK
+const { STAT_STAGE_VALUE } = GAME_CONFIG.AI_ATTACK
 
 const melee = (fields) => ({ range: 1.4, ...fields })
 
 describe('resolveAttackWeight — o "poder" do preço', () => {
   it('golpe de dano corpo a corpo: o próprio poder', () => {
     expect(resolveAttackWeight(melee({ damage: { power: 40 } }))).toBe(40)
+  })
+
+  it('vários acertos: o poder vezes a média de acertos', () => {
+    const multiHit = { counts: [2, 4], weights: [1, 1], interval: 0.1 }
+    expect(
+      resolveAttackWeight(melee({ damage: { power: 10 }, multiHit })),
+    ).toBeCloseTo(10 * resolveExpectedHits(multiHit))
+  })
+
+  it('a arrancada conta no alcance que dá o bônus de distância', () => {
+    const { RANGED_MIN_RANGE, RANGED_BONUS } = GAME_CONFIG.ACTION_COST
+    const short = melee({ damage: { power: 40 } })
+    const lunging = { ...short, lunge: { distance: RANGED_MIN_RANGE } }
+    expect(resolveAttackWeight(lunging)).toBeCloseTo(
+      resolveAttackWeight(short) * RANGED_BONUS,
+    )
+  })
+
+  it('o que o golpe dá a quem usa (`selfEffects`) também pesa', () => {
+    const hit = melee({ damage: { power: 40 } })
+    const withSelf = melee({
+      damage: { power: 40 },
+      selfEffects: [
+        { type: 'statStage', stat: 'speed', stages: 1 },
+        { type: 'removeConditions', conditions: ['leech-seed'] },
+      ],
+    })
+    expect(resolveAttackWeight(withSelf)).toBeGreaterThan(
+      resolveAttackWeight(hit),
+    )
   })
 
   it('efeitos somam o peso deles (a régua da IA)', () => {
@@ -38,10 +70,17 @@ describe('resolveAttackWeight — o "poder" do preço', () => {
         { type: 'statStage', stat: 'sp_atk', stages: 1 },
       ],
     })
-    const seed = melee({ effects: [{ type: 'leechSeed' }] })
+    const seed = melee({
+      effects: [{ type: 'condition', condition: 'leech-seed' }],
+    })
+    const burn = { type: 'condition', condition: 'burn', chance: 0.5 }
     expect(resolveAttackWeight(growl)).toBe(STAT_STAGE_VALUE)
     expect(resolveAttackWeight(growth)).toBe(2 * STAT_STAGE_VALUE)
-    expect(resolveAttackWeight(seed)).toBe(LEECH_SEED_VALUE)
+    expect(resolveAttackWeight(seed)).toBe(getCondition('leech-seed').ai.value)
+    // condição com chance: o valor dela × a chance
+    expect(resolveAttackWeight(melee({ effects: [burn] }))).toBe(
+      getCondition('burn').ai.value * burn.chance,
+    )
   })
 
   it('tipo de efeito sem peso vale 0', () => {
@@ -61,7 +100,7 @@ describe('resolveAttackWeight — o "poder" do preço', () => {
     ).toBeCloseTo(40 * CONE_BONUS)
     expect(
       resolveAttackWeight(
-        melee({ damageMode: 'channel', damage: { power: 40 } }),
+        melee({ execution: 'channel', area: 'cone', damage: { power: 40 } }),
       ),
     ).toBeCloseTo(40 * CONE_BONUS)
   })

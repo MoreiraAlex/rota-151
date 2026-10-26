@@ -51,6 +51,10 @@ export const ANIMATION_STATES = [
   // Atordoada (`core/actions/hitStun.js`): golpe de status interrompido por
   // dano — toca a animação de hit enquanto a ação `'hit'` dura.
   { id: 'hit', oneShot: true, when: (ctx) => ctx.action === 'hit' },
+  // Atordoada por condição (a paralisia, `creatureHitStunSystem.js`):
+  // cíclico, pelo tempo da condição (entrar, repetir e sair, nas espécies
+  // que têm `stunStart`/`stunLoop`/`stunEnd`); sem animação, a idle.
+  { id: 'stunned', fallback: 'idle', when: (ctx) => ctx.action === 'stunned' },
   // Comendo uma fruta (`core/actions/eating.js`, docs/features/042-itens-
   // da-beta.md) — parado enquanto a ação `'eat'` dura. Cíclico (sem
   // `oneShot`): a duração é da fruta, não um gesto fixo. Espécie sem

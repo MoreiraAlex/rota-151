@@ -15,6 +15,7 @@ import {
   WildCreature,
   ChunkFrozen,
 } from '../traits'
+import { readConditionModifier } from '../actions/conditions'
 
 /**
  * Move cada `WildCreature` no estado `'wander'` (`WildBehavior`) por um
@@ -97,7 +98,12 @@ export function wildWanderSystem(context) {
         { pos, rot, vel, stats },
         { x: wander.targetX, z: wander.targetZ },
         // Ferida vaga mais devagar (`resolveMoveSpeed`).
-        resolveMoveSpeed(stats, entity.get(Vitals), false),
+        resolveMoveSpeed(
+          stats,
+          entity.get(Vitals),
+          false,
+          readConditionModifier(entity, 'movement'),
+        ),
         delta,
       )
     })

@@ -9,7 +9,7 @@ import {
 } from '@/tools/wiki/wikiFormat'
 
 export function EffectsPage({ data, version }) {
-  const { stages, burn } = data
+  const { stages, burn, conditions } = data
 
   return (
     <>
@@ -17,12 +17,17 @@ export function EffectsPage({ data, version }) {
         <p>
           Golpes de status podem subir ou baixar o <strong>Ataque</strong>, a{' '}
           <strong>Defesa</strong>, o <strong>Ataque especial</strong>, a{' '}
-          <strong>Defesa especial</strong> ou a <strong>Precisão</strong> de uma
+          <strong>Defesa especial</strong>, a <strong>Velocidade</strong>, a{' '}
+          <strong>Precisão</strong> ou a <strong>Evasão</strong> de uma
           criatura, em níveis de −{stages.limit} a +{stages.limit}. Cada nível
           multiplica o atributo:
         </p>
         <DataTable
-          head={['Nível', 'Ataque, Defesa e especiais', 'Precisão']}
+          head={[
+            'Nível',
+            'Ataque, Defesa, especiais e Velocidade',
+            'Precisão e Evasão',
+          ]}
           align={['right', 'right', 'right']}
           rows={stages.rows.map((row) => [
             row.stage > 0 ? `+${row.stage}` : row.stage,
@@ -44,13 +49,32 @@ export function EffectsPage({ data, version }) {
             <WikiLink version={version} to="batalha/dano">
               dano
             </WikiLink>
-            ; a Precisão muda a{' '}
+            ; a Velocidade muda o tempo dos golpes (mais alta, golpes mais
+            rápidos); a Precisão de quem ataca e a Evasão do alvo mudam a{' '}
             <WikiLink version={version} to="batalha/acerto-e-erro">
               chance de acertar
             </WikiLink>
             .
           </li>
         </ul>
+      </Section>
+
+      <Section id="condicoes" title="Condições">
+        <p>
+          Alguns golpes deixam uma <strong>condição</strong> em quem foi
+          atingido (ou em quem usou): um efeito que dura um tempo e aparece num
+          selo perto da vida. Pegar a mesma condição de novo só renova o tempo;
+          condições diferentes valem juntas.
+        </p>
+        <DataTable
+          head={['Condição', 'O que faz', 'Continua na bola']}
+          rows={conditions.map((condition) => [
+            condition.name,
+            condition.text,
+            condition.keepsInBall ? 'sim' : 'não',
+          ])}
+          caption="Recolhida ou capturada, a criatura leva pra dentro da bola só as condições marcadas; as outras acabam."
+        />
       </Section>
 
       <Section id="roubo-de-vida" title="Roubo de vida">

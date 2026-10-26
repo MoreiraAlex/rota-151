@@ -1,23 +1,24 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { createWorld } from 'koota'
 import { GAME_CONFIG } from '../gameConfig'
-import { Burn, LeechSeed, StatStages, WildCreature } from '../traits'
+import { Conditions, StatStages, WildCreature } from '../traits'
+import { getCondition, listConditions } from '../data/conditions'
 import { listSpecies } from '../data/species'
 import { resolveSpeciesTypes } from '../data/types'
 import {
-  evaluateBurnEffect,
+  evaluateConditionEffect,
   evaluateEffect,
-  evaluateLeechSeedEffect,
   evaluateStatStageEffect,
 } from './aiEffectEvaluators'
 
-const {
-  STAT_STAGE_VALUE,
-  STAT_STAGE_DECAY,
-  LEECH_SEED_VALUE,
-  BURN_VALUE,
-  EFFECT_REFRESH_TIME,
-} = GAME_CONFIG.AI_ATTACK
+const { STAT_STAGE_VALUE, STAT_STAGE_DECAY, EFFECT_REFRESH_TIME } =
+  GAME_CONFIG.AI_ATTACK
+const SEED_VALUE = getCondition('leech-seed').ai.value
+const BURN_VALUE = getCondition('burn').ai.value
+
+// Alvo já com a condição `id`, com `timeLeft` sobrando.
+const withCondition = (id, timeLeft) =>
+  Conditions({ list: [{ id, timeLeft, modifiers: {} }] })
 
 const worlds = []
 afterEach(() => {
@@ -32,7 +33,7 @@ function spawn(...traits) {
 
 const GROWL = { type: 'statStage', stat: 'attack', stages: -1, duration: 60 }
 const GROWTH = { type: 'statStage', stat: 'attack', stages: 1, duration: 60 }
-const SEED = { type: 'leechSeed', fraction: 1 / 16, interval: 2, duration: 6 }
+const SEED = { type: 'condition', condition: 'leech-seed' }
 const enemy = { ally: false }
 const self = { ally: true }
 
@@ -82,50 +83,42 @@ describe('evaluateStatStageEffect', () => {
   })
 })
 
-describe('evaluateLeechSeedEffect', () => {
-  it('sem semente: vale cheio; com uma ativa: 0', () => {
-    expect(evaluateLeechSeedEffect(SEED, spawn(), enemy)).toBe(LEECH_SEED_VALUE)
-    const seeded = spawn(LeechSeed({ timeLeft: 5 }))
-    expect(evaluateLeechSeedEffect(SEED, seeded, enemy)).toBe(0)
-  })
+describe('evaluateConditionEffect', () => {
+  const BURN = { type: 'condition', condition: 'burn', chance: 0.25 }
 
-  it('semente perto de secar volta a valer (replantar)', () => {
-    const seeded = spawn(LeechSeed({ timeLeft: EFFECT_REFRESH_TIME - 0.5 }))
-    expect(evaluateLeechSeedEffect(SEED, seeded, enemy)).toBe(LEECH_SEED_VALUE)
-  })
-
-  it('nunca em quem usou', () => {
-    expect(evaluateLeechSeedEffect(SEED, spawn(), self)).toBe(0)
-  })
-})
-
-describe('evaluateBurnEffect', () => {
-  const BURN = { type: 'burn', chance: 0.25, immuneTypes: ['fire'] }
-
-  it('sem queimadura: o valor × a chance; queimado: 0, até perto de apagar', () => {
-    expect(evaluateBurnEffect(BURN, spawn(), enemy)).toBe(
+  it('sem a condição: o valor dela × a chance; com uma ativa: 0, até perto de acabar', () => {
+    expect(evaluateConditionEffect(SEED, spawn(), enemy)).toBe(SEED_VALUE)
+    expect(evaluateConditionEffect(BURN, spawn(), enemy)).toBe(
       BURN_VALUE * BURN.chance,
     )
-    expect(evaluateBurnEffect(BURN, spawn(Burn({ timeLeft: 99 })), enemy)).toBe(
-      0,
-    )
     expect(
-      evaluateBurnEffect(
+      evaluateConditionEffect(BURN, spawn(withCondition('burn', 99)), enemy),
+    ).toBe(0)
+    expect(
+      evaluateConditionEffect(
         BURN,
-        spawn(Burn({ timeLeft: EFFECT_REFRESH_TIME - 0.5 })),
+        spawn(withCondition('burn', EFFECT_REFRESH_TIME - 0.5)),
         enemy,
       ),
     ).toBe(BURN_VALUE * BURN.chance)
   })
 
+  it('outra condição ativa não conta', () => {
+    const seeded = spawn(withCondition('leech-seed', 99))
+    expect(evaluateConditionEffect(BURN, seeded, enemy)).toBe(
+      BURN_VALUE * BURN.chance,
+    )
+  })
+
   it('0 em quem usou e em tipo imune', () => {
-    expect(evaluateBurnEffect(BURN, spawn(), self)).toBe(0)
+    expect(evaluateConditionEffect(BURN, spawn(), self)).toBe(0)
+    const immuneTypes = getCondition('burn').immuneTypes
     const immune = listSpecies().find((species) =>
-      resolveSpeciesTypes(species).includes(BURN.immuneTypes[0]),
+      resolveSpeciesTypes(species).some((type) => immuneTypes.includes(type)),
     )
     if (!immune) return
     expect(
-      evaluateBurnEffect(
+      evaluateConditionEffect(
         BURN,
         spawn(WildCreature({ speciesId: immune.id })),
         enemy,
@@ -138,7 +131,43 @@ describe('evaluateEffect — registro por tipo de efeito', () => {
   it('despacha pelo `type`; tipo sem avaliador vale 0', () => {
     const target = spawn()
     expect(evaluateEffect(GROWL, target, enemy)).toBe(STAT_STAGE_VALUE)
-    expect(evaluateEffect(SEED, target, enemy)).toBe(LEECH_SEED_VALUE)
+    expect(evaluateEffect(SEED, target, enemy)).toBe(SEED_VALUE)
     expect(evaluateEffect({ type: 'desconhecido' }, target, enemy)).toBe(0)
+  })
+})
+
+describe('evaluateConditionEffect — condição boa', () => {
+  // A condição boa do registro (ex.: Focado) e uma ruim (a queimadura).
+  const good = listConditions().find((condition) => condition.beneficial)
+  const GOOD = { type: 'condition', condition: good.id }
+  const BAD = { type: 'condition', condition: 'burn' }
+
+  it('vale em quem usa (aliado), não no inimigo; a ruim, o contrário', () => {
+    expect(evaluateConditionEffect(GOOD, spawn(), self)).toBe(good.ai.value)
+    expect(evaluateConditionEffect(GOOD, spawn(), enemy)).toBe(0)
+    expect(evaluateConditionEffect(BAD, spawn(), self)).toBe(0)
+  })
+
+  it('com ela ativa, não vale de novo até perto de acabar', () => {
+    expect(
+      evaluateConditionEffect(GOOD, spawn(withCondition(good.id, 99)), self),
+    ).toBe(0)
+  })
+})
+
+describe('evaluateRemoveConditionsEffect — soltar de condições', () => {
+  const REMOVE = { type: 'removeConditions', conditions: ['leech-seed'] }
+
+  it('em quem usa, vale a condição que ele tem agora', () => {
+    expect(
+      evaluateEffect(REMOVE, spawn(withCondition('leech-seed', 5)), self),
+    ).toBe(SEED_VALUE)
+  })
+
+  it('sem a condição, ou no inimigo, não vale nada', () => {
+    expect(evaluateEffect(REMOVE, spawn(), self)).toBe(0)
+    expect(
+      evaluateEffect(REMOVE, spawn(withCondition('leech-seed', 5)), enemy),
+    ).toBe(0)
   })
 })

@@ -28,12 +28,9 @@
 export const WHIRLPOOL_SKILL = {
   id: 'whirlpool',
   type: 'water',
-  duration: 0.6,
-  effectAt: 0.3,
-  range: 1.6,
-  aim: 'ranged',
-  castMode: 'instant',
-  radius: 0.5,
+  group: 'ranged',
+  duration: 1.2,
+  effectAt: 0.5,
   visual: {
     effectGroup: 'whirlpool',
     effectVisualDuration: 0.45,

@@ -91,6 +91,8 @@ export const CHARMANDER = {
     appeal: 'appeal',
     // atordoada por golpe interrompido (ação `'hit'`)
     hit: 'hit',
+    // atordoada por condição (a paralisia): entra, repete e sai
+    stunned: { start: 'stunStart', loop: 'stunLoop', end: 'stunEnd' },
   },
   // Onde fica a fruta enquanto come (docs/features/042-itens-da-beta.md,
   // `view/systems/eatingFoodViewSystem.js`) — ver `_template/`.
@@ -123,6 +125,7 @@ export const CHARMANDER = {
     capsuleHalfHeight: 0.09,
     capsuleAxis: 'y',
     modelOffset: [0, -0.35, 0],
+    trigger: { radius: 0.35, halfLength: 0, angle: 0, offset: { x: 0, z: 0 } },
   },
   movement: {
     walkSpeed: 2.25,
@@ -155,26 +158,9 @@ export const CHARMANDER = {
     jumpGroup: 'default',
   },
   skills: {
-    1: {
-      id: 'growl',
-      overrides: {
-        audio: {
-          cry: false,
-          clips: ['/assets/audio/voices/004-charmander/cry-02.wav'],
-          volume: 2,
-          refDistance: 4,
-        },
-      },
-    },
-    2: { id: 'scratch', overrides: { range: 1.4, duration: 1, effectAt: 0.4 } },
-    3: {
-      id: 'ember',
-      overrides: {
-        duration: 1,
-        effectAt: 0.8,
-        visual: { positionOffset: { x: 0, y: 0, z: 0.5 } },
-      },
-    },
+    1: 'growl',
+    2: 'scratch',
+    3: 'ember',
   },
   stats: {
     hp: { base: HP, ev: HP_EV, regenPercent: 0.25, regenDelay: 10 },
@@ -187,26 +173,47 @@ export const CHARMANDER = {
   },
   moves: [
     {
-      id: 'smokescreen',
-      requires: { level: 8 },
+      id: 'growl',
       overrides: {
-        range: 2.5,
-        radius: 2,
-        duration: 2,
-        effectAt: 0.6,
-        visual: { positionOffset: { x: 0, y: 0, z: 0.5 }, scale: 3 },
+        audio: {
+          cry: false,
+          clips: ['/assets/audio/voices/004-charmander/cry-02.wav'],
+          volume: 2,
+          refDistance: 4,
+        },
+        visual: { positionOffset: { x: 0, y: 0, z: 0.5 } },
       },
     },
-    { id: 'dragon-breath', requires: { level: 12 } },
+    {
+      id: 'scratch',
+      overrides: {
+        duration: 0.75,
+        effectAt: 0.3,
+        animation: { clipKey: 'attack' },
+      },
+    },
+    {
+      id: 'ember',
+      overrides: {
+        visual: { positionOffset: { x: 0, y: 0, z: 0.5 } },
+      },
+    },
+
+    {
+      id: 'smokescreen',
+      requires: { level: 8 },
+      overrides: { visual: { positionOffset: { x: 0, y: 0.15, z: 0.5 } } },
+    },
+    {
+      id: 'dragon-breath',
+      requires: { level: 12 },
+      overrides: { visual: { positionOffset: { x: 0, y: 0, z: 0.5 } } },
+    },
     {
       id: 'flamethrower',
       requires: { level: 24 },
       overrides: {
-        range: 2.5,
-        radius: 2,
-        duration: 2,
-        effectAt: 0.6,
-        visual: { positionOffset: { x: 0, y: 0, z: 0.5 }, scale: 3 },
+        visual: { positionOffset: { x: 0, y: 0, z: 0.5 } },
       },
     },
   ],

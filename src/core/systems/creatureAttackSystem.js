@@ -18,11 +18,15 @@ import {
   resolveDirectionTo,
   tryStartAttack,
 } from '../battle/attackCasting'
+import { readSpeedStage } from '../battle/statStages'
+import { resolveImpactAt } from '../battle/attackLunge'
 import { resolveAiTarget, steerAiBeam } from '../battle/aiMovement'
 import { resolveAttackImpact } from '../battle/attackImpact'
 import { TRAINING_SLOT, resolveEntityMoveSet } from '../battle/creatureAttack'
 import { registrarUsoDeGolpe } from '../battle/moveMasteryUse'
 import { applyChannelTick } from '../battle/attackChannelTick'
+import { applyExtraHit } from '../battle/attackExtraHit'
+import { countDueExtraHits } from '../battle/multiHit'
 import { interruptStatusAttacks } from '../battle/attackStatusEffects'
 import {
   ActionState,
@@ -111,13 +115,12 @@ import {
  * espécie `kind: 'pokemon'` (o treinador não tem — sem arma direta no
  * design, ver docs/backlog.md).
  *
- * **Indicador antes de lançar** (`attack.castMode`, por ataque): com
- * `'confirm'`, apertar o botão só abre o indicador (`AttackAim.slot`,
- * desenhado por `view/scene/AttackIndicatorView.jsx`); clique ou a mesma
- * tecla de novo lança, botão direito cancela, outra tecla de ataque troca
- * de indicador. Com `'instant'` (ou sem o campo), lança na hora. O modo
- * debug (F2) força `'confirm'` em todos via `context.settings.
- * castModeOverride` (`GameLoop.jsx`).
+ * **Indicador antes de lançar** (opção do JOGADOR, não do golpe —
+ * `context.settings.castModeOverride`, `GameLoop.jsx`; hoje só o modo debug,
+ * F2, liga): com `'confirm'`, apertar o botão só abre o indicador
+ * (`AttackAim.slot`, desenhado por `view/scene/AttackIndicatorView.jsx`);
+ * clique ou a mesma tecla de novo lança, botão direito cancela, outra tecla
+ * de ataque troca de indicador. Sem ela, lança na hora.
  *
  * **Dano** (docs/features/030-sistema-de-dano-de-ataques.md): no mesmo
  * instante `effectAt` em que o VFX nasce, `resolveAttackTarget` (`core/battle/attackTargets.js`)
@@ -240,6 +243,7 @@ export function creatureAttackSystem(context) {
             individualValues,
             castContext.level,
             castContext.moveSet,
+            readSpeedStage(entity),
           )
           if (
             requiresHold(action, running) &&
@@ -365,6 +369,7 @@ export function creatureAttackSystem(context) {
           individualValues,
           level,
           resolveEntityMoveSet(entity, species),
+          readSpeedStage(entity),
         )
         // O golpe do slot deixou de existir no meio da ação (ex.: treino
         // parado durante uma repetição): a ação acaba aqui.
@@ -410,10 +415,9 @@ export function creatureAttackSystem(context) {
           }
         }
 
-        if (
-          previousElapsed < ATTACK.effectAt &&
-          action.elapsed >= ATTACK.effectAt
-        ) {
+        // O acerto: no `effectAt`, ou no fim da arrancada (`resolveImpactAt`).
+        const impactAt = resolveImpactAt(ATTACK)
+        if (previousElapsed < impactAt && action.elapsed >= impactAt) {
           const { failed } = resolveAttackImpact(world, events, {
             entity,
             action,
@@ -438,6 +442,28 @@ export function creatureAttackSystem(context) {
             attack: ATTACK,
             slot: action.pendingSlot,
             pos,
+          })
+        }
+
+        // Golpe de vários acertos (Fury Attack): os acertos seguintes no
+        // alvo do primeiro, um a cada `multiHit.interval` (`multiHit.js`).
+        const extraHits = countDueExtraHits(
+          previousElapsed,
+          action.elapsed,
+          impactAt,
+          action.multiHit,
+          ATTACK.multiHit?.interval ?? 0,
+        )
+        for (let hit = 0; hit < extraHits && action.multiHit; hit++) {
+          applyExtraHit(world, events, {
+            entity,
+            action,
+            species,
+            individualValues,
+            level,
+            attack: ATTACK,
+            pos,
+            damaged,
           })
         }
 

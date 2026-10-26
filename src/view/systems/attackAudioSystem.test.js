@@ -68,6 +68,18 @@ describe('attackAudioSystem', () => {
     expect(entity.has(AttackPulse)).toBe(false)
   })
 
+  it('entidade destruída ainda no registro (a view desmonta depois): pula', () => {
+    const part = voice(0)
+    const entity = setup({ secondary2: [part] })
+    entity.add(AttackPulse({ slot: 'secondary2' }))
+    entity.destroy()
+    // o id é reaproveitado por quem nasce em seguida
+    world.spawn(AttackPulse({ slot: 'secondary2' }))
+
+    expect(() => attackAudioSystem({ delta: 1 / 60 })).not.toThrow()
+    expect(part.audio.plays).toBe(0)
+  })
+
   it('a parte com atraso só toca depois do tempo (contado pelo delta)', () => {
     const actor = voice(0)
     const target = voice(0.5)
@@ -254,13 +266,18 @@ describe('attackAudioSystem — som da AÇÃO (audio.actionGroup)', () => {
     })
   }
 
-  // o secondary1 do Charmander (Growl): effectAt 0.5 de 1.2 s → ~0.42 s numa
-  // ação de 1 s
+  // o instante do efeito do secondary1 do Charmander numa ação de 1 s (a
+  // fração `effectAt / duration` do golpe)
+  const hitAt = () => {
+    const attack = resolveCreatureAttack(getSpecies('charmander'), 'secondary1')
+    return attack.effectAt / attack.duration
+  }
+
   it('antes do effectAt não toca', () => {
     const loop = setup()
     attacking(0.05)
     attackAudioSystem({ delta: 1 / 60 })
-    attacking(0.4)
+    attacking(hitAt() - 0.02)
     attackAudioSystem({ delta: 1 / 60 })
 
     expect(loop.audio.plays).toBe(0)
@@ -269,7 +286,7 @@ describe('attackAudioSystem — som da AÇÃO (audio.actionGroup)', () => {
 
   it('toca em LOOP do effectAt até o fim da ação', () => {
     const loop = setup()
-    attacking(0.45)
+    attacking(hitAt() + 0.03)
     attackAudioSystem({ delta: 1 / 60 })
     attacking(0.95)
     attackAudioSystem({ delta: 1 / 60 })

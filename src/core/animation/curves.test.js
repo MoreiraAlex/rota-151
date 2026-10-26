@@ -87,6 +87,38 @@ describe('evaluateCurve — sum', () => {
   })
 })
 
+describe('evaluateCurve — linear', () => {
+  const curve = { type: 'linear', amplitude: TWO_PI * 3 }
+
+  it('cresce `amplitude` por ciclo, sem voltar', () => {
+    expect(evaluateCurve(curve, 0, TWO_PI)).toBeCloseTo(0)
+    expect(evaluateCurve(curve, 0.5, TWO_PI)).toBeCloseTo(curve.amplitude / 2)
+    expect(evaluateCurve(curve, 1, TWO_PI)).toBeCloseTo(curve.amplitude)
+    expect(evaluateCurve(curve, 2, TWO_PI)).toBeCloseTo(curve.amplitude * 2)
+  })
+
+  it('acompanha a velocidade e os deslocamentos dos senos', () => {
+    // 2 ciclos por segundo: em meio segundo, um ciclo inteiro
+    expect(evaluateCurve(curve, 0.5, 2 * TWO_PI)).toBeCloseTo(curve.amplitude)
+    expect(
+      evaluateCurve({ ...curve, phaseTurns: 0.25 }, 0, TWO_PI),
+    ).toBeCloseTo(curve.amplitude / 4)
+    expect(
+      evaluateCurve({ ...curve, timeOffset: 0.5 }, 0.5, TWO_PI),
+    ).toBeCloseTo(0)
+  })
+
+  it('somada a senos (o giro com aceleração)', () => {
+    const sum = {
+      type: 'sum',
+      curves: [curve, { type: 'sine', amplitude: 1 }],
+    }
+    expect(evaluateCurve(sum, 0.25, TWO_PI)).toBeCloseTo(
+      curve.amplitude / 4 + 1,
+    )
+  })
+})
+
 describe('evaluateCurve — tipo desconhecido', () => {
   it('devolve zero em vez de lançar erro', () => {
     expect(evaluateCurve({ type: 'nao-existe' }, 0, TWO_PI)).toBe(0)

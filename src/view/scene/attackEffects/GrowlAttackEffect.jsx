@@ -9,8 +9,9 @@ import { useParticleAttackEffect } from './useParticleAttackEffect'
  * `AttackEffect` nasce na ponta do cone orientado pro golpe; a criatura fica em
  * (0, 0, -`length`).
  */
-export function GrowlAttackEffect({ radius, length = 0, scale = 1 }) {
+export function GrowlAttackEffect({ rise, radius, length = 0, scale = 1 }) {
   const groupRef = useParticleAttackEffect({
+    rise,
     emitters: GROWL_EMITTERS,
     texturePaths: GROWL_TEXTURE_PATHS,
     length,

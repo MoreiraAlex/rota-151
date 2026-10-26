@@ -42,3 +42,16 @@ describe('species registry — mecanismo', () => {
     expect(resolveSpeciesKind(null)).toBe('trainer')
   })
 })
+
+describe('paralisado (estado `stunned`) em toda espécie', () => {
+  it('tem o que tocar: a animação do modelo ou a camada sobre uma base que existe', () => {
+    for (const species of listSpecies().filter((s) => s.kind === 'pokemon')) {
+      const native = species.nativeAnimations?.stunned
+      const layer = species.clips?.stunned
+      const ok =
+        Boolean(native) ||
+        Boolean(layer?.base && species.nativeAnimations?.[layer.base])
+      expect(ok, `${species.id} sem animação de paralisado`).toBe(true)
+    }
+  })
+})

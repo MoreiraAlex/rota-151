@@ -58,10 +58,9 @@ describe('smokescreenVfx — fumaça do Smokescreen', () => {
     expect(system.isDone()).toBe(true)
   })
 
-  it('a skill baixa a PRECISÃO em cone, sem dano, e usa os dois grupos de VFX', () => {
+  it('a skill baixa a PRECISÃO, sem dano, e usa os dois grupos de VFX', () => {
     const skill = resolveSkill('smokescreen')
     expect(skill.damage).toBeNull()
-    expect(skill.area).toBe('cone')
     expect(skill.effects[0]).toMatchObject({
       type: 'statStage',
       stat: 'accuracy',

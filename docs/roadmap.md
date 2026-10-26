@@ -2,7 +2,7 @@
 
 ---
 
-# ✅ Já feito (0.0.1 – 0.0.60)
+# ✅ Já feito (0.0.1 – 0.0.61)
 
 O que já foi entregue, por tema. Detalhes de cada uma em `docs/features/`.
 
@@ -73,6 +73,7 @@ O que já foi entregue, por tema. Detalhes de cada uma em `docs/features/`.
 - [x] **034 — IA de batalha**
 - [x] **035 — Balanceamento de ações e correções**
 - [x] **039 — Tipos e combate clássico**
+- [x] **061 — Revisão das skills**
 
 ### Progressão
 - [x] **037 — Experiência e nível**
@@ -123,7 +124,6 @@ só aparecem pelo F2. A montanha foi adiada: na beta não teria espécie
 exclusiva (o Spearow já mora na savana). Os 3 iniciais não nascem no mundo:
 vêm só no kit inicial (067).
 
-- [ ] **061 — Revisão das skills** — foco em todas as skills *(detalhar quando chegar)*.
 - [ ] **062 — Spawn estilo Cobblemon** — limite por jogador ativo, nascer fora da vista, despawn dos distantes; condições por espécie: bioma, tags, horário, clima, faixa de nível e raridade. Só as 7 selvagens têm spawn; os 3 iniciais não nascem no mundo.
 
 ---
@@ -175,7 +175,7 @@ cada um com o próprio progresso salvo. O jogo vai para o ar.
 aparecendo ao longo da beta, pra não interromper a feature em andamento. Cada
 item entra aqui quando for identificado e vira feature quando chegar a vez.
 
-- [ ] **079 — Revisão da batalha e da IA** — rever o combate e as decisões da IA dos selvagens (partir para a ofensiva ou fugir) *(detalhar quando chegar)*.
+- [ ] **079 — Revisão da batalha e da IA** — rever o combate e as decisões da IA dos selvagens (partir para a ofensiva ou fugir). O treinador fora do controle atravessa a luta: ele para pouco além do limite da zona segura, e a selvagem rodeando a criatura (com o alcance contado da borda do corpo, 061, a volta ficou maior) ou recuando pro lado dele com golpe à distância chega perto demais; ele escolhe o ponto do lado oposto e passa pelo meio da luta pra chegar lá. Os testes de regressão do treinador (`trainerBattleSystem.test.js`) dão folga na distância segura e deixam a selvagem só com o corpo a corpo até isso ser resolvido *(detalhar quando chegar)*.
 - [ ] **080 — Revisão da wiki** — rever a wiki inteira *(detalhar quando chegar)*.
 - [ ] **081 — Limpeza de código sem uso** — achar e remover código que ficou de testes ou de ideias descartadas (systems, traits, componentes, dados, assets e configs que nada mais usa) *(detalhar quando chegar)*.
 - [ ] **082 — Revisão do diagrama ER** — com todos os requisitos da beta conhecidos (save, mundo, multiplayer, troca, duelo), rever as tabelas do banco desenhadas na 044 e montar um diagrama ER melhor *(detalhar quando chegar)*.
@@ -186,7 +186,7 @@ item entra aqui quando for identificado e vira feature quando chegar a vez.
 - [ ] **087 — Ambiente da floresta** — névoa um pouco mais fechada dentro da mata; partículas (folhas caindo de dia, vaga-lumes à noite); som ambiente por bioma (pássaros de dia, grilos e coruja à noite) *(detalhar quando chegar)*.
 - [ ] **088 — Detalhes da floresta** — cogumelo-prateleira (o do MegaKit saiu na 054: achar um no LGPE), musgo nos troncos caídos e grama mais rala sob a copa fechada *(detalhar quando chegar)*.
 - [ ] **089 — Pokécenter funcionando** — o Pokécenter da cidade (056) cura o time (com o som de cura) e vira o ponto de reaparecimento; base para a derrota do treinador (064) *(detalhar quando chegar)*.
-- [ ] **090 — Refino dos golpes** — os golpes que entraram na 059 com valores padrão (VFX e som emprestados de outro golpe) ganham VFX, som, forma e animação próprios, um por um; efeitos que o jogo ainda não tem (ex.: a paralisia do Dragon Breath, o recuo do Bite, a Velocidade que o Rapid Spin dá a quem usa, o envenenamento do Poison Sting, a Velocidade que o String Shot tira — o jogo ainda não tem estágio de Velocidade —, a paralisia do Thunder Shock e do Thunder Wave, a Evasão do Double Team, o poder do Electro Ball pela Velocidade, prender do Wrap, a paralisia do Glare, a chance de crítico do Focus Energy — o crítico do jogo ainda não tem estágio —, o poder dobrado do Assurance e os vários acertos do Fury Attack) entram aqui; conferir no jogo o `positionOffset` (de onde cada golpe sai) e os golpes do learnset de cada espécie no nível certo *(detalhar quando chegar)*.
+- [ ] **090 — Refino dos golpes** — conferir no jogo o `positionOffset` (de onde cada golpe sai) e os golpes do learnset de cada espécie no nível certo *(detalhar quando chegar)*.
 
 ---
 

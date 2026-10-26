@@ -8,6 +8,7 @@ import {
   voltarAVagar,
 } from '../actions/wildBehavior'
 import { planAiAttack } from '../battle/aiAttackChoice'
+import { resolveEntityHitTrigger } from '../battle/attackTargets'
 import { resolveFleeDestination } from '../battle/flee'
 import { resolveResting } from '../battle/aiEnergy'
 import { advanceAiDash, moveInFight } from '../battle/aiMovement'
@@ -44,6 +45,7 @@ import {
   WildCreature,
   ChunkFrozen,
 } from '../traits'
+import { readConditionModifier } from '../actions/conditions'
 
 /**
  * Alvo desta selvagem neste tick (entre `candidates`, o lado do jogador
@@ -223,7 +225,12 @@ export function wildBehaviorSystem(context) {
         const moving = { pos, rot, vel, stats }
         // Correr (perseguir/fugir) gasta stamina; sem fôlego, anda.
         const runOrWalk = () =>
-          resolveMoveSpeed(stats, vitals, tentarCorrer(vitals, delta))
+          resolveMoveSpeed(
+            stats,
+            vitals,
+            tentarCorrer(vitals, delta),
+            readConditionModifier(entity, 'movement'),
+          )
 
         if (behavior.state === 'flee') {
           // Destino guardado, refeito no intervalo, ao chegar ou travando —
@@ -296,7 +303,8 @@ export function wildBehaviorSystem(context) {
             )
         behavior.attackSlot = plan?.slot ?? null
         const reach =
-          plan?.reach ?? resolveAttackReach(entity, species, targetBody)
+          plan?.reach ??
+          resolveAttackReach(entity, species, resolveEntityHitTrigger(target))
         const stopDistance =
           reach !== null
             ? reach * ATTACK_REACH_FRACTION

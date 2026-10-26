@@ -9,6 +9,10 @@ import {
 import { isSelfAttack } from '../battle/channelAttack'
 import { resolveTrainingHours } from '../battle/actionCost'
 import { TRAINING_SLOT, resolveEntityMoveSet } from '../battle/creatureAttack'
+import {
+  resolveHitTrigger,
+  resolveTriggerFrontEdge,
+} from '../battle/hitTrigger'
 import { pararTreino, resolveTrainingGoal } from '../actions/training'
 import { progredirTreino, treinarDominio } from '../actions/moves'
 import { resolvePokemonOf } from '../actions/pokemon'
@@ -163,10 +167,11 @@ export function trainingSystem(context) {
         )
 
         // Golpe em si mesmo não precisa chegar perto; os outros, até o
-        // alcance (somado ao raio do objeto).
+        // alcance (somado ao raio do objeto), contado da borda da frente.
         const reach = isSelfAttack(attack)
           ? Infinity
-          : attack.range * REACH_FRACTION
+          : resolveTriggerFrontEdge(resolveHitTrigger(species.body)) +
+            attack.range * REACH_FRACTION
         const facing = Math.atan2(objectPos.x - pos.x, objectPos.z - pos.z)
         if (distance > reach) {
           rot.y = lerpAngle(rot.y, facing, stats.turnSpeed * delta)

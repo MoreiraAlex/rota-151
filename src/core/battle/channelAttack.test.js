@@ -3,7 +3,10 @@ import { createRng } from '../rng'
 import {
   countChannelTicks,
   isChannelAttack,
+  isChargeAttack,
+  isAreaAttack,
   isBeamAttack,
+  isCircleAttack,
   isConeAttack,
   isSelfAttack,
   resolveChannelTickCount,
@@ -21,21 +24,25 @@ function totalTicks(attack, step) {
 }
 
 describe('channelAttack', () => {
-  it('isConeAttack: todo canalizado é cone, e um golpe de impacto único também com area "cone" (Growl)', () => {
-    expect(isConeAttack({ damageMode: 'channel' })).toBe(true)
+  it('isConeAttack: a forma do grupo (area "cone"), canalizado ou de impacto único', () => {
     expect(isConeAttack({ area: 'cone' })).toBe(true)
-    expect(isConeAttack({ damageMode: 'channel', area: 'cone' })).toBe(true)
-    expect(isConeAttack({ area: 'capsule' })).toBe(false)
+    expect(isConeAttack({ execution: 'channel', area: 'cone' })).toBe(true)
+    // canalizado na cápsula é feixe, não cone
+    expect(isConeAttack({ execution: 'channel' })).toBe(false)
     expect(isConeAttack({})).toBe(false)
     expect(isConeAttack(null)).toBe(false)
     // um cone de impacto único NÃO é canalizado (não repete dano por tick)
     expect(isChannelAttack({ area: 'cone' })).toBe(false)
   })
 
-  it('isChannelAttack só pra damageMode channel', () => {
-    expect(isChannelAttack({ damageMode: 'channel' })).toBe(true)
+  it('isChannelAttack só pra execution channel; isChargeAttack só pra charge', () => {
+    expect(isChannelAttack({ execution: 'channel' })).toBe(true)
+    expect(isChannelAttack({ execution: 'charge' })).toBe(false)
     expect(isChannelAttack({})).toBe(false)
     expect(isChannelAttack(null)).toBe(false)
+    expect(isChargeAttack({ execution: 'charge' })).toBe(true)
+    expect(isChargeAttack({ execution: 'instant' })).toBe(false)
+    expect(isChargeAttack(null)).toBe(false)
   })
 
   it('primeiro tick no effectAt, depois a cada damageInterval', () => {
@@ -97,15 +104,27 @@ describe('isSelfAttack', () => {
 })
 
 describe('isBeamAttack', () => {
-  it('canalizado com area "line" é feixe (e não é cone)', () => {
-    const beam = { damageMode: 'channel', area: 'line' }
+  it('canalizado na cápsula (sem area) é feixe (e não é cone)', () => {
+    const beam = { execution: 'channel' }
     expect(isBeamAttack(beam)).toBe(true)
     expect(isConeAttack(beam)).toBe(false)
   })
 
-  it('area "line" sem canal, ou canal sem area, não é feixe', () => {
-    expect(isBeamAttack({ area: 'line' })).toBe(false)
-    expect(isBeamAttack({ damageMode: 'channel' })).toBe(false)
-    expect(isConeAttack({ damageMode: 'channel' })).toBe(true)
+  it('sem canal, ou canalizado em cone ou em si mesmo, não é feixe', () => {
+    expect(isBeamAttack({})).toBe(false)
+    expect(isBeamAttack({ execution: 'channel', area: 'cone' })).toBe(false)
+    expect(isBeamAttack({ execution: 'channel', area: 'self' })).toBe(false)
+    expect(isBeamAttack({ execution: 'channel', area: 'circle' })).toBe(false)
+  })
+})
+
+describe('isCircleAttack / isAreaAttack', () => {
+  it('círculo e cone são área; cápsula e em si mesmo não', () => {
+    expect(isCircleAttack({ area: 'circle' })).toBe(true)
+    expect(isCircleAttack({ area: 'cone' })).toBe(false)
+    expect(isAreaAttack({ area: 'circle' })).toBe(true)
+    expect(isAreaAttack({ area: 'cone' })).toBe(true)
+    expect(isAreaAttack({ area: 'self' })).toBe(false)
+    expect(isAreaAttack({})).toBe(false)
   })
 })

@@ -11,11 +11,13 @@ import { useParticleAttackEffect } from './useParticleAttackEffect'
  * Config das partículas em `view/vfx/smokescreenVfx.js`.
  */
 export function SmokescreenTargetAttackEffect({
+  rise,
   radius,
   length = 0,
   scale = 1,
 }) {
   const groupRef = useParticleAttackEffect({
+    rise,
     emitters: SMOKESCREEN_TARGET_EMITTERS,
     texturePaths: SMOKESCREEN_TEXTURE_PATHS,
     length,

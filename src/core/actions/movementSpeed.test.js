@@ -21,4 +21,15 @@ describe('velocidade pela vida baixa', () => {
     expect(resolveMoveSpeed(stats, at(1), false)).toBe(2)
     expect(resolveMoveSpeed(stats, at(0), true)).toBeCloseTo(5 * MIN_MULTIPLIER)
   })
+
+  it('o modificador de passo das condições multiplica andar e correr', () => {
+    const stats = { walkSpeed: 2, runSpeed: 5 }
+    const modifier = 0.5
+    for (const running of [false, true]) {
+      const base = resolveMoveSpeed(stats, at(1), running)
+      expect(resolveMoveSpeed(stats, at(1), running, modifier)).toBeCloseTo(
+        base * modifier,
+      )
+    }
+  })
 })

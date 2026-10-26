@@ -1,7 +1,16 @@
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, it, expect } from 'vitest'
-import { getSkill, listSkills, resolveSkill, SKILL_REGISTRY } from './index'
+import { GAME_CONFIG } from '../../gameConfig'
+import { resolveConditionEffect } from '../conditions'
+import { isBeamAttack } from '../../battle/channelAttack'
+import {
+  applySkillGroup,
+  getSkill,
+  listSkills,
+  resolveSkill,
+  SKILL_REGISTRY,
+} from './index'
 
 const FAKE_REGISTRY = {
   tackle: {
@@ -55,8 +64,8 @@ describe('resolveSkill', () => {
     expect(resolveSkill('nao-existe')).toBeNull()
   })
 
-  it('referência string usa a definição base sem alteração', () => {
-    expect(resolveSkill('tackle')).toEqual(getSkill('tackle'))
+  it('referência string usa a definição base, com o que o grupo dá', () => {
+    expect(resolveSkill('tackle')).toEqual(applySkillGroup(getSkill('tackle')))
   })
 
   it('id desconhecido dentro de { id, overrides } também devolve null', () => {
@@ -66,7 +75,7 @@ describe('resolveSkill', () => {
   })
 
   it('{ id } sem overrides (ou overrides vazio/undefined) usa a base', () => {
-    expect(resolveSkill({ id: 'punch' })).toEqual(getSkill('punch'))
+    expect(resolveSkill({ id: 'punch' })).toEqual(resolveSkill('punch'))
   })
 
   it('override de campo de topo substitui só esse campo, mantém o resto da base', () => {
@@ -76,8 +85,8 @@ describe('resolveSkill', () => {
     })
     const base = getSkill('tackle')
     expect(resolved.staminaCost).toBe(20)
-    expect(resolved.range).toBe(base.range)
     expect(resolved.duration).toBe(base.duration)
+    expect(resolved.effectAt).toBe(base.effectAt)
   })
 
   it('override de campo DENTRO de uma seção (visual/audio/animation) mescla campo a campo — não apaga o resto da seção', () => {
@@ -102,6 +111,38 @@ describe('resolveSkill', () => {
     })
 
     expect(getSkill('tackle').visual).toEqual(baseVisualBefore)
+  })
+})
+
+describe('applySkillGroup — o grupo dá alcance, largura, forma e mira', () => {
+  it('todo golpe do registro tem um grupo conhecido', () => {
+    for (const skill of Object.values(SKILL_REGISTRY)) {
+      expect(GAME_CONFIG.ATTACK_GROUPS[skill.group], skill.id).toBeDefined()
+    }
+  })
+
+  it('o do grupo ganha do escrito na espécie; o modo de execução, não', () => {
+    for (const skill of Object.values(SKILL_REGISTRY)) {
+      const profile = GAME_CONFIG.ATTACK_GROUPS[skill.group]
+      const resolved = resolveSkill({
+        id: skill.id,
+        overrides: { range: 99, radius: 99, area: 'x', execution: 'channel' },
+      })
+      expect(resolved.range).toBe(profile.RANGE)
+      expect(resolved.radius).toBe(profile.RADIUS)
+      expect(resolved.aim).toBe(profile.AIM)
+      expect(resolved.area).toBe(profile.AREA ?? undefined)
+      expect(resolved.execution).toBe('channel')
+    }
+  })
+
+  it('sem modo escrito, o padrão do grupo', () => {
+    for (const skill of Object.values(SKILL_REGISTRY)) {
+      if (skill.execution) continue
+      expect(resolveSkill(skill.id).execution).toBe(
+        GAME_CONFIG.ATTACK_GROUPS[skill.group].EXECUTION,
+      )
+    }
   })
 })
 
@@ -148,8 +189,8 @@ describe('skills de STATUS (Growl)', () => {
 
 describe('growth', () => {
   it('está no registro, sem dano, em si mesmo', () => {
-    const growth = getSkill('growth')
-    expect(growth).toBe(SKILL_REGISTRY.growth)
+    expect(getSkill('growth')).toBe(SKILL_REGISTRY.growth)
+    const growth = resolveSkill('growth')
     expect(growth.damage).toBeNull()
     expect(growth.area).toBe('self')
   })
@@ -170,10 +211,12 @@ describe('leech-seed', () => {
     // a forma do efeito; os números são balanceamento do usuário
     expect(seed.effects).toHaveLength(1)
     const [effect] = seed.effects
-    expect(effect.type).toBe('leechSeed')
-    expect(effect.fraction).toBeGreaterThan(0)
-    expect(effect.interval).toBeGreaterThan(0)
-    expect(effect.duration).toBeGreaterThan(0)
+    const condition = resolveConditionEffect(effect)
+    expect(condition.id).toBe('leech-seed')
+    expect(condition.tick.to).toBe('source')
+    expect(condition.tick.fraction).toBeGreaterThan(0)
+    expect(condition.tick.interval).toBeGreaterThan(0)
+    expect(condition.duration).toBeGreaterThan(0)
   })
 
   it('o ícone existe em public/', () => {
@@ -187,12 +230,11 @@ describe('leech-seed', () => {
 
 describe('water-gun', () => {
   it('está no registro: dano especial, à distância, canalizado em feixe', () => {
-    const gun = getSkill('water-gun')
-    expect(gun).toBe(SKILL_REGISTRY['water-gun'])
+    expect(getSkill('water-gun')).toBe(SKILL_REGISTRY['water-gun'])
+    const gun = resolveSkill('water-gun')
     expect(gun.damage).toMatchObject({ category: 'special' })
     expect(gun.aim).toBe('ranged')
-    expect(gun.damageMode).toBe('channel')
-    expect(gun.area).toBe('line')
+    expect(isBeamAttack(gun)).toBe(true)
     expect(gun.visual).toMatchObject({
       channelGroup: 'water-jet',
       channelHitGroup: 'water-gun-hit',

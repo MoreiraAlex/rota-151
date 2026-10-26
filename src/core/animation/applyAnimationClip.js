@@ -228,6 +228,41 @@ function sampleAnimationClip(clip, bones, t, speed) {
   return pose
 }
 
+/**
+ * Camada procedural POR CIMA de uma pose que já está nos ossos — a animação
+ * embutida deste quadro, fotografada com `capturePose` (`basePose`)
+ * (docs/features/061-revisao-das-skills.md, a cauda do Tail Whip do Rattata
+ * abanando por cima do `attackRanged`). Só os ossos do clipe mudam, e a
+ * partir da pose de base, não da de descanso: `q = base · Rx · Ry · Rz` (o
+ * mesmo `composeRotation`, no referencial local do osso), `position`/`scale`
+ * = base + curva. Clipe procedural apenas; mesmo `t`/`speed` de
+ * `applyAnimationClip`.
+ */
+export function applyAdditiveClip(clip, bones, basePose, t, speed = 1) {
+  const freq = speed * TWO_PI
+  const pose = {}
+  for (const [boneName, properties] of Object.entries(clip.bones ?? {})) {
+    const base = basePose[boneName]
+    if (!bones[boneName] || !base) continue
+    pose[boneName] = {
+      quaternion: properties.rotation
+        ? composeRotation(base.quaternion, properties.rotation, t, freq)
+        : base.quaternion,
+      position: offsetVector(base.position, properties.position, t, freq),
+      scale: offsetVector(base.scale, properties.scale, t, freq),
+    }
+  }
+  writePose(pose, bones)
+}
+
+function offsetVector(base, axesCurves, t, freq) {
+  const value = copyVector(base)
+  for (const [axis, curve] of Object.entries(axesCurves ?? {})) {
+    value[axis] = base[axis] + evaluateCurve(curve, t, freq)
+  }
+  return value
+}
+
 /** Pose de descanso de todo osso do mapa — ponto de partida comum aos dois
  * formatos de clipe (ver docstring de `applyAnimationClip`). */
 function restPose(bones) {

@@ -30,7 +30,7 @@ describe('growlVfx — ondas sonoras do Growl', () => {
     GROWL_EMITTERS.forEach((spec, index) => {
       expect(spec.start).toBeCloseTo(index * WAVE_INTERVAL)
       expect(spec.anchor).toBe('origin')
-      expect(spec.facing).toBe('direction')
+      expect(spec.facing).toBe('plane')
     })
   })
 
@@ -45,6 +45,23 @@ describe('growlVfx — ondas sonoras do Growl', () => {
     const later = system.group.children.find((c) => c.visible)
     expect(later.position.z).toBeGreaterThan(-0.6)
     expect(later.scale.y).toBeGreaterThan(heightStart)
+  })
+
+  it('a onda fica deitada no plano do cone, não gira com a câmera', () => {
+    const orientationFor = (cameraPosition) => {
+      const system = run(3)
+      system.setCameraPosition(cameraPosition)
+      system.update(0.05)
+      const wave = system.group.children.find((child) => child.visible)
+      return wave.quaternion.clone()
+    }
+    const fromAbove = orientationFor({ x: 0, y: 10, z: 0 })
+    const fromCorner = orientationFor({ x: 7, y: 3, z: -7 })
+    expect(fromAbove.angleTo(fromCorner)).toBeCloseTo(0)
+
+    // a face do quadro (Z local) aponta pra cima
+    const face = new THREE.Vector3(0, 0, 1).applyQuaternion(fromAbove)
+    expect(Math.abs(face.y)).toBeCloseTo(1)
   })
 
   it('termina sozinho depois da última onda', () => {

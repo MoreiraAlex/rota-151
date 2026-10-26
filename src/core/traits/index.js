@@ -13,6 +13,7 @@ export {
 } from './components/physics'
 export { AnimationState } from './components/animation'
 export { ActionState } from './components/action'
+export { AttackLunge } from './components/attackLunge'
 export { Mood } from './components/mood'
 export { CombatMode } from './components/combatMode'
 export { Fainted } from './components/faint'
@@ -48,14 +49,14 @@ export {
 export { HeldItem } from './components/heldItem'
 export { ScanMode } from './components/scanMode'
 export { Targeting, Scanned } from './components/targeting'
-export { LeechSeed, SeededBy } from './components/leechSeed'
-export { Burn, BurnedBy } from './components/burn'
+export { Conditions, conditionSource } from './components/conditions'
 export { Inventory } from './components/inventory'
 export { Party, SummonPulse, RecallPulse } from './components/party'
 export { Projectile } from './components/projectile'
 export { Eating, DroppedFood } from './components/eating'
 export {
   AttackEffect,
+  AttackPath,
   AttackPulse,
   CryPulse,
   AttackCooldowns,

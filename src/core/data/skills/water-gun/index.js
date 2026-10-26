@@ -5,7 +5,7 @@
  *
  * Modalidade (pedido do usuário): canalizada como a Brasa (segurar o botão,
  * soltar corta, o canal inteiro vale o dano de um golpe, repartido em ticks),
- * mas em FEIXE (`area: 'line'`, `isBeamAttack`): a cada tick só o PRIMEIRO
+ * mas em FEIXE (canalizado do grupo de distância, `isBeamAttack`): a cada tick só o PRIMEIRO
  * corpo na linha leva dano (a mesma cápsula do golpe normal, não o cone que
  * pega todo mundo), e a criatura controlada continua mirando com a câmera
  * durante o canal inteiro.
@@ -18,27 +18,26 @@
  *
  * Valores de PARTIDA, sem validação em jogo.
  */
+
 export const WATER_GUN_SKILL = {
   id: 'water-gun',
+  description:
+    'Canalizado: enquanto segura, dispara um jato de água no primeiro inimigo à frente, até {range:m}. Causa dano especial de poder {power}, dividido ao longo do jato; soltar antes encerra o golpe com menos dano.',
   type: 'water',
+  group: 'ranged',
   // canal de até `duration`; o jato começa no fim do `attackRangedAltStart`
-  duration: 2.5,
-  effectAt: 0.6,
-  range: 5,
-  aim: 'ranged',
-  castMode: 'instant',
-  radius: 0.35,
-  damageMode: 'channel',
+  duration: 2,
+  effectAt: 0.75,
+  execution: 'channel',
   damageInterval: 0.25,
-  area: 'line',
   visual: {
     effectGroup: 'none',
     effectVisualDuration: 0,
     channelGroup: 'water-jet',
     channelHitGroup: 'water-gun-hit',
     // cobre a espuma (emissão + vida das partículas)
-    channelHitVisualDuration: 0.9,
-    scale: 1,
+    channelHitVisualDuration: 1,
+    scale: 1.5,
     revealDuration: 0,
     rotationOffset: { x: 0, y: 0, z: 0 },
     positionOffset: { x: 0, y: 0, z: 0 },

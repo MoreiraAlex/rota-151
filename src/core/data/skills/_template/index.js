@@ -31,6 +31,13 @@ export const SKILL_TEMPLATE = {
   // Minúsculo, kebab-case — é o que `species.skills[N]` referencia
   // (ver core/data/species/*/index.js) e a chave em SKILL_REGISTRY.
   id: 'nome-do-ataque',
+  // Descrição pro jogador (slot da HUD, treino e escolha de golpe), no
+  // estilo das habilidades do LoL: o que o golpe faz, em linguagem de jogo.
+  // Números entram por marcador (`{power}`, `{range:m}`,
+  // `{effects.0.duration:s}`...), preenchidos com o golpe RESOLVIDO (grupo e
+  // override da espécie) — ver `view/shared/skillDescription.js`. Uma espécie
+  // troca o texto inteiro pelos `overrides`. Ausente = sem descrição.
+  description: 'O que o golpe faz, com {power} de poder.',
   // Tipo elemental do golpe — um id de `core/data/types/index.js` ('fire',
   // 'water'...). Todo golpe tem, inclusive os de status. Golpe de dano: STAB
   // (`resolveStab`) e efetividade contra os tipos do alvo (tabela da Gen 1);
@@ -42,12 +49,61 @@ export const SKILL_TEMPLATE = {
   // immuneTypes: ['grass'],
 
   // === Mecanismo (creatureAttackSystem.js) ===
+  // GRUPO do golpe (docs/features/061-revisao-das-skills.md) — dá o alcance,
+  // a forma, a largura e o `aim` da IA, FIXOS por grupo
+  // (`GAME_CONFIG.ATTACK_GROUPS`, aplicados em `resolveSkill`): nem o golpe
+  // nem a espécie escrevem `range`/`radius`/`aim`/`area`. Pelo alvo do golpe
+  // na série (`docs/reference/golpes-dos-151.md`):
+  // - 'melee': um alvo, com contato — cápsula curta, a IA encosta.
+  // - 'ranged': um alvo, sem contato — cápsula longa e fina, a IA mantém
+  //   distância.
+  // - 'cone': inimigos em volta — cone pra frente, pega todos dentro.
+  // - 'self': só quem usa — círculo nos pés, sem alvo.
+  // O `range` conta da BORDA do trigger de quem ataca e a área começa nela
+  // (`resolveAttackAreaStart`); o golpe sai sempre na horizontal, pra onde a
+  // câmera olha, acompanhando o terreno e parando em parede ou desnível.
+  group: 'melee',
+  // Modo de execução (opcional; o padrão vem do grupo — 'charge' em 'self',
+  // 'instant' no resto), alterável golpe a golpe e por espécie:
+  // - 'instant': aperta e o golpe sai, vai até o fim sozinho.
+  // - 'charge': segura até o `effectAt` — soltar antes cancela; levar dano
+  //   antes dele também (o único modo que o dano interrompe).
+  // - 'channel': segura o tempo todo — dano em ticks a cada `damageInterval`
+  //   s, do `effectAt` até o fim; soltar encerra. O canal inteiro vale o dano
+  //   de um golpe. Na cápsula é FEIXE (só o primeiro corpo leva cada tick, e
+  //   a criatura controlada mira o canal inteiro, ex.: Water Gun); no cone,
+  //   todos dentro (ex.: Razor Leaf). Ver `core/battle/channelAttack.js`.
+  // execution: 'channel',
+  // damageInterval: 0.25,
+  // Arrancada (opcional): a partir do `effectAt` quem ataca corre na direção
+  // do golpe até `distance` m em `duration` s (parando ao encostar no
+  // primeiro alvo no caminho), e o ACERTO vem quando ela chega
+  // (`effectAt + duration`), de onde chegou — o golpe alcança `distance` a
+  // mais que o `range`, e a IA conta isso (`core/battle/attackLunge.js`, ex.:
+  // Quick Attack). Visual e som da arrancada: `visual.lungeGroup` e
+  // `audio.lungeGroup`.
+  // lunge: { distance: 2.5, duration: 0.15 },
+  // Vários acertos (opcional): o primeiro acerto num alvo único sorteia
+  // quantos vêm (`counts`, pelo peso de cada um em `weights`) e os seguintes
+  // vão no mesmo alvo, um a cada `interval` s (escala com a velocidade), sem
+  // sortear precisão de novo (`core/battle/multiHit.js`, ex.: Fury Attack).
+  // A `duration` precisa caber o último acerto possível.
+  // multiHit: { counts: [2, 3], weights: [1, 1], interval: 0.15 },
+  // Efeitos em QUEM USA num golpe que não é em si mesmo (opcional, só quando
+  // ele acerta alguém — `applySelfEffects`, ex.: Rapid Spin): os mesmos tipos
+  // de `effects` e `removeConditions` (tira as condições listadas de quem
+  // usa). A IA e o custo contam com eles.
+  // selfEffects: [
+  //   { type: 'statStage', stat: 'speed', stages: 1, duration: 15 },
+  //   { type: 'removeConditions', conditions: ['bound'] },
+  // ],
   // Duração total do gesto (segundos) — trava a criatura (ActionState)
-  // até acabar. Devia bater com a duração de verdade do clipe de
-  // animação quando existir (ver `animation.clipKey` abaixo) — clipes de
-  // AÇÃO usam `speed` como `1/duração`, mesma convenção de
+  // até acabar. POR ESPÉCIE (cada uma tem a sua animação: `skills[N].
+  // overrides`); a do golpe é só o padrão. Devia bater com a duração de
+  // verdade do clipe de animação (ver `animation.clipKey` abaixo) — clipes
+  // de AÇÃO usam `speed` como `1/duração`, mesma convenção de
   // `actions.throw`/`.summon` do treinador (core/data/species/boy/index.js).
-  duration: 0.5,
+  duration: 1.2,
   // Opcional (na skill, ou por espécie via `skills[N].overrides`):
   // quantos frames da animação EMBUTIDA (`.glb`) tocar, a partir do
   // início — corta um final indesejado; o trecho que sobra é esticado pra
@@ -56,38 +112,11 @@ export const SKILL_TEMPLATE = {
   // animationFrames: 40,
   // Instante (dentro de `duration`) em que o efeito de verdade acontece
   // (VFX nasce, som toca) — não é keyframe de clipe, é config do próprio
-  // ataque.
-  effectAt: 0.25,
-  // Alcance (m) da trajetória, medido na HORIZONTAL (combate 2.5D): o
-  // golpe anda isso mantendo a mesma altura acima do terreno, e para antes
-  // se encontrar parede ou desnível (`resolveAttackImpactPoint`,
-  // creatureAttackSystem.js) — não "teleporta" através de nada.
-  range: 1.4,
-  // Corpo a corpo ou à distância — o golpe sai sempre na horizontal, pra
-  // onde a câmera olha (`resolveAttackDirection`, core/battle/attackAim.js),
-  // sem assistência de mira. Quem lê é a IA (`aiMovement.js`): com golpe
-  // 'ranged' ela mantém distância em vez de encostar.
-  // - 'melee' / 'ranged' (ou ausente = 'ranged').
-  // Na criatura controlada, a direção acompanha a câmera
-  // enquanto o aviso carrega (do disparo até o `effectAt`) e trava no golpe
-  // (`GAME_CONFIG.BATTLE.ATTACK_WINDUP_STEERING`).
-  aim: 'melee',
-  // Como o botão lança o golpe (`creatureAttackSystem.js`):
-  // - 'confirm': o 1º aperto só mostra o indicador de alcance (leque azul,
-  //   `AttackIndicatorView.jsx`); clique ou a mesma tecla de novo lança,
-  //   botão direito cancela.
-  // - 'instant' (ou ausente): lança assim que aperta.
-  // O modo debug (F2) força 'confirm' em todo ataque. Uma criatura pode
-  // trocar só pra ela: `skills[1]: { id, overrides: { castMode:
-  // 'instant' } }`.
-  castMode: 'instant',
-  // Raio (m) da área efetiva — a "grossura" da trajetória inteira do
-  // golpe (uma cápsula da origem até o fim do `range`), não só da ponta.
-  // Dimensiona o VFX, o indicador de alcance (AttackIndicatorView.jsx) E a
-  // detecção de acerto de verdade (`resolveAttackTarget`,
-  // creatureAttackSystem.js — geométrica, soma este raio ao
-  // `capsuleRadius` do alvo, sem shape-query do Rapier).
-  radius: 0.3,
+  // ataque. Também por espécie; o padrão fica em 40% da `duration`.
+  effectAt: 0.5,
+  // Mostrar o alcance antes de lançar (o 1º aperto abre o indicador, o 2º
+  // lança) é opção do JOGADOR, não do golpe — hoje só o modo debug (F2)
+  // liga (`castModeOverride`).
   // Custo de energia (descontado uma vez no disparo) e recarga (segundos,
   // contados a partir do FIM da ação — `AttackCooldowns.<slot>`, um campo
   // por slot, decrementado todo tick): NÃO se escrevem — saem da fórmula
@@ -108,17 +137,6 @@ export const SKILL_TEMPLATE = {
   // trainingHours: 8,
   //
   // `ai.weight` (mais abaixo) mexe só na nota da IA, não no preço.
-  // Como o dano é aplicado:
-  // - ausente/`'impact'` (padrão): UMA vez, no `effectAt`, no primeiro alvo
-  //   da trajetória (`resolveAttackTarget`).
-  // - `'channel'`: em TODOS os alvos dentro do cone (mesmo leque do
-  //   indicador) a cada `damageInterval` segundos, do `effectAt` até o fim
-  //   da `duration`. Exige SEGURAR o botão do slot até o fim — soltar
-  //   cancela a ação (e o cooldown começa). Ver `core/battle/channelAttack.js`.
-  //   Com `area: 'line'` (abaixo) vira FEIXE: só o primeiro corpo na linha leva
-  //   cada tick, e a criatura controlada mira o canal inteiro (ex.: Water Gun).
-  // damageMode: 'channel',
-  // damageInterval: 0.25,
 
   // === Visual (view/scene/attackEffects/*) ===
   visual: {
@@ -142,6 +160,9 @@ export const SKILL_TEMPLATE = {
     // componente de view já tem (`*_BASE_SCALE`, unidade arbitrária do
     // `.obj` de origem) — não a substitui.
     scale: 1,
+    // Opcional — multiplica o `scale` só no acerto com o poder maior
+    // (`damage.recentDamageBoost`, ex.: Assurance). Omitido = 1.
+    // boostedScale: 1.5,
     // Opcional, só o grupo 'tackle' usa hoje — revelação progressiva do
     // efeito (0% a 100% do "traço" visível ao longo desses segundos, em
     // vez de aparecer inteiro de uma vez). `0` (ou omitido) = revelado
@@ -153,14 +174,13 @@ export const SKILL_TEMPLATE = {
     // câmera). A malha de origem pode não ter o "forward" alinhado com a
     // convenção do jogo — corrige aqui olhando o resultado em jogo.
     rotationOffset: { x: 0, y: 0, z: 0 },
-    // Opcional — de onde o golpe SAI (METROS a partir do centro do corpo),
-    // no referencial do golpe: +Z = direção do golpe, +Y = pra cima, +X = pro
-    // lado (esquerda de quem olha na direção do golpe). Vale pro jogo todo,
-    // não só pro visual (`resolveAttackOrigin`, `core/battle/
-    // attackGeometry.js`): dano, alvos, aviso no chão e VFX partem daqui
-    // (ex.: a mordida na boca, a rabada na cauda). O `range` continua
-    // contado do centro do corpo — empurrar a saída pra frente não aumenta o
-    // alcance (`resolveAttackReach`). Não depende do `rotationOffset`.
+    // Opcional — de onde o VFX do golpe SAI (METROS a partir do centro do
+    // corpo), no referencial do golpe: +Z = direção do golpe, +Y = pra cima,
+    // +X = pro lado (esquerda de quem olha na direção do golpe) — ex.: a
+    // mordida na boca, a rabada na cauda (`resolveAttackOrigin`, `core/battle/
+    // attackGeometry.js`). Só o visual: a área do golpe (acerto e aviso no
+    // chão) começa na borda do trigger e o `range` conta dali — empurrar a
+    // saída pra frente não muda o alcance. Não depende do `rotationOffset`.
     positionOffset: { x: 0, y: 0, z: 0 },
     // Opcional — só pro grupo `'impact'` (impacto genérico por tipo): o tipo
     // do golpe, que escolhe as partículas ('normal', 'fire', 'water',
@@ -251,6 +271,10 @@ export const SKILL_TEMPLATE = {
     // `sp_atk`/`sp_def`) — decide qual par de status a fórmula usa. Sem
     // este campo, `resolveDamageAmount` assume 'physical'.
     category: 'physical',
+    // Opcional — poder × `multiplier` contra quem levou dano há no máximo
+    // `window` s, de qualquer fonte (`core/battle/recentDamageBoost.js`, ex.:
+    // Assurance). Só no golpe único.
+    // recentDamageBoost: { window: 3, multiplier: 2 },
   },
 
   // === Precisão (core/battle/accuracy.js) ===
@@ -268,37 +292,27 @@ export const SKILL_TEMPLATE = {
   // Cada efeito é aplicado em cada alvo atingido, no `effectAt`:
   // effects: [
   //   // `statStage`: soma `stages` ao estágio do `stat` ('attack', 'defense',
-  //   // 'sp_atk', 'sp_def' ou 'accuracy'), de -6 a +6 (convenção do Pokémon: cada estágio
+  //   // 'sp_atk', 'sp_def', 'accuracy' ou 'speed'), de -6 a +6 (convenção do Pokémon: cada estágio
   //   // multiplica o atributo, -1 = ×2/3, +1 = ×3/2). Dura `duration`
   //   // segundos (jogo em tempo real) e usar de novo ACUMULA o estágio e
-  //   // RENOVA o tempo.
+  //   // RENOVA o tempo. `speed` muda o tempo dos golpes (o passo de
+  //   // andar é das condições, o modificador `movement`).
   //   { type: 'statStage', stat: 'attack', stages: -1, duration: 15 },
-  //   // `leechSeed` — planta uma semente no alvo: a cada `interval` segundos
-  //   // drena `fraction` do HP máximo dele e cura quem plantou o mesmo valor,
-  //   // por `duration` segundos (renovável). Ex.: o Leech Seed.
-  //   { type: 'leechSeed', fraction: 1 / 8, interval: 2, duration: 10 },
-  //   // `burn` — QUEIMA o alvo com `chance` (0-1): a cada `interval` segundos
-  //   // tira `fraction` do HP máximo, por `duration` segundos (renovável), e o
-  //   // Ataque de quem está queimado é multiplicado por `attackMultiplier`
-  //   // (só golpe físico). `immuneTypes`: tipos que não queimam. Num golpe de
+  //   // `condition` — aplica uma CONDIÇÃO no alvo (`core/data/conditions/`:
+  //   // queimadura, semente...), com `chance` (0-1; omitido = sempre). Os
+  //   // valores são da condição; o golpe pode trocar `duration`, `tick` e
+  //   // `modifiers` (campo a campo) e `immuneTypes` só pra ele. Num golpe de
   //   // DANO é efeito secundário: só no alvo que levou o dano, sem sortear a
   //   // precisão de novo (no canalizado, uma vez por alvo por lançamento).
-  //   // Ex.: o Ember. Uma espécie muda os valores pelos `overrides` da skill
-  //   // (`effects` inteiro).
-  //   { type: 'burn', chance: 0.1, fraction: 1 / 16, interval: 2, duration: 8,
-  //     attackMultiplier: 0.5, immuneTypes: ['fire'] },
+  //   // Ex.: o Ember, o Leech Seed. Uma espécie muda os valores pelos
+  //   // `overrides` da skill (`effects` inteiro).
+  //   { type: 'condition', condition: 'burn', chance: 0.1 },
   // ],
-  // Quem é atingido por um golpe SÓ de efeito: `area: 'cone'` (abaixo) = todos
-  // os inimigos no cone à frente; sem ele, o primeiro corpo no caminho.
-  // `area: 'cone'` — o golpe atinge um CONE (indicador, aviso vermelho e alvos
-  // com a mesma forma do canalizado, aberto por `radius / range`) em vez da
-  // cápsula; um canalizado já é cone, a menos que seja `'line'`.
-  // `area: 'line'` — só pro canalizado: FEIXE em vez de cone (a cápsula do golpe
-  // normal, primeiro corpo só, mirando durante o canal — `isBeamAttack`).
-  // `area: 'self'` — o golpe age em QUEM USOU (ex.: Growth, `../growth/`): os
-  // `effects` vão no atacante, sem sorteio de precisão e sem provocar
-  // ninguém; sem indicador nem aviso; o VFX nasce nos pés dele.
-  // area: 'cone',
+  // Quem é atingido (dano e efeito) sai do `group`: a cápsula ('melee',
+  // 'ranged') pega o primeiro corpo no caminho; o cone, todos dentro; 'self'
+  // age em QUEM USOU (ex.: Growth, `../growth/`) — os `effects` vão no
+  // atacante, sem sorteio de precisão e sem provocar ninguém; sem indicador
+  // nem aviso; o VFX nasce nos pés dele.
 
   // === IA (core/battle/aiAttackChoice.js) ===
   // Opcional — a IA (selvagens e time fora do controle) dá nota a cada golpe

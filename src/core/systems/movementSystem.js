@@ -14,6 +14,7 @@ import {
   ActionState,
   Flying,
 } from '../traits'
+import { readConditionModifier } from '../actions/conditions'
 
 /**
  * Produz a velocidade horizontal desejada a partir do InputState e gira a
@@ -87,7 +88,12 @@ export function movementSystem(context) {
       const isRunning =
         !aiming && input.run && hasMoveIntent && tentarCorrer(vitals, delta)
       // Ferido anda/corre mais devagar (`resolveMoveSpeed`).
-      const speed = resolveMoveSpeed(stats, vitals, isRunning)
+      const speed = resolveMoveSpeed(
+        stats,
+        vitals,
+        isRunning,
+        readConditionModifier(entity, 'movement'),
+      )
 
       vel.x = worldX * speed
       vel.z = worldZ * speed

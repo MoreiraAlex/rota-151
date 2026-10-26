@@ -10,7 +10,7 @@
  * DURA `duration` segundos, renovado ao usar de novo. Acumula: dois rosnados
  * seguidos = -2.
  *
- * `area: 'cone'`: atinge TODOS os inimigos dentro do cone à frente (a mesma
+ * `group: 'cone'`: atinge TODOS os inimigos dentro do cone à frente (a mesma
  * forma do canalizado, com indicador e aviso em cone), não só o primeiro.
  * `visual.effectGroup: 'growl'`: ondas sonoras em arco saindo da boca até a
  * ponta do cone (`view/vfx/growlVfx.js`); o feedback no alvo é o brilho, o texto
@@ -21,18 +21,15 @@
  */
 export const GROWL_SKILL = {
   id: 'growl',
+  description:
+    'Solta um rosnado em leque à frente. Todos os inimigos dentro dele têm o Ataque reduzido em {effects.0.stages:abs} nível por {effects.0.duration:s}. Usar de novo acumula a redução e renova o tempo.',
   type: 'normal',
+  group: 'cone',
   duration: 1.2,
   effectAt: 0.5,
-  range: 3,
-  aim: 'ranged',
-  castMode: 'instant',
-  area: 'cone',
-  // abertura do cone: `radius / range` (tangente do meio-ângulo)
-  radius: 1.5,
   // Sem dano: nada "apanha", e `attackResolved` sai com `status: true`.
   damage: null,
-  effects: [{ type: 'statStage', stat: 'attack', stages: -1, duration: 60 }],
+  effects: [{ type: 'statStage', stat: 'attack', stages: -1, duration: 15 }],
   visual: {
     effectGroup: 'growl',
     // cobre a última onda (`view/vfx/growlVfx.js`)

@@ -1,20 +1,25 @@
 export const RAZOR_LEAF_SKILL = {
   id: 'razor-leaf',
+  description:
+    'Canalizado: enquanto segura, dispara uma rajada de folhas afiadas no primeiro inimigo à frente, até {range:m}. Causa dano físico de poder {power}, dividido em cortes ao longo da rajada; soltar antes encerra o golpe com menos dano.',
   type: 'grass',
+  group: 'ranged',
   accuracy: 95,
   duration: 1,
   effectAt: 0.25,
-  range: 3,
-  aim: 'ranged',
-  castMode: 'instant',
-  radius: 0.4,
   // Canalizado: dano em toda a área do cone a cada `damageInterval` s,
   // do `effectAt` até o fim; segurar o botão até o fim, soltar cancela
   // (ver `core/battle/channelAttack.js`). Intervalo de partida — a definir.
-  damageMode: 'channel',
+  execution: 'channel',
   damageInterval: 0.25,
+  // Folhas subindo na carga, rajada cortando o cone no canal e cortes na
+  // frente de cada alvo a cada tick (`view/vfx/razorLeafVfx.js`).
   visual: {
-    effectGroup: 'punch',
+    effectGroup: 'none',
+    chargeGroup: 'razor-leaf-charge',
+    channelGroup: 'razor-leaf',
+    channelHitGroup: 'razor-leaf-hit',
+    channelHitVisualDuration: 0.7,
     effectVisualDuration: 0.35,
     scale: 1,
     revealDuration: 0,
@@ -25,11 +30,9 @@ export const RAZOR_LEAF_SKILL = {
     path: '/assets/sprites/abilities/razor-leaf.png',
     scale: 1,
   },
-  // Som ainda não definido — ver comentário completo em
-  // `../vine-whip/index.js`.
-  audio: {
-    group: 'punch',
-  },
+  // Os sons do Razor Leaf do Cobblemon: dois de quem usa e o do alvo (grupo
+  // composto, ver `core/data/audio/attackSound.js`).
+  audio: { group: 'razor-leaf' },
   animation: {
     clipKey: 'attackRanged',
   },

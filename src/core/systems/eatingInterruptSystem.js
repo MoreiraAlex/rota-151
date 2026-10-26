@@ -5,14 +5,13 @@ import { Eating } from '../traits'
 // Eventos de dano (o alvo perdeu HP neste passo).
 const DAMAGE_EVENTS = new Set([
   EVENT_TYPES.ATTACK_RESOLVED,
-  EVENT_TYPES.BURN_DAMAGED,
-  EVENT_TYPES.LEECH_SEED_DRAINED,
+  EVENT_TYPES.CONDITION_TICKED,
 ])
 
 /**
  * Tomar dano comendo derruba a comida (docs/features/042-itens-da-beta.md):
  * lê os eventos de dano do passo (`context.events.stepEvents()`) — golpe que
- * acertou com dano, queimadura e Leech Seed — e chama `derrubarComida` no
+ * acertou com dano e tick de condição (queimadura, semente...) — e chama `derrubarComida` no
  * alvo que estava comendo. Golpe de status (sem dano) não interrompe.
  *
  * Headless. Fase: events (depois de todo o `simulation` do passo).

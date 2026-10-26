@@ -46,7 +46,7 @@ describe('resolveAttackTelegraphProgress', () => {
   })
 
   it('canalizado também some assim que enche, mesmo com o canal continuando', () => {
-    const channel = { ...ATTACK, damageMode: 'channel' }
+    const channel = { ...ATTACK, execution: 'channel' }
     expect(resolveAttackTelegraphProgress(action(0.2), channel)).toBeCloseTo(
       0.5,
     )
@@ -90,7 +90,7 @@ describe('isAttackCharging', () => {
 })
 
 describe('isAttackChanneling', () => {
-  const CHANNEL = { ...ATTACK, damageMode: 'channel' }
+  const CHANNEL = { ...ATTACK, execution: 'channel' }
 
   it('canalizado: do effectAt até a ação acabar', () => {
     expect(isAttackChanneling(action(0.3), CHANNEL)).toBe(false)

@@ -100,6 +100,8 @@ export const PIKACHU = {
     battleIdle: 'idle',
     appeal: 'appeal',
     hit: 'hit',
+    // atordoada por condição (a paralisia): entra, repete e sai
+    stunned: { start: 'stunStart', loop: 'stunLoop', end: 'stunEnd' },
   },
 
   vfx: {
@@ -119,7 +121,8 @@ export const PIKACHU = {
     capsuleRadius: 0.2,
     capsuleHalfHeight: 0.08,
     capsuleAxis: 'y',
-    modelOffset: [0, -0.3, 0],
+    modelOffset: [0, -0.28, 0],
+    trigger: { radius: 0.25, halfLength: 0, angle: 0, offset: { x: 0, z: 0 } },
   },
   movement: {
     walkSpeed: 2.25,
@@ -162,9 +165,23 @@ export const PIKACHU = {
     speed: { base: SPEED, ev: SPEED_EV },
   },
   moves: [
+    { id: 'thunder-shock' },
+    {
+      id: 'quick-attack',
+      overrides: { effectAt: 0.25, duration: 1.25 },
+    },
+    {
+      id: 'tail-whip',
+      overrides: { animation: { clipKey: 'attackAlt' } },
+    },
+
     { id: 'thunder-wave', requires: { level: 4 } },
     { id: 'double-team', requires: { level: 8 } },
-    { id: 'electro-ball', requires: { level: 12 } },
+    {
+      id: 'electro-ball',
+      requires: { level: 12 },
+      overrides: { visual: { positionOffset: { x: 0, y: 0.45, z: 0.15 } } },
+    },
   ],
   // Na série o Pikachu é arisco: guarda eletricidade nas bochechas e dá
   // choque quando se sente ameaçado. Mais desconfiado que o Pidgey, menos

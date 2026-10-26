@@ -2,6 +2,8 @@ import { GAME_CONFIG } from '../gameConfig'
 import { resolveCreatureAttack, resolveEntityMoveSet } from './creatureAttack'
 import { ATTACK_SLOTS } from './attackCasting'
 import { isSelfAttack } from './channelAttack'
+import { resolveReachFor } from './aiAttackChoice'
+import { resolveHitTrigger } from './hitTrigger'
 import { resolveOwner } from '../actions/owner'
 import { isOutOfGroundReach } from '../actions/flight'
 import {
@@ -206,19 +208,20 @@ export function listWildsFightingParty(world, trainer) {
 
 /**
  * Até onde (m, centro a centro, no plano) a criatura precisa chegar pra
- * alcançar um alvo com este corpo quando NENHUM golpe está pronto (recarga,
- * energia) — o MENOR alcance entre os golpes dela, prontos ou não: a
- * trajetória (`range`) + a grossura dela (`radius`) + o raio do corpo do
- * alvo, a mesma conta da detecção de acerto (`resolveAttackTarget`). Golpe em
- * si mesmo não conta (não precisa chegar perto). `null` sem golpe nenhum.
+ * alcançar um alvo com este trigger (`hitTrigger.js`) quando NENHUM golpe
+ * está pronto (recarga, energia) — o MENOR alcance entre os golpes dela,
+ * prontos ou não, pela mesma conta de `resolveReachFor` (borda da frente
+ * dela + `range` + raio do trigger do alvo). Golpe em si mesmo não conta
+ * (não precisa chegar perto). `null` sem golpe nenhum.
  */
-export function resolveAttackReach(entity, species, targetBody) {
+export function resolveAttackReach(entity, species, targetTrigger) {
   const moveSet = resolveEntityMoveSet(entity, species)
+  const attackerTrigger = resolveHitTrigger(species.body)
   let reach = null
   for (const { slot } of ATTACK_SLOTS) {
     const attack = resolveCreatureAttack(species, slot, moveSet)
     if (!attack || isSelfAttack(attack)) continue
-    const slotReach = attack.range + attack.radius + targetBody.capsuleRadius
+    const slotReach = resolveReachFor(attack, attackerTrigger, targetTrigger)
     if (reach === null || slotReach < reach) reach = slotReach
   }
   return reach

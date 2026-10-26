@@ -130,3 +130,48 @@ describe('migração 1 → 2 (itens do mundo, 055)', () => {
     expect(result.save.worldItems.foraged).toEqual({})
   })
 })
+
+describe('migração 2 → 3 (condições em lista, 061)', () => {
+  const pokemon = (conditions) => ({
+    id: 'a',
+    speciesId: 'x',
+    ballId: null,
+    level: 1,
+    xp: 0,
+    ivs: {},
+    moves: { slots: {}, training: {} },
+    storedVitals: null,
+    faintTimeLeft: null,
+    conditions,
+    location: { kind: 'party', slot: 'slot1' },
+  })
+
+  it('a queimadura da versão 2 vira uma entrada da lista, com o corte do Ataque nos modificadores', () => {
+    const burn = {
+      timeLeft: 3,
+      tickTimer: 1,
+      fraction: 0.1,
+      interval: 2,
+      attackMultiplier: 0.5,
+    }
+    const old = minimalSave({
+      version: 2,
+      pokemon: [pokemon({ burn }), pokemon(null)],
+    })
+
+    const result = migrateSave(old)
+
+    expect(result.ok).toBe(true)
+    const [burned, clean] = result.save.pokemon
+    const { attackMultiplier, ...rest } = burn
+    expect(burned.conditions).toEqual([
+      {
+        id: 'burn',
+        ...rest,
+        to: null,
+        modifiers: { attack: attackMultiplier },
+      },
+    ])
+    expect(clean.conditions).toBe(null)
+  })
+})

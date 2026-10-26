@@ -22,3 +22,19 @@ export function verticalClearance(body) {
     ? body.capsuleRadius + body.capsuleHalfHeight
     : body.capsuleRadius
 }
+
+/**
+ * O tamanho do corpo (m) pela cápsula da física, no referencial dele:
+ * `width` de lado a lado, `length` de trás pra frente (+Z, a frente) e
+ * `height` do pé ao topo — a cápsula deitada (`capsuleAxis` 'x'/'z') é
+ * comprida no eixo dela.
+ */
+export function resolveBodyExtent(body) {
+  const long = 2 * (body.capsuleRadius + body.capsuleHalfHeight)
+  const thick = 2 * body.capsuleRadius
+  return {
+    width: body.capsuleAxis === 'x' ? long : thick,
+    length: body.capsuleAxis === 'z' ? long : thick,
+    height: 2 * verticalClearance(body),
+  }
+}
