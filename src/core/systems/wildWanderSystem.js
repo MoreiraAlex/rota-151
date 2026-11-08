@@ -9,8 +9,8 @@ import {
   Position,
   Rotation,
   Velocity,
-  Vitals,
   WanderState,
+  WildAwareness,
   WildBehavior,
   WildCreature,
   ChunkFrozen,
@@ -19,13 +19,13 @@ import { readConditionModifier } from '../actions/conditions'
 
 /**
  * Move cada `WildCreature` no estado `'wander'` (`WildBehavior`) por um
- * destino local aleatório. Perseguir/fugir do jogador é do
+ * destino local aleatório. Perseguir e sair do mapa são do
  * `wildBehaviorSystem.js`, que assume o movimento nesses estados.
  *
  * A navegação até o destino (caminho pela grade, desvio quando trava,
  * giro suave) é `steerTowards` (`core/steering.js`), a mesma usada pra
- * perseguir e fugir. Sempre andando (`walkSpeed`, mais devagar ferida —
- * `resolveMoveSpeed`), sem correr vagando, e sem
+ * perseguir e sair. Sempre andando (`walkSpeed`, `resolveMoveSpeed`), sem
+ * correr vagando, e sem
  * evasão entre personagens.
  *
  * Ciclo por criatura (`WanderState`):
@@ -57,8 +57,11 @@ export function wildWanderSystem(context) {
       Position,
     )
     .updateEach(([, behavior, wander, , stats, vel, rot, pos], entity) => {
-      // Perseguindo/fugindo, o movimento é do `wildBehaviorSystem.js`.
+      // Perseguindo/saindo, o movimento é do `wildBehaviorSystem.js`.
       if (behavior.state !== 'wander') return
+      // Encarando quem percebeu (063): parada, o `wildAwarenessSystem.js`
+      // segura e vira.
+      if (entity.get(WildAwareness)?.state === 'noticed') return
       // Desmaiada: largada no chão (`desmaiar` já zerou a velocidade). Dentro
       // de uma Pokébola (docs/features/043-captura.md): parada.
       if (entity.has(Fainted) || entity.has(BeingCaptured)) return
@@ -97,10 +100,8 @@ export function wildWanderSystem(context) {
         entity,
         { pos, rot, vel, stats },
         { x: wander.targetX, z: wander.targetZ },
-        // Ferida vaga mais devagar (`resolveMoveSpeed`).
         resolveMoveSpeed(
           stats,
-          entity.get(Vitals),
           false,
           readConditionModifier(entity, 'movement'),
         ),

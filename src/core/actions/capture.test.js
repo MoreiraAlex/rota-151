@@ -32,6 +32,7 @@ import {
   StoredVitals,
   Velocity,
   Vitals,
+  WildAwareness,
   WildBehavior,
 } from '@/core/traits'
 import {
@@ -124,6 +125,15 @@ describe('comecarCaptura', () => {
     expect(fromBack.get(CaptureBall).shakeChance).toBeGreaterThanOrEqual(
       fromFront.get(CaptureBall).shakeChance,
     )
+  })
+
+  it('selvagem que já te percebeu (063) não conta como pelas costas', () => {
+    const wild = spawnWild(world)
+    wild.add(WildAwareness({ state: 'noticed', emote: 'alert' }))
+
+    const ball = startCapture(wild, { x: 0, y: -1, z: 5 })
+
+    expect(ball.get(CaptureBall).backStrike).toBe(false)
   })
 
   it('desmaiado conta como HP 0; queimado tem bônus; bola melhor tem chance maior', () => {
@@ -326,7 +336,8 @@ describe('selvagemEscapou', () => {
       expect(
         selvagemEscapou(world, events, startCapture(fled), () => chance),
       ).toBe('flee')
-      expect(fled.get(WildBehavior).state).toBe('flee')
+      // Fuga clássica (063): sai correndo para sumir do mapa.
+      expect(fled.get(WildBehavior).state).toBe('leave')
     }
   })
 

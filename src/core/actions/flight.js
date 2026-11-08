@@ -1,6 +1,5 @@
 import { GAME_CONFIG } from '../gameConfig'
 import { resolveLevelCost } from '../battle/levelCost'
-import { resolveMovementCostMultiplier } from './stamina'
 import { TEST_LEVEL } from '../data/testLevel'
 import { verticalClearance } from '../physics/colliders'
 
@@ -186,21 +185,18 @@ export function resolveCeilingSpeed({
 /**
  * Gasta a stamina de um tick de voo (no `Vitals` vivo de quem chama):
  * pairando ou devagar pelo `FLY_WEIGHT_PER_SECOND`, rápido pelo
- * `FLY_FAST_WEIGHT_PER_SECOND` — pelo nível e com o custo extra da vida
- * baixa, como a corrida. Rápido sem stamina pra isso não vale (devolve
+ * `FLY_FAST_WEIGHT_PER_SECOND` — pelo nível, como a corrida. Rápido sem stamina pra isso não vale (devolve
  * `false`, quem chama voa devagar). A stamina para em zero (aí o teto zera e
  * ele desce); no ar ela não regenera.
  */
 export function gastarStaminaDeVoo(vitals, level, delta, fast) {
   const { FLY_WEIGHT_PER_SECOND, FLY_FAST_WEIGHT_PER_SECOND } =
     GAME_CONFIG.ACTION_COST
-  const multiplier = resolveMovementCostMultiplier(vitals) * delta
-  const fastCost =
-    resolveLevelCost(level, FLY_FAST_WEIGHT_PER_SECOND) * multiplier
+  const fastCost = resolveLevelCost(level, FLY_FAST_WEIGHT_PER_SECOND) * delta
   const isFast = fast && vitals.stamina >= fastCost
   const cost = isFast
     ? fastCost
-    : resolveLevelCost(level, FLY_WEIGHT_PER_SECOND) * multiplier
+    : resolveLevelCost(level, FLY_WEIGHT_PER_SECOND) * delta
   vitals.stamina = Math.max(0, vitals.stamina - cost)
   vitals.staminaRegenDelay = vitals.staminaRegenDelayAfterUse
   return isFast

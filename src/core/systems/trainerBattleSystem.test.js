@@ -1,4 +1,13 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest'
 import { makeWorld, ownedByPlayer } from '@/test/makeWorld'
 import { disposePhysics, initPhysics } from '@/core/physics/physicsWorld'
 import { resolveMoveSpeed } from '../actions/movementSpeed'
@@ -30,6 +39,7 @@ import {
   Velocity,
   Vitals,
   WanderState,
+  WildAwareness,
   WildBehavior,
   WildCreature,
   vitalsFromSpecies,
@@ -42,8 +52,19 @@ import { partyBehaviorSystem } from './partyBehaviorSystem'
 import { physicsBootstrapSystem } from './physicsBootstrapSystem'
 import { physicsStepSystem } from './physicsStepSystem'
 import { syncPhysicsSystem } from './syncPhysicsSystem'
+import { wildAwarenessSystem } from './wildAwarenessSystem'
 import { wildBehaviorSystem } from './wildBehaviorSystem'
 import { trainerBattleSystem } from './trainerBattleSystem'
+
+// A IA de hoje (034) é a dificuldade máxima das selvagens (063): estes
+// testes conferem o comportamento na ponta difícil.
+const originalDifficulty = GAME_CONFIG.WILD_DIFFICULTY.LEVEL
+beforeAll(() => {
+  GAME_CONFIG.WILD_DIFFICULTY.LEVEL = 1
+})
+afterAll(() => {
+  GAME_CONFIG.WILD_DIFFICULTY.LEVEL = originalDifficulty
+})
 
 // Física e navegação no nível plano de antes do relevo (as peças que estes
 // testes usam) — ver `src/test/flatTestLevel.js`.
@@ -271,23 +292,19 @@ describe('trainerBattleSystem — treinador fora do controle numa luta', () => {
     expect(Math.hypot(velOf(trainer).x, velOf(trainer).z)).toBe(0)
   })
 
-  it('ferido, anda mais devagar até a posição segura', () => {
+  it('ferido, anda na velocidade de sempre até a posição segura (063)', () => {
     const { trainer, tick } = setup({ wildAt: at(0, 4.5) })
     trainer.set(Vitals, { hp: trainer.get(Vitals).maxHp * 0.1 })
     // Selvagem longe dele (> DANGER_DISTANCE): anda.
     for (let i = 0; i < 90; i++) tick()
 
-    const expected = resolveMoveSpeed(
-      trainer.get(MovementStats),
-      trainer.get(Vitals),
-      false,
-    )
-    expect(expected).toBeLessThan(trainer.get(MovementStats).walkSpeed)
+    const expected = resolveMoveSpeed(trainer.get(MovementStats), false)
+    expect(expected).toBe(trainer.get(MovementStats).walkSpeed)
     expect(Math.hypot(velOf(trainer).x, velOf(trainer).z)).toBeCloseTo(expected)
   })
 })
 
-// Pendência da 082: o treinador para a SAFE_DISTANCE − ARRIVE_DISTANCE da
+// Pendência da 083: o treinador para a SAFE_DISTANCE − ARRIVE_DISTANCE da
 // criatura e, se o raio da volta da selvagem em volta dela passar da folga até
 // SAFE_MIN_DISTANCE (ou ela recuar pro lado dele, com golpe à distância), ela
 // chega perto demais e ele atravessa a luta pro outro lado. As regressões
@@ -352,6 +369,7 @@ describe('trainerBattleSystem — regressão: andando em círculos', () => {
       world.spawn(
         WildCreature({ speciesId: 'charmander' }),
         WildBehavior({ temperament: 'hostile' }),
+        WildAwareness,
         CreatureMoves(meleeOnlyMoves()),
         AiMovement,
         Position(at(0, 6)),
@@ -374,6 +392,7 @@ describe('trainerBattleSystem — regressão: andando em círculos', () => {
         events.beginStep()
         const ctx = { world, delta: DELTA, input: {}, events }
         creatureAttackSystem(ctx)
+        wildAwarenessSystem(ctx)
         wildBehaviorSystem(ctx)
         trainerBattleSystem(ctx)
         creatureFollowSystem(ctx)
@@ -430,6 +449,7 @@ describe('trainerBattleSystem — regressão: meia-volta na borda da zona (com f
       const wild = world.spawn(
         WildCreature({ speciesId: 'charmander' }),
         WildBehavior({ temperament: 'hostile' }),
+        WildAwareness,
         CreatureMoves(meleeOnlyMoves()),
         AiMovement,
         Position(at(0, 9)),
@@ -460,6 +480,7 @@ describe('trainerBattleSystem — regressão: meia-volta na borda da zona (com f
         partyBehaviorSystem(ctx)
         trainerBattleSystem(ctx)
         creatureFollowSystem(ctx)
+        wildAwarenessSystem(ctx)
         wildBehaviorSystem(ctx)
         characterPhysicsSystem(ctx)
         physicsStepSystem(ctx)

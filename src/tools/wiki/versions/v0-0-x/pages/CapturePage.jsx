@@ -146,12 +146,12 @@ export function CapturePage({ data, version }) {
       <Section id="escapou" title="Escapou">
         <ul>
           <li>
-            A bola estoura e a criatura sai onde ela estava. Aí ela foge ou
-            parte pra cima de você: as hostis partem pra briga{' '}
+            A bola estoura e a criatura sai onde ela estava. Aí ela foge (some
+            do mapa) ou parte pra cima de você: as hostis partem pra briga{' '}
             {formatPercent(capture.escapeFightHostile, 0)} das vezes, as
             pacíficas {formatPercent(capture.escapeFightPeaceful, 0)} (
-            <WikiLink version={version} to="selvagens/comportamento">
-              Comportamento
+            <WikiLink version={version} to="selvagens/comportamento#fuga">
+              Fuga
             </WikiLink>
             ).
           </li>

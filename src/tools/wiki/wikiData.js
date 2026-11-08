@@ -28,6 +28,7 @@ import {
   stageMultiplier,
 } from '@/core/battle/statStages'
 import { DEFAULT_ACCURACY } from '@/core/battle/accuracy'
+import { resolveWildTuning } from '@/core/battle/aiTuning'
 import { isChannelAttack } from '@/core/battle/channelAttack'
 import {
   resolveBallMultiplier,
@@ -38,9 +39,6 @@ import {
 } from '@/core/battle/capture'
 import { resolveLevelCost } from '@/core/battle/levelCost'
 import { resolveTrainingHours } from '@/core/battle/actionCost'
-import { resolveRetaliateChance } from '@/core/battle/wildBehavior'
-import { resolveMovementCostMultiplier } from '@/core/actions/stamina'
-import { resolveSpeedMultiplier } from '@/core/actions/movementSpeed'
 import { resolveCreatureStats } from '@/core/data/species/stats'
 import {
   GROWTH_RATES,
@@ -130,16 +128,6 @@ const EXAMPLE_DUELS = [
   { winner: 20, defeated: 20, participants: 1 },
   { winner: 5, defeated: 5, participants: 2 },
 ]
-const EXAMPLE_HP_FRACTIONS = [1, 0.75, 0.5, 0.25, 0]
-const EXAMPLE_COURAGE = [
-  { own: 1, hit: 0.1, attacker: 1 },
-  { own: 1, hit: 0.1, attacker: 0.5 },
-  { own: 0.75, hit: 0.25, attacker: 1 },
-  { own: 0.5, hit: 0.1, attacker: 1 },
-  { own: 0.5, hit: 0.4, attacker: 1 },
-  { own: 0.25, hit: 0.1, attacker: 0.25 },
-]
-
 /**
  * Os itens do jogo, na ordem do inventário organizado (por categoria). Só o
  * que o jogador vê: nome, descrição, ícone e o que cada um faz.
@@ -266,6 +254,38 @@ function buildSpecies(species) {
     moves: resolveSpeciesMoves(species).map((move) => move.id),
     learnset: buildLearnset(species),
     spawn: buildSpeciesSpawn(species),
+    temperament: buildSpeciesTemperament(species),
+  }
+}
+
+/**
+ * Chance da espécie nascer hostil e, pacífica, de fugir ao te perceber
+ * (`species.wild`, docs/features/063-revisao-da-ia-selvagem.md) — sem
+ * valor próprio, os padrões de `WILD_BEHAVIOR`.
+ */
+function buildSpeciesTemperament(species) {
+  const { DEFAULT_HOSTILE_CHANCE, DEFAULT_FLEE_CHANCE } =
+    GAME_CONFIG.WILD_BEHAVIOR
+  return {
+    hostileChance: species.wild?.hostileChance ?? DEFAULT_HOSTILE_CHANCE,
+    fleeChance: species.wild?.fleeChance ?? DEFAULT_FLEE_CHANCE,
+  }
+}
+
+/**
+ * A IA das selvagens na luta no nível de dificuldade da versão
+ * (`resolveWildTuning`, 063) — o time usa os valores de `ai`.
+ */
+function buildWildAi() {
+  const tuning = resolveWildTuning()
+  return {
+    attackInterval: tuning.ATTACK_INTERVAL,
+    dodgeChance: tuning.DODGE_CHANCE,
+    dodgeReaction: tuning.DODGE_REACTION_TIME,
+    aimError: toDegrees(tuning.AIM_ERROR),
+    nearBest: tuning.NEAR_BEST_FRACTION,
+    dashCloseDistance: tuning.DASH_CLOSE_DISTANCE,
+    restEnter: tuning.REST_ENTER_FRACTION,
   }
 }
 
@@ -685,8 +705,6 @@ export function buildWikiData() {
     PARTY_BEHAVIOR,
     TRAINER_BATTLE,
     FAINT,
-    STAMINA_BY_HP,
-    SPEED_BY_HP,
     PLAYER_ACTIONS,
     FLIGHT,
   } = GAME_CONFIG
@@ -739,15 +757,6 @@ export function buildWikiData() {
       speed: PLAYER_ACTIONS.dash.SPEED,
       cooldown: PLAYER_ACTIONS.dash.COOLDOWN,
     },
-    lowHp: {
-      costMax: STAMINA_BY_HP.MAX_MULTIPLIER,
-      speedMin: SPEED_BY_HP.MIN_MULTIPLIER,
-      rows: EXAMPLE_HP_FRACTIONS.map((hp) => ({
-        hp,
-        cost: resolveMovementCostMultiplier({ hp, maxHp: 1 }),
-        speed: resolveSpeedMultiplier({ hp, maxHp: 1 }),
-      })),
-    },
     faint: {
       minutes: FAINT.DURATION_MINUTES,
       reviveFraction: FAINT.REVIVE_HP_FRACTION,
@@ -763,24 +772,13 @@ export function buildWikiData() {
       aggroRadius: WILD_BEHAVIOR.AGGRO_RADIUS,
       exitMargin: WILD_BEHAVIOR.AGGRO_EXIT_MARGIN,
       leashRadius: WILD_BEHAVIOR.RETALIATE_LEASH_RADIUS,
-      retaliateChance: WILD_BEHAVIOR.RETALIATE_CHANCE,
-      courageMin: WILD_BEHAVIOR.COURAGE_MIN_CHANCE,
-      courageMax: WILD_BEHAVIOR.COURAGE_MAX_CHANCE,
-      lowHpFlee: WILD_BEHAVIOR.LOW_HP_FLEE_FRACTION,
-      lowHpFleeChance: WILD_BEHAVIOR.LOW_HP_FLEE_CHANCE,
-      lowHpRecover: WILD_BEHAVIOR.LOW_HP_RECOVER_FRACTION,
       threatHalfLife: WILD_BEHAVIOR.THREAT_HALF_LIFE,
-      fleeSafeDistance: WILD_BEHAVIOR.FLEE_SAFE_DISTANCE,
-      courageRows: EXAMPLE_COURAGE.map(({ own, hit, attacker }) => ({
-        own,
-        hit,
-        attacker,
-        chance: resolveRetaliateChance(
-          { hp: own, maxHp: 1 },
-          { hp: attacker, maxHp: 1 },
-          hit,
-        ),
-      })),
+      fleeChance: WILD_BEHAVIOR.DEFAULT_FLEE_CHANCE,
+      viewDistance: WILD_BEHAVIOR.PERCEPTION.VIEW_DISTANCE,
+      viewAngle: toDegrees(WILD_BEHAVIOR.PERCEPTION.VIEW_HALF_ANGLE * 2),
+      nearRadius: WILD_BEHAVIOR.PERCEPTION.NEAR_RADIUS,
+      forgetRadius: WILD_BEHAVIOR.PERCEPTION.FORGET_RADIUS,
+      alertTime: WILD_BEHAVIOR.PERCEPTION.ALERT_TIME,
     },
     ai: {
       inReachBonus: AI_ATTACK.IN_REACH_BONUS,
@@ -800,6 +798,7 @@ export function buildWikiData() {
       finishHp: AI_TARGET.FINISH_HP_FRACTION,
       finishBonus: AI_TARGET.FINISH_BONUS,
     },
+    wildAi: buildWildAi(),
     party: {
       attackInterval: PARTY_BEHAVIOR.ATTACK_INTERVAL,
       leashRadius: PARTY_BEHAVIOR.LEASH_RADIUS,

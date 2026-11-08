@@ -175,7 +175,8 @@ export const EKANS = {
   ],
   // Na série o Ekans caça em silêncio e dá o bote: mais selvagens nascem
   // agressivos que o Weedle e o Pidgey.
-  wild: { hostileChance: 0.5 },
+  // Pacífica que te percebe foge (some do mapa) com esta chance (063).
+  wild: { hostileChance: 0.5, fleeChance: 0.3 },
   // Onde nasce no mundo (062): na savana, com tempo seco — some na chuva
   // e aparece mais no sol.
   spawn: {

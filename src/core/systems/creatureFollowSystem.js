@@ -342,7 +342,6 @@ export function creatureFollowSystem(context) {
         dirZ = avoidZ
         speed = resolveMoveSpeed(
           stats,
-          vitals,
           false,
           readConditionModifier(entity, 'movement'),
         )
@@ -438,7 +437,6 @@ export function creatureFollowSystem(context) {
         // (`tentarCorrer`); sem fôlego ou descansando, anda.
         speed = resolveMoveSpeed(
           stats,
-          vitals,
           gait === 'run' && !resting && tentarCorrer(vitals, delta),
           readConditionModifier(entity, 'movement'),
         )

@@ -117,7 +117,6 @@ function resolveDashExitSpeed(entity) {
     intent *
     resolveMoveSpeed(
       stats,
-      entity.get(Vitals),
       input.run,
       readConditionModifier(entity, 'movement'),
     )

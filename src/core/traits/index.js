@@ -92,6 +92,7 @@ export {
   CaptureAimTarget,
 } from './components/capture'
 export { WildBehavior, WantsToAttack, Threat } from './components/wildBehavior'
+export { WildAwareness } from './components/wildAwareness'
 export { PartyBehavior } from './components/partyBehavior'
 export { AiMovement } from './components/aiMovement'
 export { DashCooldown } from './components/dashCooldown'

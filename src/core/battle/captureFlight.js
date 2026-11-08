@@ -5,6 +5,7 @@ import {
   CharacterController,
   PhysicsBody,
   Position,
+  WildBehavior,
   WildCreature,
 } from '../traits'
 
@@ -14,6 +15,14 @@ import {
  * (`captureBallSystem.js`) e pela previsão da mira (`traceCaptureFlight`,
  * `captureAimSystem.js`) — os dois têm que concordar.
  */
+
+/**
+ * Selvagem que a bola atravessa: já dentro de uma bola, ou saindo do mapa
+ * (fugindo — a fuga clássica, docs/features/063-revisao-da-ia-selvagem.md).
+ */
+function isOutOfCapture(wild) {
+  return wild.has(BeingCaptured) || wild.get(WildBehavior)?.state === 'leave'
+}
 
 /**
  * O selvagem (fora de bola) que o caminho da bola neste tick — de `pos`
@@ -34,7 +43,7 @@ export function findWildHit(world, pos, seg, maxDistance) {
   world
     .query(WildCreature, Position, CharacterController)
     .readEach(([, center, body], wild) => {
-      if (wild.has(BeingCaptured)) return
+      if (isOutOfCapture(wild)) return
       const standing = (body.capsuleAxis ?? 'y') === 'y'
       candidates.push({
         wild,
@@ -77,7 +86,7 @@ export function findWildByCollider(world, colliderHandle) {
   if (colliderHandle == null) return null
   let found = null
   world.query(WildCreature, PhysicsBody).readEach(([, body], wild) => {
-    if (found || wild.has(BeingCaptured)) return
+    if (found || isOutOfCapture(wild)) return
     if (body.colliderHandle === colliderHandle) found = wild
   })
   return found

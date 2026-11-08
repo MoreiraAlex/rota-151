@@ -111,7 +111,7 @@ export const LAB_SLOT = 'secondary1'
 const LAB_MOVE_SLOT = 1
 
 // Chão: malha de triângulos com o relevo escolhido (`labRelief.js`), não
-// heightfield — o Rapier erra raio em célula plana de heightfield (086 no
+// heightfield — o Rapier erra raio em célula plana de heightfield (087 no
 // roadmap).
 export const LAB_GROUND = { size: 60 }
 

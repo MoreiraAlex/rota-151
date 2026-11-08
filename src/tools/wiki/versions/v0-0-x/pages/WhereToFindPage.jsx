@@ -135,6 +135,36 @@ export function WhereToFindPage({ data, version }) {
         )}
       </Section>
 
+      <Section id="temperamento" title="Hostis ou pacíficas">
+        <p>
+          Cada espécie tem a própria chance de nascer hostil e, quando nasce
+          pacífica, de fugir ao te perceber (
+          <WikiLink version={version} to="selvagens/comportamento#temperamento">
+            Comportamento das selvagens
+          </WikiLink>
+          ).
+        </p>
+        <DataTable
+          head={[
+            'Criatura',
+            'Chance de ser hostil',
+            'Pacífica: chance de fugir',
+          ]}
+          align={[null, 'right', 'right']}
+          rows={wild.map((entry) => [
+            <WikiLink
+              key={entry.id}
+              version={version}
+              to={`catalogo/criaturas/${entry.id}`}
+            >
+              {entry.name}
+            </WikiLink>,
+            formatPercent(entry.temperament.hostileChance, 0),
+            formatPercent(entry.temperament.fleeChance, 0),
+          ])}
+        />
+      </Section>
+
       <Section id="somem" title="Quando vão embora">
         <p>A distância até você decide se uma selvagem fica ou vai embora:</p>
         <ul>

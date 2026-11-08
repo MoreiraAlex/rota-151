@@ -25,7 +25,6 @@ import { GAME_CONFIG } from '@/core/gameConfig'
 import { ITEM_REGISTRY, listItems } from '@/core/data/items'
 import { getSpecies, getPlayerSpecies } from '@/core/data/species'
 import { computeAimRay } from '@/core/camera/orbitCamera'
-import { resolveDashCost } from '../actions/stamina'
 import { playerActionSystem, resolveDashSpeed } from './playerActionSystem'
 import { dashCooldownSystem } from './dashCooldownSystem'
 
@@ -133,17 +132,15 @@ describe('playerActionSystem — dash', () => {
     expect(Math.hypot(vel.x, vel.z)).toBeCloseTo(SPEED)
   })
 
-  it('ferido, o dash custa mais (o custo da entidade × o multiplicador da vida)', () => {
+  it('ferido, o dash custa o mesmo (a vida não muda o custo, 063)', () => {
     const { world, player } = spawnWorld()
     player.add(Grounded)
     const { maxHp } = player.get(Vitals)
     player.set(Vitals, { hp: maxHp * 0.25, stamina: 100 })
-    const cost = resolveDashCost(player.get(Vitals))
-    expect(cost).toBeGreaterThan(DASH_COST)
 
     tick(world, { dash: true })
 
-    expect(player.get(Vitals).stamina).toBeCloseTo(100 - cost)
+    expect(player.get(Vitals).stamina).toBeCloseTo(100 - DASH_COST)
   })
 
   it('desconta o custo de stamina uma única vez, no disparo', () => {

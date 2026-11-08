@@ -33,6 +33,7 @@ import {
   Rotation,
   SummonedCreature,
   Vitals,
+  WildBehavior,
   WildCreature,
   resolveCreatureSpeciesId,
   resolveEntityLevel,
@@ -53,8 +54,10 @@ function forEachTargetCandidate(world, targetSide, visit) {
       // do `readEach` — no fim, não desalinha os outros.
       .query(Position, Rotation, CharacterController, Vitals, side)
       .readEach(([pos, rot, controller, vitals], entity) => {
-        // Dentro de uma Pokébola ninguém acerta (docs/features/043-captura.md).
+        // Dentro de uma Pokébola ninguém acerta (docs/features/043-captura.md),
+        // nem na selvagem saindo do mapa (a fuga clássica, 063).
         if (entity.has(BeingCaptured)) return
+        if (entity.get(WildBehavior)?.state === 'leave') return
         visit(entity, pos, rot, controller, vitals)
       })
   }

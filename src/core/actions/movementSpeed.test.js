@@ -1,33 +1,19 @@
 import { describe, expect, it } from 'vitest'
-import { GAME_CONFIG } from '../gameConfig'
-import { resolveMoveSpeed, resolveSpeedMultiplier } from './movementSpeed'
+import { resolveMoveSpeed } from './movementSpeed'
 
-const { MIN_MULTIPLIER, EXPONENT } = GAME_CONFIG.SPEED_BY_HP
-const at = (fraction) => ({ hp: fraction * 100, maxHp: 100 })
+describe('resolveMoveSpeed', () => {
+  const stats = { walkSpeed: 2, runSpeed: 5 }
 
-describe('velocidade pela vida baixa', () => {
-  it('×1 com a vida cheia, MIN com ela em 0, pela curva no meio', () => {
-    expect(resolveSpeedMultiplier(at(1))).toBe(1)
-    expect(resolveSpeedMultiplier(at(0))).toBeCloseTo(MIN_MULTIPLIER)
-    expect(resolveSpeedMultiplier(at(0.5))).toBeCloseTo(
-      1 - (1 - MIN_MULTIPLIER) * 0.5 ** EXPONENT,
-    )
-    expect(resolveSpeedMultiplier({})).toBe(1) // sem vida
-  })
-
-  it('andar e correr: a velocidade da espécie × o multiplicador', () => {
-    const stats = { walkSpeed: 2, runSpeed: 5 }
-    expect(resolveMoveSpeed(stats, at(1), true)).toBe(5)
-    expect(resolveMoveSpeed(stats, at(1), false)).toBe(2)
-    expect(resolveMoveSpeed(stats, at(0), true)).toBeCloseTo(5 * MIN_MULTIPLIER)
+  it('andar e correr: a velocidade da espécie', () => {
+    expect(resolveMoveSpeed(stats, true)).toBe(stats.runSpeed)
+    expect(resolveMoveSpeed(stats, false)).toBe(stats.walkSpeed)
   })
 
   it('o modificador de passo das condições multiplica andar e correr', () => {
-    const stats = { walkSpeed: 2, runSpeed: 5 }
     const modifier = 0.5
     for (const running of [false, true]) {
-      const base = resolveMoveSpeed(stats, at(1), running)
-      expect(resolveMoveSpeed(stats, at(1), running, modifier)).toBeCloseTo(
+      const base = resolveMoveSpeed(stats, running)
+      expect(resolveMoveSpeed(stats, running, modifier)).toBeCloseTo(
         base * modifier,
       )
     }

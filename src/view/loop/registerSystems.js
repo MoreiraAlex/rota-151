@@ -38,6 +38,7 @@ import { trainingObjectSpawnSystem } from '@/core/systems/trainingObjectSpawnSys
 import { trainingSystem } from '@/core/systems/trainingSystem'
 import { partyActionMenuInputSystem } from '@/core/systems/partyActionMenuInputSystem'
 import { wildWanderSystem } from '@/core/systems/wildWanderSystem'
+import { wildAwarenessSystem } from '@/core/systems/wildAwarenessSystem'
 import { wildBehaviorSystem } from '@/core/systems/wildBehaviorSystem'
 import { wildReactionSystem } from '@/core/systems/wildReactionSystem'
 import { partyBehaviorSystem } from '@/core/systems/partyBehaviorSystem'
@@ -87,6 +88,7 @@ import { hitFlashSystem } from '@/view/systems/hitFlashSystem'
 import { damageNumberSystem } from '@/view/systems/damageNumberSystem'
 import { afterimageSystem } from '@/view/systems/afterimageSystem'
 import { battleLogSystem } from '@/view/systems/battleLogSystem'
+import { wildFledDustSystem } from '@/view/systems/wildFledDustSystem'
 
 let registered = false
 
@@ -268,8 +270,12 @@ export function registerGameSystems() {
   // e a vaga dela já conta no spawn do mesmo tick.
   registerSystem(GAME_PHASES.SIMULATION, wildDespawnSystem)
   registerSystem(GAME_PHASES.SIMULATION, wildSpawnSystem)
-  // Antes do vagar: decide perseguir/fugir/voltar a vagar e move quem
-  // persegue/foge; quem voltou a vagar já vaga no mesmo tick.
+  // Percepção (063): quem percebeu alguém para e encara; no fim do alerta
+  // parte para cima, foge ou fica — antes do comportamento, que já move
+  // quem partiu para cima ou começou a sair.
+  registerSystem(GAME_PHASES.SIMULATION, wildAwarenessSystem)
+  // Antes do vagar: move quem persegue/sai do mapa e decide quem desiste;
+  // quem voltou a vagar já vaga no mesmo tick.
   registerSystem(GAME_PHASES.SIMULATION, wildBehaviorSystem)
   registerSystem(GAME_PHASES.SIMULATION, wildWanderSystem)
   // Voo livre (060): depois de todo mundo que escreve a velocidade (no ar
@@ -345,6 +351,8 @@ export function registerGameSystems() {
   registerSystem(GAME_PHASES.PRESENTATION, afterimageSystem)
   // Log de batalha em texto ("Charmander usou Ember!") — mesmos eventos.
   registerSystem(GAME_PHASES.PRESENTATION, battleLogSystem)
+  // A selvagem que fugiu some numa nuvem de poeira (063).
+  registerSystem(GAME_PHASES.PRESENTATION, wildFledDustSystem)
   registerSystem(GAME_PHASES.PRESENTATION, eyeBlinkSystem)
   registerSystem(GAME_PHASES.PRESENTATION, mouthSyncSystem)
 }

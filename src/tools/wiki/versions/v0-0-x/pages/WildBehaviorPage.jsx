@@ -1,9 +1,9 @@
 import { Section } from '@/tools/wiki/components/Article'
-import { DataTable } from '@/tools/wiki/components/DataTable'
 import { Notice } from '@/tools/wiki/components/Notice'
 import { WikiLink } from '@/tools/wiki/components/WikiLink'
 import {
   formatMeters,
+  formatNumber,
   formatPercent,
   formatSeconds,
 } from '@/tools/wiki/wikiFormat'
@@ -38,60 +38,60 @@ export function WildBehaviorPage({ data, version }) {
         </p>
       </Section>
 
+      <Section id="percepcao" title="Quando ela te percebe">
+        <p>
+          A selvagem enxerga à frente, num ângulo de cerca de{' '}
+          {formatNumber(wild.viewAngle, 0)}°, até{' '}
+          {formatMeters(wild.viewDistance, 0)}. De costas, ela só sente quem
+          chega bem perto, a {formatMeters(wild.nearRadius, 0)}. Chegando por
+          trás, dá pra se aproximar bem mais sem ser notado.
+        </p>
+        <p>
+          Quando te percebe, aparece uma <strong>exclamação branca</strong> em
+          cima da cabeça dela, e ela para e fica te encarando por{' '}
+          {formatSeconds(wild.alertTime, 1)}. Depois decide o que fazer, pelo
+          temperamento. Isso vale pra você e pras criaturas do seu time.
+        </p>
+      </Section>
+
       <Section id="temperamento" title="Hostil ou pacífica">
         <p>
           Cada selvagem nasce com um temperamento. Em geral, a chance de ser
-          hostil é de {formatPercent(wild.hostileChance, 0)}, mas algumas
-          espécies podem ser mais ou menos agressivas.
+          hostil é de {formatPercent(wild.hostileChance, 0)}, mas cada espécie
+          tem a sua (
+          <WikiLink
+            version={version}
+            to="selvagens/onde-encontrar#temperamento"
+          >
+            tabela por espécie
+          </WikiLink>
+          ).
         </p>
         <ul>
           <li>
-            <strong>Hostil</strong> — persegue quem chegar a{' '}
-            {formatMeters(wild.aggroRadius, 0)} dela. Só desiste se você se
-            afastar um pouco além disso (mais {formatMeters(wild.exitMargin, 0)}
-            ).
+            <strong>Hostil</strong> — a exclamação vira uma{' '}
+            <strong>veia de raiva</strong> vermelha e ela parte pra cima. Se
+            você chegar a {formatMeters(wild.aggroRadius, 0)} dela enquanto ela
+            te encara, ela ataca na hora. Só desiste se você se afastar um pouco
+            além disso (mais {formatMeters(wild.exitMargin, 0)}).
           </li>
           <li>
-            <strong>Pacífica</strong> — não incomoda ninguém. Quando apanha,
-            decide se <strong>revida</strong> ou <strong>foge</strong>.
+            <strong>Pacífica</strong> — pode fugir (veja abaixo). Se ficar, a
+            exclamação some e ela volta a vagar. Quando apanha, ela sempre
+            revida.
           </li>
           <li>
             Quem foi atacada persegue o agressor por mais tempo: só desiste a
             mais de {formatMeters(wild.leashRadius, 0)}.
           </li>
+          <li>
+            Depois de decidir, ela não mostra a exclamação de novo até todo
+            mundo do seu lado se afastar a mais de{' '}
+            {formatMeters(wild.forgetRadius, 0)}. Até lá, a hostil que desistiu
+            volta pra cima de quem chegar a {formatMeters(wild.aggroRadius, 0)}{' '}
+            dela.
+          </li>
         </ul>
-      </Section>
-
-      <Section id="coragem" title="Coragem: revidar ou fugir">
-        <p>
-          A chance de uma pacífica revidar começa em{' '}
-          {formatPercent(wild.retaliateChance, 0)} e muda com a situação:
-        </p>
-        <ul>
-          <li>Sobe quando ela está com bastante vida.</li>
-          <li>Cai quando o golpe que levou foi forte.</li>
-          <li>Sobe quando ela está mais inteira que quem bateu.</li>
-        </ul>
-        <p>
-          A chance fica sempre entre {formatPercent(wild.courageMin, 0)} e{' '}
-          {formatPercent(wild.courageMax, 0)} — sempre sobra surpresa.
-        </p>
-        <DataTable
-          head={[
-            'Vida dela',
-            'Golpe que levou',
-            'Vida de quem bateu',
-            'Chance de revidar',
-          ]}
-          align={['right', 'right', 'right', 'right']}
-          rows={wild.courageRows.map((row) => [
-            formatPercent(row.own, 0),
-            `${formatPercent(row.hit, 0)} da vida`,
-            formatPercent(row.attacker, 0),
-            formatPercent(row.chance, 0),
-          ])}
-          caption="Situações de exemplo. A vida dela já é a de depois do golpe."
-        />
       </Section>
 
       <Section id="ameaca" title="Quem ela persegue">
@@ -107,26 +107,41 @@ export function WildBehaviorPage({ data, version }) {
         </p>
       </Section>
 
-      <Section id="fuga" title="Fugindo com a vida baixa">
+      <Section id="fuga" title="Fuga">
         <p>
-          Lutando, quando a vida chega a {formatPercent(wild.lowHpFlee, 0)}, a
-          selvagem decide uma vez se foge (
-          {formatPercent(wild.lowHpFleeChance, 0)} de chance). Fugindo, ela
-          corre pra longe de quem a persegue e não ataca ninguém até a vida
-          voltar a {formatPercent(wild.lowHpRecover, 0)}. A{' '}
-          {formatMeters(wild.fleeSafeDistance, 0)} de distância ela se sente
-          segura e volta a vagar.
+          Fugir é sumir: a selvagem corre por um instante, com uma{' '}
+          <strong>gota de suor</strong> em cima da cabeça, e desaparece numa
+          nuvem de poeira. Enquanto corre, não dá pra acertar nem capturar. Ela
+          só foge em duas situações:
         </p>
-        <Notice tone="tip">
-          <p>
-            Selvagem fugindo machucada fica mais lenta e cansa mais rápido (
+        <ul>
+          <li>
+            <strong>Pacífica que te percebe</strong> — no fim do tempo
+            encarando, ela pode fugir. A chance é de cada espécie (em geral,{' '}
+            {formatPercent(wild.fleeChance, 0)};{' '}
             <WikiLink
               version={version}
-              to="criaturas/vida-e-energia#vida-baixa"
+              to="selvagens/onde-encontrar#temperamento"
             >
-              Vida baixa
+              tabela por espécie
             </WikiLink>
-            ) — dá pra alcançar.
+            ).
+          </li>
+          <li>
+            <strong>Escapou da Pokébola</strong> — ela pode partir pra cima ou
+            fugir (
+            <WikiLink version={version} to="selvagens/captura">
+              Captura
+            </WikiLink>
+            ).
+          </li>
+        </ul>
+        <p>Numa luta ninguém foge: ela vai até desmaiar.</p>
+        <Notice tone="tip">
+          <p>
+            Acertar um golpe ou jogar a Pokébola enquanto ela ainda te encara
+            impede a fuga. Chegando por trás sem ser visto, ela nem tem chance
+            de fugir.
           </p>
         </Notice>
         <Notice tone="missing">

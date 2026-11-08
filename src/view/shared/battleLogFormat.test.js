@@ -13,6 +13,7 @@ import {
   inventoryFull,
   moveLearned,
   statStageChanged,
+  wildDespawned,
   worldItemPicked,
 } from '@/core/events'
 import { listItems } from '@/core/data/items'
@@ -258,5 +259,25 @@ describe('formatBattleLogEvent — itens no mundo (055)', () => {
       foragedNothing({ source: 'tree', position }),
     )
     expect(lines).toHaveLength(1)
+  })
+})
+
+describe('formatBattleLogEvent — fuga clássica (063)', () => {
+  const position = { x: 0, y: 0, z: 0 }
+
+  it('selvagem que fugiu vira uma linha com o nome; os outros despawns, nada', () => {
+    const fled = formatBattleLogEvent(
+      wildDespawned({ speciesId: 'pidgey', reason: 'fled', position }),
+    )
+    expect(fled).toHaveLength(1)
+    expect(fled[0].text).toContain(formatSpeciesName('pidgey'))
+
+    for (const reason of ['far', 'aged']) {
+      expect(
+        formatBattleLogEvent(
+          wildDespawned({ speciesId: 'pidgey', reason, position }),
+        ),
+      ).toEqual([])
+    }
   })
 })

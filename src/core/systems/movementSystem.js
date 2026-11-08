@@ -90,7 +90,6 @@ export function movementSystem(context) {
       // Ferido anda/corre mais devagar (`resolveMoveSpeed`).
       const speed = resolveMoveSpeed(
         stats,
-        vitals,
         isRunning,
         readConditionModifier(entity, 'movement'),
       )

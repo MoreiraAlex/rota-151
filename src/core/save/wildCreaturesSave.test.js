@@ -3,6 +3,7 @@ import { makeWorld } from '@/test/makeWorld'
 import { listSpecies } from '../data/species'
 import { nascerSelvagem } from '../actions/wildSpawn'
 import { desmaiar } from '../actions/faint'
+import { sairDoMapa } from '../actions/wildBehavior'
 import {
   BeingCaptured,
   CreatureLevel,
@@ -72,6 +73,17 @@ describe('wildCreaturesSave', () => {
     const world = setup()
     spawnAt(world, FIRST, { x: 0, y: 1, z: 0 })
     spawnAt(world, SECOND, { x: 1, y: 1, z: 0 }).add(BeingCaptured)
+
+    const saved = serializeWildCreatures(world)
+
+    expect(saved.map((entry) => entry.speciesId)).toEqual([FIRST.id])
+  })
+
+  it('quem está saindo do mapa (fugindo, 063) conta como já fugida', () => {
+    const world = setup()
+    spawnAt(world, FIRST, { x: 0, y: 1, z: 0 })
+    const leaving = spawnAt(world, SECOND, { x: 1, y: 1, z: 0 })
+    sairDoMapa(leaving, leaving.get(Position))
 
     const saved = serializeWildCreatures(world)
 

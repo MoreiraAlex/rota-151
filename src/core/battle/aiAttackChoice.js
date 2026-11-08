@@ -1,3 +1,4 @@
+import { resolveAiTuning } from './aiTuning'
 import { GAME_CONFIG } from '../gameConfig'
 import { gameplayRng } from '../rng'
 import {
@@ -253,17 +254,21 @@ export function scoreAiAttack(attack, situation) {
 
 /**
  * Sorteia um entre `candidates` (`[{ score, ... }]`, notas > 0): só os com
- * nota de pelo menos `NEAR_BEST_FRACTION` da melhor, com chance proporcional
- * à nota. `null` sem candidato.
+ * nota de pelo menos `nearBestFraction` da melhor (`NEAR_BEST_FRACTION`; a
+ * selvagem passa o da dificuldade), com chance proporcional à nota. `null`
+ * sem candidato.
  */
-export function pickAiAttack(candidates, rng = gameplayRng) {
-  const { NEAR_BEST_FRACTION } = GAME_CONFIG.AI_ATTACK
+export function pickAiAttack(
+  candidates,
+  rng = gameplayRng,
+  nearBestFraction = GAME_CONFIG.AI_ATTACK.NEAR_BEST_FRACTION,
+) {
   const valid = candidates.filter((candidate) => candidate.score > 0)
   if (valid.length === 0) return null
 
   const best = Math.max(...valid.map((candidate) => candidate.score))
   const pool = valid.filter(
-    (candidate) => candidate.score >= best * NEAR_BEST_FRACTION,
+    (candidate) => candidate.score >= best * nearBestFraction,
   )
   const total = pool.reduce((sum, candidate) => sum + candidate.score, 0)
   let roll = rng() * total
@@ -350,7 +355,11 @@ export function planAiAttack(
     attack,
     score: scoreAiAttack(attack, situation),
   }))
-  const picked = pickAiAttack(candidates, rng)
+  const picked = pickAiAttack(
+    candidates,
+    rng,
+    resolveAiTuning(entity).NEAR_BEST_FRACTION,
+  )
   if (!picked) return null
   return {
     slot: picked.slot,

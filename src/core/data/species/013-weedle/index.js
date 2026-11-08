@@ -165,7 +165,8 @@ export const WEEDLE = {
   ],
   // Na série o Weedle usa o ferrão pra se defender (o agressivo é o
   // Beedrill): a maioria nasce pacífica e revida se apanhar.
-  wild: { hostileChance: 0.25 },
+  // Pacífica que te percebe foge (some do mapa) com esta chance (063).
+  wild: { hostileChance: 0.25, fleeChance: 0.15 },
   // Onde nasce no mundo (062): na floresta, só de dia.
   spawn: { biomes: ['forest'], rarity: 'common', phases: { night: 0 } },
 }

@@ -89,13 +89,35 @@ describe('buildWikiData', () => {
     expect(neutral.accuracy).toBe(1)
   })
 
-  it('vida baixa: cheia não muda nada, e piora conforme a vida cai', () => {
-    const [full, ...rest] = data.lowHp.rows
-    expect(full.cost).toBe(1)
-    expect(full.speed).toBe(1)
-    for (const row of rest) {
-      expect(row.cost).toBeGreaterThanOrEqual(1)
-      expect(row.speed).toBeLessThanOrEqual(1)
+  it('selvagens: percepção e fuga vêm da config (063)', () => {
+    const { PERCEPTION, DEFAULT_FLEE_CHANCE } = GAME_CONFIG.WILD_BEHAVIOR
+    expect(data.wild.viewDistance).toBe(PERCEPTION.VIEW_DISTANCE)
+    expect(data.wild.nearRadius).toBe(PERCEPTION.NEAR_RADIUS)
+    expect(data.wild.alertTime).toBe(PERCEPTION.ALERT_TIME)
+    expect(data.wild.fleeChance).toBe(DEFAULT_FLEE_CHANCE)
+    expect(data.wild.nearRadius).toBeLessThan(data.wild.viewDistance)
+  })
+
+  it('selvagens lutam pela dificuldade: nunca mais afiadas que o time (063)', () => {
+    const { ai, wildAi } = data
+    expect(wildAi.dodgeChance).toBeLessThanOrEqual(ai.dodgeChance)
+    expect(wildAi.dodgeReaction).toBeGreaterThanOrEqual(ai.dodgeReaction)
+    expect(wildAi.nearBest).toBeLessThanOrEqual(ai.nearBest)
+    expect(wildAi.aimError).toBeGreaterThanOrEqual(0)
+  })
+
+  it('temperamento de cada espécie: o próprio ou o padrão (063)', () => {
+    const { DEFAULT_HOSTILE_CHANCE, DEFAULT_FLEE_CHANCE } =
+      GAME_CONFIG.WILD_BEHAVIOR
+    const byId = new Map(listWikiSpecies().map((entry) => [entry.id, entry]))
+    for (const entry of data.species) {
+      const wild = byId.get(entry.id).wild
+      expect(entry.temperament.hostileChance).toBe(
+        wild?.hostileChance ?? DEFAULT_HOSTILE_CHANCE,
+      )
+      expect(entry.temperament.fleeChance).toBe(
+        wild?.fleeChance ?? DEFAULT_FLEE_CHANCE,
+      )
     }
   })
 

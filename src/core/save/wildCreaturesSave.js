@@ -29,6 +29,8 @@ export function serializeWildCreatures(world) {
   const saved = []
   world.query(WildCreature, Position).readEach(([wild, position], entity) => {
     if (entity.has(BeingCaptured)) return
+    // Saindo do mapa (fugiu, 063): conta como já fugida.
+    if (entity.get(WildBehavior)?.state === 'leave') return
     const { level, xp } = entity.get(CreatureLevel)
     const vitals = entity.get(Vitals)
     const fainted = entity.get(Fainted)

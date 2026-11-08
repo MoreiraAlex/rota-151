@@ -1,6 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest'
 import { makeWorld } from '@/test/makeWorld'
-import { resolveSpeedMultiplier } from '@/core/actions/movementSpeed'
 import { getSpecies } from '@/core/data/species'
 import {
   Position,
@@ -67,17 +66,15 @@ describe('movementSystem', () => {
     expect(vel.z).toBeCloseTo(0)
   })
 
-  it('ferido, anda e corre mais devagar (× o multiplicador da vida)', () => {
+  it('ferido, anda e corre na velocidade de sempre (063)', () => {
     const { player, tick } = setup(0)
     const { maxHp } = player.get(Vitals)
     player.set(Vitals, { hp: maxHp * 0.25 })
-    const factor = resolveSpeedMultiplier(player.get(Vitals))
-    expect(factor).toBeLessThan(1)
 
     tick({ x: 0, z: -1, run: true })
-    expect(player.get(Velocity).z).toBeCloseTo(-RUN_SPEED * factor)
+    expect(player.get(Velocity).z).toBeCloseTo(-RUN_SPEED)
     tick({ x: 0, z: -1, run: false })
-    expect(player.get(Velocity).z).toBeCloseTo(-WALK_SPEED * factor)
+    expect(player.get(Velocity).z).toBeCloseTo(-WALK_SPEED)
   })
 
   it('com run = true, usa RUN_SPEED em vez de WALK_SPEED', () => {
@@ -197,9 +194,7 @@ describe('movementSystem — mirando a Pokébola (043)', () => {
     tick({ x: 1, z: 0, run: true })
 
     const vel = player.get(Velocity)
-    expect(Math.hypot(vel.x, vel.z)).toBeCloseTo(
-      WALK_SPEED * resolveSpeedMultiplier(player.get(Vitals)),
-    )
+    expect(Math.hypot(vel.x, vel.z)).toBeCloseTo(WALK_SPEED)
     // yaw 0 da órbita = câmera olhando pra -Z (`resolveCameraYaw`): yaw + π.
     expect(Math.abs(Math.cos(player.get(Rotation).y))).toBeCloseTo(1)
     expect(Math.cos(player.get(Rotation).y)).toBeLessThan(0)

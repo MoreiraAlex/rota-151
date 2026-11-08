@@ -186,7 +186,8 @@ export const PIKACHU = {
   // Na série o Pikachu é arisco: guarda eletricidade nas bochechas e dá
   // choque quando se sente ameaçado. Mais desconfiado que o Pidgey, menos
   // agressivo que o Ekans.
-  wild: { hostileChance: 0.3 },
+  // Pacífica que te percebe foge (some do mapa) com esta chance (063).
+  wild: { hostileChance: 0.3, fleeChance: 0.7 },
   // Onde nasce no mundo (062): floresta e planície, a qualquer hora; raro,
   // mas aparece bem mais na tempestade.
   spawn: {

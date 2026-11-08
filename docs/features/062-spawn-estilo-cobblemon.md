@@ -25,6 +25,11 @@ Versão: `0.0.62` (`package.json`). Branch: `feature/062-spawn-estilo-cobblemon`
 > +3 (os selvagens no servidor, era 073, agora é 076). Os docs das features
 > antigas ficam com os números da época; os comentários do código que
 > apontavam pro roadmap foram atualizados.
+>
+> Depois, os sons do mundo (ambientação e música) entraram no Marco 2 como
+> 065, antes do ambiente interno nas estruturas (que virou 066). Da antiga
+> 065 em diante tudo andou +1 (os selvagens no servidor viraram 077, o
+> volume dos gritos dos iniciais 095); este doc já usa os números novos.
 
 > **Os números deste doc são fictícios (só ilustram).** O valor de verdade é
 > o do campo citado (config ou dado da espécie).
@@ -130,7 +135,7 @@ primeiro teste".)
 
 ### Regras puras (`core/wildSpawn/`)
 
-Funções sem world, testáveis isoladas e prontas para o servidor (076):
+Funções sem world, testáveis isoladas e prontas para o servidor (077):
 
 - `spawnWeightOf(species, { biomeId, biome, phase, weather })` — o peso
   (zero se o bioma não casa, se está em `BIOMES.HIDDEN`, se é `city`).
@@ -179,7 +184,7 @@ some antes de o chão dele descarregar.
 
 `wildSpawned({ entity, speciesId, reason })` e
 `wildDespawned({ speciesId, reason })` (`far`, `aged`) — para o debug agora
-e para a rede no 076.
+e para a rede no 077.
 
 ### Save
 
@@ -211,10 +216,10 @@ Teto por jogador, intervalo e tentativas do spawn, raios do anel, distância
 de visão e meia-abertura do cone, as três faixas, idade mínima e máxima do
 despawn do meio, intervalo da verificação e as chances por raridade.
 
-### Pronto para o multiplayer (076)
+### Pronto para o multiplayer (077)
 
 Regras puras recebendo a lista de jogadores; teto contado por jogador;
-spawn e despawn por eventos. O 076 só move os systems para o servidor.
+spawn e despawn por eventos. O 077 só move os systems para o servidor.
 
 ### Testes (regras, sem fixar valores)
 
@@ -263,7 +268,7 @@ spawn e despawn por eventos. O 076 só move os systems para o servidor.
       abrir o jogo e o nível das selvagens; seção "Onde encontrar" na página
       de cada criatura do catálogo (os iniciais: não aparecem na natureza);
       teto de nível da versão em "Experiência e nível".
-- [x] Roadmap: 062 para "Já feito" (título `0.0.1 – 0.0.62`); pendência dos gritos dos iniciais no Marco 5 (094).
+- [x] Roadmap: 062 para "Já feito" (título `0.0.1 – 0.0.62`); pendência dos gritos dos iniciais no Marco 5 (095).
 - [x] Gates: `npm test` inteiro (3029 passando; na primeira rodada, com o
       `next dev` ligado, 5 testes pesados de terreno e física estouraram o
       tempo e passaram sozinhos — com metade dos núcleos, a suíte passou
@@ -430,7 +435,7 @@ distância exata da câmera, que fica parada na origem e só gira:
   bem mais altos que as selvagens nos arquivos.
 - **Volume das vozes** (pedido do usuário): todas as espécies e o padrão
   baixaram para o mesmo valor, abaixo do de antes; o ajuste fino por espécie
-  sai do comparador. Os iniciais mais altos ficaram para o Marco 5 (094).
+  sai do comparador. Os iniciais mais altos ficaram para o Marco 5 (095).
 
 ### Energia voltando no meio do golpe (relatado pelo usuário)
 
@@ -496,6 +501,6 @@ usuário.
 
 ## Fora de escopo
 
-- Bando (selvagens da mesma espécie entrando juntas na luta) — 076.
-- Spawn no servidor e por vários jogadores de verdade — 076.
+- Bando (selvagens da mesma espécie entrando juntas na luta) — 077.
+- Spawn no servidor e por vários jogadores de verdade — 077.
 - Spawn de espécies de biomas escondidos, cavernas e água (nado).

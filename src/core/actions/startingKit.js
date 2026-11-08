@@ -9,7 +9,7 @@ import {
 } from './pokemon'
 
 // Kit de TESTE (docs/features/042-itens-da-beta.md): a Pokédex e todos os
-// itens da beta. O kit de verdade é definido na 070.
+// itens da beta. O kit de verdade é definido na 071.
 const STARTING_ITEMS = {
   pokedex: 1,
   'poke-ball': 10,
@@ -56,7 +56,7 @@ export function darKitInicial(world, trainer) {
  * Kit de TESTE num save que já existe: um Pokémon de cada espécie
  * `kind: 'pokemon'` que o `trainer` ainda não tem vai pro inventário (pra
  * testar os controles de cada espécie nova), enquanto houver célula livre.
- * Sai junto do kit de teste na 070. Devolve quantos deu.
+ * Sai junto do kit de teste na 071. Devolve quantos deu.
  */
 export function completarEspeciesDeTeste(world, trainer) {
   const owned = new Set(

@@ -37,6 +37,7 @@ import {
   Vitals,
   WantsToAttack,
   WanderState,
+  WildAwareness,
   WildBehavior,
   WildCreature,
   vitalsFromSpecies,
@@ -47,6 +48,7 @@ import { faintSystem } from './faintSystem'
 import { partySummonSystem } from './partySummonSystem'
 import { summonBallSystem } from './summonBallSystem'
 import { vitalsRegenSystem } from './vitalsRegenSystem'
+import { wildAwarenessSystem } from './wildAwarenessSystem'
 import { wildBehaviorSystem } from './wildBehaviorSystem'
 import { wildReactionSystem } from './wildReactionSystem'
 import { wildWanderSystem } from './wildWanderSystem'
@@ -67,6 +69,7 @@ function spawnWild(world, { at = WILD_AT, physicsBody } = {}) {
   return world.spawn(
     WildCreature({ speciesId: 'charmander' }),
     WildBehavior({ temperament: 'hostile' }),
+    WildAwareness,
     AiMovement,
     Position(at),
     Rotation,
@@ -205,6 +208,7 @@ describe('faintSystem — selvagem', () => {
     faintSystem({ world, delta: DELTA })
 
     for (let i = 0; i < 60; i++) {
+      wildAwarenessSystem({ world, delta: DELTA })
       wildBehaviorSystem({ world, delta: DELTA })
       wildWanderSystem({ world, delta: DELTA })
     }
@@ -214,10 +218,11 @@ describe('faintSystem — selvagem', () => {
     expect(wild.get(Velocity).x).toBe(0)
     expect(wild.get(Velocity).z).toBe(0)
 
-    // Controle: acordada, volta a vagar e, com o alvo ao lado, persegue.
+    // Controle: acordada, volta a vagar e, com o alvo perto demais, a
+    // percepção (já reagiu, hostil) a põe de novo na perseguição.
     acordar(wild)
     expect(wild.get(WildBehavior).state).toBe('wander')
-    wildBehaviorSystem({ world, delta: DELTA })
+    wildAwarenessSystem({ world, delta: DELTA })
     expect(wild.get(WildBehavior).state).toBe('chase')
   })
 

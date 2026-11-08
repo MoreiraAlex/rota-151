@@ -16,6 +16,7 @@ import {
   JUMP_DUST_TEXTURE_PATHS,
 } from '@/view/vfx/jumpDustVfx'
 import { createJumpDustManager } from '@/view/vfx/jumpDustManager'
+import { drainDustPuffs } from '@/view/vfx/dustPuffQueue'
 import {
   buildWaterSplashEmitters,
   WATER_SPLASH_TEXTURE_PATHS,
@@ -40,7 +41,8 @@ const MAX_STEP = 1 / 20
  * `DashEffectsView`. `GAME_CONFIG.FEEDBACK.JUMP_DUST` liga/desliga e ajusta.
  * Com os pés na água (docs/features/057-lagos-e-rios.md), sai um respingo
  * na superfície no lugar da poeira (`waterSplashVfx.js`), com as mesmas
- * contas de quantidade e força.
+ * contas de quantidade e força. Também solta as nuvens avulsas pedidas em
+ * `dustPuffQueue.js` (a selvagem que fugiu e sumiu, 063).
  */
 export function JumpDustView() {
   const {
@@ -109,7 +111,21 @@ export function JumpDustView() {
 
   useFrame((state, delta) => {
     const manager = managerRef.current
+    // Nuvens avulsas pedidas pela view (a selvagem que fugiu, 063) — tiradas
+    // da fila mesmo desligado, pra não acumular.
+    const puffs = drainDustPuffs()
     if (!manager || !ENABLED) return
+    for (const puff of puffs) {
+      const water = levelWaterDepthAt(puff.x, puff.z) > 0
+      manager.puff(
+        [
+          puff.x,
+          water ? Math.max(puff.y, GAME_CONFIG.TERRAIN.WATER_LEVEL) : puff.y,
+          puff.z,
+        ],
+        water,
+      )
+    }
 
     const creatures = []
     world.query(Position, Velocity, CharacterController).forEach((entity) => {

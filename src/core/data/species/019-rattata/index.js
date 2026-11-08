@@ -162,7 +162,8 @@ export const RATTATA = {
   ],
   // Na série ele morde qualquer coisa quando ataca e vive em bando: mais
   // agressivo que o Caterpie e o Weedle.
-  wild: { hostileChance: 0.4 },
+  // Pacífica que te percebe foge (some do mapa) com esta chance (063).
+  wild: { hostileChance: 0.4, fleeChance: 0.5 },
   // Onde nasce no mundo (062): planície e savana, a qualquer hora — mais
   // à noite.
   spawn: {

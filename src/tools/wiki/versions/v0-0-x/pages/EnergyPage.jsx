@@ -131,12 +131,8 @@ export function EnergyPage({ data, version }) {
           Movimento também custa energia, pela mesma conta, com peso{' '}
           {formatNumber(cost.runWeight)} por segundo de corrida,{' '}
           {formatNumber(cost.dashWeight)} por dash e{' '}
-          {formatNumber(cost.jumpWeight)} por pulo. Com a vida baixa, correr e
-          dar dash custam mais (
-          <WikiLink version={version} to="criaturas/vida-e-energia#vida-baixa">
-            Vida baixa
-          </WikiLink>
-          ).
+          {formatNumber(cost.jumpWeight)} por pulo. A vida não muda esse custo:
+          machucada, a criatura corre e dá dash como sempre.
         </p>
         <p>
           O <strong>dash</strong> é um impulso rápido de{' '}

@@ -7,6 +7,7 @@ import { useQuery, useTrait } from 'koota/react'
 import * as THREE from 'three'
 import { resolveCreatureAttack } from '@/core/battle/creatureAttack'
 import { resolveBehaviorRadius } from '@/core/battle/wildBehavior'
+import { GAME_CONFIG } from '@/core/gameConfig'
 import { getSpecies } from '@/core/data/species'
 import { verticalClearance } from '@/core/physics/colliders'
 import {
@@ -15,6 +16,8 @@ import {
   Fainted,
   Party,
   Position,
+  Rotation,
+  WildAwareness,
   WildBehavior,
   WildCreature,
   resolveCreatureSpeciesId,
@@ -31,7 +34,12 @@ const TEMPERAMENT_COLOR = { hostile: '#ff5a5a', peaceful: '#5ad16a' }
 const STATE_LABEL = {
   wander: 'vagando',
   chase: 'perseguindo',
-  flee: 'fugindo',
+  leave: 'fugindo (sumindo)',
+}
+const AWARENESS_COLOR = {
+  unaware: '#ffffff',
+  noticed: '#ffd23f',
+  reacted: '#8a8a8a',
 }
 /**
  * Nome curto de um combatente pro debug — a espécie da criatura, ou
@@ -85,12 +93,25 @@ export function movementLabel(movement) {
 const STATE_RING_COLOR = {
   wander: '#ffb000',
   chase: '#ff3030',
-  flee: '#3fa9ff',
+}
+
+/**
+ * Percepção pro debug (`WildAwareness`, 063): `· viu treinador (0.8s)`
+ * encarando, `· reagiu` depois de decidir; nada sem ter visto ninguém.
+ */
+function awarenessLabel(awareness) {
+  if (!awareness) return ''
+  if (awareness.state === 'noticed') {
+    return ` · viu ${combatantLabel(awareness.target)} (${Math.max(0, awareness.timer).toFixed(1)}s)`
+  }
+  return awareness.state === 'reacted' ? ' · reagiu' : ''
 }
 
 function WildBehaviorDebug({ entity }) {
   const groupRef = useRef()
+  const coneRef = useRef()
   const behavior = useTrait(entity, WildBehavior)
+  const awareness = useTrait(entity, WildAwareness)
   const movement = useTrait(entity, AiMovement)
   const fainted = useTrait(entity, Fainted)
 
@@ -105,6 +126,8 @@ function WildBehaviorDebug({ entity }) {
       pos.y - verticalClearance(body) + GROUND_LIFT,
       pos.z,
     )
+    // O cone da percepção acompanha pra onde ela está virada.
+    if (coneRef.current) coneRef.current.rotation.y = entity.get(Rotation).y
   })
 
   if (!behavior) return null
@@ -121,12 +144,48 @@ function WildBehaviorDebug({ entity }) {
     ? `desmaiada (${Math.ceil(fainted.timeLeft)}s)`
     : STATE_LABEL[behavior.state] +
       (behavior.provoked ? ' (provocada)' : '') +
-      // Fugiu com a vida baixa: não briga até se recuperar.
-      (behavior.shaken ? ' (abalada)' : '') +
-      targetText
+      targetText +
+      awarenessLabel(awareness)
+
+  const { VIEW_DISTANCE, VIEW_HALF_ANGLE, NEAR_RADIUS } =
+    GAME_CONFIG.WILD_BEHAVIOR.PERCEPTION
+  const showPerception = awareness && !fainted && behavior.state === 'wander'
+  const perceptionColor = AWARENESS_COLOR[awareness?.state] ?? '#ffffff'
 
   return (
     <group ref={groupRef}>
+      {showPerception && (
+        <group ref={coneRef}>
+          {/* Cone de visão: centro em +Z local (a frente, yaw 0), girado pelo yaw. */}
+          <mesh rotation-x={-Math.PI / 2} renderOrder={998}>
+            <circleGeometry
+              args={[
+                VIEW_DISTANCE,
+                32,
+                -Math.PI / 2 - VIEW_HALF_ANGLE,
+                VIEW_HALF_ANGLE * 2,
+              ]}
+            />
+            <meshBasicMaterial
+              color={perceptionColor}
+              side={THREE.DoubleSide}
+              transparent
+              opacity={0.12}
+              depthTest={false}
+            />
+          </mesh>
+          <mesh rotation-x={-Math.PI / 2} scale={NEAR_RADIUS} renderOrder={998}>
+            <ringGeometry args={[RING_INNER, 1, RING_SEGMENTS]} />
+            <meshBasicMaterial
+              color={perceptionColor}
+              side={THREE.DoubleSide}
+              transparent
+              opacity={0.4}
+              depthTest={false}
+            />
+          </mesh>
+        </group>
+      )}
       {radius !== null && (
         <mesh rotation-x={-Math.PI / 2} scale={radius} renderOrder={999}>
           <ringGeometry args={[RING_INNER, 1, RING_SEGMENTS]} />
@@ -151,7 +210,10 @@ function WildBehaviorDebug({ entity }) {
           style={{ color: TEMPERAMENT_COLOR[behavior.temperament] }}
         >
           {TEMPERAMENT_LABEL[behavior.temperament]}
-          <span className="font-normal text-white"> · {stateText}</span>
+          <span className="font-normal text-white">
+            {' '}
+            · {stateText} · dif. {GAME_CONFIG.WILD_DIFFICULTY.LEVEL}
+          </span>
         </div>
       </Html>
     </group>
@@ -166,8 +228,11 @@ function WildBehaviorDebug({ entity }) {
  * quem mais causou dano nela, senão o mais perto), e um círculo no chão com o limite que
  * vale agora (`resolveBehaviorRadius`, `core/battle/wildBehavior.js` — a
  * MESMA regra que o system usa pra decidir), medido a partir da criatura.
- * Cor do círculo: laranja = raio de aggro, vermelho = limite pra desistir
- * da perseguição, azul = distância segura da fuga.
+ * Cor do círculo: laranja = "perto demais" da hostil (raio de aggro),
+ * vermelho = limite pra desistir da perseguição. Vagando, também o cone de
+ * visão e o raio curto da percepção (063, `core/battle/perception.js`) —
+ * branco sem ter visto ninguém, amarelo encarando, cinza depois de reagir —
+ * e, na etiqueta, quem ela viu e a dificuldade (`WILD_DIFFICULTY.LEVEL`).
  *
  * Só montado com o modo debug ligado (`src/app/(auth)/page.js`).
  * `useFrame` é a exceção documentada de debug: só acompanha a posição,

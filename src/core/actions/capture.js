@@ -41,6 +41,7 @@ import {
   Velocity,
   Vitals,
   WantsToAttack,
+  WildAwareness,
   WildBehavior,
   WildCreature,
 } from '../traits'
@@ -50,7 +51,7 @@ import { acordar } from './faint'
 import { hasFreeCell } from './inventory'
 import { resolveOwner } from './owner'
 import { colocarNoTime, criarPokemon, findFreePartySlot } from './pokemon'
-import { fugirDoJogador, perseguirJogador } from './wildBehavior'
+import { perseguirJogador, sairDoMapa } from './wildBehavior'
 
 /**
  * Captura (docs/features/043-captura.md): a Pokébola acerta um selvagem
@@ -75,13 +76,16 @@ export function isBeingCaptured(entity) {
 }
 
 /**
- * O selvagem não percebeu o treinador: vagando, fora do modo combate e sem
- * ninguém na tabela de ameaça. Desmaiado não conta (não "olha" pra lado
- * nenhum).
+ * O selvagem não percebeu o treinador: vagando, fora do modo combate, sem
+ * ninguém na tabela de ameaça e sem ter percebido ninguém (`WildAwareness`,
+ * docs/features/063-revisao-da-ia-selvagem.md — quem não tem o trait conta só
+ * pelo resto). Desmaiado não conta (não "olha" pra lado nenhum).
  */
 function isUnaware(wild) {
   if (wild.has(Fainted) || wild.has(CombatMode)) return false
   if (wild.get(WildBehavior)?.state !== 'wander') return false
+  const awareness = wild.get(WildAwareness)
+  if (awareness && awareness.state !== 'unaware') return false
   return !(wild.get(Threat)?.entries?.length > 0)
 }
 
@@ -286,7 +290,13 @@ export function selvagemEscapou(world, events, ball, rng) {
     // mais perto do lado do jogador).
     perseguirJogador(wild, { provoked: true })
   } else {
-    fugirDoJogador(wild)
+    // Fuga clássica (063): corre para longe de quem arremessou e some.
+    const thrower = resolveOwner(ball)
+    sairDoMapa(
+      wild,
+      wild.get(Position),
+      thrower?.isAlive?.() ? thrower.get(Position) : null,
+    )
   }
 
   events?.emit(

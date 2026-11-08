@@ -1,4 +1,6 @@
 import { resolveAttackDirection } from '../battle/attackAim'
+import { applyAimError, resolveAiTuning } from '../battle/aiTuning'
+import { gameplayRng } from '../rng'
 import { getSpecies } from '../data/species'
 import {
   countChannelTicks,
@@ -327,10 +329,15 @@ export function creatureAttackSystem(context) {
           rot,
           physicsBody,
         }
+        // Selvagem: erra a mira pela dificuldade (`AIM_ERROR`, 063).
         tryStartAttack(
           castContext,
           request.slot,
-          resolveDirectionTo(pos, target.get(Position), rot),
+          applyAimError(
+            resolveDirectionTo(pos, target.get(Position), rot),
+            resolveAiTuning(entity).AIM_ERROR,
+            gameplayRng,
+          ),
         )
       },
     )

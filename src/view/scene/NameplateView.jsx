@@ -12,6 +12,7 @@ import { GAME_CONFIG } from '@/core/gameConfig'
 import { resolveRenderPosition } from '@/view/registry/renderInterpolation'
 import { fogFactorAt } from '@/core/terrain/fogRange'
 import { nameplateRangeOpacity } from './nameplateRange'
+import { WildEmote } from './WildEmote'
 import {
   BeingCaptured,
   CreatureLevel,
@@ -19,6 +20,7 @@ import {
   Position,
   SummonedCreature,
   Vitals,
+  WildAwareness,
   WildCreature,
 } from '@/core/traits'
 import {
@@ -164,8 +166,14 @@ function resolveEntitySpecies(entity) {
 function NameplateView({ entity, species }) {
   const groupRef = useRef()
   const contentRef = useRef()
+  const plateRef = useRef()
+  const emoteRef = useRef()
+  const isWild = entity.has(WildCreature)
   const vitals = useTrait(entity, Vitals)
   const progress = useTrait(entity, CreatureLevel)
+  // Lido aqui, fora do `<Html>` (raiz React separada, sem o provider do
+  // koota): o `WildEmote` só recebe o valor.
+  const awareness = useTrait(entity, WildAwareness)
 
   useFrame((state) => {
     const group = groupRef.current
@@ -196,8 +204,13 @@ function NameplateView({ entity, species }) {
     const { fog } = state.scene
     const fogOpacity = fog ? 1 - fogFactorAt(distance, fog) : 1
     const opacity = Math.min(fogOpacity, nameplateRangeOpacity(distance))
-    content.style.opacity = String(opacity)
-    content.style.visibility = opacity > 0 ? 'visible' : 'hidden'
+    if (plateRef.current) plateRef.current.style.opacity = String(opacity)
+    // O emote da selvagem (063) só some com a névoa, não pela distância da
+    // etiqueta: quem está longe te vendo continua avisando.
+    if (emoteRef.current) emoteRef.current.style.opacity = String(fogOpacity)
+    const visible = opacity > 0 || (isWild && fogOpacity > 0)
+    content.style.opacity = '1'
+    content.style.visibility = visible ? 'visible' : 'hidden'
   })
 
   if (!vitals) return null
@@ -225,7 +238,7 @@ function NameplateView({ entity, species }) {
       >
         <div
           ref={contentRef}
-          className="flex w-28 flex-col items-center gap-0.5 rounded px-1.5 py-1 font-mono text-[10px] "
+          className="relative"
           // Nasce escondida: o `<Html>` monta o conteúdo por fora do quadro e,
           // às vezes, ele chegava à tela antes de o `useFrame` esconder quem
           // nasceu longe — a etiqueta piscava um quadro inteira.
@@ -235,26 +248,40 @@ function NameplateView({ entity, species }) {
             visibility: 'hidden',
           }}
         >
-          <div className="flex w-full items-center justify-center gap-1">
-            <span className="truncate">{formatSpeciesName(species.id)}</span>
-            {level != null && (
-              <span className="shrink-0 text-white/50">Lv.{level}</span>
-            )}
+          {isWild && (
+            <div
+              ref={emoteRef}
+              className="absolute bottom-full left-1/2 flex -translate-x-1/2 justify-center"
+              style={{ paddingBottom: GAME_CONFIG.FEEDBACK.WILD_EMOTE.GAP }}
+            >
+              <WildEmote emote={awareness?.emote ?? null} />
+            </div>
+          )}
+          <div
+            ref={plateRef}
+            className="flex w-28 flex-col items-center gap-0.5 rounded px-1.5 py-1 font-mono text-[10px] "
+          >
+            <div className="flex w-full items-center justify-center gap-1">
+              <span className="truncate">{formatSpeciesName(species.id)}</span>
+              {level != null && (
+                <span className="shrink-0 text-white/50">Lv.{level}</span>
+              )}
+            </div>
+            <VitalBar
+              height={0.75}
+              value={vitals.hp}
+              max={vitals.maxHp}
+              colorClass="bg-emerald-500"
+            />
+            <VitalBar
+              height={0.25}
+              value={vitals.stamina}
+              max={vitals.maxStamina}
+              colorClass="bg-sky-400"
+            />
+            <ConditionBadges entity={entity} compact />
+            <StatStageBadges entity={entity} compact />
           </div>
-          <VitalBar
-            height={0.75}
-            value={vitals.hp}
-            max={vitals.maxHp}
-            colorClass="bg-emerald-500"
-          />
-          <VitalBar
-            height={0.25}
-            value={vitals.stamina}
-            max={vitals.maxStamina}
-            colorClass="bg-sky-400"
-          />
-          <ConditionBadges entity={entity} compact />
-          <StatStageBadges entity={entity} compact />
         </div>
       </Html>
     </group>

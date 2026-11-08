@@ -148,8 +148,7 @@ export function trainerBattleSystem(context) {
       }
 
       const moving = { pos, rot, vel, stats }
-      const run = () =>
-        resolveMoveSpeed(stats, vitals, tentarCorrer(vitals, delta))
+      const run = () => resolveMoveSpeed(stats, tentarCorrer(vitals, delta))
       const nearestWild = findNearest(pos, wilds)
       const face = (target) => {
         rot.y = lerpAngle(
@@ -220,7 +219,7 @@ export function trainerBattleSystem(context) {
       const speed =
         nearestWild.distance <= DANGER_DISTANCE
           ? run()
-          : resolveMoveSpeed(stats, vitals, false)
+          : resolveMoveSpeed(stats, false)
       steerTowards(entity, moving, safe, speed, delta)
     })
 }

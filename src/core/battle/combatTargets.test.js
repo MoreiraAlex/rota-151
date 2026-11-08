@@ -11,6 +11,7 @@ import {
   Position,
   SummonedCreature,
   Vitals,
+  WildBehavior,
 } from '../traits'
 import {
   findWeakest,
@@ -45,6 +46,17 @@ describe('isActiveCombatant — dentro da Pokébola (043)', () => {
     const wild = spawn(0)
     expect(isActiveCombatant(wild)).toBe(true)
     wild.add(BeingCaptured)
+    expect(isActiveCombatant(wild)).toBe(false)
+  })
+})
+
+describe('isActiveCombatant — saindo do mapa (063)', () => {
+  it('selvagem fugindo (sumindo) sai da luta', () => {
+    const { spawn } = setup()
+    const wild = spawn(0)
+    wild.add(WildBehavior({ state: 'wander' }))
+    expect(isActiveCombatant(wild)).toBe(true)
+    wild.set(WildBehavior, { state: 'leave' })
     expect(isActiveCombatant(wild)).toBe(false)
   })
 })

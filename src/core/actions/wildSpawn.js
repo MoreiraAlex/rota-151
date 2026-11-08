@@ -24,6 +24,7 @@ import {
   vitalsFromSpecies,
   WanderState,
   AiMovement,
+  WildAwareness,
   WildBehavior,
   WildCreature,
   WildSpawnInfo,
@@ -89,6 +90,8 @@ export function nascerSelvagem(
     WildCreature({ speciesId }),
     WildSpawnInfo({ age: individual?.age ?? 0 }),
     WildBehavior({ temperament }),
+    // Percepção (cone de visão + raio, emotes — 063).
+    WildAwareness,
     // Movimento na luta (desvio, recuo, rodear, dash — `aiMovement.js`).
     AiMovement,
     IndividualValues(individualValues),
@@ -125,8 +128,9 @@ export function nascerSelvagem(
 }
 
 /**
- * A selvagem `entity` sai do mundo pelo despawn (`reason`: `'far'` ou
- * `'aged'`), com o corpo físico. Com `events`, avisa.
+ * A selvagem `entity` sai do mundo pelo despawn (`reason`: `'far'`,
+ * `'aged'` ou `'fled'` — fugiu, a fuga clássica da 063), com o corpo
+ * físico. Com `events`, avisa.
  */
 export function despawnarSelvagem(world, events, entity, reason) {
   if (!entity?.isAlive?.()) return

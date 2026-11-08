@@ -56,7 +56,7 @@ const PAGES = {
   },
   'criaturas/vida-e-energia': {
     title: 'Vida e energia',
-    summary: 'Como vida e energia se recuperam, e o que muda com a vida baixa.',
+    summary: 'Como vida e energia se recuperam.',
     Component: VitalsPage,
   },
   'criaturas/seu-time': {
@@ -119,18 +119,18 @@ const PAGES = {
   'selvagens/onde-encontrar': {
     title: 'Onde encontrar',
     summary:
-      'Onde cada espécie aparece, raridade, quando elas surgem e vão embora, e o nível.',
+      'Onde cada espécie aparece, raridade, temperamento, quando elas surgem e vão embora, e o nível.',
     Component: WhereToFindPage,
   },
   'selvagens/comportamento': {
     title: 'Comportamento das selvagens',
-    summary: 'Hostis e pacíficas, coragem, perseguição e fuga.',
+    summary: 'Como elas te percebem, hostis e pacíficas, perseguição e fuga.',
     Component: WildBehaviorPage,
   },
   'selvagens/como-lutam': {
     title: 'Como as criaturas lutam',
     summary:
-      'Como selvagens e criaturas do time escolhem golpes, alvos e se movem.',
+      'Como selvagens e criaturas do time escolhem golpes, alvos e se movem, e o que muda entre elas.',
     Component: HowTheyFightPage,
   },
   'selvagens/captura': {

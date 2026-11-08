@@ -145,7 +145,8 @@ export const CATERPIE = {
   ],
   // Na série o Caterpie não tem como atacar de verdade: se defende soltando
   // um cheiro ruim pelas antenas. Quase todo nasce pacífico e só revida.
-  wild: { hostileChance: 0.15 },
+  // Pacífica que te percebe foge (some do mapa) com esta chance (063).
+  wild: { hostileChance: 0.15, fleeChance: 0.05 },
   // Onde nasce no mundo (docs/features/062-spawn-estilo-cobblemon.md): na
   // floresta, só de dia.
   spawn: { biomes: ['forest'], rarity: 'common', phases: { night: 0 } },

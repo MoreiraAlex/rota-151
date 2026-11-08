@@ -1,14 +1,15 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { createWorld } from 'koota'
-import { fugirDoJogador } from '../actions/wildBehavior'
+import { sairDoMapa } from '../actions/wildBehavior'
 import { attackResolved, createEventQueue } from '../events'
-import { GAME_CONFIG } from '../gameConfig'
 import {
+  CryPulse,
   PathState,
   Position,
+  Rotation,
   Threat,
-  Vitals,
   WanderState,
+  WildAwareness,
   WildBehavior,
 } from '../traits'
 import { wildReactionSystem } from './wildReactionSystem'
@@ -21,7 +22,9 @@ afterEach(() => {
 function spawnWild(world, temperament) {
   return world.spawn(
     WildBehavior({ temperament }),
+    WildAwareness,
     Position,
+    Rotation,
     PathState,
     WanderState,
   )
@@ -66,30 +69,42 @@ describe('wildReactionSystem', () => {
     })
   })
 
-  it('pacífica que apanha revida (persegue provocada) ou foge — nunca continua vagando', () => {
+  it('pacífica que apanha sempre revida (persegue provocada) — na luta ninguém foge', () => {
     const world = setup()
-    const wilds = Array.from({ length: 20 }, () => spawnWild(world, 'peaceful'))
+    const wilds = Array.from({ length: 10 }, () => spawnWild(world, 'peaceful'))
 
-    react(wilds.map(hitEvent))
+    react(wilds.map((wild) => hitEvent(wild)))
 
-    const states = wilds.map((wild) => wild.get(WildBehavior))
-    for (const behavior of states) {
-      expect(['chase', 'flee']).toContain(behavior.state)
-      if (behavior.state === 'chase') expect(behavior.provoked).toBe(true)
+    for (const wild of wilds) {
+      expect(wild.get(WildBehavior)).toMatchObject({
+        state: 'chase',
+        provoked: true,
+      })
     }
-    // Sorteio: com 20 criaturas, as duas reações aparecem.
-    expect(states.some((behavior) => behavior.state === 'chase')).toBe(true)
-    expect(states.some((behavior) => behavior.state === 'flee')).toBe(true)
   })
 
-  it('pacífica que já está fugindo e apanha de novo continua fugindo', () => {
+  it('partindo pra cima: emote de brava e o grito da espécie', () => {
     const world = setup()
     const wild = spawnWild(world, 'peaceful')
-    fugirDoJogador(wild)
 
     react([hitEvent(wild)])
 
-    expect(wild.get(WildBehavior).state).toBe('flee')
+    expect(wild.get(WildAwareness)).toMatchObject({
+      state: 'reacted',
+      emote: 'angry',
+    })
+    expect(wild.has(CryPulse)).toBe(true)
+  })
+
+  it('saindo do mapa (fugindo) não reage', () => {
+    const world = setup()
+    const wild = spawnWild(world, 'peaceful')
+    sairDoMapa(wild, wild.get(Position))
+
+    react([hitEvent(wild)])
+
+    expect(wild.get(WildBehavior).state).toBe('leave')
+    expect(wild.get(Threat)).toBeUndefined()
   })
 
   it('golpe que errou não provoca reação', () => {
@@ -131,44 +146,5 @@ describe('wildReactionSystem', () => {
       { entity: 'treinador', amount: 9 },
       { entity: 'bulbasaur', amount: 3 },
     ])
-  })
-})
-
-describe('wildReactionSystem — decisões com critério', () => {
-  const WB = GAME_CONFIG.WILD_BEHAVIOR
-
-  it('abalada (fugiu com a vida baixa) que apanha continua fugindo — mesmo hostil', () => {
-    const world = setup()
-    const wild = spawnWild(world, 'hostile')
-    wild.set(WildBehavior, { shaken: true })
-
-    react([hitEvent(wild)])
-
-    expect(wild.get(WildBehavior).state).toBe('flee')
-  })
-
-  it('pacífica: a chance de revidar sai da vida dela e do agressor', () => {
-    const saved = { ...WB }
-    // Coragem com peso enorme e sem limite: o sinal decide sozinho.
-    Object.assign(WB, {
-      COURAGE_HP_WEIGHT: 100,
-      COURAGE_MIN_CHANCE: 0,
-      COURAGE_MAX_CHANCE: 1,
-    })
-    try {
-      const world = setup()
-      const attacker = world.spawn(Vitals({ hp: 50, maxHp: 100 }))
-      const healthy = spawnWild(world, 'peaceful')
-      healthy.add(Vitals({ hp: 90, maxHp: 100 }))
-      const hurt = spawnWild(world, 'peaceful')
-      hurt.add(Vitals({ hp: 10, maxHp: 100 }))
-
-      react([hitEvent(healthy, attacker, 1), hitEvent(hurt, attacker, 1)])
-
-      expect(healthy.get(WildBehavior).state).toBe('chase')
-      expect(hurt.get(WildBehavior).state).toBe('flee')
-    } finally {
-      Object.assign(WB, saved)
-    }
   })
 })

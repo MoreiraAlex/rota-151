@@ -380,11 +380,13 @@ export const SPECIES_TEMPLATE = {
   // efetividade. Ausente = neutra (sem STAB, sem fraqueza — ex.: treinador).
   // types: ['grass', 'poison'],
   // Opcional — comportamento desta espécie quando nasce SELVAGEM
-  // (`WildBehavior`, `wildBehaviorSystem.js`). `hostileChance` (0-1) é a
-  // chance de cada indivíduo nascer hostil (persegue quem chega perto);
-  // senão nasce pacífico (só vaga; apanhando, revida ou foge). Ausente =
-  // `GAME_CONFIG.WILD_BEHAVIOR.DEFAULT_HOSTILE_CHANCE`.
-  // wild: { hostileChance: 0.5 },
+  // (`WildBehavior`, docs/features/063-revisao-da-ia-selvagem.md).
+  // `hostileChance` (0-1) é a chance de cada indivíduo nascer hostil (te
+  // percebendo, parte para cima); senão nasce pacífico (te percebendo, pode
+  // fugir; apanhando, revida). `fleeChance` (0-1) é a chance da pacífica
+  // fugir (sumir do mapa) ao te perceber. Ausentes =
+  // `GAME_CONFIG.WILD_BEHAVIOR.DEFAULT_HOSTILE_CHANCE`/`DEFAULT_FLEE_CHANCE`.
+  // wild: { hostileChance: 0.5, fleeChance: 0.3 },
   // Opcional — onde e quando a espécie nasce no mundo
   // (docs/features/062-spawn-estilo-cobblemon.md, `core/wildSpawn/`).
   // Ausente = nunca nasce selvagem (os iniciais, o treinador).

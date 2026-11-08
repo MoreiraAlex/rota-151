@@ -618,13 +618,15 @@ export function wildSpawned({ entity, speciesId, position }) {
 
 /**
  * Uma selvagem saiu do mundo pelo despawn (`reason`: `'far'` longe do
- * jogador, `'aged'` velha e fora da vista).
+ * jogador, `'aged'` velha e fora da vista, `'fled'` fugiu — a fuga clássica,
+ * docs/features/063-revisao-da-ia-selvagem.md).
  *
  * - Quem emite: `despawnarSelvagem` (`core/actions/wildSpawn.js`).
- * - Quem consome: ninguém ainda (a rede, no multiplayer). Sem consumidor,
- *   some.
+ * - Quem consome: com `'fled'`, `view/systems/battleLogSystem.js` ("fugiu!")
+ *   e `view/systems/wildFledDustSystem.js` (a poeira). A rede, no
+ *   multiplayer.
  *
- * @returns {{ type: 'wildDespawned', speciesId: string, reason: 'far' | 'aged', position: {x:number,y:number,z:number} }}
+ * @returns {{ type: 'wildDespawned', speciesId: string, reason: 'far' | 'aged' | 'fled', position: {x:number,y:number,z:number} }}
  */
 export function wildDespawned({ speciesId, reason, position }) {
   return { type: EVENT_TYPES.WILD_DESPAWNED, speciesId, reason, position }

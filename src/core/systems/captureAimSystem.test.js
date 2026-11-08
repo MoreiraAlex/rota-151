@@ -13,6 +13,7 @@ import {
   OrbitCamera,
   Position,
   Vitals,
+  WildBehavior,
 } from '@/core/traits'
 import { traceCaptureFlight } from '@/core/battle/captureFlight'
 import { captureAimSystem } from './captureAimSystem'
@@ -124,5 +125,15 @@ describe('traceCaptureFlight', () => {
     expect(flight.wild).toBe(wild)
     expect(flight.landed).toBe(true)
     expect(flight.point.z).toBeLessThan(wild.get(Position).z)
+  })
+  it('atravessa o selvagem que está saindo do mapa (fugindo, 063)', () => {
+    const wild = spawnWild(world, { at: { x: 0, y: 1, z: 4 } })
+    wild.set(WildBehavior, { state: 'leave' })
+    const flight = traceCaptureFlight(
+      world,
+      { x: 0, y: 1, z: 0 },
+      { x: 0, y: -0.5 * GAME_CONFIG.CAPTURE.GRAVITY * 0.4, z: 10 },
+    )
+    expect(flight.wild).toBeNull()
   })
 })

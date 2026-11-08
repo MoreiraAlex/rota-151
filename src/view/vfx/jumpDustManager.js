@@ -42,6 +42,13 @@ export function createJumpDustManager({
   }
 
   return {
+    /**
+     * Uma nuvem avulsa (fora do pulo), com força cheia — a selvagem que fugiu
+     * (`dustPuffQueue.js`). `position` nos pés: `[x, y, z]`.
+     */
+    puff(position, water = false) {
+      burst('landing', 1, position, water)
+    },
     update(creatures, delta) {
       const seen = new Set()
 

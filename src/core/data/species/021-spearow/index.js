@@ -193,7 +193,8 @@ export const SPEAROW = {
   ],
   // Na série ele é territorial e agressivo, ao contrário do Pidgey: ataca
   // quem entra no território dele.
-  wild: { hostileChance: 0.6 },
+  // Pacífica que te percebe foge (some do mapa) com esta chance (063).
+  wild: { hostileChance: 0.6, fleeChance: 0.3 },
   // Onde nasce no mundo (062): na savana, só de dia.
   spawn: { biomes: ['savanna'], rarity: 'uncommon', phases: { night: 0 } },
 }

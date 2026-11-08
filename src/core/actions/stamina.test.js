@@ -1,12 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { GAME_CONFIG } from '../gameConfig'
-import {
-  resolveDashCost,
-  resolveMovementCostMultiplier,
-  tentarCorrer,
-} from './stamina'
-
-const { MAX_MULTIPLIER, EXPONENT } = GAME_CONFIG.STAMINA_BY_HP
+import { resolveDashCost, tentarCorrer } from './stamina'
 
 function vitals(stamina) {
   return {
@@ -35,36 +28,20 @@ describe('tentarCorrer', () => {
   })
 })
 
-describe('custo da corrida e do dash pela vida baixa', () => {
+describe('a vida não muda o custo da corrida e do dash (063)', () => {
   const at = (fraction) => ({ hp: fraction * 100, maxHp: 100 })
 
-  it('×1 com a vida cheia, MAX com ela em 0, pela curva no meio', () => {
-    expect(resolveMovementCostMultiplier(at(1))).toBe(1)
-    expect(resolveMovementCostMultiplier(at(0))).toBe(MAX_MULTIPLIER)
-    expect(resolveMovementCostMultiplier(at(0.5))).toBeCloseTo(
-      1 + (MAX_MULTIPLIER - 1) * 0.5 ** EXPONENT,
-    )
-    expect(resolveMovementCostMultiplier({})).toBe(1) // sem vida
+  it('correr ferido gasta o mesmo que com a vida cheia', () => {
+    const full = { ...vitals(10), ...at(1) }
+    const hurt = { ...vitals(10), ...at(0.1) }
+    tentarCorrer(full, 0.5)
+    tentarCorrer(hurt, 0.5)
+    expect(hurt.stamina).toBeCloseTo(full.stamina)
   })
 
-  it('correr ferido gasta o drain × o multiplicador', () => {
-    const v = { ...vitals(10), ...at(0.5) }
-    tentarCorrer(v, 0.5)
-    expect(v.stamina).toBeCloseTo(
-      10 - 2 * 0.5 * resolveMovementCostMultiplier(v),
-    )
-  })
-
-  it('ferido sem fôlego pro custo maior: não corre', () => {
-    const v = { ...vitals(1.5), ...at(0) } // custaria 2 × 0.5 × MAX
-    expect(tentarCorrer(v, 0.5)).toBe(false)
-  })
-
-  it('dash: o custo da entidade (Vitals.dashStaminaCost) × o multiplicador', () => {
+  it('dash: o custo da entidade (Vitals.dashStaminaCost), com qualquer vida', () => {
     const cost = 2.5
     expect(resolveDashCost({ ...at(1), dashStaminaCost: cost })).toBe(cost)
-    expect(resolveDashCost({ ...at(0), dashStaminaCost: cost })).toBe(
-      cost * MAX_MULTIPLIER,
-    )
+    expect(resolveDashCost({ ...at(0.05), dashStaminaCost: cost })).toBe(cost)
   })
 })

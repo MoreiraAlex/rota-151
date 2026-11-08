@@ -34,6 +34,7 @@ import {
   resolveEntityTriggerEdge,
 } from './attackTargets'
 import { readConditionModifier } from '../actions/conditions'
+import { resolveAiTuning } from './aiTuning'
 
 /**
  * Se `pos` (trigger de acerto de raio `bodyRadius`) está dentro da área do golpe que
@@ -251,7 +252,15 @@ export function moveInFight(entity, fight, rng = gameplayRng) {
 function decideFightMove(entity, movement, fight, rng) {
   const { pos, rot, vel, stats, vitals, target, plan, stopDistance } = fight
   const { enemies, resting, waiting, delta } = fight
-  const config = GAME_CONFIG.AI_MOVEMENT
+  // Selvagem: desvio, dash e rodeio pela dificuldade (`resolveAiTuning`).
+  const tuning = resolveAiTuning(entity)
+  const config = {
+    ...GAME_CONFIG.AI_MOVEMENT,
+    DODGE_CHANCE: tuning.DODGE_CHANCE,
+    DODGE_REACTION_TIME: tuning.DODGE_REACTION_TIME,
+    DASH_CLOSE_DISTANCE: tuning.DASH_CLOSE_DISTANCE,
+    STRAFE_SPEED_FACTOR: tuning.STRAFE_SPEED_FACTOR,
+  }
 
   const targetPos = target.get(Position)
   const toX = targetPos.x - pos.x
@@ -263,7 +272,6 @@ function decideFightMove(entity, movement, fight, rng) {
   const runOrWalk = () =>
     resolveMoveSpeed(
       stats,
-      vitals,
       !resting && tentarCorrer(vitals, delta),
       readConditionModifier(entity, 'movement'),
     )
@@ -286,12 +294,7 @@ function decideFightMove(entity, movement, fight, rng) {
     if (movement.dodgeReact && incoming.elapsed >= config.DODGE_REACTION_TIME) {
       const runTime =
         incoming.exitDistance /
-        resolveMoveSpeed(
-          stats,
-          vitals,
-          true,
-          readConditionModifier(entity, 'movement'),
-        )
+        resolveMoveSpeed(stats, true, readConditionModifier(entity, 'movement'))
       if (runTime > incoming.timeLeft && canDash(entity, vitals, resting)) {
         startAiDash(
           entity,
@@ -353,12 +356,8 @@ function decideFightMove(entity, movement, fight, rng) {
       rng() * (config.STRAFE_SWITCH_MAX - config.STRAFE_SWITCH_MIN)
   }
   const speed =
-    resolveMoveSpeed(
-      stats,
-      vitals,
-      false,
-      readConditionModifier(entity, 'movement'),
-    ) * config.STRAFE_SPEED_FACTOR
+    resolveMoveSpeed(stats, false, readConditionModifier(entity, 'movement')) *
+    config.STRAFE_SPEED_FACTOR
   // De lado (perpendicular ao alvo) + uma correção radial pra não ir se
   // afastando (andar na tangente abre o círculo) nem sair do alcance.
   const desired = Number.isFinite(stopDistance)

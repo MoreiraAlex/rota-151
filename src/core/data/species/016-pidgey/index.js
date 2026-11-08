@@ -188,7 +188,8 @@ export const PIDGEY = {
   ],
   // Na série o Pidgey é dócil: atacado, joga areia pra se proteger em vez
   // de revidar. Quase todos nascem pacíficos.
-  wild: { hostileChance: 0.1 },
+  // Pacífica que te percebe foge (some do mapa) com esta chance (063).
+  wild: { hostileChance: 0.1, fleeChance: 0.5 },
   // Onde nasce no mundo (062): floresta e planície, de dia; na tempestade
   // fica abrigado.
   spawn: {

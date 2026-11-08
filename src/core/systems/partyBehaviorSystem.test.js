@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { resolveReachFor } from '@/core/battle/aiAttackChoice'
 import { resolveHitTrigger } from '@/core/battle/hitTrigger'
 import { makeWorld, ownedByPlayer } from '@/test/makeWorld'
@@ -28,6 +28,7 @@ import {
   Vitals,
   WantsToAttack,
   WanderState,
+  WildAwareness,
   WildBehavior,
   WildCreature,
   vitalsFromSpecies,
@@ -36,8 +37,19 @@ import { creatureAttackSystem } from './creatureAttackSystem'
 import { creatureFollowSystem } from './creatureFollowSystem'
 import { partyBehaviorSystem } from './partyBehaviorSystem'
 import { partyReactionSystem } from './partyReactionSystem'
+import { wildAwarenessSystem } from './wildAwarenessSystem'
 import { wildBehaviorSystem } from './wildBehaviorSystem'
 import { wildReactionSystem } from './wildReactionSystem'
+
+// A IA de hoje (034) é a dificuldade máxima das selvagens (063): estes
+// testes conferem o comportamento na ponta difícil.
+const originalDifficulty = GAME_CONFIG.WILD_DIFFICULTY.LEVEL
+beforeAll(() => {
+  GAME_CONFIG.WILD_DIFFICULTY.LEVEL = 1
+})
+afterAll(() => {
+  GAME_CONFIG.WILD_DIFFICULTY.LEVEL = originalDifficulty
+})
 
 const DELTA = 1 / 60
 const { ATTACK_INTERVAL, LEASH_RADIUS } = GAME_CONFIG.PARTY_BEHAVIOR
@@ -99,6 +111,7 @@ function spawnWild(world, position, { skills = false } = {}) {
   return world.spawn(
     WildCreature({ speciesId: 'charmander' }),
     WildBehavior({ temperament: 'hostile' }),
+    WildAwareness,
     AiMovement,
     Position(position),
     Rotation,
@@ -352,6 +365,7 @@ describe('luta em grupo de ponta a ponta', () => {
       creatureAttackSystem(ctx)
       partyBehaviorSystem(ctx)
       creatureFollowSystem(ctx)
+      wildAwarenessSystem(ctx)
       wildBehaviorSystem(ctx)
       wildReactionSystem(ctx)
       partyReactionSystem(ctx)
@@ -437,6 +451,7 @@ describe('partyBehaviorSystem — habilidades (escolha do golpe)', () => {
       creatureAttackSystem(ctx)
       partyBehaviorSystem(ctx)
       creatureFollowSystem(ctx)
+      wildAwarenessSystem(ctx)
       wildBehaviorSystem(ctx)
       wildReactionSystem(ctx)
       partyReactionSystem(ctx)

@@ -448,6 +448,23 @@ export const GAME_CONFIG = {
   },
   // Retorno visual de combate (view — consome eventos de `core/events/`).
   FEEDBACK: {
+    // Emote acima da cabeça da selvagem (`view/scene/WildEmote.jsx`,
+    // docs/features/063-revisao-da-ia-selvagem.md): a exclamação ao te
+    // perceber, a veia de raiva ao partir para cima, a gota de suor ao fugir.
+    // SIZE em px; durações em ms; POP_OVERSHOOT é o quanto passa do tamanho
+    // na entrada; LOOP_AMPLITUDE multiplica o movimento do loop de cada
+    // emote; OUTLINE é a grossura do contorno escuro (no desenho de 64).
+    WILD_EMOTE: {
+      SIZE: 56,
+      POP_DURATION: 320,
+      POP_OVERSHOOT: 0.35,
+      LOOP_AMPLITUDE: 1,
+      LOOP_DURATION: 900,
+      OUTLINE: 3,
+      FADE_DURATION: 260,
+      // Quanto (px) o emote fica acima da etiqueta de nome.
+      GAP: 4,
+    },
     // Brilho rápido no modelo de quem foi atingido (`hitFlashSystem.js`): acende
     // na cor do acontecimento (`FEEDBACK_COLORS`, abaixo) e apaga ao longo de
     // DURATION (s). INTENSITY (0-1) é o quanto o brilho cobre a textura.
@@ -747,22 +764,6 @@ export const GAME_CONFIG = {
   // ações de verdade — em `core/data/species/boy/index.js`
   // (`actions`/`party`), lidos via `getPlayerSpecies()`
   // (`core/data/species/index.js`).
-  // Corrida e dash custam mais energia com a vida baixa — pra todo mundo
-  // (jogador, time, selvagens; `resolveMovementCostMultiplier`,
-  // core/actions/stamina.js): × 1 com a vida cheia até × MAX_MULTIPLIER com
-  // ela em 0, pela curva (1 - vida) ^ EXPONENT.
-  STAMINA_BY_HP: {
-    MAX_MULTIPLIER: 8,
-    EXPONENT: 2,
-  },
-  // Andar e correr ficam mais lentos com a vida baixa — pra todo mundo
-  // (`resolveSpeedMultiplier`, core/actions/movementSpeed.js): × 1 com a vida
-  // cheia até × MIN_MULTIPLIER com ela em 0, pela curva (1 - vida) ^ EXPONENT.
-  // Não vale pro dash.
-  SPEED_BY_HP: {
-    MIN_MULTIPLIER: 0.6,
-    EXPONENT: 2,
-  },
   PLAYER_ACTIONS: {
     dash: {
       // Duração do impulso (segundos).
@@ -938,7 +939,7 @@ export const GAME_CONFIG = {
     // Desmaiado que escapa acorda com esta fração (0-1) da vida máxima.
     ESCAPE_WAKE_HP_FRACTION: 0.3,
     // Chance (0-1) de partir pra briga ao escapar, por temperamento; senão
-    // foge.
+    // foge (some do mapa, a fuga clássica — 063).
     ESCAPE_FIGHT_CHANCE: {
       hostile: 0.8,
       peaceful: 0.25,
@@ -1085,7 +1086,8 @@ export const GAME_CONFIG = {
     // Chance (0-1) de uma selvagem nascer hostil, pra espécie sem
     // `wild.hostileChance` própria.
     DEFAULT_HOSTILE_CHANCE: 0.5,
-    // Hostil começa a perseguir quem chegar a esta distância (m)...
+    // Hostil que te percebeu parte para cima na hora se você chegar a esta
+    // distância (m), sem esperar o fim do alerta ("perto demais")...
     AGGRO_RADIUS: 8,
     // ...e só desiste passando dela + esta folga — sem a folga, parado bem
     // na borda ela ficaria alternando entre perseguir e desistir.
@@ -1099,25 +1101,6 @@ export const GAME_CONFIG = {
     CHASE_STOP_GAP: 0.8,
     // Segundos entre um pedido de golpe e o próximo, perseguindo.
     ATTACK_INTERVAL: 1.2,
-    // Pacífica que apanha: chance (0-1) BASE de revidar; senão, foge. A
-    // chance de verdade é a "coragem" pela situação (`resolveRetaliateChance`):
-    // sobe com a vida dela (peso × quanto passa de metade), cai com o tamanho
-    // do golpe (peso × dano em fração da vida máxima), sobe se ela está
-    // melhor que o agressor (peso × diferença das vidas) — limitada entre
-    // MIN e MAX (sempre sobra surpresa).
-    RETALIATE_CHANCE: 0.5,
-    COURAGE_HP_WEIGHT: 0.6,
-    COURAGE_HIT_WEIGHT: 1,
-    COURAGE_ADVANTAGE_WEIGHT: 0.4,
-    COURAGE_MIN_CHANCE: 0.05,
-    COURAGE_MAX_CHANCE: 0.95,
-    // Fuga com HP baixo: perseguindo (hostil ou pacífica revidando), ao
-    // chegar nesta fração da vida sorteia UMA vez se foge...
-    LOW_HP_FLEE_FRACTION: 0.25,
-    LOW_HP_FLEE_CHANCE: 0.5,
-    // ...e fugindo assim não persegue ninguém (nem hostil no raio, nem
-    // apanhando) até a vida voltar a esta fração.
-    LOW_HP_RECOVER_FRACTION: 0.5,
     // Ameaça cai pela metade a cada este tanto (s); entrada abaixo de
     // THREAT_MIN sai da tabela.
     THREAT_HALF_LIFE: 10,
@@ -1125,19 +1108,61 @@ export const GAME_CONFIG = {
     // Quem persegue porque APANHOU (pacífica revidando, ou hostil atacada
     // de longe) só desiste além desta distância (m).
     RETALIATE_LEASH_RADIUS: 14,
-    // Fugindo: corre pra um ponto a este tanto (m) dela — escolhido entre
-    // FLEE_DIRECTIONS direções em volta, o ANDÁVEL que deixa ela mais longe
-    // de quem persegue (bônus de FLEE_CLEAR_LINE_BONUS m se o caminho reto
-    // está livre) — `resolveFleeDestination`, core/battle/flee.js. Guardado e
-    // refeito a cada FLEE_REPICK_INTERVAL (s), ao chegar (FLEE_ARRIVE_DISTANCE,
-    // m) ou travando...
-    FLEE_STEP: 6,
-    FLEE_DIRECTIONS: 16,
-    FLEE_CLEAR_LINE_BONUS: 2,
-    FLEE_REPICK_INTERVAL: 0.75,
-    FLEE_ARRIVE_DISTANCE: 1,
-    // ...até ficar a esta distância (m); aí volta a vagar dali.
-    FLEE_SAFE_DISTANCE: 14,
+    // Fuga clássica (docs/features/063-revisao-da-ia-selvagem.md): fugir é
+    // sumir do mapa. Chance (0-1) de uma pacífica fugir ao te perceber, pra
+    // espécie sem `wild.fleeChance` própria.
+    DEFAULT_FLEE_CHANCE: 0.3,
+    // Saindo: corre para longe de quem está mais perto por este tempo (s) e
+    // some numa nuvem de poeira. Nesse meio-tempo não é alvo nem capturável.
+    LEAVE_RUN_TIME: 1.2,
+    // Percepção (`core/battle/perception.js`, `wildAwarenessSystem.js`). Vê
+    // quem estiver a até VIEW_DISTANCE (m) dentro do cone (VIEW_HALF_ANGLE,
+    // rad, para cada lado da frente dela) ou a até NEAR_RADIUS (m) em
+    // qualquer direção.
+    PERCEPTION: {
+      VIEW_DISTANCE: 14,
+      VIEW_HALF_ANGLE: 1.0,
+      NEAR_RADIUS: 4,
+      // Depois de reagir, só percebe de novo quando ninguém do lado do
+      // jogador estiver a até esta distância (m).
+      FORGET_RADIUS: 18,
+      // Tempo (s) parada encarando, com a exclamação, antes de decidir — a
+      // hostil adianta se o alvo chegar a `AGGRO_RADIUS`.
+      ALERT_TIME: 1.2,
+      // Quanto tempo (s) o emote de brava fica depois de partir para cima.
+      ANGRY_DURATION: 2,
+    },
+  },
+  // Dificuldade das selvagens na luta (`core/battle/aiTuning.js`,
+  // docs/features/063-revisao-da-ia-selvagem.md). `LEVEL` vai de 0 (a ponta
+  // `EASY` abaixo) a 1 (a ponta difícil = os valores de hoje, que continuam
+  // nos campos de origem e também valem para a IA do time); no meio,
+  // interpola cada efeito. A IA do time nunca passa por aqui.
+  WILD_DIFFICULTY: {
+    LEVEL: 0.45,
+    // Ponta fácil de cada efeito. A difícil é o campo citado:
+    EASY: {
+      // ritmo entre um golpe e outro (`WILD_BEHAVIOR.ATTACK_INTERVAL`, s);
+      ATTACK_INTERVAL: 2.6,
+      // chance de desviar do aviso e tempo até reagir
+      // (`AI_MOVEMENT.DODGE_CHANCE`/`DODGE_REACTION_TIME`);
+      DODGE_CHANCE: 0.1,
+      DODGE_REACTION_TIME: 0.5,
+      // erro de mira (rad, para cada lado) sorteado no disparo — na ponta
+      // difícil, zero (a IA mira certo);
+      AIM_ERROR: 0.35,
+      // quão perto da melhor nota um golpe precisa estar para entrar no
+      // sorteio (`AI_ATTACK.NEAR_BEST_FRACTION`) — menor, escolhe pior;
+      NEAR_BEST_FRACTION: 0.2,
+      // dash só faltando mais que isto (m) até o alcance
+      // (`AI_MOVEMENT.DASH_CLOSE_DISTANCE`);
+      DASH_CLOSE_DISTANCE: 12,
+      // velocidade do rodeio (`AI_MOVEMENT.STRAFE_SPEED_FACTOR`);
+      STRAFE_SPEED_FACTOR: 0.3,
+      // energia em que para para descansar (`AI_ENERGY.REST_ENTER_FRACTION`,
+      // sempre abaixo do `REST_EXIT_FRACTION`).
+      REST_ENTER_FRACTION: 0.3,
+    },
   },
   // IA das criaturas do time fora do controle do jogador — sempre
   // defensiva (`partyBehaviorSystem.js`, `PartyBehavior`): entra na luta

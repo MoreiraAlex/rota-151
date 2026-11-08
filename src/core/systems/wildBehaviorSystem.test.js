@@ -1,15 +1,22 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest'
 import { resolveReachFor } from '@/core/battle/aiAttackChoice'
 import { resolveHitTrigger } from '@/core/battle/hitTrigger'
 import { ownedByPlayer } from '@/test/makeWorld'
 import { createWorld } from 'koota'
 import {
-  fugirDoJogador,
   perseguirJogador,
   registrarAmeaca,
+  sairDoMapa,
   voltarAVagar,
 } from '../actions/wildBehavior'
-import { resolveSpeedMultiplier } from '../actions/movementSpeed'
 import { resolveCreatureAttack } from '../battle/creatureAttack'
 import { getPlayerSpecies, getSpecies } from '../data/species'
 import { GAME_CONFIG } from '../gameConfig'
@@ -22,7 +29,6 @@ import {
   Fainted,
   InputControlled,
   Mood,
-  MovementBlocked,
   MovementStats,
   Party,
   PathState,
@@ -36,13 +42,25 @@ import {
   IndividualValues,
   WantsToAttack,
   WanderState,
+  WildAwareness,
   WildBehavior,
   WildCreature,
   vitalsFromSpecies,
 } from '../traits'
-import { createEventQueue } from '../events'
+import { EVENT_TYPES, createEventQueue } from '../events'
 import { creatureAttackSystem } from './creatureAttackSystem'
+import { wildAwarenessSystem } from './wildAwarenessSystem'
 import { wildBehaviorSystem } from './wildBehaviorSystem'
+
+// A IA de hoje (034) é a dificuldade máxima das selvagens (063): estes
+// testes conferem o comportamento na ponta difícil.
+const originalDifficulty = GAME_CONFIG.WILD_DIFFICULTY.LEVEL
+beforeAll(() => {
+  GAME_CONFIG.WILD_DIFFICULTY.LEVEL = 1
+})
+afterAll(() => {
+  GAME_CONFIG.WILD_DIFFICULTY.LEVEL = originalDifficulty
+})
 
 // Física e navegação no nível plano de antes do relevo (as peças que estes
 // testes usam) — ver `src/test/flatTestLevel.js`.
@@ -57,7 +75,7 @@ const {
   AGGRO_EXIT_MARGIN,
   CHASE_STOP_GAP,
   RETALIATE_LEASH_RADIUS,
-  FLEE_SAFE_DISTANCE,
+  LEAVE_RUN_TIME,
 } = GAME_CONFIG.WILD_BEHAVIOR
 const DELTA = 1 / 60
 const SPECIES = getSpecies('charmander')
@@ -111,29 +129,34 @@ function setup({ temperament = 'hostile', playerAt, skills = false } = {}) {
     AttackCooldowns(skills ? {} : SKILLS_LOCKED),
     vitalsFromSpecies(SPECIES),
   )
-  const tick = () => wildBehaviorSystem({ world, delta: DELTA })
+  const events = createEventQueue()
+  const tick = () => wildBehaviorSystem({ world, delta: DELTA, events })
   const movePlayer = (distance) =>
     player.set(Position, { x: 30, y: 0.45, z: 30 + distance })
-  return { world, player, wild, tick, movePlayer }
+  // Começar a perseguir é da percepção (`wildAwarenessSystem`, 063) e da
+  // reação ao apanhar; aqui só o que vem depois.
+  const engage = () => perseguirJogador(wild, { provoked: false })
+  return { world, player, wild, tick, movePlayer, engage, events }
 }
 
 const state = (wild) => wild.get(WildBehavior).state
 
 describe('wildBehaviorSystem — hostil', () => {
-  it('fora do raio de aggro, continua vagando', () => {
-    const { wild, tick } = setup()
+  it('vagando, não decide perseguir sozinho (é da percepção), nem dentro do raio', () => {
+    const { wild, tick, movePlayer } = setup()
+    movePlayer(AGGRO_RADIUS - 1)
 
     tick()
 
     expect(state(wild)).toBe('wander')
   })
 
-  it('dentro do raio, passa a perseguir e corre na direção do jogador', () => {
-    const { wild, tick, movePlayer } = setup()
+  it('perseguindo, corre na direção do jogador', () => {
+    const { wild, tick, movePlayer, engage } = setup()
     movePlayer(AGGRO_RADIUS - 1)
+    engage()
 
-    tick() // decide perseguir
-    tick() // move
+    tick()
 
     expect(state(wild)).toBe('chase')
     const vel = wild.get(Velocity)
@@ -142,10 +165,10 @@ describe('wildBehaviorSystem — hostil', () => {
   })
 
   it('perseguindo entra em modo combate (olho bravo)', () => {
-    const { wild, tick, movePlayer } = setup()
+    const { wild, tick, movePlayer, engage } = setup()
     movePlayer(AGGRO_RADIUS - 1)
+    engage()
 
-    tick()
     tick()
 
     expect(wild.has(CombatMode)).toBe(true)
@@ -153,8 +176,9 @@ describe('wildBehaviorSystem — hostil', () => {
   })
 
   it('logo depois do raio (dentro da folga) continua perseguindo; além dela, desiste e vaga dali', () => {
-    const { wild, tick, movePlayer } = setup()
+    const { wild, tick, movePlayer, engage } = setup()
     movePlayer(AGGRO_RADIUS - 1)
+    engage()
     tick()
 
     movePlayer(AGGRO_RADIUS + AGGRO_EXIT_MARGIN / 2)
@@ -172,12 +196,13 @@ describe('wildBehaviorSystem — hostil', () => {
   })
 
   it('perto o bastante (vão entre os corpos ≤ CHASE_STOP_GAP), com o golpe pronto: para e encara o jogador', () => {
-    const { wild, tick, movePlayer } = setup()
+    const { wild, tick, movePlayer, engage } = setup()
     const touching = SPECIES.body.capsuleRadius * 2 + CHASE_STOP_GAP / 2
     movePlayer(touching)
     wild.set(Rotation, { y: Math.PI }) // de costas pro jogador
+    engage()
 
-    tick() // decide perseguir; perto e o intervalo vencido: para, gira e pede
+    tick() // perto e o intervalo vencido: para, gira e pede
 
     const vel = wild.get(Velocity)
     expect(vel.x).toBe(0)
@@ -199,8 +224,9 @@ describe('wildBehaviorSystem — hostil', () => {
   })
 
   it('sem ninguém do lado do jogador na luta (treinador a 0 de HP), quem perseguia volta a vagar', () => {
-    const { wild, player, tick, movePlayer } = setup()
+    const { wild, player, tick, movePlayer, engage } = setup()
     movePlayer(AGGRO_RADIUS - 1)
+    engage()
     tick()
     player.set(Vitals, { hp: 0 })
 
@@ -222,75 +248,40 @@ describe('wildBehaviorSystem — pacífica', () => {
     expect(state(wild)).toBe('wander')
   })
 
-  it('fugindo, corre pra longe do jogador', () => {
-    const { wild, tick, movePlayer } = setup({ temperament: 'peaceful' })
+  it('saindo do mapa, corre pra longe de quem estava perto', () => {
+    const { wild, player, tick, movePlayer } = setup({
+      temperament: 'peaceful',
+    })
     movePlayer(3)
-    fugirDoJogador(wild)
+    sairDoMapa(wild, wild.get(Position), player.get(Position))
 
-    // Começa virada pro jogador; o giro é suave, então dá 1s pra virar.
-    for (let i = 0; i < 60; i++) tick()
+    // Começa virada pro jogador; o giro é suave, então dá um tempo pra virar
+    // (sem passar do tempo de saída).
+    const ticks = Math.floor((LEAVE_RUN_TIME * 0.8) / DELTA)
+    for (let i = 0; i < ticks; i++) tick()
 
     const vel = wild.get(Velocity)
-    expect(vel.z).toBeLessThan(0) // jogador em +Z, foge pra -Z
+    expect(vel.z).toBeLessThan(0) // jogador em +Z, sai pra -Z
     expect(Math.hypot(vel.x, vel.z)).toBeCloseTo(SPECIES.movement.runSpeed)
+    expect(state(wild)).toBe('leave')
   })
 
-  it('fugindo ferida, corre mais devagar (dá pra alcançar)', () => {
-    const { wild, tick, movePlayer } = setup({ temperament: 'peaceful' })
+  it('no fim do tempo de saída, some do mapa com o motivo "fugiu"', () => {
+    const { world, wild, player, tick, movePlayer, events } = setup({
+      temperament: 'peaceful',
+    })
     movePlayer(3)
-    fugirDoJogador(wild)
-    wild.set(Vitals, { hp: wild.get(Vitals).maxHp * 0.25 })
-    const factor = resolveSpeedMultiplier(wild.get(Vitals))
+    sairDoMapa(wild, wild.get(Position), player.get(Position))
 
-    for (let i = 0; i < 60; i++) tick()
+    const ticks = Math.ceil(LEAVE_RUN_TIME / DELTA) + 2
+    for (let i = 0; i < ticks; i++) tick()
 
-    const vel = wild.get(Velocity)
-    expect(Math.hypot(vel.x, vel.z)).toBeCloseTo(
-      SPECIES.movement.runSpeed * factor,
-    )
-  })
-
-  it('fugindo encostada na parede: escolhe destino andável e não corre contra ela', () => {
-    const { wild, player, tick } = setup({ temperament: 'peaceful' })
-    // Parede em x = 75; quem persegue a oeste dela.
-    wild.set(Position, { x: 72, y: 0.45, z: 0 })
-    player.set(Position, { x: 66, y: 0.45, z: 0 })
-    fugirDoJogador(wild)
-
-    for (let i = 0; i < 60; i++) tick()
-
-    const behavior = wild.get(WildBehavior)
-    expect(behavior.hasFleePoint).toBe(true)
-    expect(behavior.fleeX).toBeLessThan(75)
-    // Não está empurrando pra dentro da parede (+X).
-    expect(wild.get(Velocity).x).toBeLessThan(SPECIES.movement.runSpeed * 0.5)
-  })
-
-  it('fugindo e travou (MovementBlocked): escolhe outro destino na hora', () => {
-    const { wild, tick, movePlayer } = setup({ temperament: 'peaceful' })
-    movePlayer(3)
-    fugirDoJogador(wild)
-    tick()
-    // Destino falso, longe; travando, é refeito sem esperar o intervalo.
-    wild.set(WildBehavior, { fleeX: 0, fleeZ: 0, fleeTimer: 99 })
-    wild.add(MovementBlocked)
-
-    tick()
-
-    expect(wild.get(WildBehavior).fleeX).not.toBe(0)
-  })
-
-  it('fugindo, ao passar de FLEE_SAFE_DISTANCE volta a vagar', () => {
-    const { wild, tick, movePlayer } = setup({ temperament: 'peaceful' })
-    fugirDoJogador(wild)
-
-    movePlayer(FLEE_SAFE_DISTANCE - 1)
-    tick()
-    expect(state(wild)).toBe('flee')
-
-    movePlayer(FLEE_SAFE_DISTANCE + 1)
-    tick()
-    expect(state(wild)).toBe('wander')
+    expect(wild.isAlive()).toBe(false)
+    expect(world.query(WildCreature).length).toBe(0)
+    const fled = events
+      .drain()
+      .find((event) => event.type === EVENT_TYPES.WILD_DESPAWNED)
+    expect(fled).toMatchObject({ reason: 'fled', speciesId: 'charmander' })
   })
 })
 
@@ -302,10 +293,10 @@ describe('wildBehaviorSystem — atacando e gastando fôlego', () => {
   const REACH = resolveReachFor(melee, TRIGGER, TRIGGER)
 
   it('perseguindo com o alvo ao alcance: pede golpe e respeita o intervalo', () => {
-    const { wild, player, tick, movePlayer } = setup()
+    const { wild, player, tick, movePlayer, engage } = setup()
     movePlayer(REACH - 0.2)
+    engage()
 
-    tick() // decide perseguir
     tick() // ao alcance: pede
     expect(wild.has(WantsToAttack)).toBe(true)
     // O pedido leva o alvo (o creatureAttackSystem mira nele).
@@ -320,10 +311,11 @@ describe('wildBehaviorSystem — atacando e gastando fôlego', () => {
   })
 
   it('de lado pro alvo (vinha rodeando): vira pra ele antes de pedir o golpe', () => {
-    const { wild, tick, movePlayer } = setup()
+    const { wild, tick, movePlayer, engage } = setup()
     // Dentro da distância de parada: nem aproximando, nem rodeando.
     movePlayer(REACH * 0.5)
     wild.set(Rotation, { y: Math.PI / 2 }) // de lado (alvo em +Z, yaw 0)
+    engage()
 
     tick()
     expect(wild.has(WantsToAttack)).toBe(false)
@@ -337,10 +329,10 @@ describe('wildBehaviorSystem — atacando e gastando fôlego', () => {
   })
 
   it('fora do alcance não pede golpe — corre até lá', () => {
-    const { wild, tick, movePlayer } = setup()
+    const { wild, tick, movePlayer, engage } = setup()
     movePlayer(REACH + 2)
+    engage()
 
-    tick()
     tick()
 
     expect(wild.has(WantsToAttack)).toBe(false)
@@ -350,8 +342,9 @@ describe('wildBehaviorSystem — atacando e gastando fôlego', () => {
   })
 
   it('com golpe em andamento, fica parada', () => {
-    const { wild, tick, movePlayer } = setup()
+    const { wild, tick, movePlayer, engage } = setup()
     movePlayer(REACH + 2)
+    engage()
     tick()
     wild.set(ActionState, { current: 'attack' })
 
@@ -361,8 +354,9 @@ describe('wildBehaviorSystem — atacando e gastando fôlego', () => {
   })
 
   it('perseguir correndo gasta stamina', () => {
-    const { wild, tick, movePlayer } = setup()
+    const { wild, tick, movePlayer, engage } = setup()
     movePlayer(AGGRO_RADIUS - 1)
+    engage()
     tick()
     const before = wild.get(Vitals).stamina
 
@@ -372,8 +366,9 @@ describe('wildBehaviorSystem — atacando e gastando fôlego', () => {
   })
 
   it('sem stamina, persegue andando (walkSpeed) em vez de correr', () => {
-    const { wild, tick, movePlayer } = setup()
+    const { wild, tick, movePlayer, engage } = setup()
     movePlayer(AGGRO_RADIUS - 1)
+    engage()
     tick()
     wild.set(Vitals, { stamina: 0 })
 
@@ -383,10 +378,12 @@ describe('wildBehaviorSystem — atacando e gastando fôlego', () => {
     expect(Math.hypot(vel.x, vel.z)).toBeCloseTo(SPECIES.movement.walkSpeed)
   })
 
-  it('fugir correndo também gasta stamina', () => {
-    const { wild, tick, movePlayer } = setup({ temperament: 'peaceful' })
+  it('sair do mapa correndo também gasta stamina', () => {
+    const { wild, player, tick, movePlayer } = setup({
+      temperament: 'peaceful',
+    })
     movePlayer(3)
-    fugirDoJogador(wild)
+    sairDoMapa(wild, wild.get(Position), player.get(Position))
     const before = wild.get(Vitals).stamina
 
     for (let i = 0; i < 30; i++) tick()
@@ -401,8 +398,8 @@ describe('selvagem hostil de ponta a ponta (comportamento + ataque)', () => {
     worlds.push(world)
     const events = createEventQueue()
     // Sem física, a selvagem não anda de verdade: o treinador já está
-    // dentro do alcance do golpe dela (1.2m), e o teste cobre decidir
-    // perseguir + pedir golpe + o golpe acertar.
+    // dentro do alcance do golpe dela (1.2m), à frente dela, e o teste cobre
+    // perceber + partir pra cima + pedir golpe + o golpe acertar.
     const trainer = world.spawn(
       InputControlled,
       Party,
@@ -414,6 +411,7 @@ describe('selvagem hostil de ponta a ponta (comportamento + ataque)', () => {
     world.spawn(
       WildCreature({ speciesId: 'charmander' }),
       WildBehavior({ temperament: 'hostile' }),
+      WildAwareness,
       AiMovement,
       Position(WILD_AT),
       Rotation,
@@ -434,7 +432,8 @@ describe('selvagem hostil de ponta a ponta (comportamento + ataque)', () => {
     for (let i = 0; i < 180; i++) {
       events.beginStep()
       creatureAttackSystem({ world, delta: DELTA, input: {}, events })
-      wildBehaviorSystem({ world, delta: DELTA })
+      wildAwarenessSystem({ world, delta: DELTA })
+      wildBehaviorSystem({ world, delta: DELTA, events })
     }
 
     expect(trainer.get(Vitals).hp).toBeLessThan(hpBefore)
@@ -455,9 +454,10 @@ describe('wildBehaviorSystem — alvo por ameaça ou proximidade', () => {
   const target = (wild) => wild.get(WildBehavior).target
 
   it('sem ameaça, persegue o mais perto do lado do jogador (não só quem está no controle)', () => {
-    const { world, wild, player, tick, movePlayer } = setup()
+    const { world, wild, player, tick, movePlayer, engage } = setup()
     movePlayer(AGGRO_RADIUS - 1)
     const creature = spawnPartyCreature(world, 2)
+    engage()
 
     tick()
 
@@ -499,10 +499,11 @@ describe('wildBehaviorSystem — alvo por ameaça ou proximidade', () => {
     expect(target(wild)).toBe(player)
   })
 
-  it('hostil vagando: com criatura do time no raio, não aggra no treinador', () => {
-    const { world, wild, tick, movePlayer } = setup()
+  it('perseguindo: com criatura do time no raio, não mira no treinador', () => {
+    const { world, wild, tick, movePlayer, engage } = setup()
     movePlayer(2)
     const creature = spawnPartyCreature(world, AGGRO_RADIUS - 1)
+    engage()
 
     tick()
 
@@ -547,7 +548,8 @@ describe('wildBehaviorSystem — habilidades (escolha do golpe)', () => {
         0.2,
     )
 
-    tick() // decide perseguir, planeja e já pede (alvo ao alcance)
+    perseguirJogador(wild, { provoked: false })
+    tick() // planeja e já pede (alvo ao alcance)
 
     expect(wild.get(WantsToAttack)?.slot).toBe('secondary3')
     expect(Math.hypot(wild.get(Velocity).x, wild.get(Velocity).z)).toBe(0)
@@ -559,11 +561,11 @@ describe('wildBehaviorSystem — habilidades (escolha do golpe)', () => {
   })
 
   it('golpe planejado que alcança menos: corre até o alcance DELE', () => {
-    const { wild, tick, movePlayer } = setup({ skills: true })
+    const { wild, tick, movePlayer, engage } = setup({ skills: true })
     wild.set(AttackCooldowns, { secondary1: 999, secondary3: 999 })
     movePlayer(6)
+    engage()
 
-    tick()
     tick()
 
     // Só o Tackle (E) está pronto: corre até o alcance dele, sem pedir ainda.
@@ -575,10 +577,11 @@ describe('wildBehaviorSystem — habilidades (escolha do golpe)', () => {
   })
 
   it('trocar de alvo descarta o golpe planejado', () => {
-    const { wild, world, tick, movePlayer } = setup({ skills: true })
+    const { wild, world, tick, movePlayer, engage } = setup({ skills: true })
     wild.set(AttackCooldowns, { secondary1: 999, secondary3: 999 })
     movePlayer(6)
-    tick() // decide perseguir
+    engage()
+    tick()
     // Plano no único golpe pronto: mantido enquanto o alvo não muda.
     wild.set(WildBehavior, { attackSlot: 'secondary2' })
     tick()
@@ -603,6 +606,7 @@ describe('wildBehaviorSystem — habilidades (escolha do golpe)', () => {
     const { REST_ENTER_FRACTION, REST_EXIT_FRACTION } = GAME_CONFIG.AI_ENERGY
     wild.set(Vitals, { stamina: REST_ENTER_FRACTION * maxStamina })
     movePlayer(1.4) // ao alcance do golpe corpo a corpo
+    perseguirJogador(wild, { provoked: false })
 
     tick()
 
@@ -625,9 +629,10 @@ describe('wildBehaviorSystem — habilidades (escolha do golpe)', () => {
 
 describe('wildBehaviorSystem — movimento na luta', () => {
   it('dash em andamento: segue nele (velocidade do dash, a ação avança)', () => {
-    const { wild, tick, movePlayer } = setup()
+    const { wild, tick, movePlayer, engage } = setup()
     movePlayer(6)
-    tick() // decide perseguir
+    engage()
+    tick()
     wild.set(ActionState, { current: 'dash', elapsed: 0, dirX: 1, dirZ: 0 })
 
     tick()
@@ -670,8 +675,9 @@ describe('wildBehaviorSystem — movimento na luta', () => {
   })
 
   it('no alcance esperando o intervalo: rodeia o alvo', () => {
-    const { wild, tick, movePlayer } = setup()
+    const { wild, tick, movePlayer, engage } = setup()
     movePlayer(1.2)
+    engage()
     tick() // pede o golpe (intervalo começa)
     wild.remove(WantsToAttack)
 
@@ -686,74 +692,15 @@ describe('wildBehaviorSystem — movimento na luta', () => {
 
 describe('wildBehaviorSystem — decisões com critério', () => {
   const WB = GAME_CONFIG.WILD_BEHAVIOR
-  /** Roda `fn` com valores trocados em `WILD_BEHAVIOR` (sorteio fixo). */
-  function withConfig(overrides, fn) {
-    const saved = Object.fromEntries(
-      Object.keys(overrides).map((key) => [key, WB[key]]),
-    )
-    Object.assign(WB, overrides)
-    try {
-      fn()
-    } finally {
-      Object.assign(WB, saved)
-    }
-  }
-  const setHp = (wild, fraction) =>
-    wild.set(Vitals, { hp: fraction * wild.get(Vitals).maxHp })
 
-  it('perseguindo e chegando na vida baixa: foge (sorteio) e fica abalada', () => {
-    withConfig({ LOW_HP_FLEE_CHANCE: 1 }, () => {
-      const { wild, tick, movePlayer } = setup()
-      movePlayer(3)
-      tick() // persegue
-      setHp(wild, WB.LOW_HP_FLEE_FRACTION)
-
-      tick()
-
-      expect(wild.get(WildBehavior)).toMatchObject({
-        state: 'flee',
-        shaken: true,
-        lowHpRolled: true,
-      })
-    })
-  })
-
-  it('abalada não volta a perseguir (nem hostil no raio) até se recuperar', () => {
-    withConfig({ LOW_HP_FLEE_CHANCE: 1 }, () => {
-      const { wild, tick, movePlayer } = setup()
-      movePlayer(3)
-      tick()
-      setHp(wild, WB.LOW_HP_FLEE_FRACTION)
-      tick() // foge
-      movePlayer(WB.FLEE_SAFE_DISTANCE + 1)
-      tick() // longe: volta a vagar, ainda abalada
-      expect(state(wild)).toBe('wander')
-
-      movePlayer(3) // dentro do raio de aggro
-      tick()
-      expect(state(wild)).toBe('wander')
-
-      setHp(wild, WB.LOW_HP_RECOVER_FRACTION) // recuperou
-      tick()
-      expect(wild.get(WildBehavior).shaken).toBe(false)
-      tick()
-      expect(state(wild)).toBe('chase')
-    })
-  })
-
-  it('sorteio UMA vez por queda: decidiu lutar, não sorteia de novo', () => {
-    const { wild, tick, movePlayer } = setup()
+  it('na luta ninguém foge: perseguindo com a vida quase no fim, continua lutando', () => {
+    const { wild, tick, movePlayer, engage } = setup()
     movePlayer(3)
-    tick()
-    withConfig({ LOW_HP_FLEE_CHANCE: 0 }, () => {
-      setHp(wild, WB.LOW_HP_FLEE_FRACTION)
-      tick()
-    })
-    expect(wild.get(WildBehavior)).toMatchObject({
-      state: 'chase',
-      lowHpRolled: true,
-    })
-    withConfig({ LOW_HP_FLEE_CHANCE: 1 }, () => tick())
+    engage()
+    wild.set(Vitals, { hp: wild.get(Vitals).maxHp * 0.05 })
+
+    for (let i = 0; i < 30; i++) tick()
+
     expect(state(wild)).toBe('chase')
   })
 
@@ -762,6 +709,8 @@ describe('wildBehaviorSystem — decisões com critério', () => {
     const other = world.spawn(Position({ x: 0, y: 0, z: 0 }))
     registrarAmeaca(wild, player, 40)
     registrarAmeaca(wild, other, WB.THREAT_MIN * 1.5)
+    // A ameaça só conta (e decai) perseguindo.
+    perseguirJogador(wild, { provoked: true })
 
     wildBehaviorSystem({ world, delta: WB.THREAT_HALF_LIFE })
 

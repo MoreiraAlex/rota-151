@@ -38,7 +38,11 @@ export { registrarScan } from './scanning'
 export { entrarEmCombate, sairDeCombate } from './combat'
 export {
   perseguirJogador,
-  fugirDoJogador,
+  sairDoMapa,
+  perceberJogador,
+  perderInteresse,
+  ficarTranquila,
+  esquecerJogador,
   voltarAVagar,
   registrarAmeaca,
 } from './wildBehavior'

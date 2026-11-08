@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { createWorld } from 'koota'
 import { getSpecies } from '../data/species'
 import { GAME_CONFIG } from '../gameConfig'
@@ -19,7 +19,6 @@ import {
   WildCreature,
   vitalsFromSpecies,
 } from '../traits'
-import { resolveDashCost } from '../actions/stamina'
 import { resolveAttackForEntity } from './attackCasting'
 import { resolveReachFor } from './aiAttackChoice'
 import { resolveHitTrigger } from './hitTrigger'
@@ -30,6 +29,16 @@ import {
   resolveIncomingAttack,
   steerAiBeam,
 } from './aiMovement'
+
+// A IA de hoje (034) é a dificuldade máxima das selvagens (063): estes
+// testes conferem o comportamento na ponta difícil.
+const originalDifficulty = GAME_CONFIG.WILD_DIFFICULTY.LEVEL
+beforeAll(() => {
+  GAME_CONFIG.WILD_DIFFICULTY.LEVEL = 1
+})
+afterAll(() => {
+  GAME_CONFIG.WILD_DIFFICULTY.LEVEL = originalDifficulty
+})
 
 const DELTA = 1 / 60
 const CHARMANDER = getSpecies('charmander')
@@ -359,7 +368,7 @@ describe('moveInFight — recuo, aproximação e dash', () => {
     expect(mover.get(DashCooldown).timeLeft).toBeCloseTo(DASH.COOLDOWN)
   })
 
-  it('dash ferido custa mais energia (vida baixa)', () => {
+  it('dash ferido custa o mesmo (a vida não muda o custo, 063)', () => {
     const { mover, spawnEnemy } = setup()
     mover.add(Grounded)
     const far = spawnEnemy(at(0, 1.3 + MOVE.DASH_CLOSE_DISTANCE + 1))
@@ -369,9 +378,8 @@ describe('moveInFight — recuo, aproximação e dash', () => {
 
     expect(run(mover, far)).toBe('dash')
     expect(mover.get(Vitals).stamina).toBeCloseTo(
-      before.stamina - resolveDashCost(before),
+      before.stamina - before.dashStaminaCost,
     )
-    expect(resolveDashCost(before)).toBeGreaterThan(before.dashStaminaCost)
   })
 
   it('dash respeita a reserva de energia e o descanso', () => {

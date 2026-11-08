@@ -2,9 +2,7 @@ import { Section } from '@/tools/wiki/components/Article'
 import { DataTable } from '@/tools/wiki/components/DataTable'
 import { WikiLink } from '@/tools/wiki/components/WikiLink'
 import {
-  formatMultiplier,
   formatNumber,
-  formatPercent,
   formatRange,
   formatSeconds,
 } from '@/tools/wiki/wikiFormat'
@@ -14,7 +12,7 @@ function formatRegen(percent) {
 }
 
 export function VitalsPage({ data, version }) {
-  const { species, lowHp } = data
+  const { species } = data
 
   return (
     <>
@@ -79,30 +77,6 @@ export function VitalsPage({ data, version }) {
           </WikiLink>
           ).
         </p>
-      </Section>
-
-      <Section id="vida-baixa" title="Vida baixa">
-        <p>
-          Machucada, a criatura fica <strong>mais lenta</strong> pra andar e
-          correr, e <strong>cansa mais</strong>: correr e dar dash custam mais
-          energia. O efeito é pequeno com arranhões e forte perto de desmaiar —
-          com a vida zerada, a velocidade cai pra{' '}
-          {formatMultiplier(lowHp.speedMin)} e o custo sobe pra{' '}
-          {formatMultiplier(lowHp.costMax)}.
-        </p>
-        <p>
-          Por isso dá pra alcançar quem foge machucado. O dash não fica mais
-          lento, só mais caro.
-        </p>
-        <DataTable
-          head={['Vida', 'Velocidade', 'Custo de correr e dash']}
-          align={['right', 'right', 'right']}
-          rows={lowHp.rows.map((row) => [
-            formatPercent(row.hp, 0),
-            formatMultiplier(row.speed),
-            formatMultiplier(row.cost),
-          ])}
-        />
       </Section>
     </>
   )

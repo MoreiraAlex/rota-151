@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from 'vitest'
+import { describe, it, expect, afterAll, afterEach, beforeAll } from 'vitest'
 import { resolveFormulaLevel } from '../data/species/formulaLevel'
 import { createWorld } from 'koota'
 import { getPlayerSpecies, getSpecies } from '@/core/data/species'
@@ -79,6 +79,16 @@ import {
   resolveEffectStart,
   resolveEffectRotation,
 } from '@/core/battle/attackEffectPlacement'
+
+// A IA de hoje (034) é a dificuldade máxima das selvagens (063): estes
+// testes conferem o comportamento na ponta difícil.
+const originalDifficulty = GAME_CONFIG.WILD_DIFFICULTY.LEVEL
+beforeAll(() => {
+  GAME_CONFIG.WILD_DIFFICULTY.LEVEL = 1
+})
+afterAll(() => {
+  GAME_CONFIG.WILD_DIFFICULTY.LEVEL = originalDifficulty
+})
 
 // Slot (`secondary1-3`) em que o charmander tem a Brasa — achado, não fixo:
 // a ordem das skills da espécie é configuração do usuário e muda.

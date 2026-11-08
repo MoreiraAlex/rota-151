@@ -11,6 +11,7 @@ import {
   Rotation,
   Velocity,
   WanderState,
+  WildAwareness,
   WildBehavior,
   WildCreature,
 } from '@/core/traits'
@@ -60,6 +61,21 @@ function tick(world, delta = 1 / 60) {
 }
 
 describe('wildWanderSystem', () => {
+  it('encarando quem percebeu (063), não anda: a percepção segura ela', () => {
+    const world = spawnWorld()
+    const creature = spawnWild(world, {
+      position: { x: 0, y: 1, z: 0 },
+      wander: { homeX: 0, homeZ: 0, targetX: 5, targetZ: 0, pauseTimer: 0 },
+    })
+    creature.add(WildAwareness({ state: 'noticed', target: null, timer: 1 }))
+    creature.set(Velocity, { x: 0, y: 0, z: 0 })
+
+    tick(world)
+
+    expect(creature.get(Velocity).x).toBe(0)
+    expect(creature.get(WanderState).chaseTimer).toBe(0)
+  })
+
   it('enquanto pauseTimer > 0, fica parada e só decrementa o timer', () => {
     const world = spawnWorld()
     const creature = spawnWild(world, {

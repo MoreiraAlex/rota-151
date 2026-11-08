@@ -213,8 +213,9 @@ export function formatBattleLogEvent(event) {
     case EVENT_TYPES.CAPTURE_ESCAPED:
       return [
         line(
+          // Fugindo, o "fugiu!" vem quando ela some (`WILD_DESPAWNED`).
           `${formatSpeciesName(event.speciesId)} selvagem escapou da Pokébola${
-            event.reaction === 'fight' ? ' e partiu pra cima!' : ' e fugiu!'
+            event.reaction === 'fight' ? ' e partiu pra cima!' : '!'
           }`,
           FEEDBACK.ESCAPED_COLOR,
         ),
@@ -276,6 +277,17 @@ export function formatBattleLogEvent(event) {
           FEEDBACK.INVENTORY_FULL_COLOR,
         ),
       ]
+    // A fuga clássica (063): quem fugiu sumiu do mapa. Os outros despawns
+    // (longe, velha) não aparecem.
+    case EVENT_TYPES.WILD_DESPAWNED:
+      return event.reason === 'fled'
+        ? [
+            line(
+              `O ${formatSpeciesName(event.speciesId)} selvagem fugiu!`,
+              FEEDBACK.ESCAPED_COLOR,
+            ),
+          ]
+        : []
     default:
       return []
   }
