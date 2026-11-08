@@ -32,7 +32,8 @@ import { storedConditionSystem } from '@/core/systems/storedConditionSystem'
 import { captureBallSystem } from '@/core/systems/captureBallSystem'
 import { captureAimSystem } from '@/core/systems/captureAimSystem'
 import { creatureFollowSystem } from '@/core/systems/creatureFollowSystem'
-import { wildCreatureSpawnSystem } from '@/core/systems/wildCreatureSpawnSystem'
+import { wildDespawnSystem } from '@/core/systems/wildDespawnSystem'
+import { wildSpawnSystem } from '@/core/systems/wildSpawnSystem'
 import { trainingObjectSpawnSystem } from '@/core/systems/trainingObjectSpawnSystem'
 import { trainingSystem } from '@/core/systems/trainingSystem'
 import { partyActionMenuInputSystem } from '@/core/systems/partyActionMenuInputSystem'
@@ -168,8 +169,9 @@ let registered = false
  * `Velocity`/`Grounded` do treinador) — a posição exata deles na fase
  * simulation não importa, ficam perto de `playerActionSystem` (quem spawna
  * o projétil/efeito) por proximidade de leitura, não por dependência real
- * de ordem. `wildCreatureSpawnSystem`/`wildWanderSystem` (docs/features/020-
- * fox-selvagens-cena-e-texturas.md) seguem o mesmo raciocínio — ficam perto
+ * de ordem. `wildDespawnSystem`/`wildSpawnSystem` (docs/features/062-spawn-
+ * estilo-cobblemon.md) e `wildWanderSystem` (docs/features/020-fox-
+ * selvagens-cena-e-texturas.md) seguem o mesmo raciocínio — ficam perto
  * de `partySummonSystem`/`creatureFollowSystem` (mesma família: criaturas
  * não-jogador que precisam existir/se mover antes de `characterPhysicsSystem`
  * integrar a `Velocity` delas), sem depender de ordem exata com eles
@@ -262,7 +264,10 @@ export function registerGameSystems() {
   // time (antes do follow, que o pula fora de 'follow').
   registerSystem(GAME_PHASES.SIMULATION, trainerBattleSystem)
   registerSystem(GAME_PHASES.SIMULATION, creatureFollowSystem)
-  registerSystem(GAME_PHASES.SIMULATION, wildCreatureSpawnSystem)
+  // Selvagens em volta do jogador (062): quem ficou para trás some antes,
+  // e a vaga dela já conta no spawn do mesmo tick.
+  registerSystem(GAME_PHASES.SIMULATION, wildDespawnSystem)
+  registerSystem(GAME_PHASES.SIMULATION, wildSpawnSystem)
   // Antes do vagar: decide perseguir/fugir/voltar a vagar e move quem
   // persegue/foge; quem voltou a vagar já vaga no mesmo tick.
   registerSystem(GAME_PHASES.SIMULATION, wildBehaviorSystem)

@@ -127,7 +127,7 @@ export const RATTATA = {
     footstepGroup: 'medium',
     voice: {
       clips: ['/assets/audio/voices/019-rattata/cry-01.wav'],
-      volume: 0.8,
+      volume: 0.25,
       refDistance: 2,
       minInterval: 4,
       maxInterval: 32,
@@ -142,7 +142,7 @@ export const RATTATA = {
   },
   stats: {
     hp: { base: HP, ev: HP_EV, regenPercent: 0.25, regenDelay: 10 },
-    energy: { regenPercent: 40, regenDelay: 2 },
+    energy: { regenPercent: 75, regenDelay: 1 },
     attack: { base: ATTACK, ev: ATTACK_EV },
     defense: { base: DEFENSE, ev: DEFENSE_EV },
     sp_atk: { base: SP_ATK, ev: SP_ATK_EV },
@@ -163,4 +163,11 @@ export const RATTATA = {
   // Na série ele morde qualquer coisa quando ataca e vive em bando: mais
   // agressivo que o Caterpie e o Weedle.
   wild: { hostileChance: 0.4 },
+  // Onde nasce no mundo (062): planície e savana, a qualquer hora — mais
+  // à noite.
+  spawn: {
+    biomes: ['plains', 'savanna'],
+    rarity: 'common',
+    phases: { night: 1.5 },
+  },
 }

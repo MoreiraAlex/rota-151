@@ -28,6 +28,7 @@ import {
   CaptureAimStatus,
   PokedexEntries,
   ScanHistory,
+  WildSpawnState,
   SaveClock,
   OwnedBy,
   WorldClock,
@@ -112,6 +113,8 @@ export function makeWorld({
   world.add(WorldClock, LocalWeather({ forced: weather }))
   // Itens do mundo (docs/features/055-itens-no-mundo.md), como no singleton.
   world.add(WorldItemsMemory, WorldItemChunks, InteractionTarget)
+  // Spawn das selvagens (docs/features/062-spawn-estilo-cobblemon.md).
+  world.add(WildSpawnState)
 
   const player = spawnTrainer(world, {
     position: playerPosition,

@@ -4,11 +4,16 @@ import {
   GROWTH_RATES,
   calculateExperienceGain,
   experienceForLevel,
+  createLevelState,
   levelForExperience,
+  resolveLevelCap,
   resolveLevelProgress,
 } from './experience'
 
 const { MAX_LEVEL } = GAME_CONFIG.EXPERIENCE
+// O teto desta versão (docs/features/062-spawn-estilo-cobblemon.md): a
+// curva vai até o oficial, mas ninguém passa do da versão.
+const CAP = resolveLevelCap()
 
 describe('experienceForLevel', () => {
   it.each(GROWTH_RATES)('%s: nível 1 é zero e a curva só cresce', (rate) => {
@@ -46,16 +51,30 @@ describe('experienceForLevel', () => {
 })
 
 describe('levelForExperience', () => {
-  it.each(GROWTH_RATES)('%s: inverte experienceForLevel', (rate) => {
-    for (let level = 1; level <= MAX_LEVEL; level++) {
-      const xp = experienceForLevel(rate, level)
-      expect(levelForExperience(rate, xp)).toBe(level)
-      if (level > 1) expect(levelForExperience(rate, xp - 1)).toBe(level - 1)
-    }
+  it.each(GROWTH_RATES)(
+    '%s: inverte experienceForLevel até o teto da versão',
+    (rate) => {
+      for (let level = 1; level <= CAP; level++) {
+        const xp = experienceForLevel(rate, level)
+        expect(levelForExperience(rate, xp)).toBe(level)
+        if (level > 1) expect(levelForExperience(rate, xp - 1)).toBe(level - 1)
+      }
+    },
+  )
+
+  it('para no teto da versão', () => {
+    expect(levelForExperience('fast', Number.MAX_SAFE_INTEGER)).toBe(CAP)
+  })
+})
+
+describe('resolveLevelCap', () => {
+  it('é o da versão, nunca acima do oficial', () => {
+    expect(CAP).toBeLessThanOrEqual(MAX_LEVEL)
+    expect(CAP).toBeLessThanOrEqual(GAME_CONFIG.EXPERIENCE.LEVEL_CAP)
   })
 
-  it('para no nível máximo', () => {
-    expect(levelForExperience('fast', Number.MAX_SAFE_INTEGER)).toBe(MAX_LEVEL)
+  it('ninguém nasce acima dele', () => {
+    expect(createLevelState({}, CAP + 5).level).toBe(CAP)
   })
 })
 
@@ -69,8 +88,8 @@ describe('resolveLevelProgress', () => {
     expect(almost).toBeLessThan(1)
   })
 
-  it('nível máximo fica cheio', () => {
-    expect(resolveLevelProgress('fast', MAX_LEVEL, 0)).toBe(1)
+  it('no teto da versão fica cheio', () => {
+    expect(resolveLevelProgress('fast', CAP, 0)).toBe(1)
   })
 })
 

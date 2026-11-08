@@ -10,7 +10,7 @@ import { PARTY_SLOT_IDS } from '../traits'
  * O schema é a fronteira: o adapter (cliente) e a rota da API (servidor)
  * validam com ele antes de o dado entrar no jogo ou no banco.
  */
-export const SAVE_VERSION = 3
+export const SAVE_VERSION = 4
 
 const numberRecord = z.record(z.string(), z.number())
 
@@ -99,11 +99,31 @@ export const worldItemsSaveSchema = z.object({
   foraged: z.record(z.string().max(64), z.number().int()).default({}),
 })
 
+// As selvagens vivas no mundo (docs/features/062-spawn-estilo-
+// cobblemon.md, `wildCreaturesSave.js`).
+export const wildCreatureSaveSchema = z.object({
+  speciesId: z.string().min(1),
+  x: z.number(),
+  y: z.number(),
+  z: z.number(),
+  rotationY: z.number(),
+  level: z.number().int().min(1),
+  xp: z.number().int().min(0),
+  ivs: numberRecord,
+  temperament: z.enum(['hostile', 'peaceful']),
+  hp: z.number().min(0),
+  stamina: z.number().min(0),
+  faintTimeLeft: z.number().min(0).nullable(),
+  conditions: z.array(conditionSchema).nullable(),
+  age: z.number().min(0),
+})
+
 export const saveSchema = z.object({
   version: z.literal(SAVE_VERSION),
   trainer: trainerSaveSchema,
   pokemon: z.array(pokemonSaveSchema),
   worldItems: worldItemsSaveSchema,
+  wildCreatures: z.array(wildCreatureSaveSchema).max(64),
 })
 
 /**
@@ -114,6 +134,8 @@ export const saveSchema = z.object({
  *   começando sem nada mexido.
  * - 2 → 3 (docs/features/061-revisao-das-skills.md): as condições viram uma
  *   lista (`{ burn }` → `[{ id: 'burn', ... }]`).
+ * - 3 → 4 (docs/features/062-spawn-estilo-cobblemon.md): entram as
+ *   selvagens, começando sem nenhuma (o spawn povoa).
  */
 const MIGRATIONS = {
   1: (save) => ({ ...save, worldItems: { chunks: {}, foraged: {} } }),
@@ -124,6 +146,7 @@ const MIGRATIONS = {
       conditions: migrateLegacyConditions(pokemon.conditions),
     })),
   }),
+  3: (save) => ({ ...save, wildCreatures: [] }),
 }
 
 // `{ burn: { ..., attackMultiplier } }` (versão 2) → a lista da versão 3.

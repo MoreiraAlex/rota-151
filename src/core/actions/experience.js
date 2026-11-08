@@ -3,11 +3,11 @@ import {
   calculateExperienceGain,
   experienceForLevel,
   levelForExperience,
+  resolveLevelCap,
   resolveBaseXp,
   resolveGrowthRate,
 } from '../data/species/experience'
 import { experienceGained, leveledUp } from '../events'
-import { GAME_CONFIG } from '../gameConfig'
 import { anunciarGolpesAptos } from './moves'
 import { resolveOwner } from './owner'
 import {
@@ -89,17 +89,21 @@ function canReceiveExperience(world, pokemon) {
 }
 
 /**
- * Soma `amount` de XP no `pokemon` (teto: o XP do nível máximo) — no
- * registro e, se ele está em campo, no `CreatureLevel` da criatura. Se o
- * nível mudou, `subirDeNivel`. Emite `experienceGained` (e `leveledUp`).
+ * Soma `amount` de XP no `pokemon` (teto: o XP do teto da versão,
+ * `resolveLevelCap`) — no registro e, se ele está em campo, no
+ * `CreatureLevel` da criatura. Se o nível mudou, `subirDeNivel`. Emite
+ * `experienceGained` (e `leveledUp`). Quem já está no teto (ou acima, de
+ * um save de antes dele) não ganha nada.
  */
 export function ganharExperiencia(world, events, pokemon, amount) {
   const progress = pokemon?.get?.(CreatureLevel)
   const species = getSpecies(resolvePokemonSpeciesId(pokemon))
   if (!progress || !species || !(amount > 0)) return
+  const cap = resolveLevelCap()
+  if (progress.level >= cap) return
 
   const growthRate = resolveGrowthRate(species)
-  const maxXp = experienceForLevel(growthRate, GAME_CONFIG.EXPERIENCE.MAX_LEVEL)
+  const maxXp = experienceForLevel(growthRate, cap)
   const xp = Math.min(maxXp, progress.xp + amount)
   const level = levelForExperience(growthRate, xp)
   const fromLevel = progress.level

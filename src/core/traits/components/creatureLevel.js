@@ -10,7 +10,7 @@ import { relation, trait } from 'koota'
  * Também é o trait do nível no registro do Pokémon (`Pokemon`), fonte de
  * verdade de quem está fora de campo.
  *
- * Donos de escrita: `wildCreatureSpawnSystem.js` (sorteia no spawn),
+ * Donos de escrita: `nascerSelvagem` (`core/actions/wildSpawn.js`) (sorteia no spawn),
  * `criarPokemon` (nível inicial da espécie), `summonBallSystem.js` (copia do
  * registro ao invocar) e `ganharExperiencia` (`core/actions/experience.js`,
  * no registro e na criatura em campo).

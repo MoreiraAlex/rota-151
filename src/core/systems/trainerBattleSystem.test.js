@@ -287,7 +287,7 @@ describe('trainerBattleSystem — treinador fora do controle numa luta', () => {
   })
 })
 
-// Pendência da 079: o treinador para a SAFE_DISTANCE − ARRIVE_DISTANCE da
+// Pendência da 082: o treinador para a SAFE_DISTANCE − ARRIVE_DISTANCE da
 // criatura e, se o raio da volta da selvagem em volta dela passar da folga até
 // SAFE_MIN_DISTANCE (ou ela recuar pro lado dele, com golpe à distância), ela
 // chega perto demais e ele atravessa a luta pro outro lado. As regressões

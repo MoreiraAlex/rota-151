@@ -23,7 +23,7 @@ import {
 } from '@/core/traits'
 
 /**
- * Um selvagem de teste com a composição do `wildCreatureSpawnSystem` (sem
+ * Um selvagem de teste com a composição do `nascerSelvagem` (sem
  * física de verdade: `PhysicsBody` sem handles). `individualValues` fixos
  * pra comparar com o registro depois da captura
  * (docs/features/043-captura.md).

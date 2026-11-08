@@ -117,4 +117,44 @@ describe('buildWikiData', () => {
     }
     expect(capture.speciesRates.length).toBe(listWikiSpecies().length)
   })
+
+  it('onde encontrar: quem tem spawn traz biomas, raridade e condições; quem não tem, nada', () => {
+    const species = listWikiSpecies()
+    const biomeNames = new Set(listBiomes().map((biome) => biome.name))
+    for (const entry of data.species) {
+      const source = species.find((candidate) => candidate.id === entry.id)
+      if (!source.spawn) {
+        expect(entry.spawn, entry.id).toBeNull()
+        continue
+      }
+      expect(entry.spawn.rarity).toBe(source.spawn.rarity)
+      expect(entry.spawn.biomes.length, entry.id).toBeGreaterThan(0)
+      for (const name of entry.spawn.biomes)
+        expect(biomeNames.has(name)).toBe(true)
+      expect(entry.spawn.phases).toEqual(
+        Object.entries(source.spawn.phases ?? {}).map(([key, factor]) => ({
+          key,
+          factor,
+        })),
+      )
+      expect(entry.spawn.weather).toEqual(
+        Object.entries(source.spawn.weather ?? {}).map(([key, factor]) => ({
+          key,
+          factor,
+        })),
+      )
+    }
+  })
+
+  it('spawn das selvagens e teto de nível vêm da config', () => {
+    const { WILD_SPAWN, EXPERIENCE } = GAME_CONFIG
+    expect(data.wildSpawn.maxPerPlayer).toBe(WILD_SPAWN.MAX_PER_PLAYER)
+    expect(data.wildSpawn.rarityChances).toEqual(WILD_SPAWN.RARITY_CHANCES)
+    expect(data.wildSpawn.nearRadius).toBeLessThan(data.wildSpawn.farRadius)
+    expect(data.wildSpawn.levelCap).toBe(EXPERIENCE.LEVEL_CAP)
+    expect(data.experience.levelCap).toBe(EXPERIENCE.LEVEL_CAP)
+    expect(data.experience.levelCap).toBeLessThanOrEqual(
+      data.experience.maxLevel,
+    )
+  })
 })

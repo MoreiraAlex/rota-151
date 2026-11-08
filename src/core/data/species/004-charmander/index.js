@@ -149,7 +149,7 @@ export const CHARMANDER = {
         '/assets/audio/voices/004-charmander/cry-02.wav',
         '/assets/audio/voices/004-charmander/cry-03.wav',
       ],
-      volume: 0.8,
+      volume: 0.25,
       refDistance: 2,
       minInterval: 4,
       maxInterval: 32,
@@ -164,7 +164,7 @@ export const CHARMANDER = {
   },
   stats: {
     hp: { base: HP, ev: HP_EV, regenPercent: 0.25, regenDelay: 10 },
-    energy: { regenPercent: 40, regenDelay: 2 },
+    energy: { regenPercent: 75, regenDelay: 1 },
     attack: { base: ATTACK, ev: ATTACK_EV },
     defense: { base: DEFENSE, ev: DEFENSE_EV },
     sp_atk: { base: SP_ATK, ev: SP_ATK_EV },

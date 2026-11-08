@@ -4,6 +4,7 @@ import { SAVE_VERSION } from './saveFormat'
 import { serializePokemon } from './pokemonSave'
 import { serializeTrainer } from './trainerSave'
 import { serializeWorldItems } from './worldItemsSave'
+import { serializeWildCreatures } from './wildCreaturesSave'
 
 export {
   SAVE_VERSION,
@@ -14,12 +15,17 @@ export {
 export { serializePokemon, restorePokemon } from './pokemonSave'
 export { serializeTrainer, restoreTrainer } from './trainerSave'
 export { serializeWorldItems, restoreWorldItems } from './worldItemsSave'
+export {
+  serializeWildCreatures,
+  restoreWildCreatures,
+} from './wildCreaturesSave'
 
 /**
  * O save inteiro do `trainer` (docs/features/044-salvar-o-jogo.md): versão,
  * treinador, todos os Pokémon dele (time e inventário) e os itens do mundo
- * que ele mexeu (docs/features/055-itens-no-mundo.md — do mundo, mas
- * enquanto o jogo é offline vão no save dele). Só lê o mundo.
+ * que ele mexeu (docs/features/055-itens-no-mundo.md) e as selvagens vivas
+ * (docs/features/062-spawn-estilo-cobblemon.md) — do mundo, mas enquanto o
+ * jogo é offline vão no save dele. Só lê o mundo.
  */
 export function snapshotSave(world, trainer) {
   return {
@@ -34,5 +40,6 @@ export function snapshotSave(world, trainer) {
       .map((pokemon) => serializePokemon(world, trainer, pokemon))
       .filter(Boolean),
     worldItems: serializeWorldItems(world),
+    wildCreatures: serializeWildCreatures(world),
   }
 }

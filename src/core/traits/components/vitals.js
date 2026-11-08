@@ -121,7 +121,7 @@ export function resolveMaxStamina(species, individualValues = null, level) {
  * (`core/data/species/<id>/index.js`) — usado no spawn do treinador
  * (`core/world/world.js`/`test/makeWorld.js`) e de toda
  * `SummonedCreature` (`partySummonSystem.js`)/`WildCreature`
- * (`wildCreatureSpawnSystem.js`), centraliza uma lógica que estava
+ * (`nascerSelvagem` (`core/actions/wildSpawn.js`)), centraliza uma lógica que estava
  * duplicada nos dois primeiros e nem existia no terceiro (a criatura
  * invocada usava `Vitals` cru, sempre default, nunca copiava da
  * espécie de verdade).

@@ -36,6 +36,7 @@ import {
   WorldItemsMemory,
   WorldItemChunks,
   InteractionTarget,
+  WildSpawnState,
 } from '../traits'
 
 export const world = createWorld()
@@ -48,6 +49,9 @@ world.add(WorldClock, LocalWeather)
 // entidade e o alvo do F (docs/features/055-itens-no-mundo.md). O salvo
 // volta no `prepararTreinador`.
 world.add(WorldItemsMemory, WorldItemChunks, InteractionTarget)
+// Os temporizadores do spawn das selvagens e o registro do debug
+// (docs/features/062-spawn-estilo-cobblemon.md).
+world.add(WildSpawnState)
 
 // Jogador é só mais uma entrada do registro de espécies — corpo (cápsula) e
 // movimento (velocidades) vêm de lá, não são constante global. PLAYER_SPECIES_ID

@@ -24,6 +24,8 @@ export const EVENT_TYPES = {
   BERRIES_HARVESTED: 'berriesHarvested',
   FORAGED_NOTHING: 'foragedNothing',
   INVENTORY_FULL: 'inventoryFull',
+  WILD_SPAWNED: 'wildSpawned',
+  WILD_DESPAWNED: 'wildDespawned',
 }
 
 /**
@@ -597,4 +599,33 @@ export function foragedNothing({ source, position }) {
  */
 export function inventoryFull({ itemId }) {
   return { type: EVENT_TYPES.INVENTORY_FULL, itemId }
+}
+
+/**
+ * Uma selvagem nasceu no mundo (docs/features/062-spawn-estilo-
+ * cobblemon.md).
+ *
+ * - Quem emite: `nascerSelvagem` (`core/actions/wildSpawn.js`), no spawn
+ *   (não no restore do save).
+ * - Quem consome: ninguém ainda (a rede, no multiplayer). Sem consumidor,
+ *   some.
+ *
+ * @returns {{ type: 'wildSpawned', entity: import('koota').Entity, speciesId: string, position: {x:number,y:number,z:number} }}
+ */
+export function wildSpawned({ entity, speciesId, position }) {
+  return { type: EVENT_TYPES.WILD_SPAWNED, entity, speciesId, position }
+}
+
+/**
+ * Uma selvagem saiu do mundo pelo despawn (`reason`: `'far'` longe do
+ * jogador, `'aged'` velha e fora da vista).
+ *
+ * - Quem emite: `despawnarSelvagem` (`core/actions/wildSpawn.js`).
+ * - Quem consome: ninguém ainda (a rede, no multiplayer). Sem consumidor,
+ *   some.
+ *
+ * @returns {{ type: 'wildDespawned', speciesId: string, reason: 'far' | 'aged', position: {x:number,y:number,z:number} }}
+ */
+export function wildDespawned({ speciesId, reason, position }) {
+  return { type: EVENT_TYPES.WILD_DESPAWNED, speciesId, reason, position }
 }

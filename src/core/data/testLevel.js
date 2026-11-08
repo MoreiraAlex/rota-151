@@ -1,9 +1,6 @@
 import { GAME_CONFIG } from '../gameConfig'
-import { createRng, deriveSeed, randomInt } from '../rng'
+import { deriveSeed } from '../rng'
 import { createTerrainChunkSet } from '../terrain/terrainChunkSet'
-import { verticalClearance } from '../physics/capsule'
-import { shoreNear, waterDepthAt } from '../terrain/water'
-import { getSpecies } from './species'
 
 /**
  * Nível de teste.
@@ -29,38 +26,12 @@ import { getSpecies } from './species'
  *   AmbientAudio.jsx`/docs/features/019-som-ambiente-e-passos.md pro
  *   porquê). Sem este campo, o jogo fica em silêncio ambiente (mesmo
  *   fallback gracioso de qualquer conteúdo que ainda não existe).
- * - wildCreatures (opcional): criaturas selvagens spawnadas UMA VEZ pelo
- *   `wildCreatureSpawnSystem.js` no início do jogo — `{ id, speciesId,
- *   position: [x,y,z], levelRange? }`. `levelRange: [min, max]` (opcional)
- *   é a faixa do nível sorteado no spawn; sem ela, a padrão
- *   (`GAME_CONFIG.EXPERIENCE.WILD_LEVEL_MIN/MAX`). Vagam sozinhas (`wildWanderSystem.js`), sem
- *   pertencer ao time do treinador. Ver docs/features/020-fox-selvagens-
- *   cena-e-texturas.md.
  * - trainingObjects (opcional): objetos de treino fixos (tronco, pedra,
  *   boneco) — `{ id, kind, position, size }`. Perto de um deles a criatura do
  *   time pode treinar um golpe (docs/features/038-aprendizado-treino-e-
  *   dominio-de-golpes.md). Também entram em `obstacles` (colisão, pathfind e
  *   mesh, com a cor do `kind`) — ver `TRAINING_OBJECTS` abaixo.
  */
-
-const WILD_CREATURE_COUNT = 10
-
-const WILD_CREATURE_SPECIES = [
-  'bulbasaur',
-  'charmander',
-  'squirtle',
-  'caterpie',
-  'weedle',
-  'pidgey',
-  'rattata',
-  'spearow',
-  'ekans',
-  'pikachu',
-]
-
-// Metade do lado (m) do quadrado em volta da origem onde os selvagens
-// nascem — provisório até o spawn por chunk (062).
-const WILD_AREA_HALF_SIZE = 84
 
 // Objetos de treino (ver `trainingObjects` no cabeçalho) — x/z fixos, o y
 // vem do relevo.
@@ -81,31 +52,6 @@ const groundUnder = (terrain, x, z, halfW, halfD) =>
     terrain.heightAt(x - halfW, z + halfD),
     terrain.heightAt(x + halfW, z + halfD),
   )
-
-// Sorteio de geração (regra 3.5): mesmas selvagens, nos mesmos lugares, a
-// cada vez que o jogo abre.
-function generateWildCreatures(terrain, count) {
-  const rng = createRng(deriveSeed(GAME_CONFIG.WORLD.SEED, 'wild-spawn'))
-  const between = (min, max) => min + rng() * (max - min)
-
-  return Array.from({ length: count }, (_, index) => {
-    const speciesId =
-      WILD_CREATURE_SPECIES[randomInt(rng, 0, WILD_CREATURE_SPECIES.length - 1)]
-    // Sorteado em água funda, vai para a margem (docs/features/057-lagos-
-    // e-rios.md).
-    const { x, z } = shoreNear(
-      (pointX, pointZ) => waterDepthAt(terrain.heightAt, pointX, pointZ),
-      between(-WILD_AREA_HALF_SIZE, WILD_AREA_HALF_SIZE),
-      between(-WILD_AREA_HALF_SIZE, WILD_AREA_HALF_SIZE),
-    )
-    // Pés acima do chão (o centro fica a `verticalClearance` deles).
-    const y =
-      terrain.heightAt(x, z) +
-      verticalClearance(getSpecies(speciesId).body) +
-      GAME_CONFIG.TERRAIN.SPAWN_HEIGHT
-    return { id: `wild-${index + 1}`, speciesId, position: [x, y, z] }
-  })
-}
 
 // Objetos de treino apoiados no relevo.
 const placeTrainingObjects = (terrain) =>
@@ -150,7 +96,6 @@ export const TEST_LEVEL = {
   },
   terrain,
   ...initialLevel,
-  wildCreatures: generateWildCreatures(terrain, WILD_CREATURE_COUNT),
 }
 
 // Ajuste do relevo em tempo real (debug — `regenerarTerreno`,

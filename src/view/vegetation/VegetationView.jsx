@@ -17,7 +17,7 @@ import { LocalWeather, WorldClock } from '@/core/traits'
 import { windStrengthOf } from '@/core/weather/wind'
 import { world } from '@/core/world/world'
 import { useTerrainChunks } from '@/view/hooks/useTerrainChunks'
-import { loadedFogRange } from '@/view/terrain/fogRange'
+import { loadedFogRange } from '@/core/terrain/fogRange'
 import { resolveSkyLook } from '@/view/weather/skyLook'
 import {
   buildBuildingMeshes,

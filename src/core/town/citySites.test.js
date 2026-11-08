@@ -95,4 +95,26 @@ describe('createCitySites', () => {
       expect(Math.hypot(x - city.x, z - city.z)).toBeCloseTo(distance, 9)
     }
   })
+
+  it('nearestCities: as duas primeiras são as mesmas da busca em todas em volta, em ordem', () => {
+    const sites = sitesFor(SEED)
+    for (let i = 0; i < 300; i++) {
+      const x = ((i * 377.3) % 9000) - 4500
+      const z = ((i * 811.9) % 9000) - 4500
+      const distances = []
+      const cellX = sites.cellOf(x)
+      const cellZ = sites.cellOf(z)
+      for (let dx = -3; dx <= 3; dx++) {
+        for (let dz = -3; dz <= 3; dz++) {
+          const city = sites.cityAt(cellX + dx, cellZ + dz)
+          distances.push(Math.hypot(x - city.x, z - city.z))
+        }
+      }
+      distances.sort((a, b) => a - b)
+      const [first, second] = sites.nearestCities(x, z, 2)
+      expect(first.distance).toBeCloseTo(distances[0], 9)
+      expect(second.distance).toBeCloseTo(distances[1], 9)
+      expect(first.city).toBe(sites.nearestCity(x, z).city)
+    }
+  })
 })

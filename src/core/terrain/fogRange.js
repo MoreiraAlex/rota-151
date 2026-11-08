@@ -1,4 +1,4 @@
-import { GAME_CONFIG } from '@/core/gameConfig'
+import { GAME_CONFIG } from '../gameConfig'
 
 /**
  * Onde a névoa começa e onde fecha (m, a partir da câmera) para esconder a

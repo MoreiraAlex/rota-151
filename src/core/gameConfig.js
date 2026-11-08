@@ -383,7 +383,7 @@ export const GAME_CONFIG = {
     },
     // Faixa de IV (individual value, convenção clássica de Pokémon)
     // sorteada pra QUALQUER criatura — selvagem, no spawn
-    // (`wildCreatureSpawnSystem.js`), ou do jogador, ao criar o
+    // (`nascerSelvagem` (`core/actions/wildSpawn.js`)), ou do jogador, ao criar o
     // registro (`core/actions/pokemon.js`, `criarPokemon`) — mesmo
     // range pros dois, IV é aleatório pra todo mundo (pedido do
     // usuário). Ver `rollIndividualValues`, `core/data/species/stats.js`.
@@ -1011,6 +1011,72 @@ export const GAME_CONFIG = {
     // inalcançável (ver docstring de `WanderState.chaseTimer`).
     MAX_CHASE_TIME: 15,
   },
+  // Spawn e despawn das selvagens em volta do jogador
+  // (docs/features/062-spawn-estilo-cobblemon.md, `core/wildSpawn/`).
+  // Distâncias no plano horizontal, do treinador ou da criatura controlada
+  // (a mais perto). O raio longe fica dentro do raio de carga dos chunks
+  // (`TERRAIN.LOAD_RADIUS`): a selvagem some antes do chão dela.
+  WILD_SPAWN: {
+    // Selvagens vivas, no máximo, até o raio longe de cada jogador.
+    MAX_PER_PLAYER: 12,
+    // Segundos entre as tentativas de spawn, quantos pontos cada uma tenta
+    // e quantas nascem, no máximo, por tentativa — poucas de cada vez: o
+    // teto enche aos poucos e as idades ficam espalhadas (sem leva nascendo
+    // e sumindo junto).
+    INTERVAL: 2,
+    ATTEMPTS: 3,
+    SPAWNS_PER_INTERVAL: 1,
+    // Anel (m) onde nasce: nunca mais perto que o mínimo nem mais longe que
+    // o máximo.
+    MIN_RADIUS: 30,
+    MAX_RADIUS: 70,
+    // Fora da vista: fora do cone da câmera (meia-abertura em rad, a partir
+    // de para onde ela olha) ou além da distância em que a névoa fecha (a
+    // mesma conta da tela, `core/terrain/fogRange.js` — não é número daqui).
+    VIEW_HALF_ANGLE: 1.1,
+    // Andando, parte das tentativas (chance 0–1) vai para a frente, num
+    // leque (meia-abertura em rad) em volta da direção do movimento, logo
+    // além da névoa (até `AHEAD_DEPTH` m depois dela): a selvagem aparece
+    // saindo da névoa no caminho. Abaixo de `MOVING_SPEED` (m/s), parado.
+    AHEAD_CHANCE: 0.6,
+    AHEAD_HALF_ANGLE: 0.6,
+    AHEAD_DEPTH: 15,
+    MOVING_SPEED: 1,
+    // Faixas do despawn (m): até o perto, nunca some; além do longe, some;
+    // no meio, some quem está velho e fora da vista. O longe fica além da
+    // faixa da frente (névoa + `AHEAD_DEPTH`).
+    NEAR_RADIUS: 40,
+    FAR_RADIUS: 125,
+    // Idade (s de jogo) da faixa do meio: antes da mínima, não some; dali a
+    // chance cresce a cada verificação até a máxima, quando some na certa.
+    // Curta: quem ficou para trás, fora da vista, libera a vaga logo.
+    MIN_AGE: 30,
+    MAX_AGE: 180,
+    // Segundos entre as verificações da faixa do meio.
+    DESPAWN_CHECK_INTERVAL: 5,
+    // Fora da terra: a inclinação máxima (altura/distância) do ponto e a
+    // folga (m) dos sólidos (árvores, pedras, prédios).
+    MAX_SLOPE: 0.6,
+    SOLID_CLEARANCE: 1.5,
+    // Chance de cada faixa de raridade (`spawn.rarity` da espécie) numa
+    // tentativa — sorteada antes da espécie, como no Cobblemon. Somam um.
+    RARITY_CHANCES: {
+      common: 0.85,
+      uncommon: 0.13,
+      rare: 0.02,
+    },
+    // Nível pelas cidades (`core/wildSpawn/wildLevel.js`): o da primeira
+    // cidade (onde o treinador nasce) é o mais baixo; as outras sorteiam
+    // entre ele e o teto da versão (`EXPERIENCE.LEVEL_CAP`), que também
+    // limita cada indivíduo. `SPREAD`: a variação de cada indivíduo para
+    // cada lado.
+    LEVEL: {
+      FIRST_CITY: 3,
+      SPREAD: 2,
+    },
+    // Quantos spawns e despawns recentes o debug (F2) lista.
+    DEBUG_LOG_SIZE: 8,
+  },
   // Comportamento das selvagens em relação ao lado do jogador
   // (`wildBehaviorSystem.js`, `WildBehavior`). Distâncias no plano
   // horizontal, entre a selvagem e o alvo dela (treinador ou criatura do
@@ -1298,8 +1364,14 @@ export const GAME_CONFIG = {
   // Experiência e nível (docs/features/037-experiencia-e-nivel.md):
   // `core/data/species/experience.js` e `core/actions/experience.js`.
   EXPERIENCE: {
-    // Teto de nível — a curva para aqui e o XP não passa do total dele.
+    // Teto oficial de nível — a escala do jogo: a curva de XP vai até ele e
+    // as fórmulas e learnsets são pensados para ele.
     MAX_LEVEL: 50,
+    // Teto desta versão (a beta): ninguém passa dele — o XP para no total
+    // dele, nenhum Pokémon nasce acima e as selvagens também ficam abaixo
+    // (docs/features/062-spawn-estilo-cobblemon.md). Nunca acima do
+    // `MAX_LEVEL`; sobe a cada beta até chegar nele.
+    LEVEL_CAP: 12,
     // Multiplica o XP total de todo degrau de todas as curvas de nível — o
     // "preço" dos níveis, valendo pra qualquer fonte de XP (batalha, item).
     // Pra mudar o ritmo de tudo, mexe aqui; o ganho de batalha é ajustado
@@ -1313,10 +1385,6 @@ export const GAME_CONFIG = {
     FALLBACK_BASE_XP: 50,
     // Grupo de crescimento de uma espécie sem `growthRate`.
     DEFAULT_GROWTH_RATE: 'medium-slow',
-    // Faixa de nível sorteada pra selvagem cuja entrada de spawn não traz
-    // a própria (`levelRange`).
-    WILD_LEVEL_MIN: 3,
-    WILD_LEVEL_MAX: 8,
     // XP dado pelo botão "+XP" do `DebugPanel`.
     DEBUG_XP_AMOUNT: 100,
   },

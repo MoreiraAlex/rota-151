@@ -75,9 +75,9 @@ export function CreaturesView() {
  * Mesma ideia de `CreaturesView`, pra `WildCreature` (ver docs/features/020-
  * fox-selvagens-cena-e-texturas.md) — reusa o MESMO componente visual
  * (`CreatureView`), tint/textura por espécie incluídos de graça, sem
- * duplicar nada. `WildCreature` nunca é destruída em runtime hoje
- * (`wildCreatureSpawnSystem` só cria), mas `useQuery` continua reativo do
- * mesmo jeito se isso mudar no futuro.
+ * duplicar nada. `WildCreature` nasce e some o tempo todo (spawn e
+ * despawn, docs/features/062-spawn-estilo-cobblemon.md; captura) — o
+ * `useQuery` acompanha.
  */
 export function WildCreaturesView() {
   // Dentro de uma Pokébola (docs/features/043-captura.md) some da cena.

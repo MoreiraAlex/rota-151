@@ -20,6 +20,8 @@ export function rowsToSave(trainer) {
     },
     // Save da versão 1 não tem: a migração põe (`migrateSave`).
     worldItems: trainer.worldItems ?? undefined,
+    // Save até a versão 3 não tem: a migração põe.
+    wildCreatures: trainer.wildCreatures ?? undefined,
     pokemon: trainer.pokemon.map((row) => ({
       id: row.id,
       speciesId: row.speciesId,
@@ -79,6 +81,7 @@ export async function writeSaveRows(prisma, userId, save) {
     inventory: save.trainer.inventory,
     pokedex: save.trainer.pokedex,
     worldItems: save.worldItems,
+    wildCreatures: save.wildCreatures,
   }
   const ids = save.pokemon.map((saved) => saved.id)
 

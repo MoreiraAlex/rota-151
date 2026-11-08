@@ -36,6 +36,10 @@ import { createRng, deriveSeed } from '../rng'
  * @property {(x: number, z: number) => { city: CitySite, distance: number }}
  *   nearestCity - a cidade mais próxima de `(x, z)` e a distância (m) até o
  *   centro dela
+ * @property {(x: number, z: number, count: number) => { city: CitySite, distance: number }[]}
+ *   nearestCities - as `count` cidades mais próximas, da mais perto para a
+ *   mais longe (a segunda dá a transição entre duas áreas — o nível dos
+ *   selvagens, docs/features/062-spawn-estilo-cobblemon.md)
  * @property {(x: number) => number} cellOf - a célula de uma coordenada
  * @property {number} edge - largura (m) da borda da cidade no mapa de
  *   biomas (`CITIES.EDGE`)
@@ -149,5 +153,20 @@ export function createCitySites(
     return { city, distance }
   }
 
-  return { cityAt, nearestCity, cellOf, edge: EDGE }
+  // Fora do caminho quente do relevo (que usa só a mais próxima): monta e
+  // ordena a lista. As células em volta bastam para as duas primeiras.
+  function nearestCities(x, z, count) {
+    const cellX = cellOf(x)
+    const cellZ = cellOf(z)
+    const found = []
+    for (let dx = -NEAREST_REACH; dx <= NEAREST_REACH; dx++) {
+      for (let dz = -NEAREST_REACH; dz <= NEAREST_REACH; dz++) {
+        const city = cityAt(cellX + dx, cellZ + dz)
+        found.push({ city, distance: Math.hypot(x - city.x, z - city.z) })
+      }
+    }
+    return found.sort((a, b) => a.distance - b.distance).slice(0, count)
+  }
+
+  return { cityAt, nearestCity, nearestCities, cellOf, edge: EDGE }
 }

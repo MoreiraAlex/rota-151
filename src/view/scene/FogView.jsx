@@ -3,7 +3,7 @@ import { TEST_LEVEL } from '@/core/data/testLevel'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import { lightingAt } from '@/core/time/dayCycle'
 import { useTerrainChunks } from '@/view/hooks/useTerrainChunks'
-import { loadedFogRange } from '@/view/terrain/fogRange'
+import { loadedFogRange } from '@/core/terrain/fogRange'
 
 // Névoa pela DISTÂNCIA até a câmera, não pela profundidade (o padrão do
 // Three, `-mvPosition.z`): pela profundidade, o que fica de lado na tela

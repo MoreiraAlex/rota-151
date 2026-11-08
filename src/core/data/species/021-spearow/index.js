@@ -151,7 +151,7 @@ export const SPEAROW = {
     flightGroup: 'wing',
     voice: {
       clips: ['/assets/audio/voices/021-spearow/cry-01.wav'],
-      volume: 0.8,
+      volume: 0.25,
       refDistance: 2,
       minInterval: 4,
       maxInterval: 32,
@@ -166,7 +166,7 @@ export const SPEAROW = {
   },
   stats: {
     hp: { base: HP, ev: HP_EV, regenPercent: 0.25, regenDelay: 10 },
-    energy: { regenPercent: 40, regenDelay: 2 },
+    energy: { regenPercent: 75, regenDelay: 1 },
     attack: { base: ATTACK, ev: ATTACK_EV },
     defense: { base: DEFENSE, ev: DEFENSE_EV },
     sp_atk: { base: SP_ATK, ev: SP_ATK_EV },
@@ -194,4 +194,6 @@ export const SPEAROW = {
   // Na série ele é territorial e agressivo, ao contrário do Pidgey: ataca
   // quem entra no território dele.
   wild: { hostileChance: 0.6 },
+  // Onde nasce no mundo (062): na savana, só de dia.
+  spawn: { biomes: ['savanna'], rarity: 'uncommon', phases: { night: 0 } },
 }

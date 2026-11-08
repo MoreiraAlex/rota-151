@@ -10,7 +10,8 @@ import { verticalClearance } from '@/core/physics/colliders'
 import { clamp } from '@/core/math/clamp'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import { resolveRenderPosition } from '@/view/registry/renderInterpolation'
-import { fogFactorAt } from '@/view/terrain/fogRange'
+import { fogFactorAt } from '@/core/terrain/fogRange'
+import { nameplateRangeOpacity } from './nameplateRange'
 import {
   BeingCaptured,
   CreatureLevel,
@@ -188,11 +189,15 @@ function NameplateView({ entity, species }) {
       (NAMEPLATE_DISTANCE_MAX_SCALE - NAMEPLATE_DISTANCE_MIN_SCALE) * t
     content.style.transform = `scale(${NAMEPLATE_SCALE * distanceScale})`
 
-    // Some junto com a névoa (`FogView`, docs/features/046-sistema-de-
-    // chunks.md) — overlay de DOM não é enevoado pelo shader, e ficaria
-    // boiando no meio dela.
+    // Some longe da câmera e junto com a névoa (`FogView`,
+    // docs/features/046-sistema-de-chunks.md) — overlay de DOM não é
+    // enevoado pelo shader, e ficaria boiando no meio dela. O que der
+    // menos vale.
     const { fog } = state.scene
-    content.style.opacity = fog ? String(1 - fogFactorAt(distance, fog)) : '1'
+    const fogOpacity = fog ? 1 - fogFactorAt(distance, fog) : 1
+    const opacity = Math.min(fogOpacity, nameplateRangeOpacity(distance))
+    content.style.opacity = String(opacity)
+    content.style.visibility = opacity > 0 ? 'visible' : 'hidden'
   })
 
   if (!vitals) return null
@@ -221,7 +226,14 @@ function NameplateView({ entity, species }) {
         <div
           ref={contentRef}
           className="flex w-28 flex-col items-center gap-0.5 rounded px-1.5 py-1 font-mono text-[10px] "
-          style={{ transform: `scale(${NAMEPLATE_SCALE})` }}
+          // Nasce escondida: o `<Html>` monta o conteúdo por fora do quadro e,
+          // às vezes, ele chegava à tela antes de o `useFrame` esconder quem
+          // nasceu longe — a etiqueta piscava um quadro inteira.
+          style={{
+            transform: `scale(${NAMEPLATE_SCALE})`,
+            opacity: 0,
+            visibility: 'hidden',
+          }}
         >
           <div className="flex w-full items-center justify-center gap-1">
             <span className="truncate">{formatSpeciesName(species.id)}</span>

@@ -16,12 +16,21 @@ export function WildBehaviorPage({ data, version }) {
       <Section id="vagando" title="Vagando">
         <p>
           Fora de luta, as criaturas selvagens andam sem rumo pela região onde
-          apareceram, parando de vez em quando.
+          apareceram, parando de vez em quando. Onde cada espécie aparece, e
+          quando elas surgem e somem, está em{' '}
+          <WikiLink version={version} to="selvagens/onde-encontrar">
+            Onde encontrar
+          </WikiLink>
+          .
         </p>
         <p>
-          Cada selvagem nasce com o próprio nível, sorteado entre{' '}
-          {data.experience.wildLevelMin} e {data.experience.wildLevelMax}.
-          Derrotá-la dá experiência pras criaturas do time que lutaram (
+          Cada selvagem nasce com o próprio nível, que depende de onde ela
+          aparece: cada cidade tem um nível, as selvagens em volta ficam perto
+          dele e, no caminho entre duas cidades, ele muda aos poucos (
+          <WikiLink version={version} to="selvagens/onde-encontrar#nivel">
+            nível das selvagens
+          </WikiLink>
+          ). Derrotá-la dá experiência pras criaturas do time que lutaram (
           <WikiLink version={version} to="criaturas/experiencia-e-nivel">
             Experiência e nível
           </WikiLink>

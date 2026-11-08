@@ -78,20 +78,22 @@ model Verification {
 // src/core/save/; quem grava é src/app/api/save/route.js.
 
 model Trainer {
-  id          String    @id @default(uuid())
-  userId      String    @unique
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  saveVersion Int
-  position    Json?
-  heldItemId  String?
-  worldTime   Float?
+  id            String    @id @default(uuid())
+  userId        String    @unique
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  saveVersion   Int
+  position      Json?
+  heldItemId    String?
+  worldTime     Float?
   // Itens do mundo que o jogador mexeu (docs/features/055-itens-no-mundo.md).
-  worldItems  Json?
-  inventory   Json
-  pokedex     Json
-  pokemon     Pokemon[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  worldItems    Json?
+  // Selvagens vivas no mundo (docs/features/062-spawn-estilo-cobblemon.md).
+  wildCreatures Json?
+  inventory     Json
+  pokedex       Json
+  pokemon       Pokemon[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   @@map("trainer")
 }

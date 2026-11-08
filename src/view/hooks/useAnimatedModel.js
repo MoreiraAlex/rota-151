@@ -30,6 +30,18 @@ import {
   disposeNativeAnimationPlayer,
 } from '@/view/animation/nativeAnimationPlayer'
 import { getAudioListener } from '../audio/audioListener'
+import { createPositionalAudio } from '../audio/spatialAudio'
+import {
+  DEFAULT_ACTION_SOUND_MAX_DISTANCE,
+  DEFAULT_ACTION_SOUND_REF_DISTANCE,
+  DEFAULT_ACTION_SOUND_VOLUME,
+  DEFAULT_FOOTSTEP_MAX_DISTANCE,
+  DEFAULT_FOOTSTEP_REF_DISTANCE,
+  DEFAULT_FOOTSTEP_VOLUME,
+  DEFAULT_VOICE_MAX_DISTANCE,
+  DEFAULT_VOICE_REF_DISTANCE,
+  DEFAULT_VOICE_VOLUME,
+} from '../audio/soundRanges'
 import { loadAudioBuffer } from '../audio/audioBufferCache'
 import { loadTexture } from '../textures/textureCache'
 import {
@@ -92,12 +104,6 @@ import {
 import { GAME_CONFIG } from '@/core/gameConfig'
 import { applyToonLook, isOutline } from '../materials/toonMaterial'
 
-const DEFAULT_FOOTSTEP_VOLUME = 0.6
-const DEFAULT_FOOTSTEP_REF_DISTANCE = 5
-const DEFAULT_VOICE_VOLUME = 0.8
-const DEFAULT_VOICE_REF_DISTANCE = 8
-const DEFAULT_ACTION_SOUND_VOLUME = 0.6
-const DEFAULT_ACTION_SOUND_REF_DISTANCE = 6
 const DEFAULT_BLINK_MIN_INTERVAL = 2
 const DEFAULT_BLINK_MAX_INTERVAL = 6
 const DEFAULT_BLINK_CLOSED_DURATION = 0.12
@@ -124,10 +130,11 @@ function setupPositionalActionSound(
   { register, unregister, get },
   extra,
 ) {
-  const listener = getAudioListener()
-  const audio = new THREE.PositionalAudio(listener)
-  audio.setVolume(config.volume ?? defaults.volume)
-  audio.setRefDistance(config.refDistance ?? defaults.refDistance)
+  const audio = createPositionalAudio(getAudioListener(), {
+    volume: config.volume ?? defaults.volume,
+    refDistance: config.refDistance ?? defaults.refDistance,
+    maxDistance: config.maxDistance ?? defaults.maxDistance,
+  })
   groupRef.current.add(audio)
   register(entity, audio, extra)
 
@@ -163,9 +170,11 @@ function setupPositionalActionSound(
 function setupAttackAudio(entity, groupRef, sounds, loopSounds) {
   const listener = getAudioListener()
   const createVoice = (part) => {
-    const audio = new THREE.PositionalAudio(listener)
-    audio.setVolume(part.volume ?? DEFAULT_ACTION_SOUND_VOLUME)
-    audio.setRefDistance(part.refDistance ?? DEFAULT_ACTION_SOUND_REF_DISTANCE)
+    const audio = createPositionalAudio(listener, {
+      volume: part.volume ?? DEFAULT_ACTION_SOUND_VOLUME,
+      refDistance: part.refDistance ?? DEFAULT_ACTION_SOUND_REF_DISTANCE,
+      maxDistance: part.maxDistance ?? DEFAULT_ACTION_SOUND_MAX_DISTANCE,
+    })
     groupRef.current.add(audio)
     return { audio, delay: part.delay ?? 0, buffers: [] }
   }
@@ -581,12 +590,13 @@ export function useAnimatedModel(entity, species) {
     const footstep = resolveFootstepSound(species)
     if (!footstep) return
 
-    const listener = getAudioListener()
-    const audio = new THREE.PositionalAudio(listener)
     const volume = footstep.volume ?? DEFAULT_FOOTSTEP_VOLUME
     const flight = resolveFlightSound(species)
-    audio.setVolume(volume)
-    audio.setRefDistance(footstep.refDistance ?? DEFAULT_FOOTSTEP_REF_DISTANCE)
+    const audio = createPositionalAudio(getAudioListener(), {
+      volume,
+      refDistance: footstep.refDistance ?? DEFAULT_FOOTSTEP_REF_DISTANCE,
+      maxDistance: footstep.maxDistance ?? DEFAULT_FOOTSTEP_MAX_DISTANCE,
+    })
     groupRef.current.add(audio)
     registerFootstepAudio(entity, audio, volume, flight?.volume ?? volume)
 
@@ -629,7 +639,11 @@ export function useAnimatedModel(entity, species) {
       entity,
       groupRef,
       voice,
-      { volume: DEFAULT_VOICE_VOLUME, refDistance: DEFAULT_VOICE_REF_DISTANCE },
+      {
+        volume: DEFAULT_VOICE_VOLUME,
+        refDistance: DEFAULT_VOICE_REF_DISTANCE,
+        maxDistance: DEFAULT_VOICE_MAX_DISTANCE,
+      },
       {
         register: registerVoiceAudio,
         unregister: unregisterVoiceAudio,
@@ -659,6 +673,7 @@ export function useAnimatedModel(entity, species) {
       {
         volume: DEFAULT_ACTION_SOUND_VOLUME,
         refDistance: DEFAULT_ACTION_SOUND_REF_DISTANCE,
+        maxDistance: DEFAULT_ACTION_SOUND_MAX_DISTANCE,
       },
       {
         register: registerDashAudio,
@@ -680,6 +695,7 @@ export function useAnimatedModel(entity, species) {
       {
         volume: DEFAULT_ACTION_SOUND_VOLUME,
         refDistance: DEFAULT_ACTION_SOUND_REF_DISTANCE,
+        maxDistance: DEFAULT_ACTION_SOUND_MAX_DISTANCE,
       },
       {
         register: registerJumpAudio,
@@ -701,6 +717,7 @@ export function useAnimatedModel(entity, species) {
       {
         volume: DEFAULT_ACTION_SOUND_VOLUME,
         refDistance: DEFAULT_ACTION_SOUND_REF_DISTANCE,
+        maxDistance: DEFAULT_ACTION_SOUND_MAX_DISTANCE,
       },
       {
         register: registerSummonAudio,
@@ -722,6 +739,7 @@ export function useAnimatedModel(entity, species) {
       {
         volume: DEFAULT_ACTION_SOUND_VOLUME,
         refDistance: DEFAULT_ACTION_SOUND_REF_DISTANCE,
+        maxDistance: DEFAULT_ACTION_SOUND_MAX_DISTANCE,
       },
       {
         register: registerRecallAudio,

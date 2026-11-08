@@ -13,6 +13,7 @@ function minimalSave(overrides = {}) {
     },
     pokemon: [],
     worldItems: { chunks: {}, foraged: {} },
+    wildCreatures: [],
     ...overrides,
   }
 }
@@ -173,5 +174,40 @@ describe('migração 2 → 3 (condições em lista, 061)', () => {
       },
     ])
     expect(clean.conditions).toBe(null)
+  })
+})
+
+describe('migração 3 → 4 (selvagens, 062)', () => {
+  it('save da versão 3 chega à atual sem nenhuma selvagem', () => {
+    const { wildCreatures, ...old } = minimalSave({ version: 3 })
+
+    const result = migrateSave(old)
+
+    expect(wildCreatures).toBeTruthy()
+    expect(result.ok).toBe(true)
+    expect(result.save.wildCreatures).toEqual([])
+  })
+
+  it('recusa uma selvagem sem espécie', () => {
+    const save = minimalSave({
+      wildCreatures: [
+        {
+          x: 0,
+          y: 0,
+          z: 0,
+          rotationY: 0,
+          level: 1,
+          xp: 0,
+          ivs: {},
+          temperament: 'peaceful',
+          hp: 1,
+          stamina: 1,
+          faintTimeLeft: null,
+          conditions: null,
+          age: 0,
+        },
+      ],
+    })
+    expect(validateSave(save).ok).toBe(false)
   })
 })

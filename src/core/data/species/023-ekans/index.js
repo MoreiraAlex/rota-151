@@ -129,7 +129,7 @@ export const EKANS = {
     footstepGroup: 'crawl',
     voice: {
       clips: ['/assets/audio/voices/023-ekans/cry-01.wav'],
-      volume: 0.8,
+      volume: 0.25,
       refDistance: 2,
       minInterval: 4,
       maxInterval: 32,
@@ -144,7 +144,7 @@ export const EKANS = {
   },
   stats: {
     hp: { base: HP, ev: HP_EV, regenPercent: 0.25, regenDelay: 10 },
-    energy: { regenPercent: 40, regenDelay: 2 },
+    energy: { regenPercent: 75, regenDelay: 1 },
     attack: { base: ATTACK, ev: ATTACK_EV },
     defense: { base: DEFENSE, ev: DEFENSE_EV },
     sp_atk: { base: SP_ATK, ev: SP_ATK_EV },
@@ -176,4 +176,11 @@ export const EKANS = {
   // Na série o Ekans caça em silêncio e dá o bote: mais selvagens nascem
   // agressivos que o Weedle e o Pidgey.
   wild: { hostileChance: 0.5 },
+  // Onde nasce no mundo (062): na savana, com tempo seco — some na chuva
+  // e aparece mais no sol.
+  spawn: {
+    biomes: ['savanna'],
+    rarity: 'uncommon',
+    weather: { rain: 0, storm: 0, sun: 1.5 },
+  },
 }

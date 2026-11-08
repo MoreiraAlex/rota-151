@@ -7,7 +7,9 @@ import { StatBars } from '@/tools/wiki/components/StatBars'
 import { TypeTag, TypeTags } from '@/tools/wiki/components/TypeTag'
 import { WikiLink, wikiHref } from '@/tools/wiki/components/WikiLink'
 import { COMBAT_STAT_KEYS } from '@/tools/wiki/speciesEntry'
+import { Notice } from '@/tools/wiki/components/Notice'
 import {
+  describeSpeciesSpawn,
   GROWTH_RATE_LABELS,
   AREA_LABELS,
   CATEGORY_LABELS,
@@ -84,6 +86,11 @@ function attackDetails(attack) {
   return [...parts, ...attack.effects].join(' · ')
 }
 
+function spawnRow(spawn) {
+  const text = describeSpeciesSpawn(spawn)
+  return [text.biomes, text.rarity, text.phases, text.weather]
+}
+
 export function CreatureDetailPage({ data, version, id }) {
   const entry = data.species.find((species) => species.id === id)
   const seconds = (value) => formatSeconds(value)
@@ -139,6 +146,28 @@ export function CreatureDetailPage({ data, version, id }) {
           </Section>
         </div>
       </div>
+
+      <Section id="onde-encontrar" title="Onde encontrar">
+        {entry.spawn ? (
+          <>
+            <DataTable
+              head={['Biomas', 'Raridade', 'Hora do dia', 'Clima']}
+              rows={[spawnRow(entry.spawn)]}
+            />
+            <p className="text-sm text-muted-foreground">
+              Como a raridade, a hora e o clima funcionam:{' '}
+              <WikiLink version={version} to="selvagens/onde-encontrar">
+                Onde encontrar
+              </WikiLink>
+              .
+            </p>
+          </>
+        ) : (
+          <Notice tone="missing">
+            <p>Não aparece na natureza nesta versão.</p>
+          </Notice>
+        )}
+      </Section>
 
       <Section id="golpes" title="Golpes">
         <DataTable

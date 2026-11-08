@@ -19,6 +19,15 @@ export function ExperiencePage({ data, version }) {
           <strong>experiência (XP)</strong>, ganha derrotando criaturas
           selvagens.
         </p>
+        <Notice tone="tip">
+          <p>
+            Nesta versão do jogo, o teto é o{' '}
+            <strong>nível {experience.levelCap}</strong>: nenhuma criatura passa
+            dele (chegando lá, o XP para de contar) e nenhuma selvagem nasce
+            acima. O teto sobe nas próximas versões, até o {experience.maxLevel}
+            .
+          </p>
+        </Notice>
         <ul>
           <li>
             As criaturas do time começam no nível inicial da espécie (no{' '}
@@ -28,8 +37,13 @@ export function ExperiencePage({ data, version }) {
             ) e guardam o nível e o XP mesmo dentro da bola.
           </li>
           <li>
-            As selvagens nascem com um nível sorteado, hoje entre{' '}
-            {experience.wildLevelMin} e {experience.wildLevelMax}.
+            As selvagens nascem com um nível que depende de onde aparecem: perto
+            de uma cidade, perto do nível dela; entre duas cidades, ele muda aos
+            poucos (
+            <WikiLink version={version} to="selvagens/onde-encontrar#nivel">
+              Onde encontrar
+            </WikiLink>
+            ).
           </li>
         </ul>
       </Section>

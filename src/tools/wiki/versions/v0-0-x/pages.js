@@ -16,6 +16,7 @@ import { EnergyPage } from './pages/EnergyPage'
 import { ReachPage } from './pages/ReachPage'
 import { FaintPage } from './pages/FaintPage'
 import { WildBehaviorPage } from './pages/WildBehaviorPage'
+import { WhereToFindPage } from './pages/WhereToFindPage'
 import { HowTheyFightPage } from './pages/HowTheyFightPage'
 import { CapturePage } from './pages/CapturePage'
 import { PokedexPage } from './pages/PokedexPage'
@@ -114,6 +115,12 @@ const PAGES = {
     title: 'Desmaio',
     summary: 'O que acontece quando a vida zera.',
     Component: FaintPage,
+  },
+  'selvagens/onde-encontrar': {
+    title: 'Onde encontrar',
+    summary:
+      'Onde cada espécie aparece, raridade, quando elas surgem e vão embora, e o nível.',
+    Component: WhereToFindPage,
   },
   'selvagens/comportamento': {
     title: 'Comportamento das selvagens',

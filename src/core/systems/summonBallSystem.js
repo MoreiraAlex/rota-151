@@ -77,7 +77,7 @@ import { overDeepWater } from '../terrain/water'
  * novo, a cada invocação: a MESMA criatura do jogador
  * precisa ter o MESMO IV toda vez que sai da bola (pedido do usuário:
  * "congelado por criatura"), diferente da selvagem, que sorteia o
- * próprio no spawn (`wildCreatureSpawnSystem.js`). `vitalsFromSpecies`
+ * próprio no spawn (`nascerSelvagem` (`core/actions/wildSpawn.js`)). `vitalsFromSpecies`
  * recebe o mesmo `individualValues` — sem isso o HP/energy de spawn
  * ignoraria o IV de verdade desta criatura.
  *

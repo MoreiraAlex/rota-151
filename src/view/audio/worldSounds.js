@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { applySpatialAudio, createPositionalAudio } from './spatialAudio'
 import { getAudioListener } from './audioListener'
 import { loadAudioBuffer } from './audioBufferCache'
 import { pickRandomVariation } from './pickRandomVariation'
@@ -15,6 +16,9 @@ import { pickRandomVariation } from './pickRandomVariation'
  * pede e não toca desta vez (`preloadWorldSounds` evita isso).
  */
 const VOICE_COUNT = 8
+// Alcance (m) de um som sem o próprio (`view/audio/spatialAudio.js`).
+const DEFAULT_REF_DISTANCE = 6
+const DEFAULT_MAX_DISTANCE = 30
 let root = null
 let voices = []
 let next = 0
@@ -24,7 +28,11 @@ export function registerWorldSoundsRoot(group) {
   root = group
   voices = Array.from({ length: VOICE_COUNT }, () => {
     const holder = new THREE.Object3D()
-    const audio = new THREE.PositionalAudio(getAudioListener())
+    const audio = createPositionalAudio(getAudioListener(), {
+      volume: 1,
+      refDistance: DEFAULT_REF_DISTANCE,
+      maxDistance: DEFAULT_MAX_DISTANCE,
+    })
     holder.add(audio)
     group.add(holder)
     return { holder, audio }
@@ -61,7 +69,10 @@ export function playWorldSound(sound, position) {
   voice.holder.position.set(position.x, position.y, position.z)
   voice.audio.setBuffer(pickRandomVariation(ready))
   voice.audio.setVolume(sound.volume)
-  voice.audio.setRefDistance(sound.refDistance ?? 6)
+  applySpatialAudio(voice.audio, {
+    refDistance: sound.refDistance ?? DEFAULT_REF_DISTANCE,
+    maxDistance: sound.maxDistance ?? DEFAULT_MAX_DISTANCE,
+  })
   voice.audio.play()
 }
 

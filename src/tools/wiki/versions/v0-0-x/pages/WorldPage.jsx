@@ -7,15 +7,8 @@ import {
   formatNumber,
   formatPercent,
   formatTypeName,
+  WEATHER_NAMES,
 } from '@/tools/wiki/wikiFormat'
-
-const WEATHER_NAMES = {
-  clear: 'Limpo',
-  sun: 'Sol forte',
-  rain: 'Chuva',
-  storm: 'Tempestade',
-  snow: 'Neve',
-}
 
 const STAT_NAMES = { defense: 'Defesa', sp_def: 'Defesa especial' }
 

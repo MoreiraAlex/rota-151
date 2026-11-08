@@ -157,7 +157,7 @@ export const PIDGEY = {
     flightGroup: 'wing',
     voice: {
       clips: ['/assets/audio/voices/016-pidgey/cry-01.wav'],
-      volume: 0.8,
+      volume: 0.25,
       refDistance: 2,
       minInterval: 4,
       maxInterval: 32,
@@ -171,7 +171,7 @@ export const PIDGEY = {
   },
   stats: {
     hp: { base: HP, ev: HP_EV, regenPercent: 0.25, regenDelay: 10 },
-    energy: { regenPercent: 40, regenDelay: 2 },
+    energy: { regenPercent: 75, regenDelay: 1 },
     attack: { base: ATTACK, ev: ATTACK_EV },
     defense: { base: DEFENSE, ev: DEFENSE_EV },
     sp_atk: { base: SP_ATK, ev: SP_ATK_EV },
@@ -189,4 +189,12 @@ export const PIDGEY = {
   // Na série o Pidgey é dócil: atacado, joga areia pra se proteger em vez
   // de revidar. Quase todos nascem pacíficos.
   wild: { hostileChance: 0.1 },
+  // Onde nasce no mundo (062): floresta e planície, de dia; na tempestade
+  // fica abrigado.
+  spawn: {
+    biomes: ['forest', 'plains'],
+    rarity: 'common',
+    phases: { night: 0 },
+    weather: { storm: 0 },
+  },
 }

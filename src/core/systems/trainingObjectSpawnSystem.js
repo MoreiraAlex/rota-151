@@ -4,7 +4,7 @@ import { Position, TrainingObject } from '../traits'
 /**
  * Cria uma entidade (`TrainingObject` + `Position`) por objeto de treino do
  * nível (`TEST_LEVEL.trainingObjects`) — UMA VEZ, no início do jogo, como o
- * `wildCreatureSpawnSystem`. A colisão e o mesh vêm do mesmo dado, como
+ * `nascerSelvagem`. A colisão e o mesh vêm do mesmo dado, como
  * obstáculo comum (`core/data/testLevel.js`); a entidade existe só pra ser
  * consultada por proximidade (`findNearbyTrainingObject`,
  * `core/actions/training.js`). Ver docs/features/038-aprendizado-treino-e-

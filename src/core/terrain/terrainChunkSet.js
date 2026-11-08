@@ -77,6 +77,8 @@ import {
  *   chunks carregados)
  * @property {(x: number, z: number) => { city: import('../town/citySites').CitySite, distance: number } | null} nearestCity -
  *   a cidade da seed mais perto e a distância (m) até o centro dela
+ * @property {(x: number, z: number, count: number) => { city: import('../town/citySites').CitySite, distance: number }[]} nearestCities -
+ *   as `count` cidades da seed mais perto, em ordem de distância
  * @property {() => SolidsBlock[]} loadedBlocks - os blocos de sólidos com
  *   algum chunk carregado (a view desenha a vegetação por bloco)
  * @property {(x: number, z: number, reach: number) => import('../vegetation/solidPlacement').Footprint[]} footprintsAround -
@@ -275,6 +277,11 @@ export function createTerrainChunkSet({
     // A cidade da seed mais perto de `(x, z)` e a distância (m) até ela
     // (docs/features/058-ajuste-dos-biomas.md) — `null` sem cidades.
     nearestCity: (x, z) => sampler.cities?.nearestCity(x, z) ?? null,
+    // As `count` cidades mais perto, da mais perto para a mais longe — a
+    // transição do nível dos selvagens (docs/features/062-spawn-estilo-
+    // cobblemon.md). Sem cidades, lista vazia.
+    nearestCities: (x, z, count) =>
+      sampler.cities?.nearestCities(x, z, count) ?? [],
     // Correnteza dos rios em `(x, z)` (docs/features/057-lagos-e-rios.md).
     flowAt: (x, z) => sampler.flowAt(x, z),
 

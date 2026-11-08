@@ -16,7 +16,7 @@ export const SPECIES_TEMPLATE = {
   // Opcional — nível INICIAL de um Pokémon novo (`criarPokemon`). O
   // nível de verdade é de cada criatura (`CreatureLevel`,
   // docs/features/037-experiencia-e-nivel.md); a selvagem sorteia o dela no
-  // spawn (`levelRange` da entrada, ou `GAME_CONFIG.EXPERIENCE`). Ausente
+  // spawn, pelas cidades em volta (`core/wildSpawn/wildLevel.js`). Ausente
   // (ex.: `../boy/index.js`, treinador) = sem nível na etiqueta.
   // level: 5,
   // Opcional — XP base que ela rende ao ser derrotada (fórmula de ganho,
@@ -280,7 +280,7 @@ export const SPECIES_TEMPLATE = {
   //      sounds: {
   //        voice: {
   //          clips: ['/assets/audio/voices/.../cry-01.ogg', ...],
-  //          volume: 0.8, // opcional
+  //          volume: 0.25, // opcional
   //          refDistance: 8, // opcional
   //          minInterval: 10, // opcional, segundos
   //          maxInterval: 25, // opcional, segundos
@@ -385,6 +385,23 @@ export const SPECIES_TEMPLATE = {
   // senão nasce pacífico (só vaga; apanhando, revida ou foge). Ausente =
   // `GAME_CONFIG.WILD_BEHAVIOR.DEFAULT_HOSTILE_CHANCE`.
   // wild: { hostileChance: 0.5 },
+  // Opcional — onde e quando a espécie nasce no mundo
+  // (docs/features/062-spawn-estilo-cobblemon.md, `core/wildSpawn/`).
+  // Ausente = nunca nasce selvagem (os iniciais, o treinador).
+  // - `biomes`: ids dos biomas; `tags`: casa com bioma que tenha alguma
+  //   delas. Basta casar um dos dois.
+  // - `rarity`: chave de `GAME_CONFIG.WILD_SPAWN.RARITY_CHANCES` — a faixa
+  //   é sorteada antes da espécie, pela chance fixa dela.
+  // - `phases`/`weather`: multiplicador do peso dentro da faixa, por fase do dia (`dawn`,
+  //   `day`, `dusk`, `night`) e por clima (`clear`, `sun`, `rain`, `storm`,
+  //   `snow`). Ausente = sem mudança; zero = não nasce nessa fase/clima.
+  // spawn: {
+  //   biomes: ['forest'],
+  //   tags: [],
+  //   rarity: 'common',
+  //   phases: { night: 0 },
+  //   weather: { storm: 0 },
+  // },
   // Opcional — taxa de captura (0-255, escala da série; maior = mais fácil),
   // usada na chance da Pokébola (`core/battle/capture.js`,
   // docs/features/043-captura.md). Ausente = `GAME_CONFIG.CAPTURE.DEFAULT_RATE`.

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { makeWorld } from '@/test/makeWorld'
-import { Vitals } from '@/core/traits'
+import { ActionState, Vitals } from '@/core/traits'
 import { vitalsRegenSystem } from './vitalsRegenSystem'
 
 function tick(world, delta = 1) {
@@ -116,5 +116,49 @@ describe('vitalsRegenSystem', () => {
 
     tick(world, 1) // delay já zerado — regenera normalmente
     expect(player.get(Vitals).stamina).toBeCloseTo(60)
+  })
+
+  it('golpe em andamento segura o delay da stamina: só conta depois que acaba', () => {
+    const { world, player } = makeWorld()
+    const afterUse = 1
+    player.set(Vitals, {
+      stamina: 50,
+      maxStamina: 100,
+      staminaRegenPercent: 10,
+      staminaRegenDelay: afterUse,
+      staminaRegenDelayAfterUse: afterUse,
+    })
+    if (!player.has(ActionState)) player.add(ActionState)
+    player.set(ActionState, { current: 'attack' })
+
+    // golpe bem mais longo que o delay: nada regenera no meio
+    for (let i = 0; i < 5; i += 1) tick(world, afterUse)
+    expect(player.get(Vitals).stamina).toBe(50)
+    expect(player.get(Vitals).staminaRegenDelay).toBe(afterUse)
+
+    // acabou: o delay inteiro conta a partir daqui
+    player.set(ActionState, { current: null })
+    tick(world, afterUse / 2)
+    expect(player.get(Vitals).stamina).toBe(50)
+    tick(world, afterUse / 2)
+    expect(player.get(Vitals).stamina).toBe(50)
+    tick(world, 1)
+    expect(player.get(Vitals).stamina).toBeGreaterThan(50)
+  })
+
+  it('fora de golpe, outra ação não segura o delay', () => {
+    const { world, player } = makeWorld()
+    player.set(Vitals, {
+      stamina: 50,
+      maxStamina: 100,
+      staminaRegenPercent: 10,
+      staminaRegenDelay: 1,
+      staminaRegenDelayAfterUse: 1,
+    })
+    if (!player.has(ActionState)) player.add(ActionState)
+    player.set(ActionState, { current: 'hit' })
+
+    tick(world, 1)
+    expect(player.get(Vitals).staminaRegenDelay).toBe(0)
   })
 })

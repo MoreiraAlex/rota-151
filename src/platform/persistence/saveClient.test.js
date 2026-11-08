@@ -12,6 +12,7 @@ const VALID_SAVE = {
   },
   pokemon: [],
   worldItems: { chunks: {}, foraged: {} },
+  wildCreatures: [],
 }
 
 function respond(status, data) {

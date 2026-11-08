@@ -33,6 +33,7 @@ import {
   subscribeStatsVisible,
 } from '@/tools/debug/statsOverlay'
 import { WildBehaviorDebugView } from '@/tools/debug/WildBehaviorDebugView'
+import { WildSpawnDebugView } from '@/tools/debug/WildSpawnDebugView'
 import { PartyBehaviorDebugView } from '@/tools/debug/PartyBehaviorDebugView'
 import { DebugPanel } from '@/tools/debug/DebugPanel'
 import { PauseMenu } from '@/tools/menu/PauseMenu'
@@ -422,6 +423,7 @@ function GameScreen({ saveError, onDeleteSave, onSceneReady }) {
                 <ChunkDebugView />
                 <RenderStatsProbe />
                 <WildBehaviorDebugView />
+                <WildSpawnDebugView />
                 <PartyBehaviorDebugView />
               </>
             )}

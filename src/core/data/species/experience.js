@@ -45,6 +45,18 @@ function clampLevel(level) {
 }
 
 /**
+ * O teto de nível desta versão (`LEVEL_CAP`), nunca acima do oficial
+ * (`MAX_LEVEL`): ninguém sobe nem nasce acima dele. A curva continua indo
+ * até o oficial.
+ */
+export function resolveLevelCap() {
+  const { LEVEL_CAP, MAX_LEVEL } = GAME_CONFIG.EXPERIENCE
+  return Math.min(LEVEL_CAP ?? MAX_LEVEL, MAX_LEVEL)
+}
+
+const clampToCap = (level) => Math.min(resolveLevelCap(), Math.max(1, level))
+
+/**
  * XP total pra estar no `level` (nível 1 = 0; teto `MAX_LEVEL`): a curva do
  * grupo × `CURVE_MULTIPLIER` (o mesmo pra todo grupo — muda o ritmo do jogo
  * inteiro sem mudar o formato das curvas).
@@ -59,13 +71,14 @@ export function experienceForLevel(growthRate, level) {
   )
 }
 
-/** Nível de quem tem `xp` de total (inverso de `experienceForLevel`). */
+/**
+ * Nível de quem tem `xp` de total (inverso de `experienceForLevel`), até o
+ * teto da versão.
+ */
 export function levelForExperience(growthRate, xp) {
+  const cap = resolveLevelCap()
   let level = 1
-  while (
-    level < GAME_CONFIG.EXPERIENCE.MAX_LEVEL &&
-    experienceForLevel(growthRate, level + 1) <= xp
-  ) {
+  while (level < cap && experienceForLevel(growthRate, level + 1) <= xp) {
     level++
   }
   return level
@@ -73,10 +86,10 @@ export function levelForExperience(growthRate, xp) {
 
 /**
  * Fração (0-1) do caminho do nível atual até o próximo — o anel de XP do
- * HUD. No nível máximo, `1`.
+ * HUD. No teto da versão (ou acima), `1`.
  */
 export function resolveLevelProgress(growthRate, level, xp) {
-  if (level >= GAME_CONFIG.EXPERIENCE.MAX_LEVEL) return 1
+  if (level >= resolveLevelCap()) return 1
   const start = experienceForLevel(growthRate, level)
   const end = experienceForLevel(growthRate, level + 1)
   if (end <= start) return 1
@@ -118,23 +131,13 @@ export function resolveGrowthRate(species) {
 
 /**
  * Nível + XP de quem NASCE num nível (selvagem no spawn, criatura nova no
- * time): o XP é o começo exato do nível, anel de XP vazio.
+ * time): o XP é o começo exato do nível, anel de XP vazio. Nunca acima do
+ * teto da versão.
  */
 export function createLevelState(species, level) {
-  const clamped = clampLevel(level)
+  const clamped = clampToCap(level)
   return {
     level: clamped,
     xp: experienceForLevel(resolveGrowthRate(species), clamped),
   }
-}
-
-/**
- * Nível sorteado de uma selvagem: a faixa da entrada de spawn
- * (`levelRange: [min, max]`) ou a padrão (`WILD_LEVEL_MIN`/`MAX`). `rng`
- * vem de fora (`gameplayRng`) — regra 3.5.
- */
-export function rollWildLevel(rng, levelRange) {
-  const { WILD_LEVEL_MIN, WILD_LEVEL_MAX } = GAME_CONFIG.EXPERIENCE
-  const [min, max] = levelRange ?? [WILD_LEVEL_MIN, WILD_LEVEL_MAX]
-  return clampLevel(Math.floor(rng() * (max - min + 1)) + min)
 }

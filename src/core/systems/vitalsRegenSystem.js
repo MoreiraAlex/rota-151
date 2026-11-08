@@ -1,4 +1,5 @@
 import {
+  ActionState,
   BeingCaptured,
   Fainted,
   StoredFaint,
@@ -15,9 +16,21 @@ import {
  *
  * Exportada: a MESMA regra vale pra criatura em campo (`Vitals`) e pra
  * Pokémon fora de campo, no time ou no inventário (`StoredVitals`).
+ *
+ * `holdStamina`: a energia ainda está em uso (golpe em andamento) — o delay
+ * fica parado, no mínimo em `staminaRegenDelayAfterUse`, e só começa a contar
+ * quando o uso acaba.
  */
-export function regenerateVitals(vitals, delta) {
+export function regenerateVitals(vitals, delta, { holdStamina = false } = {}) {
   let changed = false
+
+  if (
+    holdStamina &&
+    vitals.staminaRegenDelay < vitals.staminaRegenDelayAfterUse
+  ) {
+    vitals.staminaRegenDelay = vitals.staminaRegenDelayAfterUse
+    changed = true
+  }
 
   // o relógio desde o último dano (`-1` = nunca levou)
   if (vitals.hpDamageAge >= 0) vitals.hpDamageAge += delta
@@ -31,7 +44,9 @@ export function regenerateVitals(vitals, delta) {
     changed = true
   }
 
-  if (vitals.staminaRegenDelay > 0) {
+  if (holdStamina) {
+    // golpe em andamento: nem conta o delay, nem regenera
+  } else if (vitals.staminaRegenDelay > 0) {
     vitals.staminaRegenDelay = Math.max(0, vitals.staminaRegenDelay - delta)
     changed = true
   } else if (vitals.stamina < vitals.maxStamina) {
@@ -54,7 +69,9 @@ export function regenerateVitals(vitals, delta) {
  * Stamina tem o mesmo princípio, mas contado a partir do último uso
  * (correr, dash ou pulo) em vez de dano — quem drena stamina reseta o
  * delay, este system só conta pra baixo e libera a regeneração quando
- * chega a zero.
+ * chega a zero. Golpe conta como uso do começo ao fim (`ActionState`
+ * `'attack'`): o delay só começa a contar quando o golpe acaba — senão um
+ * golpe mais longo que o delay regenerava energia no meio dele.
  *
  * Headless. Fase: simulation, antes de movementSystem/playerActionSystem/
  * characterPhysicsSystem — o dreno de stamina desses systems desconta por
@@ -69,7 +86,8 @@ export function vitalsRegenSystem(context) {
     // Desmaiada não regenera nada (acorda com HP fixo, ver `acordar`); dentro
     // de uma Pokébola sendo capturada também não (docs/features/043-captura.md).
     if (entity.has(Fainted) || entity.has(BeingCaptured)) return
-    regenerateVitals(vitals, delta)
+    const holdStamina = entity.get(ActionState)?.current === 'attack'
+    regenerateVitals(vitals, delta, { holdStamina })
   })
 
   world.query(StoredVitals).updateEach(([stored], pokemon) => {

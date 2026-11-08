@@ -81,7 +81,7 @@ const STAT_KEYS = ['hp', 'attack', 'defense', 'sp_atk', 'sp_def', 'speed']
 
 /**
  * Sorteia um IV (individual value) por status, dentro de `[min, max]` —
- * usado tanto por `wildCreatureSpawnSystem.js` (cada SELVAGEM sorteia o
+ * usado tanto por `nascerSelvagem` (`core/actions/wildSpawn.js`) (cada SELVAGEM sorteia o
  * próprio, no spawn) quanto por `core/actions/pokemon.js`
  * (`criarPokemon`, sorteia e CONGELA no registro de um Pokémon do
  * jogador) — mesmo mecanismo pros dois, "IV é

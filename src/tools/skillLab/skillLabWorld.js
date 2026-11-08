@@ -8,7 +8,10 @@ import {
 } from '@/core/battle/hitTrigger'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import { getSpecies } from '@/core/data/species'
-import { createLevelState } from '@/core/data/species/experience'
+import {
+  experienceForLevel,
+  resolveGrowthRate,
+} from '@/core/data/species/experience'
 import {
   createEmptyMoveSlots,
   createMovesState,
@@ -108,7 +111,7 @@ export const LAB_SLOT = 'secondary1'
 const LAB_MOVE_SLOT = 1
 
 // Chão: malha de triângulos com o relevo escolhido (`labRelief.js`), não
-// heightfield — o Rapier erra raio em célula plana de heightfield (083 no
+// heightfield — o Rapier erra raio em célula plana de heightfield (086 no
 // roadmap).
 export const LAB_GROUND = { size: 60 }
 
@@ -184,9 +187,14 @@ function createBody(species, position) {
 }
 
 // O que as duas têm em comum (composição do `summonBallSystem` e do
-// `wildCreatureSpawnSystem`, sem a IA de movimento).
+// `nascerSelvagem`, sem a IA de movimento).
 function creatureTraits(species, level, home) {
-  const levelState = createLevelState(species, level)
+  // Ferramenta: qualquer nível até o teto oficial, sem o teto da versão
+  // (`createLevelState` corta nele).
+  const levelState = {
+    level,
+    xp: experienceForLevel(resolveGrowthRate(species), level),
+  }
   return [
     Position(home.position),
     Rotation({ y: home.yaw }),

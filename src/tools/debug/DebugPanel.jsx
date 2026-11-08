@@ -46,7 +46,9 @@ import {
 } from '@/core/traits'
 import { dayPhaseOf, hourOf } from '@/core/time/dayCycle'
 import { usePartyPokemon } from '@/view/hooks/usePartyPokemon'
+import { baseLevelAt, cityLevel } from '@/core/wildSpawn/wildLevel'
 import { ChunkDebugCounter } from './ChunkDebugView'
+import { WildSpawnDebugCounter } from './WildSpawnDebugView'
 import {
   DAY_PHASE_LABELS,
   WEATHER_LABELS,
@@ -152,9 +154,11 @@ export function DebugPanel({ onDeleteSave = null }) {
       <ChunkDebugCounter />
       {/* Bioma onde está quem é controlado (docs/features/047-biomas.md). */}
       <p>bioma: {TEST_LEVEL.terrain.biomeAt(position.x, position.z).name}</p>
-      {/* A cidade mais perto (docs/features/058-ajuste-dos-biomas.md): a
-          base do nível dos selvagens pela distância (062). */}
+      {/* A cidade mais perto (docs/features/058-ajuste-dos-biomas.md), o
+          nível dela e o dos selvagens aqui (062). */}
       <NearestCityLine x={position.x} z={position.z} />
+      {/* Spawn das selvagens (docs/features/062-spawn-estilo-cobblemon.md). */}
+      <WildSpawnDebugCounter />
       <RenderStatsLine />
       {/* Relógio e clima (docs/features/048-dia-noite-e-clima.md). */}
       {clock && weather && (
@@ -505,18 +509,24 @@ function RenderStatsLine() {
 // as estradas — core/town/roads.js).
 const COMPASS = ['L', 'NE', 'N', 'NO', 'O', 'SO', 'S', 'SE']
 
-// A cidade mais perto de `(x, z)`: porte, célula, distância e direção.
+// A cidade mais perto de `(x, z)`: porte, célula, distância e direção; o
+// nível dela e o nível base das selvagens no ponto
+// (docs/features/062-spawn-estilo-cobblemon.md).
 function NearestCityLine({ x, z }) {
-  const nearest = TEST_LEVEL.terrain.nearestCity?.(x, z)
-  if (!nearest) return null
-  const { city, distance } = nearest
+  const nearest = TEST_LEVEL.terrain.nearestCities?.(x, z, 2) ?? []
+  if (!nearest.length) return null
+  const [{ city, distance }] = nearest
+  const seed = GAME_CONFIG.WORLD.SEED
   const angle = Math.atan2(city.z - z, city.x - x)
   const sector = Math.round(angle / (Math.PI / 4))
   const direction = COMPASS[(sector + COMPASS.length) % COMPASS.length]
   return (
-    <p>
-      cidade: {city.size.name} ({city.id}) · {Math.round(distance)} m ·{' '}
-      {direction}
-    </p>
+    <>
+      <p>
+        cidade: {city.size.name} ({city.id}) · nv. {cityLevel(seed, city)} ·{' '}
+        {Math.round(distance)} m · {direction}
+      </p>
+      <p>nível dos selvagens aqui: ~{baseLevelAt(seed, nearest).toFixed(1)}</p>
+    </>
   )
 }

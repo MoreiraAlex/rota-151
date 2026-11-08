@@ -1702,7 +1702,7 @@ describe('resolveCastMode — opção do jogador, não do golpe', () => {
 })
 
 describe('creatureAttackSystem — selvagem atacando (IA)', () => {
-  // Selvagem pronta pra atacar, como o `wildCreatureSpawnSystem` cria.
+  // Selvagem pronta pra atacar, como o `nascerSelvagem` cria.
   function spawnWildAttacker(world, position) {
     return world.spawn(
       Position(position),
@@ -2742,7 +2742,7 @@ describe('interrupção de golpe de STATUS por dano (só na carga)', () => {
     }
   }
 
-  // Selvagem pronta pra atacar, como o `wildCreatureSpawnSystem` cria.
+  // Selvagem pronta pra atacar, como o `nascerSelvagem` cria.
   function spawnWildAttacker(world, position) {
     return world.spawn(
       Position(position),

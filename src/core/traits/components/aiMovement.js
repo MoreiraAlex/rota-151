@@ -4,7 +4,7 @@ import { trait } from 'koota'
  * Estado do movimento da IA NA LUTA — selvagem perseguindo e criatura do time
  * lutando (`core/battle/aiMovement.js`, chamado por `wildBehaviorSystem.js` e
  * `partyBehaviorSystem.js`). Posto no spawn junto de `WildBehavior`
- * (`wildCreatureSpawnSystem.js`) e de `PartyBehavior` (`summonBallSystem.js`).
+ * (`nascerSelvagem` (`core/actions/wildSpawn.js`)) e de `PartyBehavior` (`summonBallSystem.js`).
  *
  * - `mode`: o que fez neste tick — `'approach'` (corre até o alcance),
  *   `'dodge'` (saindo do aviso de um golpe), `'retreat'` (recuando, golpe à

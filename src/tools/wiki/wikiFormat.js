@@ -243,3 +243,73 @@ export function describeSkillMechanics(attack) {
   }
   return lines
 }
+
+export const WEATHER_NAMES = {
+  clear: 'Limpo',
+  sun: 'Sol forte',
+  rain: 'Chuva',
+  storm: 'Tempestade',
+  snow: 'Neve',
+}
+
+export const DAY_PHASE_NAMES = {
+  dawn: 'Amanhecer',
+  day: 'Dia',
+  dusk: 'Entardecer',
+  night: 'Noite',
+}
+
+export const RARITY_NAMES = {
+  common: 'Comum',
+  uncommon: 'Incomum',
+  rare: 'Rara',
+}
+
+/** Hora do dia (0–24, com fração) como "7h30". */
+export function formatHour(hour) {
+  const whole = Math.floor(hour)
+  const minutes = Math.round((hour - whole) * 60)
+  return minutes ? `${whole}h${String(minutes).padStart(2, '0')}` : `${whole}h`
+}
+
+/**
+ * Quanto uma hora do dia ou um clima muda a chance de uma espécie aparecer,
+ * em palavras: "não aparece", "1,5× mais chance", "metade da chance".
+ */
+export function formatSpawnFactor(factor) {
+  if (factor <= 0) return 'não aparece'
+  if (factor === 0.5) return 'metade da chance'
+  if (factor > 1) return `${formatNumber(factor)}× mais chance`
+  return `${formatPercent(factor, 0)} da chance`
+}
+
+/**
+ * As condições de spawn (`[{ key, factor }]`) como uma linha: "Noite: não
+ * aparece · Tempestade: 3× mais chance". Sem nenhuma, `fallback`.
+ */
+export function describeSpawnConditions(conditions, names, fallback) {
+  if (!conditions.length) return fallback
+  return conditions
+    .map(
+      ({ key, factor }) => `${names[key] ?? key}: ${formatSpawnFactor(factor)}`,
+    )
+    .join(' · ')
+}
+
+/** Biomas, raridade, hora do dia e clima de uma espécie (`spawn`), em texto. */
+export function describeSpeciesSpawn(spawn) {
+  return {
+    biomes: spawn.biomes.join(', '),
+    rarity: RARITY_NAMES[spawn.rarity] ?? spawn.rarity,
+    phases: describeSpawnConditions(
+      spawn.phases,
+      DAY_PHASE_NAMES,
+      'A qualquer hora',
+    ),
+    weather: describeSpawnConditions(
+      spawn.weather,
+      WEATHER_NAMES,
+      'Qualquer clima',
+    ),
+  }
+}

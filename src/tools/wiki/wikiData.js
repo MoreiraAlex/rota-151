@@ -192,6 +192,53 @@ function buildAttack(entry) {
   }
 }
 
+/**
+ * Onde a espécie nasce no mundo (docs/features/062-spawn-estilo-
+ * cobblemon.md): os biomas (pelo nome, só os que existem na versão), a
+ * raridade e o que a hora do dia e o clima mudam. Sem `spawn`, `null` — ela
+ * não aparece na natureza.
+ */
+function buildSpeciesSpawn(species) {
+  const spawn = species.spawn
+  if (!spawn) return null
+  const { HIDDEN } = GAME_CONFIG.BIOMES
+  const biomes = listBiomes()
+    .filter((biome) => !biome.town && !HIDDEN.includes(biome.id))
+    .filter(
+      (biome) =>
+        spawn.biomes?.includes(biome.id) ||
+        spawn.tags?.some((tag) => biome.tags?.includes(tag)),
+    )
+    .map((biome) => biome.name)
+  const conditions = (factors) =>
+    Object.entries(factors ?? {}).map(([key, factor]) => ({ key, factor }))
+  return {
+    biomes,
+    rarity: spawn.rarity,
+    phases: conditions(spawn.phases),
+    weather: conditions(spawn.weather),
+  }
+}
+
+/** Como as selvagens aparecem e somem, e o nível delas. */
+function buildWildSpawn() {
+  const { WILD_SPAWN, EXPERIENCE, DAY_CYCLE } = GAME_CONFIG
+  return {
+    maxPerPlayer: WILD_SPAWN.MAX_PER_PLAYER,
+    minRadius: WILD_SPAWN.MIN_RADIUS,
+    maxRadius: WILD_SPAWN.MAX_RADIUS,
+    nearRadius: WILD_SPAWN.NEAR_RADIUS,
+    farRadius: WILD_SPAWN.FAR_RADIUS,
+    minAge: WILD_SPAWN.MIN_AGE,
+    maxAge: WILD_SPAWN.MAX_AGE,
+    rarityChances: { ...WILD_SPAWN.RARITY_CHANCES },
+    phaseStarts: { ...DAY_CYCLE.PHASES },
+    firstCityLevel: WILD_SPAWN.LEVEL.FIRST_CITY,
+    levelSpread: WILD_SPAWN.LEVEL.SPREAD,
+    levelCap: EXPERIENCE.LEVEL_CAP,
+  }
+}
+
 function buildSpecies(species) {
   const range = resolveStatRange(species)
   const { IV_MIN, IV_MAX } = GAME_CONFIG.BATTLE
@@ -218,6 +265,7 @@ function buildSpecies(species) {
     attacks: resolveSpeciesAttacks(species).map(buildAttack),
     moves: resolveSpeciesMoves(species).map((move) => move.id),
     learnset: buildLearnset(species),
+    spawn: buildSpeciesSpawn(species),
   }
 }
 
@@ -353,12 +401,11 @@ function buildExperience(speciesList) {
     experienceForLevel(growthRate, level)
   return {
     maxLevel: EXPERIENCE.MAX_LEVEL,
+    levelCap: EXPERIENCE.LEVEL_CAP,
     formulaMaxLevel: FORMULA_MAX_LEVEL,
     formulaScale: FORMULA_MAX_LEVEL / EXPERIENCE.MAX_LEVEL,
     baseDivisor: EXPERIENCE.BASE_DIVISOR,
     scalingExponent: EXPERIENCE.SCALING_EXPONENT,
-    wildLevelMin: EXPERIENCE.WILD_LEVEL_MIN,
-    wildLevelMax: EXPERIENCE.WILD_LEVEL_MAX,
     growthLevels: EXAMPLE_GROWTH_LEVELS,
     growthRows: GROWTH_RATES.map((rate) => ({
       rate,
@@ -780,5 +827,6 @@ export function buildWikiData() {
     ivExample: buildIvExample(speciesList[0]),
     damageExamples: buildDamageExamples(speciesList),
     world: buildWorld(),
+    wildSpawn: buildWildSpawn(),
   }
 }

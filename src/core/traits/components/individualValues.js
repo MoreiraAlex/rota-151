@@ -12,7 +12,7 @@ import { trait } from 'koota'
  *
  * Duas fontes, nos dois únicos lugares que criam uma entidade de
  * criatura:
- * - **Selvagens** (`wildCreatureSpawnSystem.js`) sorteiam via
+ * - **Selvagens** (`nascerSelvagem` (`core/actions/wildSpawn.js`)) sorteiam via
  *   `gameplayRng` (`core/rng.js`) + `rollIndividualValues`
  *   (`core/data/species/stats.js`), dentro de
  *   `GAME_CONFIG.BATTLE.WILD_IV_MIN/MAX` — cada selvagem nasce com um
@@ -32,7 +32,7 @@ import { trait } from 'koota'
  * não está summonada agora), não mais a fonte de verdade pra quem já
  * tem corpo no mundo.
  *
- * Dono de escrita: `wildCreatureSpawnSystem.js`, `summonBallSystem.js`
+ * Dono de escrita: `nascerSelvagem` (`core/actions/wildSpawn.js`), `summonBallSystem.js`
  * (só no instante do spawn). Ninguém mais escreve aqui.
  */
 export const IndividualValues = trait({

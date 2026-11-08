@@ -7,9 +7,9 @@ import {
   experienceForLevel,
   resolveBaseXp,
   resolveGrowthRate,
+  resolveLevelCap,
 } from '../data/species/experience'
 import { EVENT_TYPES, createEventQueue } from '../events'
-import { GAME_CONFIG } from '../gameConfig'
 import {
   CreatureLevel,
   FoughtBy,
@@ -226,13 +226,27 @@ describe('ganharExperiencia', () => {
     expect(party.slot1.get(StoredVitals).vitals.hp).toBe(1 + growth)
   })
 
-  it('para no nível máximo', () => {
+  it('para no teto da versão', () => {
     ganharExperiencia(world, events, party.slot1, Number.MAX_SAFE_INTEGER)
-    const { MAX_LEVEL } = GAME_CONFIG.EXPERIENCE
+    const cap = resolveLevelCap()
     const species = getSpecies('bulbasaur')
     expect(progressOf('slot1')).toEqual({
-      level: MAX_LEVEL,
-      xp: experienceForLevel(resolveGrowthRate(species), MAX_LEVEL),
+      level: cap,
+      xp: experienceForLevel(resolveGrowthRate(species), cap),
     })
+  })
+
+  it('quem já está no teto (ou acima, de um save antigo) não ganha nada', () => {
+    const cap = resolveLevelCap()
+    const species = getSpecies('bulbasaur')
+    const above = {
+      level: cap + 1,
+      xp: experienceForLevel(resolveGrowthRate(species), cap + 1),
+    }
+    party.slot1.set(CreatureLevel, above)
+
+    ganharExperiencia(world, events, party.slot1, 1000)
+
+    expect(progressOf('slot1')).toEqual(above)
   })
 })
