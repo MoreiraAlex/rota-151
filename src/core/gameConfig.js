@@ -465,22 +465,43 @@ export const GAME_CONFIG = {
       // Quanto (px) o emote fica acima da etiqueta de nome.
       GAP: 4,
     },
+    // Aviso de que a criatura vai ser puxada para a bola (docs/features/064-
+    // revisao-da-ia-do-parceiro.md): a Pokébola piscando acima da plaquinha
+    // dela (`RecallWarningIcon.jsx`) e o banner da HUD
+    // (`StrayWarningHud.jsx`).
+    RECALL_WARNING: {
+      // Tamanho (px) da Pokébola e quanto (px) ela fica acima da etiqueta.
+      SIZE: 34,
+      GAP: 4,
+      // Uma piscada (ms) com tempo sobrando e na reta final (abaixo de
+      // FAST_BELOW, s) — acelera para avisar que está acabando.
+      BLINK_SLOW: 700,
+      BLINK_FAST: 220,
+      FAST_BELOW: 1,
+      // De quanto em quanto (s) o tempo da tela muda — a HUD redesenha
+      // poucas vezes por segundo, não a cada tick.
+      DISPLAY_STEP: 0.1,
+    },
     // Brilho rápido no modelo de quem foi atingido (`hitFlashSystem.js`): acende
     // na cor do acontecimento (`FEEDBACK_COLORS`, abaixo) e apaga ao longo de
     // DURATION (s). INTENSITY (0-1) é o quanto o brilho cobre a textura.
     HIT_FLASH: {
-      DURATION: 0.15,
-      INTENSITY: 0.8,
+      DURATION: 0.22,
+      INTENSITY: 0.9,
     },
     // Cores do feedback por LADO e por TIPO de acontecimento — a mesma paleta
     // pro brilho do modelo (`hitFlashSystem.js`) e pros textos acima da cabeça
-    // (`damageNumberSystem.js` + `DamageNumbersView.jsx`):
-    // - DAMAGE: tomou dano; CRIT: o número do dano CRÍTICO (o brilho do contorno
-    //   continua na cor de DAMAGE); DEBUFF: status negativo (atributo baixou);
-    //   BUFF: status positivo (atributo subiu).
-    // - OPPONENT (selvagens e quem não é do jogador): vermelho / laranja / verde.
-    // - ALLY (o treinador e as criaturas do time): tons frios — rosa / violeta /
-    //   ciano —, pra bater o olho e saber de que lado foi.
+    // (`damageNumberSystem.js` + `DamageNumbersView.jsx`). Regra de jogo de
+    // ação (docs/features/064-revisao-da-ia-do-parceiro.md, Parte 4): o dano
+    // que VOCÊ causa é claro, o que você TOMA é vermelho.
+    // - DAMAGE: tomou dano; CRIT: o número do dano CRÍTICO, com o brilho do
+    //   contorno e o rótulo em CRIT_GLOW (o brilho do modelo continua em
+    //   DAMAGE); DEBUFF: status negativo (atributo baixou); BUFF: status
+    //   positivo (atributo subiu).
+    // - OPPONENT (selvagens e quem não é do jogador): dano branco, crítico
+    //   dourado; status laranja / verde.
+    // - ALLY (o treinador e as criaturas do time): dano e crítico vermelhos;
+    //   status violeta / azul — longe das cores do oponente.
     // Cor do texto "Errou!" (golpe que falhou no sorteio de precisão): cinza
     // claro, igual pros dois lados — não é dano nem status.
     MISS_COLOR: '#d9d9d9',
@@ -563,6 +584,9 @@ export const GAME_CONFIG = {
     // mundo.md): "Pegou X!" / "Colheu N X!" e "Inventário cheio".
     ITEM_NOTICE_COLOR: '#ffe9a8',
     INVENTORY_FULL_COLOR: '#ff9e80',
+    // Cor da linha de quem ficou para trás e voltou para a bola
+    // (docs/features/064-revisao-da-ia-do-parceiro.md).
+    STRAYED_COLOR: '#ffd180',
     // Cores dos textos de efetividade de tipo (docs/features/039-tipos-e-combate-classico.md), iguais pros dois lados: "Super efetivo!", "Pouco
     // efetivo…" e "Não afeta…".
     // A cor do selo e do log de cada condição é dela (`feedback.color`,
@@ -574,17 +598,38 @@ export const GAME_CONFIG = {
     },
     FEEDBACK_COLORS: {
       OPPONENT: {
-        DAMAGE: '#ff3b30',
+        DAMAGE: '#ffffff',
         CRIT: '#ffd23f',
+        CRIT_GLOW: '#ff9500',
         DEBUFF: '#ff9f0a',
         BUFF: '#32d74b',
       },
       ALLY: {
-        DAMAGE: '#ff5c8a',
-        CRIT: '#ffc4e1',
+        DAMAGE: '#ff3030',
+        CRIT: '#d50000',
+        CRIT_GLOW: '#ff6b6b',
         DEBUFF: '#b57bff',
-        BUFF: '#4dd0e1',
+        BUFF: '#40a9ff',
       },
+    },
+    // Marca do que é SEU (docs/features/064-revisao-da-ia-do-parceiro.md,
+    // Parte 4) — pra achar o seu Pokémon numa briga com outro da mesma
+    // espécie:
+    // - anel no chão embaixo de cada criatura do seu time, sempre
+    //   (`PartyMarkerView.jsx`): COLOR com OPACITY; o raio é o do corpo
+    //   (a cápsula, no plano) vezes RADIUS_FACTOR, com WIDTH (m) de
+    //   espessura; LIFT (m) acima do chão; no ar, só aparece até
+    //   MAX_GROUND_GAP (m) do chão;
+    // - na plaquinha, o nome em NAME_COLOR e a tecla do slot (Q/E/R) ao
+    //   lado (`NameplateView.jsx`).
+    PARTY_MARKER: {
+      COLOR: '#3fa9ff',
+      OPACITY: 0.8,
+      RADIUS_FACTOR: 1.1,
+      WIDTH: 0.1,
+      LIFT: 0.04,
+      MAX_GROUND_GAP: 8,
+      NAME_COLOR: '#7cc4ff',
     },
     // Log de batalha em texto, estilo jogo de turno (`battleLogSystem.js` +
     // `tools/hud/BattleLogHud.jsx`, docs/features/039-tipos-e-combate-classico.md).
@@ -1136,8 +1181,8 @@ export const GAME_CONFIG = {
   // Dificuldade das selvagens na luta (`core/battle/aiTuning.js`,
   // docs/features/063-revisao-da-ia-selvagem.md). `LEVEL` vai de 0 (a ponta
   // `EASY` abaixo) a 1 (a ponta difícil = os valores de hoje, que continuam
-  // nos campos de origem e também valem para a IA do time); no meio,
-  // interpola cada efeito. A IA do time nunca passa por aqui.
+  // nos campos de origem); no meio, interpola cada efeito. O time tem a dele
+  // (`PARTY_DIFFICULTY`): mexer aqui não muda o time.
   WILD_DIFFICULTY: {
     LEVEL: 0.45,
     // Ponta fácil de cada efeito. A difícil é o campo citado:
@@ -1164,10 +1209,42 @@ export const GAME_CONFIG = {
       REST_ENTER_FRACTION: 0.3,
     },
   },
-  // IA das criaturas do time fora do controle do jogador — sempre
-  // defensiva (`partyBehaviorSystem.js`, `PartyBehavior`): entra na luta
-  // contra a selvagem que acertou alguém do grupo.
+  // Dificuldade do time na luta (docs/features/064-revisao-da-ia-do-
+  // parceiro.md, Parte 3): o mesmo mecanismo do `WILD_DIFFICULTY`, com um
+  // número só do time. `LEVEL` 1 = a IA de hoje (os campos de origem, com o
+  // ritmo do `PARTY_BEHAVIOR.ATTACK_INTERVAL`); 0 = a ponta `EASY` abaixo.
+  // Mexer aqui não muda as selvagens.
+  PARTY_DIFFICULTY: {
+    LEVEL: 0.6,
+    // Ponta fácil de cada efeito (os mesmos do `WILD_DIFFICULTY.EASY`):
+    EASY: {
+      // ritmo entre um golpe e outro (`PARTY_BEHAVIOR.ATTACK_INTERVAL`, s);
+      ATTACK_INTERVAL: 2.4,
+      DODGE_CHANCE: 0.1,
+      DODGE_REACTION_TIME: 0.5,
+      AIM_ERROR: 0.35,
+      NEAR_BEST_FRACTION: 0.2,
+      DASH_CLOSE_DISTANCE: 12,
+      STRAFE_SPEED_FACTOR: 0.3,
+      REST_ENTER_FRACTION: 0.3,
+    },
+  },
+  // IA das criaturas do time fora do controle do jogador
+  // (`partyBehaviorSystem.js`, `PartyBehavior`), pela postura de cada Pokémon
+  // (docs/features/064-revisao-da-ia-do-parceiro.md, Parte 2 —
+  // `core/party/posture.js`).
   PARTY_BEHAVIOR: {
+    // Postura de quem não escolheu outra: o Pokémon novo e o save antigo.
+    DEFAULT_POSTURE: 'defensive',
+    // Campo de visão da agressiva: a mesma regra das selvagens
+    // (`isPerceived`, `WILD_BEHAVIOR.PERCEPTION`), com valores próprios —
+    // vê até VIEW_DISTANCE (m) dentro do cone (VIEW_HALF_ANGLE, rad, para
+    // cada lado da frente dela) ou até NEAR_RADIUS (m) em qualquer direção.
+    PERCEPTION: {
+      VIEW_DISTANCE: 14,
+      VIEW_HALF_ANGLE: 1.0,
+      NEAR_RADIUS: 4,
+    },
     // Segundos entre um pedido de golpe e o próximo. Mais lento que o
     // jogador de propósito: a IA ajuda, quem decide a luta é quem joga.
     ATTACK_INTERVAL: 1.5,
@@ -1177,6 +1254,33 @@ export const GAME_CONFIG = {
     // Se afastou mais que isto (m, no plano) de quem segue (quem está no
     // controle), larga a luta e volta a seguir.
     LEASH_RADIUS: 15,
+    // Quem fica para trás (docs/features/064-revisao-da-ia-do-parceiro.md,
+    // Parte 1 — `followLimitSystem.js`): a criatura do time que segue longe
+    // demais ou presa volta sozinha para a bola; com o controle numa
+    // criatura, é o treinador quem segue, e a regra recolhe a controlada.
+    FOLLOW_LIMIT: {
+      // Mais longe que isto (m, no plano) de quem segue → começa a contagem
+      // para voltar à bola. Acima do `LEASH_RADIUS` (nunca recolhe numa luta
+      // normal). Só conta depois de ela ter chegado perto do grupo uma vez
+      // (a recém-invocada pode pousar longe).
+      RECALL_DISTANCE: 40,
+      // Contando por estar longe, só cancela abaixo do RECALL_DISTANCE menos
+      // isto (m) — sem a folga, andar na borda ligava e desligava o aviso.
+      CANCEL_MARGIN: 3,
+      // Com o controle numa criatura: passou disto (m) do treinador, aviso
+      // na tela (sem contagem). Abaixo do `RECALL_DISTANCE`.
+      WARN_DISTANCE: 30,
+      // O aviso só apaga depois de voltar para menos disto (m). Abaixo do
+      // WARN_DISTANCE.
+      WARN_RESET_DISTANCE: 25,
+      // Tentando seguir (andando ou correndo) sem sair de um círculo deste
+      // raio (m) por STUCK_TIME (s) → presa.
+      STUCK_RADIUS: 1,
+      STUCK_TIME: 5,
+      // Contagem (s) na tela antes de puxar para a bola — dá tempo de voltar
+      // ou de desprender. Resolvido no meio, cancela.
+      WARNING_TIME: 3,
+    },
   },
   // Treinador numa luta, fora do controle (`trainerBattleSystem.js`): fica
   // longe, desvia, foge pro time se mirado. A selvagem só mira nele se ele

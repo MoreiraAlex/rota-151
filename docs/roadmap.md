@@ -2,7 +2,7 @@
 
 ---
 
-# ✅ Já feito (0.0.1 – 0.0.63)
+# ✅ Já feito (0.0.1 – 0.0.64)
 
 O que já foi entregue, por tema. Detalhes de cada uma em `docs/features/`.
 
@@ -76,6 +76,7 @@ O que já foi entregue, por tema. Detalhes de cada uma em `docs/features/`.
 - [x] **039 — Tipos e combate clássico**
 - [x] **061 — Revisão das skills**
 - [x] **063 — Revisão da IA selvagem**
+- [x] **064 — Revisão da IA do parceiro**
 
 ### Progressão
 - [x] **037 — Experiência e nível**
@@ -129,7 +130,6 @@ só aparecem pelo F2. A montanha foi adiada: na beta não teria espécie
 exclusiva (o Spearow já mora na savana). Os 3 iniciais não nascem no mundo:
 vêm só no kit inicial (071).
 
-- [ ] **064 — Revisão da IA do parceiro** — limite para seguir o treinador, modo de ataque etc. *(detalhar quando chegar)*.
 - [ ] **065 — Sons do mundo** — ambientação por bioma, horário e clima (vento, pássaros de dia, grilos e coruja à noite, água dos lagos e rios, cidade) e música de fundo (exploração por bioma e hora, cidade, batalha com selvagem), com transição suave entre as faixas e volume separado de música, ambiente e efeitos *(detalhar quando chegar)*.
 - [ ] **066 — Ambiente interno nas estruturas** — entrar nas estruturas e no ambiente interno delas *(detalhar quando chegar)*.
 

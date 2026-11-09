@@ -22,6 +22,9 @@ import {
   SummonedFrom,
   Vitals,
 } from '../traits'
+import { definirPostura } from '../actions/posture'
+import { GAME_CONFIG } from '../gameConfig'
+import { POSTURES } from '../party/posture'
 import { pokemonSaveSchema } from './saveFormat'
 import { restorePokemon, serializePokemon } from './pokemonSave'
 
@@ -139,6 +142,22 @@ describe('restorePokemon', () => {
       original.get(StoredConditions),
     )
     expect(resolvePartySlot(target.player, restored)).toBe('slot3')
+  })
+
+  it('a postura volta igual (docs/features/064-*.md)', () => {
+    const { world, player } = setup()
+    const original = givePokemon(world, player, SPECIES_ID, 'slot1')
+    const posture = POSTURES.find(
+      (other) => other !== GAME_CONFIG.PARTY_BEHAVIOR.DEFAULT_POSTURE,
+    )
+    definirPostura(original, posture)
+    const saved = serializePokemon(world, player, original)
+
+    const target = setup()
+    const restored = restorePokemon(target.world, target.player, saved)
+
+    expect(pokemonSaveSchema.safeParse(saved).success).toBe(true)
+    expect(restored.get(Pokemon).posture).toBe(posture)
   })
 
   it('volta na célula salva do inventário', () => {

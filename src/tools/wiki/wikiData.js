@@ -28,7 +28,7 @@ import {
   stageMultiplier,
 } from '@/core/battle/statStages'
 import { DEFAULT_ACCURACY } from '@/core/battle/accuracy'
-import { resolveWildTuning } from '@/core/battle/aiTuning'
+import { resolvePartyTuning, resolveWildTuning } from '@/core/battle/aiTuning'
 import { isChannelAttack } from '@/core/battle/channelAttack'
 import {
   resolveBallMultiplier,
@@ -273,11 +273,11 @@ function buildSpeciesTemperament(species) {
 }
 
 /**
- * A IA das selvagens na luta no nível de dificuldade da versão
- * (`resolveWildTuning`, 063) — o time usa os valores de `ai`.
+ * A IA de um lado na luta, no nível de dificuldade da versão: as selvagens
+ * (`resolveWildTuning`, 063) e o time (`resolvePartyTuning`, 064). Os
+ * valores que a dificuldade não mexe ficam em `ai`.
  */
-function buildWildAi() {
-  const tuning = resolveWildTuning()
+function buildTunedAi(tuning) {
   return {
     attackInterval: tuning.ATTACK_INTERVAL,
     dodgeChance: tuning.DODGE_CHANCE,
@@ -798,10 +798,20 @@ export function buildWikiData() {
       finishHp: AI_TARGET.FINISH_HP_FRACTION,
       finishBonus: AI_TARGET.FINISH_BONUS,
     },
-    wildAi: buildWildAi(),
+    wildAi: buildTunedAi(resolveWildTuning()),
+    partyAi: buildTunedAi(resolvePartyTuning()),
     party: {
-      attackInterval: PARTY_BEHAVIOR.ATTACK_INTERVAL,
       leashRadius: PARTY_BEHAVIOR.LEASH_RADIUS,
+      // Posturas (064): a padrão e o campo de visão da agressiva.
+      defaultPosture: PARTY_BEHAVIOR.DEFAULT_POSTURE,
+      viewDistance: PARTY_BEHAVIOR.PERCEPTION.VIEW_DISTANCE,
+      viewAngle: toDegrees(PARTY_BEHAVIOR.PERCEPTION.VIEW_HALF_ANGLE * 2),
+      nearRadius: PARTY_BEHAVIOR.PERCEPTION.NEAR_RADIUS,
+      // Quem fica para trás (064).
+      recallDistance: PARTY_BEHAVIOR.FOLLOW_LIMIT.RECALL_DISTANCE,
+      warnDistance: PARTY_BEHAVIOR.FOLLOW_LIMIT.WARN_DISTANCE,
+      stuckTime: PARTY_BEHAVIOR.FOLLOW_LIMIT.STUCK_TIME,
+      warningTime: PARTY_BEHAVIOR.FOLLOW_LIMIT.WARNING_TIME,
     },
     flight: {
       maxHeight: FLIGHT.MAX_HEIGHT,

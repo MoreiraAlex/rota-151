@@ -18,13 +18,19 @@ import { relation, trait } from 'koota'
  * Gerado em `criarPokemon` (gerador injetado pela plataforma) ou vindo do
  * save.
  *
- * Dono de escrita: `criarPokemon` (`core/actions/pokemon.js`), que monta o
- * registro inteiro.
+ * `posture` — como ele luta fora do controle: `'aggressive'`,
+ * `'defensive'` ou `'neutral'` (docs/features/064-revisao-da-ia-do-
+ * parceiro.md, Parte 2). A criatura em campo lê daqui. `null` é a padrão
+ * (`PARTY_BEHAVIOR.DEFAULT_POSTURE`) — ver `resolvePokemonPosture`.
+ *
+ * Donos de escrita: `criarPokemon` (`core/actions/pokemon.js`), que monta o
+ * registro inteiro, e `definirPostura` (`core/actions/posture.js`).
  */
 export const Pokemon = trait({
   uid: null,
   speciesId: null,
   ballId: null,
+  posture: null,
 })
 
 /**

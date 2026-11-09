@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest'
+import { GAME_CONFIG } from '../gameConfig'
+import { POSTURES } from '../party/posture'
 import { SAVE_VERSION, migrateSave, validateSave } from './saveFormat'
 
 // Formato do save (docs/features/044-salvar-o-jogo.md): versão, migração e a
@@ -209,5 +211,45 @@ describe('migração 3 → 4 (selvagens, 062)', () => {
       ],
     })
     expect(validateSave(save).ok).toBe(false)
+  })
+})
+
+describe('migração 4 → 5 (postura, 064)', () => {
+  const pokemon = (extra = {}) => ({
+    id: 'a',
+    speciesId: 'x',
+    ballId: null,
+    level: 1,
+    xp: 0,
+    ivs: {},
+    moves: { slots: {}, training: {} },
+    storedVitals: null,
+    faintTimeLeft: null,
+    conditions: null,
+    location: { kind: 'party', slot: 'slot1' },
+    ...extra,
+  })
+
+  it('save da versão 4 carrega com todo Pokémon na postura padrão', () => {
+    const result = migrateSave(
+      minimalSave({ version: 4, pokemon: [pokemon()] }),
+    )
+
+    expect(result.ok).toBe(true)
+    expect(result.save.pokemon[0].posture).toBe(
+      GAME_CONFIG.PARTY_BEHAVIOR.DEFAULT_POSTURE,
+    )
+  })
+
+  it('aceita toda postura e recusa uma desconhecida', () => {
+    for (const posture of POSTURES) {
+      expect(
+        validateSave(minimalSave({ pokemon: [pokemon({ posture })] })).ok,
+      ).toBe(true)
+    }
+    expect(
+      validateSave(minimalSave({ pokemon: [pokemon({ posture: 'furiosa' })] }))
+        .ok,
+    ).toBe(false)
   })
 })

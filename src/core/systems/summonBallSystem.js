@@ -28,6 +28,7 @@ import {
   PartyBehavior,
   CreatureMoves,
   PathState,
+  FollowWatch,
   PhysicsBody,
   Position,
   Rotation,
@@ -139,11 +140,13 @@ function spawnCreature(
     vitalsFromSpecies(species, individualValues, progress.level),
     PhysicsBody(physicsBody),
     PathState,
+    // Vigia de quem fica para trás (`followLimitSystem.js`, 064).
+    FollowWatch,
     InputState,
     HeldItem,
     Mood,
     ScanMode,
-    // IA de combate fora do controle (sempre defensiva, `partyBehaviorSystem.js`).
+    // IA de combate fora do controle (pela postura do Pokémon, `partyBehaviorSystem.js`).
     PartyBehavior,
     AiMovement,
   )

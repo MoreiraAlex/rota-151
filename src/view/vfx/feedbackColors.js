@@ -18,13 +18,17 @@ export function resolveSide(entity) {
 }
 
 /**
- * Cor (`#rrggbb`) do feedback pra um `kind` (`'damage'`, `'crit'`, `'debuff'`,
- * `'buff'`)
- * e um `side` (`'ally'`, `'opponent'`) — `GAME_CONFIG.FEEDBACK.FEEDBACK_COLORS`.
- * Usada pelo brilho do modelo e pelos textos acima da cabeça, pra os dois
- * sempre concordarem.
+ * Cor (`#rrggbb`) do feedback pra um `kind` (`'damage'`, `'crit'`,
+ * `'critGlow'`, `'debuff'`, `'buff'`) e um `side` (`'ally'`, `'opponent'`) —
+ * `GAME_CONFIG.FEEDBACK.FEEDBACK_COLORS`. Usada pelo brilho do modelo e pelos
+ * textos acima da cabeça, pra os dois sempre concordarem.
  */
 export function resolveFeedbackColor(kind, side) {
   const palette = side === 'ally' ? ALLY : OPPONENT
-  return palette[kind.toUpperCase()] ?? palette.DAMAGE
+  return palette[toConfigKey(kind)] ?? palette.DAMAGE
+}
+
+// `critGlow` → `CRIT_GLOW`.
+function toConfigKey(kind) {
+  return kind.replace(/([a-z])([A-Z])/g, '$1_$2').toUpperCase()
 }

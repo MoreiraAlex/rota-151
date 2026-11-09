@@ -48,7 +48,12 @@ export {
 } from './wildBehavior'
 export { tentarCorrer } from './stamina'
 export { desmaiar, acordar, resolveReviveHp } from './faint'
-export { defenderGrupo, voltarASeguir } from './partyBehavior'
+export {
+  defenderGrupo,
+  voltarASeguir,
+  registrarAgressor,
+} from './partyBehavior'
+export { definirPostura } from './posture'
 export {
   iniciarAtordoamento,
   isHitStunned,

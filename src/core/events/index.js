@@ -26,6 +26,7 @@ export const EVENT_TYPES = {
   INVENTORY_FULL: 'inventoryFull',
   WILD_SPAWNED: 'wildSpawned',
   WILD_DESPAWNED: 'wildDespawned',
+  PARTY_STRAYED: 'partyStrayed',
 }
 
 /**
@@ -630,4 +631,22 @@ export function wildSpawned({ entity, speciesId, position }) {
  */
 export function wildDespawned({ speciesId, reason, position }) {
   return { type: EVENT_TYPES.WILD_DESPAWNED, speciesId, reason, position }
+}
+
+/**
+ * Uma criatura do time vai voltar sozinha para a bola porque ficou para trás
+ * (docs/features/064-revisao-da-ia-do-parceiro.md, Parte 1). `reason`:
+ * `'far'` ela ficou longe demais, `'stuck'` ela ficou presa;
+ * `'trainerFar'` / `'trainerStuck'` ela estava no controle e o TREINADOR,
+ * que a seguia, ficou longe demais ou preso.
+ *
+ * - Quem emite: `voltarParaABola` (`core/actions/followLimit.js`), no fim
+ *   da contagem (o recolher em si vem logo depois, no `partySummonSystem.js`).
+ * - Quem consome: `view/systems/battleLogSystem.js` (a linha no log). Sem
+ *   consumidor, some.
+ *
+ * @returns {{ type: 'partyStrayed', speciesId: string, reason: 'far' | 'stuck' | 'trainerFar' | 'trainerStuck' }}
+ */
+export function partyStrayed({ speciesId, reason }) {
+  return { type: EVENT_TYPES.PARTY_STRAYED, speciesId, reason }
 }

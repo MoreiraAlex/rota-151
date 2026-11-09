@@ -4,6 +4,7 @@ import { GAME_CONFIG } from '../gameConfig'
 import { destroyCharacterBody } from '../physics/colliders'
 import { findOwnedCreature, hasOwnedBallInFlight } from '../actions/owner'
 import { derrubarComida } from '../actions/eating'
+import { devolverControleAoDono } from '../actions/control'
 import { guardarCondicoes } from '../actions/conditions'
 import {
   findPartyPokemon,
@@ -27,6 +28,7 @@ import {
   StoredVitals,
   SummonBall,
   SummonedCreature,
+  StrayRecall,
   SummonedFrom,
   Velocity,
   Vitals,
@@ -46,9 +48,13 @@ const SLOTS = [
  * docs/features/041-inventario-de-itens-e-pokemon.md), ou ela está desmaiada
  * no chão há pelo menos
  * `FAINT.PARTY_RECALL_DELAY` (docs/features/031-ia-de-combate-e-
- * desmaio.md — "pouco tempo depois tem que ser recolhida pelo trainer").
+ * desmaio.md — "pouco tempo depois tem que ser recolhida pelo trainer"),
+ * ou ficou para trás (`StrayRecall`).
  */
 function needsAutoRecall(trainer, slot, creature) {
+  // Ficou para trás (longe ou presa — ela ou o treinador que a seguia,
+  // `followLimitSystem.js`, docs/features/064-revisao-da-ia-do-parceiro.md).
+  if (creature.has(StrayRecall)) return true
   const pokemon = resolvePokemonOf(creature)
   if (!pokemon || findPartyPokemon(trainer, slot) !== pokemon) return true
   const fainted = creature.get(Fainted)
@@ -235,6 +241,9 @@ function applyRecall(world, trainer, pos, rot, slot) {
   // Recolhida comendo: a fruta cai no chão (docs/features/042-itens-da-beta.md).
   derrubarComida(world, creature)
   storeOutOfField(creature)
+  // Recolhida pilotada (ficou longe do treinador, 064, ou saiu do time pelo
+  // inventário): o controle volta para o treinador.
+  devolverControleAoDono(creature)
 
   destroyCharacterBody(creature.get(PhysicsBody).bodyHandle)
   creature.destroy()

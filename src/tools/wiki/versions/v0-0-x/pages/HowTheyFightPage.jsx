@@ -9,8 +9,15 @@ import {
   formatSeconds,
 } from '@/tools/wiki/wikiFormat'
 
+// "o time mira certo" / "as selvagens podem errar até N° pra cada lado".
+function aimText(who, aimError, plural) {
+  if (!(aimError > 0)) return `${who} ${plural ? 'miram' : 'mira'} certo`
+  const can = plural ? 'podem' : 'pode'
+  return `${who} ${can} errar até ${formatNumber(aimError, 0)}° pra cada lado`
+}
+
 export function HowTheyFightPage({ data, version }) {
-  const { ai, wildAi, party } = data
+  const { ai, wildAi, partyAi } = data
 
   return (
     <>
@@ -18,20 +25,20 @@ export function HowTheyFightPage({ data, version }) {
         <p>
           As selvagens e as criaturas do seu time que você não está controlando
           lutam sozinhas, seguindo as mesmas regras. A diferença está no quanto
-          cada uma é afiada: as selvagens lutam com menos capricho que o seu
-          time — atacam com menos frequência, desviam menos, erram mais a mira e
-          escolhem golpes piores. Nesta página, o número entre parênteses é o
-          das selvagens.
+          cada uma é afiada — o ritmo dos golpes, o desvio, a mira e a escolha
+          do golpe —, e cada lado tem o seu nível, ajustado à parte. Nesta
+          página, o primeiro número é o do seu time e o número entre parênteses
+          é o das selvagens.
         </p>
         <ul>
           <li>
             <strong>Ritmo</strong> — o time ataca a cada{' '}
-            {formatSeconds(party.attackInterval, 1)} no máximo; as selvagens, a
-            cada {formatSeconds(wildAi.attackInterval, 1)}.
+            {formatSeconds(partyAi.attackInterval, 1)} no máximo; as selvagens,
+            a cada {formatSeconds(wildAi.attackInterval, 1)}.
           </li>
           <li>
-            <strong>Mira</strong> — o time mira certo; as selvagens podem errar
-            até {formatNumber(wildAi.aimError, 0)}° pra cada lado.
+            <strong>Mira</strong> — {aimText('o time', partyAi.aimError, false)}
+            ; {aimText('as selvagens', wildAi.aimError, true)}.
           </li>
         </ul>
       </Section>
@@ -81,7 +88,7 @@ export function HowTheyFightPage({ data, version }) {
         </ul>
         <p>
           Depois ela sorteia entre os golpes com nota de pelo menos{' '}
-          {formatPercent(ai.nearBest, 0)} da melhor (
+          {formatPercent(partyAi.nearBest, 0)} da melhor (
           {formatPercent(wildAi.nearBest, 0)}) — os melhores saem mais, mas ela
           não fica previsível.
         </p>
@@ -95,7 +102,7 @@ export function HowTheyFightPage({ data, version }) {
             {formatPercent(ai.skillReserve, 0)} depois.
           </li>
           <li>
-            Com {formatPercent(ai.restEnter, 0)} (
+            Com {formatPercent(partyAi.restEnter, 0)} (
             {formatPercent(wildAi.restEnter, 0)}) de energia ou menos, ela{' '}
             <strong>descansa</strong>: para de atacar e de correr até voltar a{' '}
             {formatPercent(ai.restExit, 0)}.
@@ -113,9 +120,9 @@ export function HowTheyFightPage({ data, version }) {
         <ul>
           <li>
             <strong>Desvio</strong> — quando vê um golpe vindo, tem{' '}
-            {formatPercent(ai.dodgeChance, 0)} (
+            {formatPercent(partyAi.dodgeChance, 0)} (
             {formatPercent(wildAi.dodgeChance, 0)}) de chance de tentar sair da
-            área. Ela precisa de {formatSeconds(ai.dodgeReaction, 1)} (
+            área. Ela precisa de {formatSeconds(partyAi.dodgeReaction, 1)} (
             {formatSeconds(wildAi.dodgeReaction, 1)}) pra reagir: golpes rápidos
             pegam.
           </li>
@@ -129,7 +136,7 @@ export function HowTheyFightPage({ data, version }) {
           </li>
           <li>
             <strong>Dash</strong> — usa pra encurtar caminho quando ainda falta
-            mais de {formatMeters(ai.dashCloseDistance, 0)} (
+            mais de {formatMeters(partyAi.dashCloseDistance, 0)} (
             {formatMeters(wildAi.dashCloseDistance, 0)}) até o alcance.
           </li>
           <li>

@@ -12,7 +12,7 @@ function staminaFraction(vitals) {
  * `REST_ENTER_FRACTION` ou menos, a IA para de gastar (sem golpe, sem correr)
  * até voltar a `REST_EXIT_FRACTION` — a folga entre os dois evita voltar a
  * gastar com o primeiro tanto que regenerar. `enterFraction`: o limite de
- * entrada (a selvagem passa o da dificuldade, `resolveAiTuning`).
+ * entrada (a IA passa o da dificuldade do lado dela, `resolveAiTuning`).
  */
 export function resolveResting(
   resting,

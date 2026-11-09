@@ -39,6 +39,7 @@ import { JumpDustView } from './JumpDustView'
 import { ActionTimerRingView } from './ActionTimerRingView'
 import { CreaturesView, WildCreaturesView } from './CreatureView'
 import { NameplatesView } from './NameplateView'
+import { PartyMarkersView } from './PartyMarkerView'
 import { DamageNumbersView } from './DamageNumbersView'
 import { withSeeThrough } from '@/view/materials/seeThrough'
 
@@ -167,6 +168,8 @@ export function GameScene({ children }) {
       <ActionTimerRingView />
       <CreaturesView />
       <WildCreaturesView />
+      {/* O anel azul embaixo das suas criaturas (064). */}
+      <PartyMarkersView />
       <NameplatesView />
       <DamageNumbersView />
 

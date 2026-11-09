@@ -440,16 +440,16 @@ describe('damageNumberSystem — cor do texto: tipo × lado do alvo', () => {
     expectColor('ally', 1, ALLY.BUFF)
   })
 
-  it('o crítico usa a cor CRIT do lado e o brilho do contorno é a cor de dano do lado', () => {
+  it('o crítico usa a cor CRIT do lado e o brilho do contorno é o CRIT_GLOW do lado', () => {
     run([hit(spawnSided('ally'), 20, true)])
     run([hit(spawnSided('opponent'), 20, true)])
 
     const [ally, opponent] = activeSlots()
     expect(ally.critical).toBe(true)
     expect(ally.color).toBe(ALLY.CRIT)
-    expect(ally.glow).toBe(ALLY.DAMAGE)
+    expect(ally.glow).toBe(ALLY.CRIT_GLOW)
     expect(opponent.color).toBe(OPPONENT.CRIT)
-    expect(opponent.glow).toBe(OPPONENT.DAMAGE)
+    expect(opponent.glow).toBe(OPPONENT.CRIT_GLOW)
     expect(ally.color).not.toBe(opponent.color)
   })
 

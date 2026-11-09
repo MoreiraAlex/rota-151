@@ -13,6 +13,9 @@ import { resolveRenderPosition } from '@/view/registry/renderInterpolation'
 import { fogFactorAt } from '@/core/terrain/fogRange'
 import { nameplateRangeOpacity } from './nameplateRange'
 import { WildEmote } from './WildEmote'
+import { RecallWarningIcon } from './RecallWarningIcon'
+import { resolveMineSlotKey } from '../shared/partyMarker'
+import { playerEntity } from '@/core/world/world'
 import {
   BeingCaptured,
   CreatureLevel,
@@ -22,6 +25,7 @@ import {
   Vitals,
   WildAwareness,
   WildCreature,
+  StrayWarning,
 } from '@/core/traits'
 import {
   formatSpeciesName,
@@ -174,6 +178,13 @@ function NameplateView({ entity, species }) {
   // Lido aqui, fora do `<Html>` (raiz React separada, sem o provider do
   // koota): o `WildEmote` só recebe o valor.
   const awareness = useTrait(entity, WildAwareness)
+  // A Pokébola piscando de quem vai ser puxada para a bola (064).
+  const strayWarning = useTrait(entity, StrayWarning)
+  const hasEmote = isWild || !!strayWarning
+  // Sua criatura (064, Parte 4): nome na cor da marca e a tecla do slot —
+  // pra separar do selvagem da mesma espécie. Só as do jogador local.
+  const summoned = useTrait(entity, SummonedCreature)
+  const mineSlotKey = resolveMineSlotKey(entity, playerEntity, summoned)
 
   useFrame((state) => {
     const group = groupRef.current
@@ -205,10 +216,13 @@ function NameplateView({ entity, species }) {
     const fogOpacity = fog ? 1 - fogFactorAt(distance, fog) : 1
     const opacity = Math.min(fogOpacity, nameplateRangeOpacity(distance))
     if (plateRef.current) plateRef.current.style.opacity = String(opacity)
-    // O emote da selvagem (063) só some com a névoa, não pela distância da
-    // etiqueta: quem está longe te vendo continua avisando.
+    // O emote da selvagem (063) e a Pokébola do aviso (064) só somem com a
+    // névoa, não pela distância da etiqueta: quem está longe continua
+    // avisando.
     if (emoteRef.current) emoteRef.current.style.opacity = String(fogOpacity)
-    const visible = opacity > 0 || (isWild && fogOpacity > 0)
+    // O aviso de voltar para a bola (064) também: a criatura longe é
+    // justamente a que tem a etiqueta escondida pela distância.
+    const visible = opacity > 0 || (hasEmote && fogOpacity > 0)
     content.style.opacity = '1'
     content.style.visibility = visible ? 'visible' : 'hidden'
   })
@@ -257,12 +271,45 @@ function NameplateView({ entity, species }) {
               <WildEmote emote={awareness?.emote ?? null} />
             </div>
           )}
+          {strayWarning && (
+            <div
+              ref={emoteRef}
+              className="absolute bottom-full left-1/2 flex -translate-x-1/2 justify-center"
+              style={{
+                paddingBottom: GAME_CONFIG.FEEDBACK.RECALL_WARNING.GAP,
+              }}
+            >
+              <RecallWarningIcon warning={strayWarning} />
+            </div>
+          )}
           <div
             ref={plateRef}
             className="flex w-28 flex-col items-center gap-0.5 rounded px-1.5 py-1 font-mono text-[10px] "
           >
             <div className="flex w-full items-center justify-center gap-1">
-              <span className="truncate">{formatSpeciesName(species.id)}</span>
+              {mineSlotKey && (
+                <span
+                  className="shrink-0 rounded-sm px-0.5 font-bold leading-none text-black"
+                  style={{
+                    backgroundColor: GAME_CONFIG.FEEDBACK.PARTY_MARKER.COLOR,
+                  }}
+                >
+                  {mineSlotKey}
+                </span>
+              )}
+              <span
+                className="truncate"
+                style={
+                  mineSlotKey
+                    ? {
+                        color: GAME_CONFIG.FEEDBACK.PARTY_MARKER.NAME_COLOR,
+                        fontWeight: 700,
+                      }
+                    : undefined
+                }
+              >
+                {formatSpeciesName(species.id)}
+              </span>
               {level != null && (
                 <span className="shrink-0 text-white/50">Lv.{level}</span>
               )}

@@ -1,4 +1,6 @@
 import { z } from 'zod'
+import { POSTURES } from '../party/posture'
+import { GAME_CONFIG } from '../gameConfig'
 import { PARTY_SLOT_IDS } from '../traits'
 
 /**
@@ -10,7 +12,7 @@ import { PARTY_SLOT_IDS } from '../traits'
  * O schema é a fronteira: o adapter (cliente) e a rota da API (servidor)
  * validam com ele antes de o dado entrar no jogo ou no banco.
  */
-export const SAVE_VERSION = 4
+export const SAVE_VERSION = 5
 
 const numberRecord = z.record(z.string(), z.number())
 
@@ -43,6 +45,7 @@ export const pokemonSaveSchema = z.object({
   storedVitals: numberRecord.nullable(),
   faintTimeLeft: z.number().min(0).nullable(),
   conditions: z.array(conditionSchema).nullable(),
+  posture: z.enum(POSTURES),
   location: z.discriminatedUnion('kind', [
     z.object({ kind: z.literal('party'), slot: z.enum(PARTY_SLOT_IDS) }),
     z.object({ kind: z.literal('inventory'), cell: z.number().int().min(0) }),
@@ -136,6 +139,8 @@ export const saveSchema = z.object({
  *   lista (`{ burn }` → `[{ id: 'burn', ... }]`).
  * - 3 → 4 (docs/features/062-spawn-estilo-cobblemon.md): entram as
  *   selvagens, começando sem nenhuma (o spawn povoa).
+ * - 4 → 5 (docs/features/064-revisao-da-ia-do-parceiro.md): entra a
+ *   postura de cada Pokémon, começando na padrão.
  */
 const MIGRATIONS = {
   1: (save) => ({ ...save, worldItems: { chunks: {}, foraged: {} } }),
@@ -147,6 +152,13 @@ const MIGRATIONS = {
     })),
   }),
   3: (save) => ({ ...save, wildCreatures: [] }),
+  4: (save) => ({
+    ...save,
+    pokemon: (save.pokemon ?? []).map((pokemon) => ({
+      ...pokemon,
+      posture: pokemon.posture ?? GAME_CONFIG.PARTY_BEHAVIOR.DEFAULT_POSTURE,
+    })),
+  }),
 }
 
 // `{ burn: { ..., attackMultiplier } }` (versão 2) → a lista da versão 3.

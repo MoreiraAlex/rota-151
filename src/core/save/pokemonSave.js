@@ -13,6 +13,7 @@ import {
   resolveInventoryCells,
 } from '../actions/inventory'
 import { listStorable } from '../actions/conditions'
+import { resolvePokemonPosture } from '../party/posture'
 import {
   BallOnGround,
   Conditions,
@@ -60,6 +61,7 @@ export function serializePokemon(world, trainer, pokemon) {
     ivs: { ...pokemon.get(IndividualValues) },
     moves: cloneMovesState(pokemon.get(CreatureMoves)),
     ...outOfField,
+    posture: resolvePokemonPosture(pokemon),
     location,
   }
 }
@@ -110,6 +112,7 @@ export function restorePokemon(world, trainer, saved) {
     individualValues: { ...saved.ivs },
     levelState: { level: saved.level, xp: saved.xp },
     moves: saved.moves,
+    posture: saved.posture,
   })
   if (!pokemon) return null
 

@@ -3,12 +3,15 @@ import { Notice } from '@/tools/wiki/components/Notice'
 import { WikiLink } from '@/tools/wiki/components/WikiLink'
 import {
   formatMeters,
+  formatNumber,
   formatPercent,
   formatSeconds,
 } from '@/tools/wiki/wikiFormat'
+import { POSTURE_TEXT } from '@/view/shared/postureText'
 
 export function TeamPage({ data, version }) {
-  const { party, faint, flight, species } = data
+  const { party, partyAi, faint, flight, species } = data
+  const defaultPosture = POSTURE_TEXT[party.defaultPosture].name.toLowerCase()
   const flyers = species
     .filter((entry) => entry.movement.flight)
     .map((entry) => entry.name)
@@ -67,7 +70,7 @@ export function TeamPage({ data, version }) {
         <p>
           Segurando o comando de invocar ou recolher uma criatura (em vez de só
           tocar), abre o <strong>menu de ações</strong> dela. Por enquanto ele
-          tem três ações:
+          tem quatro ações:
         </p>
         <ul>
           <li>
@@ -86,6 +89,14 @@ export function TeamPage({ data, version }) {
             (
             <WikiLink version={version} to="catalogo/itens#como-usar">
               Itens
+            </WikiLink>
+            ).
+          </li>
+          <li>
+            <strong>Postura</strong> — escolher como ela luta quando você não
+            está no controle (
+            <WikiLink version={version} to="criaturas/seu-time#posturas">
+              Posturas
             </WikiLink>
             ).
           </li>
@@ -117,7 +128,7 @@ export function TeamPage({ data, version }) {
         </p>
       </Section>
 
-      <Section id="seguindo" title="Seguindo e defendendo">
+      <Section id="seguindo" title="Seguindo">
         <p>Fora da bola, a criatura que você não está controlando:</p>
         <ul>
           <li>
@@ -125,13 +136,11 @@ export function TeamPage({ data, version }) {
             obstáculos.
           </li>
           <li>
-            <strong>Defende o grupo</strong>: quando uma selvagem acerta alguém
-            do time, ela entra na luta contra essa selvagem. Ela não começa
-            briga sozinha.
+            Entra na luta conforme a <strong>postura</strong> dela (abaixo).
           </li>
           <li>
             Ataca com calma de propósito — um golpe a cada{' '}
-            {formatSeconds(party.attackInterval, 1)} no máximo. Quem decide a
+            {formatSeconds(partyAi.attackInterval, 1)} no máximo. Quem decide a
             luta é quem joga.
           </li>
           <li>
@@ -150,6 +159,92 @@ export function TeamPage({ data, version }) {
           </WikiLink>
           .
         </p>
+      </Section>
+
+      <Section id="posturas" title="Posturas">
+        <p>
+          Cada criatura tem uma <strong>postura</strong>, que diz quando ela
+          entra numa luta sozinha. Você escolhe no menu de ações, e a escolha
+          fica guardada com ela. Toda criatura começa na {defaultPosture}.
+          Trocar vale na hora, até no meio de uma luta.
+        </p>
+        <ul>
+          <li>
+            <strong>Agressiva</strong> — ataca toda selvagem que vê, mesmo as
+            tranquilas: à frente dela até {formatMeters(party.viewDistance, 0)}{' '}
+            (num ângulo de {formatNumber(party.viewAngle, 0)}°), ou a até{' '}
+            {formatMeters(party.nearRadius, 0)} em qualquer direção. Também faz
+            tudo o que a defensiva faz.
+          </li>
+          <li>
+            <strong>Defensiva</strong> — entra quando uma selvagem acerta alguém
+            do time ou parte pra cima do grupo (a selvagem brava; o alerta ainda
+            não conta). Se uma selvagem mira no treinador, vai pra cima dela
+            primeiro.
+          </li>
+          <li>
+            <strong>Neutra</strong> — só luta se ela mesma for acertada (golpe
+            que erra não conta), e só contra quem a acertou. Não protege o
+            treinador; quando essas selvagens saem da luta, volta a seguir.
+          </li>
+        </ul>
+        <p>
+          Nenhuma postura ataca uma selvagem que está sendo capturada, fugindo
+          ou desmaiada — a agressiva não estraga a sua captura. Elas só valem
+          perto de quem está no controle (os mesmos{' '}
+          {formatMeters(party.leashRadius, 0)} de cima) e não valem pra criatura
+          que você está controlando.
+        </p>
+      </Section>
+
+      <Section id="longe-demais" title="Quem fica para trás">
+        <ul>
+          <li>
+            A criatura que fica a mais de{' '}
+            {formatMeters(party.recallDistance, 0)} de quem está no controle, ou
+            presa (tentando seguir sem sair do lugar) por{' '}
+            {formatSeconds(party.stuckTime, 0)}, volta sozinha pra bola.
+          </li>
+          <li>
+            Antes, um aviso no topo da tela e uma Pokébola piscando em cima dela
+            contam {formatSeconds(party.warningTime, 0)}. Se nesse tempo ela
+            voltar pra perto ou se soltar, nada acontece.
+          </li>
+          <li>
+            A distância só conta depois que ela chega perto do grupo uma vez:
+            quem acabou de ser invocada longe tem tempo de chegar.
+          </li>
+          <li>
+            <strong>Ao contrário</strong>: controlando uma criatura, se você
+            deixar o treinador para trás, passando de{' '}
+            {formatMeters(party.warnDistance, 0)} aparece o aviso &quot;Longe
+            demais do treinador&quot;. Passando de{' '}
+            {formatMeters(party.recallDistance, 0)}, ou com o treinador preso,
+            começa a contagem — no fim, você é puxado pra bola e o controle
+            volta pro treinador.
+          </li>
+        </ul>
+      </Section>
+
+      <Section id="qual-e-o-seu" title="Qual é o seu">
+        <ul>
+          <li>
+            Toda criatura do seu time tem um <strong>anel azul</strong> no chão,
+            embaixo dela, o tempo todo — inclusive a que você controla. As
+            selvagens não têm.
+          </li>
+          <li>
+            Na etiqueta acima da cabeça, o nome dela fica azul, com o atalho do
+            lugar dela no time ao lado.
+          </li>
+          <li>
+            <strong>Cores do dano</strong>: o dano que você causa aparece branco
+            (o crítico, dourado), e o que o seu time toma, vermelho. O brilho no
+            corpo de quem apanhou tem a mesma cor. Atributo baixando fica
+            laranja na selvagem e violeta no seu time; subindo, verde na
+            selvagem e azul no seu time.
+          </li>
+        </ul>
       </Section>
 
       <Section id="controle" title="Assumir o controle">

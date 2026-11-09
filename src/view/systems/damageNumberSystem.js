@@ -175,14 +175,14 @@ export function damageNumberSystem(context) {
       text: formatDamage(event.damage),
       critical: event.critical,
       lifetime: event.critical ? CRIT_LIFETIME : LIFETIME,
-      // dano: vermelho no oponente, rosa no aliado; crítico: dourado no
-      // oponente, rosa-claro no aliado — com o contorno na cor de dano do lado
-      // (`FEEDBACK_COLORS`)
+      // Dano e crítico na cor do lado de quem apanhou, com o brilho do
+      // crítico na cor dele (`FEEDBACK_COLORS`): claro no que você causa,
+      // vermelho no que você toma.
       color: resolveFeedbackColor(
         event.critical ? 'crit' : 'damage',
         resolveSide(event.target),
       ),
-      glow: resolveFeedbackColor('damage', resolveSide(event.target)),
+      glow: resolveFeedbackColor('critGlow', resolveSide(event.target)),
     })
 
     const side = SPREAD_PATTERN[slot.serial % SPREAD_PATTERN.length] * SPREAD

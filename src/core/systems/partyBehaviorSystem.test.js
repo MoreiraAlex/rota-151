@@ -1,10 +1,16 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { resolveReachFor } from '@/core/battle/aiAttackChoice'
 import { resolveHitTrigger } from '@/core/battle/hitTrigger'
-import { makeWorld, ownedByPlayer } from '@/test/makeWorld'
+import { givePokemon, makeWorld, ownedByPlayer } from '@/test/makeWorld'
 import { desmaiar } from '../actions/faint'
 import { defenderGrupo } from '../actions/partyBehavior'
-import { perseguirJogador } from '../actions/wildBehavior'
+import { definirPostura } from '../actions/posture'
+import {
+  perceberJogador,
+  perseguirJogador,
+  sairDoMapa,
+  voltarAVagar,
+} from '../actions/wildBehavior'
 import { resolveCreatureAttack } from '../battle/creatureAttack'
 import { getSpecies } from '../data/species'
 import { attackResolved, createEventQueue } from '../events'
@@ -12,6 +18,7 @@ import { GAME_CONFIG } from '../gameConfig'
 import {
   ActionState,
   AttackCooldowns,
+  BeingCaptured,
   CharacterController,
   IndividualValues,
   InputControlled,
@@ -24,6 +31,8 @@ import {
   Position,
   Rotation,
   SummonedCreature,
+  SummonedFrom,
+  Training,
   Velocity,
   Vitals,
   WantsToAttack,
@@ -41,14 +50,17 @@ import { wildAwarenessSystem } from './wildAwarenessSystem'
 import { wildBehaviorSystem } from './wildBehaviorSystem'
 import { wildReactionSystem } from './wildReactionSystem'
 
-// A IA de hoje (034) é a dificuldade máxima das selvagens (063): estes
-// testes conferem o comportamento na ponta difícil.
+// A IA de hoje (034) é a dificuldade máxima das selvagens (063) e do time
+// (064): estes testes conferem o comportamento na ponta difícil.
 const originalDifficulty = GAME_CONFIG.WILD_DIFFICULTY.LEVEL
+const originalPartyDifficulty = GAME_CONFIG.PARTY_DIFFICULTY.LEVEL
 beforeAll(() => {
   GAME_CONFIG.WILD_DIFFICULTY.LEVEL = 1
+  GAME_CONFIG.PARTY_DIFFICULTY.LEVEL = 1
 })
 afterAll(() => {
   GAME_CONFIG.WILD_DIFFICULTY.LEVEL = originalDifficulty
+  GAME_CONFIG.PARTY_DIFFICULTY.LEVEL = originalPartyDifficulty
 })
 
 const DELTA = 1 / 60
@@ -156,7 +168,7 @@ function hit(attacker, target) {
 
 const stateOf = (entity) => entity.get(PartyBehavior)
 
-describe('partyReactionSystem — sempre defensiva', () => {
+describe('partyReactionSystem — defensiva (a padrão)', () => {
   it('selvagem acerta o treinador: a criatura do time entra na luta contra ela', () => {
     const { world, trainer } = setup()
     const mine = spawnPartyCreature(world, at(-2, 0))
@@ -560,5 +572,372 @@ describe('partyBehaviorSystem — protege o treinador', () => {
     partyBehaviorSystem({ world, delta: DELTA })
 
     expect(stateOf(mine).target).toBe(hunter)
+  })
+})
+
+// Posturas (docs/features/064-revisao-da-ia-do-parceiro.md, Parte 2).
+describe('posturas', () => {
+  const { PERCEPTION } = GAME_CONFIG.PARTY_BEHAVIOR
+  // Na frente dela (a frente com `Rotation.y` zero é +z), dentro do cone e
+  // fora do raio curto — e perto o bastante de quem segue.
+  const IN_SIGHT =
+    (PERCEPTION.NEAR_RADIUS +
+      Math.min(PERCEPTION.VIEW_DISTANCE, LEASH_RADIUS)) /
+    2
+
+  /** A criatura do time com um registro na postura dada. */
+  function spawnWithPosture(world, trainer, posture, position, slot = 'slot1') {
+    const creature = spawnPartyCreature(world, position, slot)
+    const pokemon = givePokemon(world, trainer, 'charmander', slot)
+    creature.add(SummonedFrom(pokemon))
+    definirPostura(pokemon, posture)
+    return { creature, pokemon }
+  }
+
+  function chase(wild, target) {
+    perseguirJogador(wild, { provoked: true })
+    wild.set(WildBehavior, { target })
+  }
+
+  function decide(world) {
+    partyBehaviorSystem({ world, delta: DELTA })
+  }
+
+  describe('defensiva', () => {
+    it('entra quando uma selvagem parte para cima de alguém do grupo, sem ninguém apanhar', () => {
+      const { world, trainer } = setup()
+      const { creature } = spawnWithPosture(
+        world,
+        trainer,
+        'defensive',
+        at(-2, 0),
+      )
+      const wild = spawnWild(world, at(3, 3))
+      chase(wild, trainer)
+
+      decide(world)
+
+      expect(stateOf(creature)).toMatchObject({ state: 'fight', target: wild })
+    })
+
+    it('o alerta ("!") ainda não conta', () => {
+      const { world, trainer } = setup()
+      const { creature } = spawnWithPosture(
+        world,
+        trainer,
+        'defensive',
+        at(-2, 0),
+      )
+      const wild = spawnWild(world, at(3, 3))
+      perceberJogador(wild, trainer)
+
+      decide(world)
+
+      expect(stateOf(creature).state).toBe('follow')
+    })
+
+    it('selvagem perseguindo o grupo longe de quem segue (além da coleira) não puxa', () => {
+      const { world, trainer } = setup()
+      const { creature } = spawnWithPosture(
+        world,
+        trainer,
+        'defensive',
+        at(-2, 0),
+      )
+      const other = spawnPartyCreature(world, at(0, LEASH_RADIUS + 4), 'slot2')
+      const wild = spawnWild(world, at(0, LEASH_RADIUS + 6))
+      chase(wild, other)
+
+      decide(world)
+
+      expect(stateOf(creature).state).toBe('follow')
+    })
+
+    it('não procura briga com a selvagem só à vista', () => {
+      const { world, trainer } = setup()
+      const { creature } = spawnWithPosture(
+        world,
+        trainer,
+        'defensive',
+        at(0, 0),
+      )
+      spawnWild(world, at(0, IN_SIGHT))
+
+      decide(world)
+
+      expect(stateOf(creature).state).toBe('follow')
+    })
+  })
+
+  describe('neutra', () => {
+    it('não entra quando o treinador ou outra do time apanha', () => {
+      const { world, trainer } = setup()
+      const { creature } = spawnWithPosture(
+        world,
+        trainer,
+        'neutral',
+        at(-2, 0),
+      )
+      const other = spawnPartyCreature(world, at(-3, 0), 'slot2')
+      const wild = spawnWild(world, at(2, 0))
+      chase(wild, trainer)
+
+      react(world, [hit(wild, trainer), hit(wild, other)])
+      decide(world)
+
+      expect(stateOf(creature).state).toBe('follow')
+      expect(stateOf(other).state).toBe('fight')
+    })
+
+    it('entra quando ela é acertada, contra quem a acertou', () => {
+      const { world, trainer } = setup()
+      const { creature } = spawnWithPosture(
+        world,
+        trainer,
+        'neutral',
+        at(-2, 0),
+      )
+      const wild = spawnWild(world, at(2, 0))
+      chase(wild, creature)
+
+      react(world, [hit(wild, creature)])
+      decide(world)
+
+      expect(stateOf(creature)).toMatchObject({ state: 'fight', target: wild })
+    })
+
+    it('não troca para quem mira o treinador', () => {
+      const { world, trainer } = setup()
+      const { creature } = spawnWithPosture(
+        world,
+        trainer,
+        'neutral',
+        at(-2, 0),
+      )
+      const attacker = spawnWild(world, at(2, 0))
+      chase(attacker, creature)
+      const hunter = spawnWild(world, at(3, 3))
+      chase(hunter, trainer)
+
+      react(world, [hit(attacker, creature)])
+      decide(world)
+
+      expect(stateOf(creature).target).toBe(attacker)
+    })
+
+    it('quem a atacou saiu da luta: volta a seguir, mesmo com outras brigando com o grupo', () => {
+      const { world, trainer } = setup()
+      const { creature } = spawnWithPosture(
+        world,
+        trainer,
+        'neutral',
+        at(-2, 0),
+      )
+      const attacker = spawnWild(world, at(2, 0))
+      chase(attacker, creature)
+      const other = spawnWild(world, at(3, 3))
+      chase(other, trainer)
+      react(world, [hit(attacker, creature)])
+      decide(world)
+
+      voltarAVagar(attacker, attacker.get(Position))
+      decide(world)
+
+      expect(stateOf(creature)).toMatchObject({ state: 'follow', target: null })
+    })
+
+    it('golpe que erra não conta', () => {
+      const { world, trainer } = setup()
+      const { creature } = spawnWithPosture(
+        world,
+        trainer,
+        'neutral',
+        at(-2, 0),
+      )
+      const wild = spawnWild(world, at(2, 0))
+      chase(wild, creature)
+
+      react(world, [{ ...hit(wild, creature), result: 'miss' }])
+      decide(world)
+
+      expect(stateOf(creature).state).toBe('follow')
+    })
+  })
+
+  describe('agressiva', () => {
+    it('entra quando uma selvagem fica dentro da percepção dela, mesmo tranquila', () => {
+      const { world, trainer } = setup()
+      const { creature } = spawnWithPosture(
+        world,
+        trainer,
+        'aggressive',
+        at(0, 0),
+      )
+      const wild = spawnWild(world, at(0, IN_SIGHT))
+      wild.set(WildBehavior, { temperament: 'peaceful' })
+
+      decide(world)
+
+      expect(stateOf(creature)).toMatchObject({ state: 'fight', target: wild })
+    })
+
+    it('fora do cone e longe do raio curto, não', () => {
+      const { world, trainer } = setup()
+      const { creature } = spawnWithPosture(
+        world,
+        trainer,
+        'aggressive',
+        at(0, 0),
+      )
+      spawnWild(world, at(0, -IN_SIGHT))
+
+      decide(world)
+
+      expect(stateOf(creature).state).toBe('follow')
+    })
+
+    it('fora da coleira de quem segue, não', () => {
+      const { world, trainer } = setup()
+      // Ela dentro da coleira; a selvagem no raio curto dela, mas além da
+      // coleira do treinador.
+      const near = LEASH_RADIUS - PERCEPTION.NEAR_RADIUS * 0.4
+      const { creature } = spawnWithPosture(
+        world,
+        trainer,
+        'aggressive',
+        at(0, near),
+      )
+      spawnWild(world, at(0, near + PERCEPTION.NEAR_RADIUS * 0.9))
+
+      decide(world)
+
+      expect(stateOf(creature).state).toBe('follow')
+    })
+
+    it('também entra como a defensiva (selvagem partindo para cima, fora da vista)', () => {
+      const { world, trainer } = setup()
+      const { creature } = spawnWithPosture(
+        world,
+        trainer,
+        'aggressive',
+        at(0, 0),
+      )
+      const wild = spawnWild(world, at(0, -IN_SIGHT))
+      chase(wild, trainer)
+
+      decide(world)
+
+      expect(stateOf(creature)).toMatchObject({ state: 'fight', target: wild })
+    })
+
+    it('a que treina não entra', () => {
+      const { world, trainer } = setup()
+      const { creature } = spawnWithPosture(
+        world,
+        trainer,
+        'aggressive',
+        at(0, 0),
+      )
+      creature.add(Training)
+      spawnWild(world, at(0, IN_SIGHT))
+
+      decide(world)
+
+      expect(stateOf(creature).state).toBe('follow')
+    })
+  })
+
+  describe('fora de alvo para qualquer postura', () => {
+    it.each(['aggressive', 'defensive'])(
+      '%s: não entra contra a selvagem sendo capturada nem a que está fugindo',
+      (posture) => {
+        const { world, trainer } = setup()
+        const { creature } = spawnWithPosture(world, trainer, posture, at(0, 0))
+        const captured = spawnWild(world, at(0, IN_SIGHT))
+        chase(captured, trainer)
+        captured.add(BeingCaptured)
+        const leaving = spawnWild(world, at(1, IN_SIGHT))
+        chase(leaving, trainer)
+        sairDoMapa(leaving, leaving.get(Position), trainer.get(Position))
+
+        decide(world)
+
+        expect(stateOf(creature).state).toBe('follow')
+      },
+    )
+
+    it('lutando, o alvo começa a ser capturado: larga ele', () => {
+      const { world, trainer } = setup()
+      const { creature } = spawnWithPosture(
+        world,
+        trainer,
+        'aggressive',
+        at(0, 0),
+      )
+      const wild = spawnWild(world, at(0, IN_SIGHT))
+      decide(world)
+      expect(stateOf(creature).target).toBe(wild)
+
+      wild.add(BeingCaptured)
+      decide(world)
+
+      expect(stateOf(creature)).toMatchObject({ state: 'follow', target: null })
+    })
+  })
+
+  it('trocar a postura muda na hora: a defensiva lutando pelo treinador, virando neutra, larga', () => {
+    const { world, trainer } = setup()
+    const { creature, pokemon } = spawnWithPosture(
+      world,
+      trainer,
+      'defensive',
+      at(-2, 0),
+    )
+    const wild = spawnWild(world, at(3, 3))
+    chase(wild, trainer)
+    decide(world)
+    expect(stateOf(creature).state).toBe('fight')
+
+    definirPostura(pokemon, 'neutral')
+    decide(world)
+
+    expect(stateOf(creature).state).toBe('follow')
+  })
+})
+
+// Dificuldade do time (docs/features/064-revisao-da-ia-do-parceiro.md,
+// Parte 3).
+describe('dificuldade do time', () => {
+  afterEach(() => {
+    GAME_CONFIG.PARTY_DIFFICULTY.LEVEL = 1
+    GAME_CONFIG.WILD_DIFFICULTY.LEVEL = 1
+  })
+
+  function attackTimerAfterRequest(world) {
+    const mine = spawnPartyCreature(world, at(0, 3))
+    const melee = resolveCreatureAttack(CHARMANDER, MELEE_SLOT)
+    const trigger = resolveHitTrigger(CHARMANDER.body)
+    const wild = spawnWild(
+      world,
+      at(0, 3 + resolveReachFor(melee, trigger, trigger) - 0.2),
+    )
+    defenderGrupo(mine, wild)
+    partyBehaviorSystem({ world, delta: DELTA })
+    expect(mine.get(WantsToAttack)?.target).toBe(wild)
+    return stateOf(mine).attackTimer
+  }
+
+  it('o ritmo dos golpes segue o PARTY_DIFFICULTY: na ponta fácil, o intervalo dela', () => {
+    GAME_CONFIG.PARTY_DIFFICULTY.LEVEL = 0
+    const { world } = setup()
+    expect(attackTimerAfterRequest(world)).toBeCloseTo(
+      GAME_CONFIG.PARTY_DIFFICULTY.EASY.ATTACK_INTERVAL,
+    )
+  })
+
+  it('a dificuldade das selvagens não muda o ritmo do time', () => {
+    GAME_CONFIG.WILD_DIFFICULTY.LEVEL = 0
+    const { world } = setup()
+    expect(attackTimerAfterRequest(world)).toBeCloseTo(ATTACK_INTERVAL)
   })
 })

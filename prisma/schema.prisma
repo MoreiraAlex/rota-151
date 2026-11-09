@@ -112,6 +112,9 @@ model Pokemon {
   storedVitals  Json?
   faintTimeLeft Float?
   conditions    Json?
+  // 'aggressive' | 'defensive' | 'neutral' (docs/features/064-*.md).
+  // Vazio nas linhas de antes: a migração do save põe a padrão.
+  posture       String?
   location      Json
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt

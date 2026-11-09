@@ -10,6 +10,15 @@ import {
 
 const { OPPONENT, ALLY } = GAME_CONFIG.FEEDBACK.FEEDBACK_COLORS
 
+// `#rrggbb` → canais 0–255, e a luminância relativa (sRGB, sem gama).
+function channels(hex) {
+  return [1, 3, 5].map((start) => parseInt(hex.slice(start, start + 2), 16))
+}
+function luminance(hex) {
+  const [r, g, b] = channels(hex)
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b
+}
+
 const worlds = []
 afterEach(() => {
   while (worlds.length) worlds.pop().destroy()
@@ -56,10 +65,17 @@ describe('resolveFeedbackColor', () => {
     expect(resolveFeedbackColor('buff', 'ally')).toBe(ALLY.BUFF)
   })
 
-  it('o oponente usa vermelho / laranja / verde como o pedido original', () => {
-    expect(OPPONENT.DAMAGE).toBe('#ff3b30')
-    expect(OPPONENT.DEBUFF).toBe('#ff9f0a')
-    expect(OPPONENT.BUFF).toBe('#32d74b')
+  it('o brilho do crítico vem da paleta do lado', () => {
+    expect(resolveFeedbackColor('critGlow', 'opponent')).toBe(
+      OPPONENT.CRIT_GLOW,
+    )
+    expect(resolveFeedbackColor('critGlow', 'ally')).toBe(ALLY.CRIT_GLOW)
+  })
+
+  it('o dano que você causa é claro; o que você toma é vermelho (064)', () => {
+    expect(luminance(OPPONENT.DAMAGE)).toBeGreaterThan(luminance(ALLY.DAMAGE))
+    const [r, g, b] = channels(ALLY.DAMAGE)
+    expect(r).toBeGreaterThan(Math.max(g, b) * 2)
   })
 
   it('aliado e oponente têm cores DIFERENTES em todo tipo (dá pra distinguir o lado)', () => {

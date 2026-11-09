@@ -1,8 +1,9 @@
-import { defenderGrupo } from '../actions/partyBehavior'
+import { defenderGrupo, registrarAgressor } from '../actions/partyBehavior'
 import { pararTreino } from '../actions/training'
 import { resolveOwner } from '../actions/owner'
 import { isActiveCombatant, isPlayerSide } from '../battle/combatTargets'
 import { EVENT_TYPES } from '../events'
+import { joinsOnHit, resolveCreaturePosture } from '../party/posture'
 import {
   Fainted,
   InputControlled,
@@ -14,14 +15,20 @@ import {
 } from '../traits'
 
 /**
- * A criatura do time fora do controle é sempre DEFENSIVA (`PartyBehavior`):
- * quando uma selvagem ACERTA alguém do grupo (treinador ou criatura do
+ * Quando uma selvagem ACERTA alguém do grupo (treinador ou criatura do
  * time — `attackResolved` com `hit`, lido de `context.events.stepEvents()`),
- * toda criatura do time que está só seguindo entra na luta contra ela
- * (`defenderGrupo`). Quem já está lutando mantém o alvo; a controlada, a
- * desmaiada e a que está treinando não entram. Uma criatura que treina e é
- * ATACADA (golpe, mesmo errando, ou drenagem) sai do treino — e, se foi
- * acertada, entra na luta com as outras.
+ * as criaturas do time que estão só seguindo entram na luta contra ela
+ * (`defenderGrupo`), pela postura de cada uma
+ * (docs/features/064-revisao-da-ia-do-parceiro.md, Parte 2,
+ * `joinsOnHit`): a agressiva e a defensiva por qualquer um do grupo, a
+ * neutra só quando foi ela. A acertada guarda quem a acertou
+ * (`registrarAgressor`) — é contra essas que a neutra luta.
+ *
+ * Quem já está lutando mantém o alvo; a controlada, a desmaiada e a que
+ * está treinando não entram. Uma criatura que treina e é ATACADA (golpe,
+ * mesmo errando, ou drenagem) sai do treino — e, se foi acertada, entra na
+ * luta pela regra acima. Os outros gatilhos (selvagem partindo para cima,
+ * selvagem à vista da agressiva) são do `partyBehaviorSystem.js`.
  *
  * Headless. Fase: events (depois do golpe resolvido); o movimento começa
  * no próximo passo (`partyBehaviorSystem.js`).
@@ -43,6 +50,15 @@ export function partyReactionSystem(context) {
     const owner = resolveOwner(target)
     if (!owner) continue
 
+    // Postura não vale no controle: a controlada não guarda.
+    if (
+      target.has(PartyBehavior) &&
+      !target.has(Fainted) &&
+      !target.has(InputControlled)
+    ) {
+      registrarAgressor(target, attacker)
+    }
+
     world
       .query(SummonedCreature, PartyBehavior, OwnedBy(owner))
       .forEach((creature) => {
@@ -50,6 +66,8 @@ export function partyReactionSystem(context) {
         // Treinando: só sai do treino se ELA for atacada (acima).
         if (creature.has(Training)) return
         if (creature.get(PartyBehavior).state !== 'follow') return
+        const posture = resolveCreaturePosture(creature)
+        if (!joinsOnHit(posture, { self: creature === target })) return
         defenderGrupo(creature, attacker)
       })
   }

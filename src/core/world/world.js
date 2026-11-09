@@ -24,6 +24,7 @@ import {
   PartyActionMenu,
   SlotHold,
   PathState,
+  FollowWatch,
   Mood,
   ScanMode,
   CaptureAim,
@@ -112,6 +113,9 @@ export const playerEntity = world.spawn(
   // treinador-criatura.md). Toda SummonedCreature já tinha isso desde a
   // feature 017; falta aqui pro treinador poder ser seguidor também.
   PathState,
+  // Seguindo a criatura no controle, ficou longe ou preso → ela volta para
+  // a bola (`followLimitSystem.js`, docs/features/064-*).
+  FollowWatch,
   // Default 'awake' — sem uso real pro treinador ainda (sem `eyeStates`
   // configurado pra ele), mesmo trait universal simples que
   // `AnimationState`/`ActionState`, ver docs/features/023-estado-de-

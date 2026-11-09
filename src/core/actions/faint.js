@@ -3,10 +3,8 @@ import { setCharacterColliderEnabled } from '../physics/colliders'
 import {
   ActionState,
   AttackAim,
-  CameraTarget,
   CombatMode,
   Fainted,
-  InputControlled,
   Mood,
   PartyBehavior,
   PhysicsBody,
@@ -17,7 +15,7 @@ import {
   WildCreature,
 } from '../traits'
 import { voltarAVagar } from './wildBehavior'
-import { resolveOwner } from './owner'
+import { devolverControleAoDono } from './control'
 import { derrubarComida } from './eating'
 
 /**
@@ -59,14 +57,7 @@ export function desmaiar(world, entity) {
     setCharacterColliderEnabled(entity.get(PhysicsBody).colliderHandle, false)
   }
 
-  if (entity.has(InputControlled)) {
-    // O controle volta pro dono DELA, não pra um treinador qualquer.
-    const trainer = resolveOwner(entity)
-    if (trainer) {
-      entity.remove(InputControlled, CameraTarget)
-      trainer.add(InputControlled, CameraTarget)
-    }
-  }
+  devolverControleAoDono(entity)
 }
 
 /**

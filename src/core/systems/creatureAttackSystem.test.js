@@ -80,14 +80,17 @@ import {
   resolveEffectRotation,
 } from '@/core/battle/attackEffectPlacement'
 
-// A IA de hoje (034) é a dificuldade máxima das selvagens (063): estes
-// testes conferem o comportamento na ponta difícil.
+// A IA de hoje (034) é a dificuldade máxima das selvagens (063) e do time
+// (064): estes testes conferem o comportamento na ponta difícil (mira certa).
 const originalDifficulty = GAME_CONFIG.WILD_DIFFICULTY.LEVEL
+const originalPartyDifficulty = GAME_CONFIG.PARTY_DIFFICULTY.LEVEL
 beforeAll(() => {
   GAME_CONFIG.WILD_DIFFICULTY.LEVEL = 1
+  GAME_CONFIG.PARTY_DIFFICULTY.LEVEL = 1
 })
 afterAll(() => {
   GAME_CONFIG.WILD_DIFFICULTY.LEVEL = originalDifficulty
+  GAME_CONFIG.PARTY_DIFFICULTY.LEVEL = originalPartyDifficulty
 })
 
 // Slot (`secondary1-3`) em que o charmander tem a Brasa — achado, não fixo:

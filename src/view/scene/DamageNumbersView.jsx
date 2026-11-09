@@ -10,7 +10,8 @@ const { RISE } = GAME_CONFIG.FEEDBACK.DAMAGE_NUMBER
 // Contorno escuro por sombra (o número fica legível em qualquer fundo).
 const OUTLINE =
   '1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 0 0 4px #000'
-// Crítico: contorno escuro e brilho na cor de DANO do lado do alvo (`slot.glow`).
+// Crítico: contorno escuro e brilho na cor de brilho de crítico do lado do
+// alvo (`slot.glow`).
 const critOutline = (color) =>
   `1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 0 0 8px ${color}`
 
@@ -27,8 +28,8 @@ function applySlotContent(el, slot) {
   label.style.display = slot.critical ? 'block' : 'none'
   value.style.fontSize = slot.critical ? '30px' : status ? '17px' : '20px'
   // Texto na cor do acontecimento e do lado (`FEEDBACK_COLORS`): o crítico
-  // também, com a cor de CRÍTICO do lado — dourado no oponente, rosa-claro no
-  // aliado — e o brilho/rótulo na cor de dano do lado.
+  // também, com a cor de CRÍTICO do lado e o brilho/rótulo na de brilho de
+  // crítico (`CRIT_GLOW`).
   value.style.color = slot.color
   value.style.textShadow = slot.critical ? critOutline(slot.glow) : OUTLINE
   label.style.color = slot.glow
@@ -40,8 +41,8 @@ function applySlotContent(el, slot) {
  * `damageNumberSystem.js`): um `<Html>` fixo por slot do pool, criados
  * uma vez só — nada de montar/desmontar por número. Cada frame posiciona,
  * faz subir (`RISE`, desacelerando) e apaga no fim da vida. Crítico: maior,
- * amarelo com contorno vermelho, rótulo "CRÍTICO!" e um "salto" de escala
- * ao nascer.
+ * na cor de crítico do lado com o brilho dele, rótulo "CRÍTICO!" e um
+ * "salto" de escala ao nascer.
  *
  * `useFrame` aqui é a exceção documentada de componente puramente visual:
  * só LÊ o pool e mexe no próprio DOM/grupo — texto trocado direto no DOM

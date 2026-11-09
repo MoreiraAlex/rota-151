@@ -329,7 +329,8 @@ export function creatureAttackSystem(context) {
           rot,
           physicsBody,
         }
-        // Selvagem: erra a mira pela dificuldade (`AIM_ERROR`, 063).
+        // A IA erra a mira pela dificuldade do lado dela (`AIM_ERROR` —
+        // selvagem 063, time 064).
         tryStartAttack(
           castContext,
           request.slot,

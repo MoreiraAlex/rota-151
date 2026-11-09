@@ -15,6 +15,7 @@ const SAVED_POKEMON = {
   storedVitals: null,
   faintTimeLeft: null,
   conditions: null,
+  posture: 'neutral',
   location: { kind: 'party', slot: 'slot1' },
 }
 
@@ -34,6 +35,22 @@ describe('saveRepository', () => {
     })
 
     expect(save.pokemon).toEqual([SAVED_POKEMON])
+  })
+
+  it('linha de antes da postura (coluna vazia) chega sem ela — a migração do save põe', () => {
+    const row = { id: SAVED_POKEMON.id, ...pokemonToRow(SAVED_POKEMON) }
+    row.posture = null
+
+    const save = rowsToSave({
+      saveVersion: 1,
+      heldItemId: null,
+      inventory: {},
+      pokedex: {},
+      pokemon: [row],
+    })
+
+    expect(save.pokemon[0]).not.toHaveProperty('posture', null)
+    expect(save.pokemon[0].posture).toBeUndefined()
   })
 
   it('Json nulo vira DbNull (coluna NULL, não JSON null)', () => {

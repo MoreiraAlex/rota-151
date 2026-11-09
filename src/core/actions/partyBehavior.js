@@ -1,4 +1,5 @@
-import { PartyBehavior, PathState } from '../traits'
+import { isActiveCombatant } from '../battle/combatTargets'
+import { PartyAttackers, PartyBehavior, PathState } from '../traits'
 
 // Troca de estado recalcula o caminho já no próximo tick (o alvo mudou).
 function resetPath(entity) {
@@ -28,5 +29,20 @@ export function voltarASeguir(entity) {
     target: null,
     attackSlot: null,
   })
+  if (entity.has(PartyAttackers)) entity.set(PartyAttackers, { entries: [] })
   resetPath(entity)
+}
+
+/**
+ * Guarda que a selvagem `attacker` acertou a criatura do time `entity`
+ * (`PartyAttackers`) — quem já saiu da luta sai da lista.
+ */
+export function registrarAgressor(entity, attacker) {
+  const current = entity.get(PartyAttackers)?.entries ?? []
+  const entries = current.filter(
+    (other) => other !== attacker && isActiveCombatant(other),
+  )
+  entries.push(attacker)
+  if (entity.has(PartyAttackers)) entity.set(PartyAttackers, { entries })
+  else entity.add(PartyAttackers({ entries }))
 }

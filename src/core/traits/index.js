@@ -93,7 +93,12 @@ export {
 } from './components/capture'
 export { WildBehavior, WantsToAttack, Threat } from './components/wildBehavior'
 export { WildAwareness } from './components/wildAwareness'
-export { PartyBehavior } from './components/partyBehavior'
+export { PartyBehavior, PartyAttackers } from './components/partyBehavior'
+export {
+  FollowWatch,
+  StrayRecall,
+  StrayWarning,
+} from './components/followWatch'
 export { AiMovement } from './components/aiMovement'
 export { DashCooldown } from './components/dashCooldown'
 export { TrainerBehavior } from './components/trainerBehavior'

@@ -63,6 +63,24 @@ const CAPTURE_DESTINATIONS = {
   ground: 'ficou na bola, no chão (sem espaço no inventário)',
 }
 
+/**
+ * Por que a criatura do time voltou sozinha para a bola
+ * (docs/features/064-revisao-da-ia-do-parceiro.md, Parte 1).
+ */
+function formatStrayedLine(event) {
+  const name = formatSpeciesName(event.speciesId)
+  switch (event.reason) {
+    case 'stuck':
+      return `${name} ficou preso e voltou para a Pokébola.`
+    case 'trainerFar':
+      return `${name} se afastou demais do treinador e voltou para a Pokébola.`
+    case 'trainerStuck':
+      return `O treinador ficou preso — ${name} voltou para a Pokébola.`
+    default:
+      return `${name} se afastou demais e voltou para a Pokébola.`
+  }
+}
+
 /** "Pegou! Charmander foi capturado!" e pra onde ele foi. */
 function formatCaptured(event) {
   const { FEEDBACK } = GAME_CONFIG
@@ -277,6 +295,9 @@ export function formatBattleLogEvent(event) {
           FEEDBACK.INVENTORY_FULL_COLOR,
         ),
       ]
+    // Quem ficou para trás voltou para a bola (064).
+    case EVENT_TYPES.PARTY_STRAYED:
+      return [line(formatStrayedLine(event), FEEDBACK.STRAYED_COLOR)]
     // A fuga clássica (063): quem fugiu sumiu do mapa. Os outros despawns
     // (longe, velha) não aparecem.
     case EVENT_TYPES.WILD_DESPAWNED:

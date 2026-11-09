@@ -24,6 +24,7 @@ import { faintSystem } from '@/core/systems/faintSystem'
 import { attackEffectSystem } from '@/core/systems/attackEffectSystem'
 import { statStageSystem } from '@/core/systems/statStageSystem'
 import { partySummonSystem } from '@/core/systems/partySummonSystem'
+import { followLimitSystem } from '@/core/systems/followLimitSystem'
 import { summonBallSystem } from '@/core/systems/summonBallSystem'
 import { creatureAppealSystem } from '@/core/systems/creatureAppealSystem'
 import { creatureHitStunSystem } from '@/core/systems/creatureHitStunSystem'
@@ -255,6 +256,9 @@ export function registerGameSystems() {
   registerSystem(GAME_PHASES.SIMULATION, statStageSystem)
   registerSystem(GAME_PHASES.SIMULATION, summonEffectsSystem)
   registerSystem(GAME_PHASES.SIMULATION, waterSplashSystem)
+  // Quem ficou para trás (longe ou preso) pede a volta para a bola, e o
+  // recolher automático logo abaixo já atende no mesmo tick (064).
+  registerSystem(GAME_PHASES.SIMULATION, followLimitSystem)
   registerSystem(GAME_PHASES.SIMULATION, partySummonSystem)
   registerSystem(GAME_PHASES.SIMULATION, summonBallSystem)
   // Logo depois do spawn: a recém-invocada começa a apresentação no mesmo

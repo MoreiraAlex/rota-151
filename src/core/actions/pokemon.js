@@ -5,6 +5,7 @@ import { createLevelState } from '../data/species/experience'
 import { cloneMovesState, createMovesState } from '../data/species/moves'
 import { GAME_CONFIG } from '../gameConfig'
 import { gameplayRng } from '../rng'
+import { normalizePosture } from '../party/posture'
 import {
   BallOnGround,
   CreatureLevel,
@@ -56,7 +57,8 @@ export function definirGeradorDeUid(gerador) {
  * Um Pokémon que já existia (o selvagem capturado, docs/features/043-
  * captura.md) passa o próprio estado em vez de sortear: `individualValues`,
  * `levelState` (`{ level, xp }`) e `moves` (copiado aqui). O que vem do save
- * (docs/features/044-salvar-o-jogo.md) passa também o `uid`.
+ * (docs/features/044-salvar-o-jogo.md) passa também o `uid` e a `posture`
+ * (docs/features/064-*.md; sem ela, a padrão).
  * Devolve o registro, ou `null` pra espécie desconhecida.
  */
 export function criarPokemon(
@@ -70,6 +72,7 @@ export function criarPokemon(
     levelState = null,
     moves = null,
     uid = null,
+    posture = null,
   } = {},
 ) {
   const species = getSpecies(speciesId)
@@ -85,7 +88,12 @@ export function criarPokemon(
       : {})
 
   return world.spawn(
-    Pokemon({ uid: uid ?? gerarUid(), speciesId, ballId }),
+    Pokemon({
+      uid: uid ?? gerarUid(),
+      speciesId,
+      ballId,
+      posture: normalizePosture(posture),
+    }),
     IndividualValues({ ...ivs }),
     CreatureLevel(
       levelState

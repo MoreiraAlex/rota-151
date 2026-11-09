@@ -24,6 +24,7 @@ import {
 import { usePartyPokemon } from '@/view/hooks/usePartyPokemon'
 import {
   aprenderGolpe,
+  definirPostura,
   fecharMenuDeAcoes,
   iniciarTreino,
   pararTreino,
@@ -37,6 +38,8 @@ import { formatSpeciesName, TypeBadge } from '@/view/shared/statusDisplay'
 import { getSkill } from '@/core/data/skills'
 import { resolveSkillType } from '@/core/data/types'
 import { formatProgressPercent } from '@/view/shared/formatProgress'
+import { POSTURE_TEXT } from '@/view/shared/postureText'
+import { normalizePosture, POSTURES } from '@/core/party/posture'
 import { SlotPreview } from '../shared/SlotPreview'
 import { formatItemName } from './inventory/InventoryDetails'
 
@@ -68,7 +71,7 @@ const REFRESH_MS = 250
 /**
  * Menu de ações treinador↔Pokémon (docs/features/038-aprendizado-treino-e-
  * dominio-de-golpes.md) — aberto ao SEGURAR Q/E/R no modo treinador
- * (`PartyActionMenu.slot`). Três ações por enquanto:
+ * (`PartyActionMenu.slot`). Quatro abas:
  *
  * - **Treino** — o learnset inteiro da criatura: golpe bloqueado aparece
  *   como `???`; apto, com a barra de treino e "Treinar" (só perto de um
@@ -78,6 +81,9 @@ const REFRESH_MS = 250
  * - **Golpes** — os 3 slots (Q/E/R), com setas pra reordenar.
  * - **Itens** — as frutas do treinador, pra dar à criatura invocada
  *   (docs/features/042-itens-da-beta.md, `usarItemNaCriatura`).
+ * - **Postura** — como ele luta fora do controle: agressiva, defensiva ou
+ *   neutra (docs/features/064-revisao-da-ia-do-parceiro.md,
+ *   `definirPostura`). Vale na hora, invocado ou não.
  *
  * Só lê traits e chama actions do core; quem fecha é o X, o Esc ou travar o
  * ponteiro de novo (`PartyMenus`).
@@ -90,7 +96,8 @@ export function PartyActionMenu({ trainer, slot }) {
   // O Pokémon do slot (registro, docs/features/041-inventario-de-itens-e-
   // pokemon.md): espécie, nível e golpes.
   const pokemon = usePartyPokemon(trainer)[slot]
-  const speciesId = useTrait(pokemon, Pokemon)?.speciesId
+  const record = useTrait(pokemon, Pokemon)
+  const speciesId = record?.speciesId
   const moves = useTrait(pokemon, CreatureMoves)
   const progress = useTrait(pokemon, CreatureLevel)
   const summoned = useQuery(SummonedCreature, OwnedBy(trainer))
@@ -140,6 +147,12 @@ export function PartyActionMenu({ trainer, slot }) {
           <TabButton active={tab === 'items'} onClick={() => setTab('items')}>
             Itens
           </TabButton>
+          <TabButton
+            active={tab === 'posture'}
+            onClick={() => setTab('posture')}
+          >
+            Postura
+          </TabButton>
         </div>
 
         {tab === 'training' && (
@@ -163,7 +176,50 @@ export function PartyActionMenu({ trainer, slot }) {
         {tab === 'items' && (
           <ItemList world={world} trainer={trainer} slot={slot} />
         )}
+
+        {tab === 'posture' && (
+          <PostureList
+            pokemon={pokemon}
+            current={normalizePosture(record?.posture)}
+          />
+        )}
       </div>
+    </div>
+  )
+}
+
+function PostureList({ pokemon, current }) {
+  return (
+    <div className="space-y-2">
+      {POSTURES.map((posture) => {
+        const { name, description } = POSTURE_TEXT[posture]
+        const active = posture === current
+        return (
+          <button
+            key={posture}
+            type="button"
+            aria-pressed={active}
+            className={`flex w-full items-start gap-2 rounded px-2 py-1.5 text-left text-xs ${
+              active
+                ? 'bg-white/20 ring-1 ring-white/40'
+                : 'bg-white/5 hover:bg-white/10'
+            }`}
+            onClick={() => definirPostura(pokemon, posture)}
+          >
+            <span
+              className={`mt-1 size-2 shrink-0 rounded-full ${
+                active ? 'bg-sky-400' : 'bg-white/20'
+              }`}
+            />
+            <span className="flex-1">
+              <span className="block font-semibold">{name}</span>
+              <span className="block text-[10px] text-white/60">
+                {description}
+              </span>
+            </span>
+          </button>
+        )
+      })}
     </div>
   )
 }

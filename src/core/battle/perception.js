@@ -8,7 +8,9 @@ import { wrapAngle } from '../math'
  * (`VIEW_HALF_ANGLE` para cada lado da frente) até `VIEW_DISTANCE`, ou a até
  * `NEAR_RADIUS` em qualquer direção. Distâncias no plano. Sem linha de visão
  * (árvore e pedra não escondem). Fonte única: o `wildAwarenessSystem.js`
- * decide por ela e o debug desenha o mesmo cone.
+ * decide por ela e o debug desenha o mesmo cone. A criatura agressiva do
+ * time vê pela mesma regra, com os valores dela (`PARTY_BEHAVIOR.PERCEPTION`,
+ * docs/features/064-revisao-da-ia-do-parceiro.md).
  */
 export function isPerceived(
   pos,

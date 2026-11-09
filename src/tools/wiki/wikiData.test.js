@@ -3,6 +3,7 @@ import { GAME_CONFIG } from '@/core/gameConfig'
 import { listBiomes } from '@/core/data/biomes'
 import { listSkills } from '@/core/data/skills'
 import { listItems } from '@/core/data/items'
+import { resolvePartyTuning } from '@/core/battle/aiTuning'
 import { buildWikiData } from './wikiData'
 import { listWikiSpecies } from './speciesEntry'
 
@@ -104,6 +105,24 @@ describe('buildWikiData', () => {
     expect(wildAi.dodgeReaction).toBeGreaterThanOrEqual(ai.dodgeReaction)
     expect(wildAi.nearBest).toBeLessThanOrEqual(ai.nearBest)
     expect(wildAi.aimError).toBeGreaterThanOrEqual(0)
+  })
+
+  it('o time luta pela dificuldade dele (064)', () => {
+    const tuning = resolvePartyTuning()
+    expect(data.partyAi.attackInterval).toBe(tuning.ATTACK_INTERVAL)
+    expect(data.partyAi.dodgeChance).toBe(tuning.DODGE_CHANCE)
+    expect(data.partyAi.nearBest).toBe(tuning.NEAR_BEST_FRACTION)
+  })
+
+  it('posturas e quem fica para trás vêm da config (064)', () => {
+    const { DEFAULT_POSTURE, PERCEPTION, FOLLOW_LIMIT } =
+      GAME_CONFIG.PARTY_BEHAVIOR
+    expect(data.party.defaultPosture).toBe(DEFAULT_POSTURE)
+    expect(data.party.viewDistance).toBe(PERCEPTION.VIEW_DISTANCE)
+    expect(data.party.nearRadius).toBe(PERCEPTION.NEAR_RADIUS)
+    expect(data.party.recallDistance).toBe(FOLLOW_LIMIT.RECALL_DISTANCE)
+    expect(data.party.warnDistance).toBe(FOLLOW_LIMIT.WARN_DISTANCE)
+    expect(data.party.warningTime).toBe(FOLLOW_LIMIT.WARNING_TIME)
   })
 
   it('temperamento de cada espécie: o próprio ou o padrão (063)', () => {

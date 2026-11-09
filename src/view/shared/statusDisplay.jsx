@@ -106,8 +106,8 @@ const STAT_LABELS = {
  * "DEF ↑1", perto da barra de vida. Só aparece ENQUANTO houver atributo
  * alterado — sem nenhum, não renderiza nada; quando o estágio expira
  * (`statStageSystem`), some sozinho. A cor é a do feedback de status do LADO da
- * criatura (`GAME_CONFIG.FEEDBACK.FEEDBACK_COLORS`: laranja/verde no oponente,
- * violeta/ciano no aliado), a mesma do brilho no modelo e do texto na cabeça.
+ * criatura (`GAME_CONFIG.FEEDBACK.FEEDBACK_COLORS`), a mesma do brilho no
+ * modelo e do texto na cabeça.
  * `entity` pode ser `undefined` (criatura que não está em campo). `compact`:
  * etiquetas menores (etiqueta flutuante, cartão compacto). `align`: `'center'`
  * (padrão, etiqueta flutuante) ou `'start'` (HUDs, texto à esquerda).

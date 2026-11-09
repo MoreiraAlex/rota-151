@@ -33,6 +33,8 @@ export function rowsToSave(trainer) {
       storedVitals: row.storedVitals,
       faintTimeLeft: row.faintTimeLeft,
       conditions: row.conditions,
+      // Linha de antes da 064 não tem: a migração põe a padrão.
+      posture: row.posture ?? undefined,
       location: row.location,
     })),
   }
@@ -50,6 +52,7 @@ export function pokemonToRow(saved) {
     storedVitals: saved.storedVitals ?? Prisma.DbNull,
     faintTimeLeft: saved.faintTimeLeft,
     conditions: saved.conditions ?? Prisma.DbNull,
+    posture: saved.posture,
     location: saved.location,
   }
 }

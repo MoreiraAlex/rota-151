@@ -2,11 +2,13 @@ import { trait } from 'koota'
 
 /**
  * IA de combate de uma criatura do time quando ela NÃO está sob controle
- * do jogador — sempre DEFENSIVA (decisão do usuário: nunca outra postura):
- * só entra na luta contra a selvagem que acertou alguém do grupo
- * (treinador ou criatura do time, `partyReactionSystem.js`), luta com o
- * básico e as habilidades da espécie e volta a seguir quando não sobra ninguém lutando com o
- * grupo ou quando se afasta demais de quem segue
+ * do jogador. Quando entra na luta e contra quem depende da postura do
+ * Pokémon (`Pokemon.posture`, `core/party/posture.js`,
+ * docs/features/064-revisao-da-ia-do-parceiro.md, Parte 2) —
+ * `partyReactionSystem.js` (golpe que acertou) e `partyBehaviorSystem.js`
+ * (selvagem partindo para cima, selvagem à vista). Luta com o básico e as
+ * habilidades da espécie e volta a seguir quando não sobra ninguém para
+ * lutar ou quando se afasta demais de quem segue
  * (`PARTY_BEHAVIOR.LEASH_RADIUS`).
  *
  * - `state`: `'follow'` (segue quem está no controle,
@@ -34,3 +36,17 @@ export const PartyBehavior = trait({
   lastAttackSlot: null,
   resting: false,
 })
+
+/**
+ * As selvagens que ACERTARAM esta criatura do time desde que ela entrou na
+ * luta (`entries`: entidades) — é contra elas, e só elas, que a neutra luta
+ * (docs/features/064-revisao-da-ia-do-parceiro.md, Parte 2). Esvazia quando
+ * ela volta a seguir.
+ *
+ * Trait AoS (`entries` é um array): mutação sempre por objeto novo +
+ * `entity.set`.
+ *
+ * Donos de escrita: `registrarAgressor` e `voltarASeguir`
+ * (`core/actions/partyBehavior.js`).
+ */
+export const PartyAttackers = trait(() => ({ entries: [] }))

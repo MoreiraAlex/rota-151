@@ -102,11 +102,13 @@ function applyFlash(slots, strength, color) {
  * Retorno visual de acerto: o modelo de quem foi atingido acende
  * (`material.emissive`) e apaga ao longo de `HIT_FLASH.DURATION`. A COR diz o
  * que aconteceu e de que lado (`GAME_CONFIG.FEEDBACK.FEEDBACK_COLORS`):
- * - tomou dano (`attackResolved` com `hit`, sem `status`): vermelho no
- *   oponente, rosa no aliado (o treinador e as criaturas do time);
- * - atributo baixou (`statStageChanged`, `delta < 0`): laranja / violeta;
- * - atributo subiu (`delta > 0`) ou subiu de nível (`leveledUp`): verde /
- *   ciano.
+ * - tomou dano (`attackResolved` com `hit`, sem `status`): claro no
+ *   oponente (o dano que você causa), vermelho no aliado (o treinador e as
+ *   criaturas do time — o dano que você toma), docs/features/064-*.md;
+ * - atributo baixou (`statStageChanged`, `delta < 0`): cor de status
+ *   negativo do lado;
+ * - atributo subiu (`delta > 0`) ou subiu de nível (`leveledUp`): cor de
+ *   status positivo do lado.
  * Dano ganha de status quando os dois chegam juntos no mesmo alvo. Padrão
  * comum de jogo de ação ("hit flash"): deixa claro QUEM foi atingido, de QUE
  * jeito e QUANDO, sem esconder a textura. Consome `context.frameEvents`

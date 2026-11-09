@@ -252,7 +252,7 @@ export function moveInFight(entity, fight, rng = gameplayRng) {
 function decideFightMove(entity, movement, fight, rng) {
   const { pos, rot, vel, stats, vitals, target, plan, stopDistance } = fight
   const { enemies, resting, waiting, delta } = fight
-  // Selvagem: desvio, dash e rodeio pela dificuldade (`resolveAiTuning`).
+  // Desvio, dash e rodeio pela dificuldade do lado (`resolveAiTuning`).
   const tuning = resolveAiTuning(entity)
   const config = {
     ...GAME_CONFIG.AI_MOVEMENT,
