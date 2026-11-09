@@ -107,6 +107,7 @@ export { PathState } from './components/pathfinding'
 export { WanderState } from './components/wander'
 export { SaveClock, SaveRequested, TrainerReady } from './components/save'
 export { WorldClock, LocalWeather } from './components/environment'
+export { SoundSettings } from './components/soundSettings'
 export {
   WorldItemsMemory,
   WorldItemChunks,

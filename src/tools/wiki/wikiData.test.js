@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { MUSIC_FREQUENCIES } from '@/core/data/audio/musicTracks'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import { listBiomes } from '@/core/data/biomes'
 import { listSkills } from '@/core/data/skills'
@@ -80,6 +81,15 @@ describe('buildWikiData', () => {
       GAME_CONFIG.WEATHER.MOVE_TYPE_MULTIPLIER,
     ).reduce((sum, byType) => sum + Object.keys(byType).length, 0)
     expect(data.world.moveEffects).toHaveLength(configured)
+  })
+
+  it('mundo: o silêncio entre as músicas sai das frequências (065)', () => {
+    expect(data.world.musicSilence.map(({ id }) => id)).toEqual(
+      Object.keys(MUSIC_FREQUENCIES),
+    )
+    for (const { id, min, max } of data.world.musicSilence) {
+      expect({ min, max }).toEqual(MUSIC_FREQUENCIES[id])
+    }
   })
 
   it('tabela de níveis de efeito vai de −limite a +limite, com o 0 neutro', () => {

@@ -5,6 +5,7 @@ import { GAME_CONFIG } from '@/core/gameConfig'
 import { ConfigPanel } from './ConfigEditor'
 import { InventoryPanel } from './InventoryPanel'
 import { PokedexMenu } from './pokedex/PokedexMenu'
+import { SoundSettingsPanel } from './SoundSettingsPanel'
 
 // Largura da caixa por subtela — Inventário precisa de mais espaço (grade +
 // preview de equipamento lado a lado, ver InventoryPanel.jsx); a Pokédex tem
@@ -14,6 +15,7 @@ import { PokedexMenu } from './pokedex/PokedexMenu'
 const BOX_WIDTH = {
   main: 'w-80',
   settings: 'w-80',
+  sound: 'w-80',
   inventory: 'w-[36rem]',
   pokedex: 'w-[800px]',
 }
@@ -81,6 +83,7 @@ export function PauseMenu({
             >
               Inventário
             </MenuButton>
+            <MenuButton onClick={() => setView('sound')}>Som</MenuButton>
             <MenuButton onClick={() => setView('settings')}>
               Configurações
             </MenuButton>
@@ -100,6 +103,12 @@ export function PauseMenu({
               initialTab={pokedexInitialTab}
               initialHistoryEntryId={pokedexInitialHistoryEntryId}
             />
+          </MenuView>
+        )}
+
+        {view === 'sound' && (
+          <MenuView title="Som" onClose={onResume}>
+            <SoundSettingsPanel />
           </MenuView>
         )}
 

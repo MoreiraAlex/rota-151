@@ -15,6 +15,8 @@ export function rowsToSave(trainer) {
       position: trainer.position,
       heldItemId: trainer.heldItemId,
       worldTime: trainer.worldTime,
+      // Linha de antes da 065 não tem: a migração põe os padrão.
+      settings: trainer.settings ?? undefined,
       inventory: trainer.inventory,
       pokedex: trainer.pokedex,
     },
@@ -81,6 +83,7 @@ export async function writeSaveRows(prisma, userId, save) {
     position: save.trainer.position ?? Prisma.DbNull,
     heldItemId: save.trainer.heldItemId,
     worldTime: save.trainer.worldTime ?? null,
+    settings: save.trainer.settings,
     inventory: save.trainer.inventory,
     pokedex: save.trainer.pokedex,
     worldItems: save.worldItems,

@@ -173,3 +173,45 @@ export function deepWaterEntry(
 export function overDeepWater(depthAt, x, z) {
   return isDeepWater(depthAt(x, z))
 }
+
+/**
+ * O ponto de lago e o de rio mais perto de `(x, z)`, até `radius` m
+ * (docs/features/065-sons-do-mundo.md, Parte 5 — de onde vem o som da
+ * água). Procura em anéis de `step` m, com `directions` pontos cada, a
+ * partir do próprio ponto. Ponto com água (`depthAt` > 0) é de rio se a
+ * correnteza ali (`flowAt`) passa de `riverFlow`; senão, de lago. Devolve
+ * `{ lake, river }`, cada um `{ x, z, distance }` ou `null` sem água
+ * daquele tipo no raio.
+ *
+ * @param {(x: number, z: number) => number} depthAt - profundidade (m)
+ * @param {(x: number, z: number) => { x: number, z: number }} flowAt
+ */
+export function nearestWaterPoints(
+  depthAt,
+  flowAt,
+  x,
+  z,
+  { radius, step, directions, riverFlow },
+) {
+  const found = { lake: null, river: null }
+  const consider = (px, pz, distance) => {
+    if (depthAt(px, pz) <= 0) return
+    const flow = flowAt(px, pz)
+    const kind = Math.hypot(flow.x, flow.z) > riverFlow ? 'river' : 'lake'
+    if (!found[kind]) found[kind] = { x: px, z: pz, distance }
+  }
+
+  consider(x, z, 0)
+  for (let distance = step; distance <= radius; distance += step) {
+    if (found.lake && found.river) break
+    for (let i = 0; i < directions; i++) {
+      const angle = (i / directions) * Math.PI * 2
+      consider(
+        x + Math.cos(angle) * distance,
+        z + Math.sin(angle) * distance,
+        distance,
+      )
+    }
+  }
+  return found
+}

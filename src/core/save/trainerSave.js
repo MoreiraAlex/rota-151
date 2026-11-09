@@ -1,4 +1,5 @@
 import { getItem } from '../data/items'
+import { VOLUME_KEYS } from '../data/audio/mixer'
 import { getSpecies } from '../data/species'
 import { TEST_LEVEL } from '../data/testLevel'
 import { GAME_CONFIG } from '../gameConfig'
@@ -13,6 +14,7 @@ import {
   Position,
   Rotation,
   ScanHistory,
+  SoundSettings,
   restoreScanHistoryEntries,
 } from '../traits'
 
@@ -88,6 +90,11 @@ function liftAboveGround(trainer, saved) {
   return { x, y: lowest + GAME_CONFIG.TERRAIN.SPAWN_HEIGHT, z }
 }
 
+// Só as chaves de volume conhecidas, na ordem do dado.
+function pickVolumes(source) {
+  return Object.fromEntries(VOLUME_KEYS.map((key) => [key, source[key]]))
+}
+
 /** O `trainer` como objeto salvo. */
 export function serializeTrainer(trainer) {
   const { counts, positions } = trainer.get(Inventory)
@@ -97,6 +104,10 @@ export function serializeTrainer(trainer) {
   return {
     position: { x, y, z, yaw: trainer.get(Rotation).y },
     heldItemId: trainer.get(HeldItem)?.itemId ?? null,
+    settings: {
+      volume: pickVolumes(trainer.get(SoundSettings)),
+      musicFrequency: trainer.get(SoundSettings).musicFrequency,
+    },
     inventory: { counts: { ...counts }, positions: { ...positions } },
     pokedex: {
       speciesIds: [...speciesIds],
@@ -125,6 +136,11 @@ export function restoreTrainer(trainer, saved) {
     trainer.set(Position, liftAboveGround(trainer, saved.position))
     trainer.set(Rotation, { ...trainer.get(Rotation), y: yaw })
   }
+
+  trainer.set(SoundSettings, {
+    ...pickVolumes(saved.settings.volume),
+    musicFrequency: saved.settings.musicFrequency,
+  })
 
   const counts = {}
   const positions = {}

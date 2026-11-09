@@ -1,6 +1,6 @@
 /**
  * Estado de TELA do clima (docs/features/048-dia-noite-e-clima.md) — só
- * existe um no jogo inteiro, como `view/audio/ambientAudioState.js`:
+ * existe um no jogo inteiro, como o do ambiente (`view/audio/ambientBeds.js`):
  *
  * - `flashTime`/`flashStrength`: o clarão do relâmpago em curso (segundos
  *   que faltam e força). Escreve: `view/systems/lightningSystem.js`. Lê:

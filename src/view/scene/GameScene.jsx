@@ -14,6 +14,8 @@ import { FogView } from './FogView'
 import { DayNightView } from './DayNightView'
 import { WeatherView } from './WeatherView'
 import { WeatherAudio } from '@/view/audio/WeatherAudio'
+import { MusicAudio } from '@/view/audio/MusicAudio'
+import { WaterAmbientView } from '@/view/audio/WaterAmbientView'
 import { useLevelRevision } from '../hooks/useLevelRevision'
 import { ProjectilesView } from './ProjectileView'
 import { SummonBallOpensView, SummonBallsView } from './SummonBallView'
@@ -135,6 +137,8 @@ export function GameScene({ children }) {
 
       <AmbientAudio />
       <WeatherAudio />
+      <MusicAudio />
+      <WaterAmbientView />
 
       <TestLevelView />
 

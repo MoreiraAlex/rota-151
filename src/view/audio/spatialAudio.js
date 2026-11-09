@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { distanceGain } from './soundRanges'
+import { routeToChannel } from './audioMixer'
 
 /**
  * Som posicional no mundo (docs/features/062-spawn-estilo-cobblemon.md).
@@ -104,12 +105,15 @@ export function applySpatialAudio(audio, { refDistance, maxDistance }) {
   audio.setMaxDistance(Math.max(maxDistance, refDistance))
 }
 
-/** Um `PositionalAudio` novo, com volume, alcance e pan. */
+/**
+ * Um `PositionalAudio` novo, com volume, alcance e pan, ligado no canal
+ * `channel` (`core/data/audio/mixer.js`; sem ele, efeitos).
+ */
 export function createPositionalAudio(
   listener,
-  { volume, refDistance, maxDistance },
+  { volume, refDistance, maxDistance, channel = 'effects' },
 ) {
-  const audio = new WorldPositionalAudio(listener)
+  const audio = routeToChannel(new WorldPositionalAudio(listener), channel)
   audio.setVolume(volume)
   applySpatialAudio(audio, { refDistance, maxDistance })
   return audio

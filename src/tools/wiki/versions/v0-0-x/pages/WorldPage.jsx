@@ -12,6 +12,22 @@ import {
 
 const STAT_NAMES = { defense: 'Defesa', sp_def: 'Defesa especial' }
 
+const FREQUENCY_NAMES = { rare: 'Pouca', normal: 'Normal', always: 'Sempre' }
+
+const SECONDS_PER_MINUTE = 60
+
+// Um intervalo de tempo em segundos, por extenso: em minutos quando passa
+// de um minuto.
+function formatSilence({ min, max }) {
+  if (max < SECONDS_PER_MINUTE) {
+    return `${formatNumber(min, 0)} a ${formatNumber(max, 0)} segundos`
+  }
+  return `${formatNumber(min / SECONDS_PER_MINUTE, 0)} a ${formatNumber(
+    max / SECONDS_PER_MINUTE,
+    0,
+  )} minutos`
+}
+
 export function WorldPage({ data, version }) {
   const world = data?.world
   return (
@@ -442,6 +458,63 @@ export function WorldPage({ data, version }) {
           </ul>
         </Section>
       ) : null}
+
+      <Section id="sons" title="Sons e música">
+        <p>
+          <strong>Música</strong>: como num passeio pelo campo, a música não
+          toca o tempo todo. De vez em quando entra uma música calma, escolhida
+          pelo lugar e pela hora: de dia, as do bioma em que você está; à noite,
+          as da noite. Ela toca até o fim, e depois vem um tempo de silêncio até
+          a próxima, que nunca é a mesma. Mudar de bioma ou virar a noite no
+          meio não corta a música: só muda a escolha da próxima.
+        </p>
+        <p>
+          <strong>Batalha</strong>: quando uma criatura selvagem parte para cima
+          de você ou do seu time, ou o seu time começa a lutar com uma, entra a
+          música de batalha. Ela vai embora alguns segundos depois de a luta
+          acabar (a selvagem desmaiou, foi capturada, fugiu ou desistiu). Atacar
+          o nada não começa uma batalha.
+        </p>
+        <p>
+          <strong>Ambiente</strong>: no silêncio entre as músicas, o mundo tem o
+          próprio som.
+        </p>
+        <ul>
+          <li>
+            Passarinhos na floresta, o campo na planície e cigarras na savana;
+            na cidade, o movimento das ruas. Na divisa entre dois biomas, os
+            dois se misturam.
+          </li>
+          <li>
+            À noite, grilos em todo lugar e, de vez em quando, uma coruja na
+            floresta e na planície. No amanhecer e no entardecer, um som vai
+            dando lugar ao outro.
+          </li>
+          <li>De dia, rajadas de vento passam pela planície e pela savana.</li>
+          <li>A chuva abafa os passarinhos e as cigarras.</li>
+          <li>
+            Perto de um lago se ouve a água parada; perto de um rio, a
+            correnteza. O som vem do lado em que a água está e cresce conforme
+            você chega perto.
+          </li>
+        </ul>
+        <p>
+          <strong>Ajustes</strong>: no menu, na tela <strong>Som</strong>, dá
+          para mudar o volume geral e o de cada parte (música, ambiente e
+          efeitos — passos, vozes, golpes e o resto) e escolher quanto a música
+          aparece. Os ajustes ficam salvos na sua conta.
+        </p>
+        {world?.musicSilence ? (
+          <DataTable
+            head={['Frequência da música', 'Silêncio entre as músicas']}
+            rows={world.musicSilence.map((range) => [
+              FREQUENCY_NAMES[range.id] ?? range.id,
+              formatSilence(range),
+            ])}
+            caption="O tempo de silêncio é sorteado dentro do intervalo a cada música."
+          />
+        ) : null}
+      </Section>
 
       <Notice tone="soon">
         <p>

@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { GAME_CONFIG } from '../gameConfig'
 import { POSTURES } from '../party/posture'
+import { DEFAULT_VOLUMES, VOLUME_KEYS } from '../data/audio/mixer'
+import {
+  DEFAULT_MUSIC_FREQUENCY,
+  MUSIC_FREQUENCIES,
+} from '../data/audio/musicTracks'
 import { SAVE_VERSION, migrateSave, validateSave } from './saveFormat'
 
 // Formato do save (docs/features/044-salvar-o-jogo.md): versão, migração e a
@@ -10,6 +15,10 @@ function minimalSave(overrides = {}) {
     version: SAVE_VERSION,
     trainer: {
       heldItemId: null,
+      settings: {
+        volume: { ...DEFAULT_VOLUMES },
+        musicFrequency: DEFAULT_MUSIC_FREQUENCY,
+      },
       inventory: { counts: {}, positions: {} },
       pokedex: { speciesIds: [], history: [] },
     },
@@ -251,5 +260,60 @@ describe('migração 4 → 5 (postura, 064)', () => {
       validateSave(minimalSave({ pokemon: [pokemon({ posture: 'furiosa' })] }))
         .ok,
     ).toBe(false)
+  })
+})
+
+// Volumes do jogador (docs/features/065-sons-do-mundo.md, Parte 1).
+describe('ajustes do treinador', () => {
+  function withoutSettings(version) {
+    const save = minimalSave({ version })
+    delete save.trainer.settings
+    return save
+  }
+
+  it('save da versão 5 carrega com os ajustes padrão', () => {
+    const result = migrateSave(withoutSettings(5))
+
+    expect(result.ok).toBe(true)
+    expect(result.save.trainer.settings.volume).toEqual(DEFAULT_VOLUMES)
+    expect(result.save.trainer.settings.musicFrequency).toBe(
+      DEFAULT_MUSIC_FREQUENCY,
+    )
+  })
+
+  it('ajustes sem a frequência da música ganham a padrão', () => {
+    const save = minimalSave()
+    delete save.trainer.settings.musicFrequency
+    const result = validateSave(save)
+
+    expect(result.ok).toBe(true)
+    expect(result.save.trainer.settings.musicFrequency).toBe(
+      DEFAULT_MUSIC_FREQUENCY,
+    )
+  })
+
+  it('aceita toda frequência da música e recusa uma desconhecida', () => {
+    for (const musicFrequency of Object.keys(MUSIC_FREQUENCIES)) {
+      const save = minimalSave()
+      save.trainer.settings.musicFrequency = musicFrequency
+      expect(validateSave(save).ok).toBe(true)
+    }
+    const save = minimalSave()
+    save.trainer.settings.musicFrequency = 'nunca-mais'
+    expect(validateSave(save).ok).toBe(false)
+  })
+
+  it('save da versão atual sem os ajustes é recusado', () => {
+    expect(validateSave(withoutSettings(SAVE_VERSION)).ok).toBe(false)
+  })
+
+  it('recusa volume fora de 0 a 1 em qualquer chave', () => {
+    for (const key of VOLUME_KEYS) {
+      for (const value of [-0.1, 1.1]) {
+        const save = minimalSave()
+        save.trainer.settings.volume[key] = value
+        expect(validateSave(save).ok).toBe(false)
+      }
+    }
   })
 })

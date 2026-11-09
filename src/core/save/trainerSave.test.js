@@ -4,6 +4,15 @@ import { listItems } from '../data/items'
 import { listSpecies } from '../data/species'
 import { adicionarItem } from '../actions/inventory'
 import {
+  definirFrequenciaDaMusica,
+  definirVolume,
+} from '../actions/soundSettings'
+import { VOLUME_KEYS } from '../data/audio/mixer'
+import {
+  DEFAULT_MUSIC_FREQUENCY,
+  MUSIC_FREQUENCIES,
+} from '../data/audio/musicTracks'
+import {
   CharacterController,
   HeldItem,
   Inventory,
@@ -11,6 +20,7 @@ import {
   Position,
   Rotation,
   ScanHistory,
+  SoundSettings,
 } from '../traits'
 import { TEST_LEVEL } from '../data/testLevel'
 import { GAME_CONFIG } from '../gameConfig'
@@ -70,6 +80,25 @@ describe('serializeTrainer / restoreTrainer', () => {
     expect(target.player.get(ScanHistory).entries.map(strip)).toEqual(
       player.get(ScanHistory).entries.map(strip),
     )
+  })
+
+  // docs/features/065-sons-do-mundo.md
+  it('ida e volta: os ajustes de som do jogador', () => {
+    const { player } = setup()
+    VOLUME_KEYS.forEach((key, index) => {
+      definirVolume(player, key, (index + 1) / (VOLUME_KEYS.length + 1))
+    })
+    const other = Object.keys(MUSIC_FREQUENCIES).find(
+      (frequency) => frequency !== DEFAULT_MUSIC_FREQUENCY,
+    )
+    definirFrequenciaDaMusica(player, other)
+    const saved = serializeTrainer(player)
+    expect(trainerSaveSchema.safeParse(saved).success).toBe(true)
+
+    const target = setup()
+    restoreTrainer(target.player, saved)
+
+    expect(target.player.get(SoundSettings)).toEqual(player.get(SoundSettings))
   })
 
   it('volta na posição e direção salvas', () => {

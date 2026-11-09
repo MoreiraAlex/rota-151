@@ -421,7 +421,7 @@ export const GAME_CONFIG = {
     LUNGE_WINDOW: 0.9,
     // Segundos sem lançar ataque até a criatura sair do modo combate
     // (`CombatMode`, `combatModeSystem.js`) — cada ataque reinicia a conta.
-    COMBAT_MODE_TIMEOUT: 10,
+    COMBAT_MODE_TIMEOUT: 3,
     // Atordoamento (ação `'hit'`, `core/actions/hitStun.js`) de quem teve um
     // golpe de status interrompido por dano: segundos em que toca a animação
     // de hit e não faz nada. Por espécie: `actions.hit.duration`.
@@ -1787,11 +1787,11 @@ export const GAME_CONFIG = {
     },
   },
   // Sem seção AUDIO aqui de propósito — volume/alcance/intervalo de som
-  // (passo, voz, ambiente) moram todos junto do PRÓPRIO som que
-  // descrevem (grupo/espécie em core/data/audio/footstepGroups.js/
-  // voiceSound.js, nível em core/data/testLevel.js/ambientSound.js) —
-  // nenhum é um número genérico igual pra tudo, então nenhum fica aqui.
-  // Ver docs/features/019-som-ambiente-e-passos.md.
+  // (passo, voz, ambiente, música) moram todos junto do PRÓPRIO som que
+  // descrevem (core/data/audio/: footstepGroups.js, voiceSound.js,
+  // ambientBeds.js, musicTracks.js...) — nenhum é um número genérico igual
+  // pra tudo, então nenhum fica aqui. Ver docs/features/019-som-ambiente-
+  // e-passos.md e docs/features/065-sons-do-mundo.md.
   // Névoa que esconde a borda do mundo carregado — o chunk nascendo ou
   // sumindo (docs/features/046-sistema-de-chunks.md). A distância sai do
   // raio de carregar e do lado do chunk (`view/terrain/fogRange.js`).

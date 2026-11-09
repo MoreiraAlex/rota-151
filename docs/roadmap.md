@@ -2,7 +2,7 @@
 
 ---
 
-# ✅ Já feito (0.0.1 – 0.0.64)
+# ✅ Já feito (0.0.1 – 0.0.65)
 
 O que já foi entregue, por tema. Detalhes de cada uma em `docs/features/`.
 
@@ -85,6 +85,7 @@ O que já foi entregue, por tema. Detalhes de cada uma em `docs/features/`.
 ### Áudio e extras
 - [x] **019 — Som ambiente, passos, vocalização, dash e pulo**
 - [x] **036 — Wiki do jogo**
+- [x] **065 — Sons do mundo**
 
 ---
 
@@ -130,7 +131,6 @@ só aparecem pelo F2. A montanha foi adiada: na beta não teria espécie
 exclusiva (o Spearow já mora na savana). Os 3 iniciais não nascem no mundo:
 vêm só no kit inicial (071).
 
-- [ ] **065 — Sons do mundo** — ambientação por bioma, horário e clima (vento, pássaros de dia, grilos e coruja à noite, água dos lagos e rios, cidade) e música de fundo (exploração por bioma e hora, cidade, batalha com selvagem), com transição suave entre as faixas e volume separado de música, ambiente e efeitos *(detalhar quando chegar)*.
 - [ ] **066 — Ambiente interno nas estruturas** — entrar nas estruturas e no ambiente interno delas *(detalhar quando chegar)*.
 
 ---

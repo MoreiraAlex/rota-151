@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { SAVE_VERSION } from '@/core/save/saveFormat'
+import { DEFAULT_VOLUMES } from '@/core/data/audio/mixer'
+import { DEFAULT_MUSIC_FREQUENCY } from '@/core/data/audio/musicTracks'
 import { createSaveClient } from './saveClient'
 
 // Adapter da rota `/api/save` (docs/features/044-salvar-o-jogo.md).
@@ -7,6 +9,10 @@ const VALID_SAVE = {
   version: SAVE_VERSION,
   trainer: {
     heldItemId: null,
+    settings: {
+      volume: { ...DEFAULT_VOLUMES },
+      musicFrequency: DEFAULT_MUSIC_FREQUENCY,
+    },
     inventory: { counts: {}, positions: {} },
     pokedex: { speciesIds: [], history: [] },
   },

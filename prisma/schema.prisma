@@ -89,6 +89,8 @@ model Trainer {
   worldItems    Json?
   // Selvagens vivas no mundo (docs/features/062-spawn-estilo-cobblemon.md).
   wildCreatures Json?
+  // Ajustes do jogador, como os volumes (docs/features/065-sons-do-mundo.md).
+  settings      Json?
   inventory     Json
   pokedex       Json
   pokemon       Pokemon[]

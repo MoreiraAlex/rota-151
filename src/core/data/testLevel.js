@@ -19,13 +19,6 @@ import { createTerrainChunkSet } from '../terrain/terrainChunkSet'
  *   rotation? }` — position é o centro.
  * - size: dimensões completas [largura(x), altura(y), profundidade(z)], em unidades.
  * - rotation (opcional): giro em um eixo — { axis: 'x' | 'y' | 'z', angle } (rad).
- * - ambientSound (opcional): som ambiente ESPORÁDICO do nível — toca uma
- *   variação aleatória de `clips` de vez em quando (intervalo também
- *   aleatório, entre `minInterval`/`maxInterval`), não uma faixa em loop
- *   contínuo (ver `core/data/audio/ambientSound.js`/`view/audio/
- *   AmbientAudio.jsx`/docs/features/019-som-ambiente-e-passos.md pro
- *   porquê). Sem este campo, o jogo fica em silêncio ambiente (mesmo
- *   fallback gracioso de qualquer conteúdo que ainda não existe).
  * - trainingObjects (opcional): objetos de treino fixos (tronco, pedra,
  *   boneco) — `{ id, kind, position, size }`. Perto de um deles a criatura do
  *   time pode treinar um golpe (docs/features/038-aprendizado-treino-e-
@@ -85,15 +78,6 @@ const terrain = createTerrainChunkSet({ seed: terrainSeed() })
 const initialLevel = buildTerrainDependentLevel(terrain)
 
 export const TEST_LEVEL = {
-  ambientSound: {
-    clips: [
-      '/assets/audio/ambient/wind-01.wav',
-      '/assets/audio/ambient/wind-02.wav',
-    ],
-    volume: 0.02,
-    minInterval: 2,
-    maxInterval: 5,
-  },
   terrain,
   ...initialLevel,
 }

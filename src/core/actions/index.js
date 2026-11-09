@@ -114,4 +114,5 @@ export {
   definirVelocidadeDoRelogio,
   forcarClima,
 } from './environment'
+export { definirVolume, definirFrequenciaDaMusica } from './soundSettings'
 export { darKitInicial } from './startingKit'

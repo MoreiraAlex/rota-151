@@ -75,9 +75,12 @@ import { pokeballFeedbackSystem } from '@/view/systems/pokeballFeedbackSystem'
 import { worldItemFeedbackSystem } from '@/view/systems/worldItemFeedbackSystem'
 import { fireLightSystem } from '@/view/systems/fireLightSystem'
 import { audioListenerSystem } from '@/view/systems/audioListenerSystem'
+import { audioMixerSystem } from '@/view/systems/audioMixerSystem'
+import { musicSystem } from '@/view/systems/musicSystem'
+import { waterAmbientSystem } from '@/view/systems/waterAmbientSystem'
 import { footstepAudioSystem } from '@/view/systems/footstepAudioSystem'
 import { voiceAudioSystem } from '@/view/systems/voiceAudioSystem'
-import { ambientAudioSystem } from '@/view/systems/ambientAudioSystem'
+import { ambientBedSystem } from '@/view/systems/ambientBedSystem'
 import { dashAudioSystem } from '@/view/systems/dashAudioSystem'
 import { jumpAudioSystem } from '@/view/systems/jumpAudioSystem'
 import { eyeBlinkSystem } from '@/view/systems/eyeBlinkSystem'
@@ -125,8 +128,8 @@ let registered = false
  * (`footstepAudioSystem` — depende do relógio de animação que
  * `animationSystem` já avançou E do listener já reposicionado neste
  * mesmo frame). `voiceAudioSystem` (vocalização periódica, por
- * temporizador — não pelo ciclo de andar/correr), `ambientAudioSystem`
- * (mesma ideia, mas GLOBAL — som ambiente do nível, não de uma entidade),
+ * temporizador — não pelo ciclo de andar/correr), `ambientBedSystem`
+ * (o ambiente do mundo, GLOBAL — fundo por bioma e hora e os avulsos, 065),
  * `dashAudioSystem` (borda de subida de `ActionState.current === 'dash'`),
  * `jumpAudioSystem` (consome o pulso `Jumped`, ver core/traits/
  * components/physics.js), `summonAudioSystem`/`recallAudioSystem`
@@ -331,9 +334,15 @@ export function registerGameSystems() {
   registerSystem(GAME_PHASES.PRESENTATION, handBallViewSystem)
   registerSystem(GAME_PHASES.PRESENTATION, fireLightSystem)
   registerSystem(GAME_PHASES.PRESENTATION, audioListenerSystem)
+  // Volumes do jogador nos canais de som (065).
+  registerSystem(GAME_PHASES.PRESENTATION, audioMixerSystem)
+  // Música de fundo pelo bioma e a hora (065).
+  registerSystem(GAME_PHASES.PRESENTATION, musicSystem)
+  // Som de fundo da água, vindo do lago e do rio mais perto (065).
+  registerSystem(GAME_PHASES.PRESENTATION, waterAmbientSystem)
   registerSystem(GAME_PHASES.PRESENTATION, footstepAudioSystem)
   registerSystem(GAME_PHASES.PRESENTATION, voiceAudioSystem)
-  registerSystem(GAME_PHASES.PRESENTATION, ambientAudioSystem)
+  registerSystem(GAME_PHASES.PRESENTATION, ambientBedSystem)
   // Clima (048): clarão e trovão dos relâmpagos do frame, e o volume dos
   // sons de chuva e vento pela força do clima.
   registerSystem(GAME_PHASES.PRESENTATION, lightningSystem)

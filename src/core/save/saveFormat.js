@@ -1,6 +1,11 @@
 import { z } from 'zod'
 import { POSTURES } from '../party/posture'
 import { GAME_CONFIG } from '../gameConfig'
+import { DEFAULT_VOLUMES, VOLUME_KEYS } from '../data/audio/mixer'
+import {
+  DEFAULT_MUSIC_FREQUENCY,
+  MUSIC_FREQUENCIES,
+} from '../data/audio/musicTracks'
 import { PARTY_SLOT_IDS } from '../traits'
 
 /**
@@ -12,7 +17,7 @@ import { PARTY_SLOT_IDS } from '../traits'
  * O schema é a fronteira: o adapter (cliente) e a rota da API (servidor)
  * validam com ele antes de o dado entrar no jogo ou no banco.
  */
-export const SAVE_VERSION = 5
+export const SAVE_VERSION = 6
 
 const numberRecord = z.record(z.string(), z.number())
 
@@ -65,6 +70,19 @@ export const trainerSaveSchema = z.object({
   inventory: z.object({
     counts: z.record(z.string(), z.number().int().min(0)),
     positions: z.record(z.string(), z.number().int().min(0)),
+  }),
+  // Ajustes do jogador (docs/features/065-sons-do-mundo.md): o volume
+  // geral e o de cada canal (`core/data/audio/mixer.js`) e a frequência da
+  // música (`musicTracks.js`).
+  settings: z.object({
+    volume: z.object(
+      Object.fromEntries(
+        VOLUME_KEYS.map((key) => [key, z.number().min(0).max(1)]),
+      ),
+    ),
+    musicFrequency: z
+      .enum(Object.keys(MUSIC_FREQUENCIES))
+      .default(DEFAULT_MUSIC_FREQUENCY),
   }),
   pokedex: z.object({
     speciesIds: z.array(z.string()),
@@ -141,6 +159,8 @@ export const saveSchema = z.object({
  *   selvagens, começando sem nenhuma (o spawn povoa).
  * - 4 → 5 (docs/features/064-revisao-da-ia-do-parceiro.md): entra a
  *   postura de cada Pokémon, começando na padrão.
+ * - 5 → 6 (docs/features/065-sons-do-mundo.md): entram os ajustes do
+ *   treinador, com os volumes e a frequência da música padrão.
  */
 const MIGRATIONS = {
   1: (save) => ({ ...save, worldItems: { chunks: {}, foraged: {} } }),
@@ -158,6 +178,16 @@ const MIGRATIONS = {
       ...pokemon,
       posture: pokemon.posture ?? GAME_CONFIG.PARTY_BEHAVIOR.DEFAULT_POSTURE,
     })),
+  }),
+  5: (save) => ({
+    ...save,
+    trainer: {
+      ...save.trainer,
+      settings: save.trainer?.settings ?? {
+        volume: { ...DEFAULT_VOLUMES },
+        musicFrequency: DEFAULT_MUSIC_FREQUENCY,
+      },
+    },
   }),
 }
 

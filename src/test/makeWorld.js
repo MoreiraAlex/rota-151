@@ -31,6 +31,7 @@ import {
   ScanHistory,
   WildSpawnState,
   SaveClock,
+  SoundSettings,
   OwnedBy,
   WorldClock,
   WorldItemsMemory,
@@ -89,6 +90,7 @@ export function spawnTrainer(
     PokedexEntries,
     ScanHistory,
     SaveClock,
+    SoundSettings,
   )
 }
 

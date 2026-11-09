@@ -7,6 +7,7 @@ import {
 } from '@/core/data/conditions'
 import { formatSkillDescription } from '@/view/shared/skillDescription'
 import { WEATHER_TYPES } from '@/core/weather/weatherMap'
+import { MUSIC_FREQUENCIES } from '@/core/data/audio/musicTracks'
 import {
   TYPE_CHART,
   listTypes,
@@ -642,7 +643,8 @@ function buildCaptureExample(balls) {
 // Dia, noite e clima (docs/features/048-dia-noite-e-clima.md): quanto dura
 // o dia, a chance de cada clima por bioma (fração do total de pesos) e o que
 // o clima muda no combate. Só os biomas que aparecem no jogo (fora do
-// `BIOMES.HIDDEN`).
+// `BIOMES.HIDDEN`). E o silêncio entre as músicas em cada frequência
+// (docs/features/065-sons-do-mundo.md), em segundos.
 function buildWorld() {
   const { DAY_CYCLE, WEATHER, BIOMES } = GAME_CONFIG
   const weatherTypes = WEATHER_TYPES
@@ -690,6 +692,11 @@ function buildWorld() {
     biomes,
     moveEffects,
     defenseEffects,
+    musicSilence: Object.entries(MUSIC_FREQUENCIES).map(([id, range]) => ({
+      id,
+      min: range.min,
+      max: range.max,
+    })),
   }
 }
 

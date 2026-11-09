@@ -4,6 +4,7 @@ import {
   isDeepWater,
   deepWaterEntry,
   nearWaterAt,
+  nearestWaterPoints,
   shoreNear,
   shallowSpeedFactor,
   stepOutOfDeepWater,
@@ -151,5 +152,45 @@ describe('shoreNear com o limite de um corpo', () => {
     expect(shoreNear(depthAt, 4, 0, DEEP)).toEqual({ x: 4, z: 0 })
     const { x, z } = shoreNear(depthAt, 4, 0, depthAt(4) / 2)
     expect(depthAt(x, z)).toBeLessThanOrEqual(0)
+  })
+})
+
+// docs/features/065-sons-do-mundo.md, Parte 5. Lago e rio de teste: um lago
+// redondo a oeste e um rio (faixa com correnteza) a leste.
+describe('nearestWaterPoints', () => {
+  const SEARCH = { radius: 30, step: 1, directions: 16, riverFlow: 0.5 }
+  const LAKE = { x: -12, z: 0, r: 4 }
+  const RIVER_FROM_X = 8
+  const lakeDepth = (x, z) => LAKE.r - Math.hypot(x - LAKE.x, z - LAKE.z)
+  const depth = (x, z) => Math.max(lakeDepth(x, z), x >= RIVER_FROM_X ? 1 : -1)
+  const flow = (x) => (x >= RIVER_FROM_X ? { x: 0, z: 1 } : { x: 0, z: 0 })
+
+  it('acha os dois, cada um do seu tipo, dentro da água', () => {
+    const found = nearestWaterPoints(depth, flow, 0, 0, SEARCH)
+
+    expect(found.lake).not.toBeNull()
+    expect(found.river).not.toBeNull()
+    expect(lakeDepth(found.lake.x, found.lake.z)).toBeGreaterThan(0)
+    expect(found.river.x).toBeGreaterThanOrEqual(RIVER_FROM_X)
+  })
+
+  it('o ponto achado fica perto da margem mais próxima', () => {
+    const found = nearestWaterPoints(depth, flow, 0, 0, SEARCH)
+    const toLake = Math.hypot(LAKE.x, LAKE.z) - LAKE.r
+
+    expect(found.river.distance).toBeGreaterThanOrEqual(RIVER_FROM_X)
+    expect(found.river.distance).toBeLessThanOrEqual(RIVER_FROM_X + SEARCH.step)
+    expect(found.lake.distance).toBeGreaterThanOrEqual(toLake)
+    expect(found.lake.distance).toBeLessThanOrEqual(toLake + SEARCH.step)
+  })
+
+  it('sem água no raio, nada', () => {
+    const found = nearestWaterPoints(() => -1, flow, 0, 0, SEARCH)
+    expect(found).toEqual({ lake: null, river: null })
+  })
+
+  it('em cima da água, distância zero', () => {
+    const found = nearestWaterPoints(depth, flow, LAKE.x, LAKE.z, SEARCH)
+    expect(found.lake.distance).toBe(0)
   })
 })

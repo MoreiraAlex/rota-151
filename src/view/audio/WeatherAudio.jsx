@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import * as THREE from 'three'
 import { WEATHER_SOUNDS } from '@/core/data/audio/weatherSounds'
 import { getAudioListener } from './audioListener'
+import { routeToChannel } from './audioMixer'
 import { loadAudioBuffer } from './audioBufferCache'
 import { pickRandomVariation } from './pickRandomVariation'
 import {
@@ -26,14 +27,14 @@ export function WeatherAudio() {
   useEffect(() => {
     const listener = getAudioListener()
     const makeLoop = () => {
-      const audio = new THREE.Audio(listener)
+      const audio = routeToChannel(new THREE.Audio(listener), 'ambient')
       audio.setLoop(true)
       audio.setVolume(0)
       return audio
     }
     const rain = makeLoop()
     const wind = makeLoop()
-    const thunder = new THREE.Audio(listener)
+    const thunder = routeToChannel(new THREE.Audio(listener), 'ambient')
     const audio = getWeatherFxState().audio
     audio.rain = rain
     audio.wind = wind
