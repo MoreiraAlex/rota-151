@@ -36,6 +36,7 @@ import { useVegetationModels } from './useVegetationModels'
 import { createGrassPushMap } from './grassPush'
 import { LgpeChoiceLoader } from './LgpeChoiceLoader'
 import { applyToonLook } from './toonMaterial'
+import { TrainingDummiesView } from './TrainingDummiesView'
 import {
   buildEncounterGrassMeshes,
   buildFlowerMeshes,
@@ -416,6 +417,10 @@ export function VegetationView() {
       <Suspense fallback={null}>
         <LgpeChoiceLoader />
       </Suspense>
+      {/* Os bonecos dos campos de treino, cada um sozinho (balançam, 067). */}
+      {settings.buildings && (
+        <TrainingDummiesView models={models} receiveShadows={receiveShadows} />
+      )}
       {(settings.grass || settings.flowers) &&
         tiles.map((tile) => {
           const chunk = chunksByKey.get(

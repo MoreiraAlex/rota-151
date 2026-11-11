@@ -1,0 +1,119 @@
+{
+  "source": "treino",
+  "props": {
+    "treino-training-dummy": {
+      "label": "Treino — training_dummy",
+      "category": "street",
+      "file": "props/treino-training-dummy.glb",
+      "size": [
+        0.647,
+        1.7,
+        1.38
+      ],
+      "materials": {
+        "Rope": {
+          "shader": "Lab",
+          "maps": {
+            "Texture01": "treino-image-12-cartoon"
+          },
+          "cutoff": null,
+          "doubleSided": true,
+          "shadowColor": null,
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "Wood1": {
+          "shader": "Lab",
+          "maps": {
+            "Texture01": "treino-image-0-cartoon"
+          },
+          "cutoff": null,
+          "doubleSided": true,
+          "shadowColor": null,
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "Metal": {
+          "shader": "Lab",
+          "maps": {
+            "Texture01": "treino-image-3-cartoon"
+          },
+          "cutoff": null,
+          "doubleSided": true,
+          "shadowColor": null,
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "Bark": {
+          "shader": "Lab",
+          "maps": {
+            "Texture01": "treino-image-6-cartoon"
+          },
+          "cutoff": null,
+          "doubleSided": true,
+          "shadowColor": null,
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "BarkInner": {
+          "shader": "Lab",
+          "maps": {
+            "Texture01": "treino-image-9-cartoon"
+          },
+          "cutoff": null,
+          "doubleSided": true,
+          "shadowColor": null,
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        }
+      }
+    }
+  },
+  "textures": {
+    "treino-image-12-cartoon": {
+      "file": "textures/treino-image-12-cartoon.png",
+      "width": 512,
+      "height": 512,
+      "alpha": false,
+      "flipY": false
+    },
+    "treino-image-0-cartoon": {
+      "file": "textures/treino-image-0-cartoon.png",
+      "width": 512,
+      "height": 512,
+      "alpha": false,
+      "flipY": false
+    },
+    "treino-image-3-cartoon": {
+      "file": "textures/treino-image-3-cartoon.png",
+      "width": 512,
+      "height": 512,
+      "alpha": false,
+      "flipY": false
+    },
+    "treino-image-6-cartoon": {
+      "file": "textures/treino-image-6-cartoon.png",
+      "width": 512,
+      "height": 512,
+      "alpha": false,
+      "flipY": false
+    },
+    "treino-image-9-cartoon": {
+      "file": "textures/treino-image-9-cartoon.png",
+      "width": 512,
+      "height": 512,
+      "alpha": false,
+      "flipY": false
+    }
+  }
+}

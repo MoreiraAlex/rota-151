@@ -5,8 +5,10 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { ArrowLeftRight } from 'lucide-react'
 import { playerEntity } from '@/core/world/world'
 import { getSpecies } from '@/core/data/species'
+import { GAME_CONFIG } from '@/core/gameConfig'
 import {
   CreatureLevel,
+  CreatureMoves,
   Fainted,
   IndividualValues,
   InputControlled,
@@ -263,6 +265,9 @@ function PartySlotCard({
   const progress = useTrait(pokemon, CreatureLevel) ?? null
   const storedVitals = useTrait(pokemon, StoredVitals)?.vitals ?? null
   const slotFaint = useTrait(pokemon, StoredFaint) ?? null
+  // Golpe novo que o jogador ainda não viu no Treino (o marcador "novo",
+  // docs/features/067-campo-de-treino-e-avisos-de-nivel.md).
+  const hasNewMove = (useTrait(pokemon, CreatureMoves)?.unseen?.length ?? 0) > 0
 
   const species = getSpecies(speciesId)
   const active = !!activeEntity
@@ -327,6 +332,7 @@ function PartySlotCard({
               Lv.{level}
             </span>
           )}
+          {hasNewMove && <NewMoveBadge />}
         </div>
         <TypeBadges types={species.types} compact align="start" />
         {faintTimeLeft > 0 && (
@@ -350,6 +356,24 @@ function PartySlotCard({
         <StatStageBadges entity={activeEntity} compact align="start" />
       </div>
     </motion.div>
+  )
+}
+
+/**
+ * Selo "novo": o Pokémon tem golpe novo pra aprender e o jogador ainda não
+ * abriu o Treino dele (067). Pulsa de leve pra chamar a atenção.
+ */
+function NewMoveBadge() {
+  return (
+    <motion.span
+      title="Golpe novo para aprender"
+      animate={{ opacity: [1, 0.45, 1] }}
+      transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
+      className="ml-auto shrink-0 rounded-sm px-1 text-[9px] font-bold uppercase leading-tight text-black"
+      style={{ backgroundColor: GAME_CONFIG.FEEDBACK.MOVE_NOTICE_COLOR }}
+    >
+      novo
+    </motion.span>
   )
 }
 

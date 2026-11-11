@@ -65,6 +65,7 @@ import { BattleLogHud } from '@/tools/hud/BattleLogHud'
 import { CaptureAimHud } from '@/tools/hud/CaptureAimHud'
 import { InteractionHud } from '@/tools/hud/InteractionHud'
 import { StrayWarningHud } from '@/tools/hud/StrayWarningHud'
+import { NoticeHud } from '@/tools/hud/NoticeHud'
 
 /**
  * HUD de jogo (normal ou visor da Pokédex) — extraído do corpo de
@@ -134,6 +135,7 @@ function GameHud({ onScanned, onMenuOpenRequested, onTrainerControlChange }) {
       <CaptureAimHud />
       <InteractionHud />
       <StrayWarningHud />
+      <NoticeHud />
     </>
   )
 }

@@ -13,12 +13,15 @@ Roda no Blender, sem janela:
       --src <arquivo ou pasta> --pack <id> --category <categoria> \\
       [--match <trecho do nome>] [--height <m> | --scale <x>] [--label <nome>] \\
       [--textures <pasta>] [--recolor "<trecho>=#cor:força,..."] \\
+      [--cartoon "blur=<f>,flat=<f>,levels=<n>,gamma=<f>,saturation=<f>,bright=<f>"] \\
       [--out public/assets/lab] [--max-texture 1024]
 
 - --src: um arquivo ou uma pasta (todos os .fbx/.glb/.gltf/.obj dela).
-- --category: tree, bush, plant, tuft, tall-grass, flower ou rock (a mesma
-  categoria do manifesto do LGPE; decide em que tipo de vegetação o modelo
-  pode entrar e como o vento mexe nele).
+- --category: tree, bush, plant, tuft, tall-grass, flower, rock ou street (a
+  mesma categoria do manifesto do LGPE; decide em que tipo de vegetação o
+  modelo pode entrar e como o vento mexe nele; `street` é objeto de cidade —
+  o colisor sai com casco e caixa no chão, como o boneco do campo de treino,
+  docs/features/067-campo-de-treino-e-avisos-de-nivel.md).
 - --match: só os arquivos cujo nome tem esse trecho (ex.: CommonTree).
 - --height: põe cada modelo nessa altura (m). Sem ele, --scale (padrão 1)
   multiplica o tamanho de importação.
@@ -29,6 +32,17 @@ Roda no Blender, sem janela:
   (força 0 a 1), mantendo o claro e escuro — ex.:
   "Leaves=#4a7a32:0.85,Bark=#5b4a3d:0.5" (folhas de outono verdes, casca
   avermelhada marrom). Sai numa textura própria.
+- --cartoon: deixa a textura de cor com cara de desenho (docs/features/067-
+  campo-de-treino-e-avisos-de-nivel.md — o boneco de treino veio com
+  texturas de foto). Cada chave é opcional: `blur` borra o grão da foto (o
+  raio, em fração do lado da textura); `flat` puxa cada pixel para a cor
+  média da textura (0 = como está, 1 = cor chapada); `levels` divide a luz
+  em N faixas (sombreado de desenho; 0 = sem faixas); `gamma` clareia
+  (acima de 1) ou escurece (abaixo) mais os tons escuros que os claros —
+  textura de foto escura fica clara sem estourar o que já era claro;
+  `saturation` multiplica a saturação; `bright` multiplica o brilho. Ordem:
+  borrar, chapar, faixas, gama, saturação e brilho. Sai numa textura
+  própria.
 - Rodar de novo com o mesmo --pack junta ao pacote (o mesmo id substitui).
 
 Cada arquivo vira um modelo (as malhas dele juntas). A cor de cada material
@@ -38,7 +52,7 @@ alfa ligado na textura, o recorte (cutoff) fica em 0,5.
 import bpy, json, os, re, sys
 import numpy as np
 
-CATEGORIES = {"tree", "bush", "plant", "tuft", "tall-grass", "flower", "rock"}
+CATEGORIES = {"tree", "bush", "plant", "tuft", "tall-grass", "flower", "rock", "street"}
 EXTENSIONS = (".fbx", ".glb", ".gltf", ".obj")
 CUTOFF = 0.5
 
@@ -225,7 +239,72 @@ def apply_recolor(image, recolor):
     image.pixels[:] = np.clip(pixels, 0, 1).ravel()
 
 
-def save_texture(image, name, folder, max_side, recolor=None):
+CARTOON_DEFAULTS = {
+    "blur": 0,
+    "flat": 0,
+    "levels": 0,
+    "gamma": 1,
+    "saturation": 1,
+    "bright": 1,
+}
+LUMA = np.array([0.2126, 0.7152, 0.0722], dtype=np.float32)
+
+
+def parse_cartoon(text):
+    """'blur=0.02,flat=0.4,levels=4' → dicionário com os padrões; sem texto, None."""
+    if not text:
+        return None
+    params = dict(CARTOON_DEFAULTS)
+    for part in filter(None, text.split(",")):
+        key, _, value = part.partition("=")
+        key = key.strip()
+        if key not in CARTOON_DEFAULTS:
+            raise SystemExit(f"--cartoon: chave desconhecida {key}")
+        params[key] = float(value)
+    return params
+
+
+def box_blur(rgb, radius):
+    """Borra (média em caixa, duas passadas em cada eixo ≈ gaussiana)."""
+    if radius < 1:
+        return rgb
+    for axis in (0, 1):
+        for _ in range(2):
+            pad = [(0, 0)] * 3
+            pad[axis] = (radius + 1, radius)
+            padded = np.pad(rgb, pad, mode="edge")
+            summed = np.cumsum(padded, axis=axis, dtype=np.float64)
+            size = rgb.shape[axis]
+            upper = np.take(summed, np.arange(2 * radius + 1, 2 * radius + 1 + size), axis=axis)
+            lower = np.take(summed, np.arange(0, size), axis=axis)
+            rgb = ((upper - lower) / (2 * radius + 1)).astype(np.float32)
+    return rgb
+
+
+def apply_cartoon(image, params):
+    """Cara de desenho na textura de cor (ver --cartoon)."""
+    width, height = image.size
+    pixels = np.array(image.pixels[:], dtype=np.float32).reshape(height, width, 4)
+    rgb = pixels[:, :, :3]
+    rgb = box_blur(rgb, int(round(params["blur"] * max(width, height))))
+    if params["flat"] > 0:
+        mean = rgb.reshape(-1, 3).mean(axis=0)
+        rgb = rgb * (1 - params["flat"]) + mean * params["flat"]
+    luma = np.maximum(rgb @ LUMA, 1e-4)
+    if params["levels"] >= 2:
+        steps = params["levels"] - 1
+        banded = np.round(luma * steps) / steps
+        rgb = rgb * (np.maximum(banded, 1 / (2 * steps)) / luma)[:, :, None]
+    if params["gamma"] != 1:
+        rgb = np.power(np.clip(rgb, 0, 1), 1 / params["gamma"])
+    luma = np.maximum(rgb @ LUMA, 1e-4)
+    rgb = luma[:, :, None] + (rgb - luma[:, :, None]) * params["saturation"]
+    rgb = rgb * params["bright"]
+    pixels[:, :, :3] = np.clip(rgb, 0, 1)
+    image.pixels[:] = pixels.ravel()
+
+
+def save_texture(image, name, folder, max_side, recolor=None, cartoon=None):
     path = os.path.join(folder, f"{name}.png")
     copy = image.copy()
     width, height = copy.size
@@ -234,10 +313,18 @@ def save_texture(image, name, folder, max_side, recolor=None):
         copy.scale(max(1, int(width * ratio)), max(1, int(height * ratio)))
     if recolor:
         apply_recolor(copy, recolor)
+    if cartoon:
+        apply_cartoon(copy, cartoon)
     copy.filepath_raw = path
     copy.file_format = "PNG"
     copy.save()
-    has_alpha = copy.channels == 4 and image.alpha_mode != "NONE"
+    # Alfa só quando algum pixel é transparente de fato (o JPEG chega com
+    # um canal alfa todo opaco).
+    has_alpha = (
+        copy.channels == 4
+        and image.alpha_mode != "NONE"
+        and float(np.array(copy.pixels[:], dtype=np.float32)[3::4].min()) < 0.99
+    )
     size = list(copy.size)
     bpy.data.images.remove(copy)
     # glTF: o UV já vem de cima para baixo (o jogo não vira, ao contrário
@@ -266,6 +353,7 @@ def main():
     scale = float(args["scale"])
     max_side = int(args["max-texture"])
     recolor_rules = parse_recolor(args.get("recolor"))
+    cartoon = parse_cartoon(args.get("cartoon"))
 
     files = sources_of(args["src"], args.get("match"))
     if not files:
@@ -299,9 +387,17 @@ def main():
                 texture = f"{pack}-{slug(os.path.splitext(image.name)[0])}"
                 if recolor:
                     texture += "-" + "".join(f"{round(c * 255):02x}" for c in recolor[0])
-                if texture not in manifest["textures"]:
+                if cartoon:
+                    texture += "-cartoon"
+                # Com --cartoon, refaz sempre (os números podem ter mudado).
+                if cartoon or texture not in manifest["textures"]:
                     manifest["textures"][texture] = save_texture(
-                        image, texture, os.path.join(out, "textures"), max_side, recolor
+                        image,
+                        texture,
+                        os.path.join(out, "textures"),
+                        max_side,
+                        recolor,
+                        cartoon,
                     )
                 maps["Texture01"] = texture
                 alpha = alpha or manifest["textures"][texture]["alpha"]

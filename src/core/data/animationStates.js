@@ -48,6 +48,10 @@ export const ANIMATION_STATES = [
   // Apresentação ao ser invocada (`creatureAppealSystem.js`) — a
   // criatura fica parada enquanto a ação dura.
   { id: 'appeal', oneShot: true, when: (ctx) => ctx.action === 'appeal' },
+  // Comemoração ao subir de nível (`creatureCelebrationSystem.js`, docs/
+  // features/067-campo-de-treino-e-avisos-de-nivel.md) — parada enquanto
+  // a ação `'happy'` dura.
+  { id: 'happy', oneShot: true, when: (ctx) => ctx.action === 'happy' },
   // Atordoada (`core/actions/hitStun.js`): golpe de status interrompido por
   // dano — toca a animação de hit enquanto a ação `'hit'` dura.
   { id: 'hit', oneShot: true, when: (ctx) => ctx.action === 'hit' },

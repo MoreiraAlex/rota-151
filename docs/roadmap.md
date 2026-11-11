@@ -2,7 +2,7 @@
 
 ---
 
-# ✅ Já feito (0.0.1 – 0.0.66)
+# ✅ Já feito (0.0.1 – 0.0.67)
 
 O que já foi entregue, por tema. Detalhes de cada uma em `docs/features/`.
 
@@ -82,6 +82,7 @@ O que já foi entregue, por tema. Detalhes de cada uma em `docs/features/`.
 ### Progressão
 - [x] **037 — Experiência e nível**
 - [x] **038 — Aprendizado, treino e domínio de golpes**
+- [x] **067 — Campo de treino e avisos de nível**
 
 ### Áudio e extras
 - [x] **019 — Som ambiente, passos, vocalização, dash e pulo**
@@ -120,8 +121,9 @@ aparecem conforme bioma, horário e clima. Antes do spawn, cada espécie e
 todas as skills passam por um ajuste final (060 e 061). Com o mundo povoado,
 a IA das selvagens e a do time passam por uma revisão (063 e 064), o mundo
 ganha os seus sons — ambientação e música (065). Antes de entrar nas
-estruturas, os biomas passam por uma revisão do conjunto (066) e os objetos
-de treino saem do nível de teste para o mundo (067); por último dá para
+estruturas, os biomas passam por uma revisão do conjunto (066) e o treino
+sai do nível de teste para um campo de treino em cada cidade, junto com os
+avisos de nível e de golpe novo (067); por último dá para
 entrar nas estruturas (068).
 
 **Biomas da beta:** os 11 biomas existem na seed (cobrem os 151), mas só os
@@ -134,7 +136,6 @@ só aparecem pelo F2. A montanha foi adiada: na beta não teria espécie
 exclusiva (o Spearow já mora na savana). Os 3 iniciais não nascem no mundo:
 vêm só no kit inicial (073).
 
-- [ ] **067 — Objetos de treino no mundo** — o treino de golpe (038) é anterior ao mundo procedural: hoje só existem um tronco e uma pedra fixos do nível de teste perto da origem, desenhados como caixas coloridas, e longe dali não dá para treinar. Espalhar pelo mundo pela seed (por chunk e bioma), com modelos do Let's Go e alguma pista de que dá para treinar ali, e atualizar a wiki. Se o treino também for para dentro de prédios (dojo/ginásio), passa para depois da 068 *(detalhar quando chegar)*.
 - [ ] **068 — Ambiente interno nas estruturas** — entrar nas estruturas e no ambiente interno delas *(detalhar quando chegar)*.
 
 > **Renumeração (2026-11-09):** a revisão dos biomas (066) e os objetos de
@@ -182,6 +183,17 @@ cada um com o próprio progresso salvo. O jogo vai para o ar.
 
 > ⚠️ **Para rever depois:** o movimento é decidido pelo cliente (o servidor só
 > repassa). Funciona entre amigos, mas não impede trapaça.
+
+> ⚠️ **Rever no Marco 4 — treino no campo e chunks:** o treino de golpe no
+> campo de treino (067) é ao vivo e preso ao chunk do boneco carregado em
+> volta do treinador: quem treina tem um limite de distância próprio
+> (`FOLLOW_LIMIT.TRAINING_*`), calculado para o Pokémon voltar à bola antes
+> de o chunk do boneco descarregar na menor distância de visão (um teste em
+> `followLimitSystem.test.js` amarra os números). Com o servidor dono do
+> mundo e dos chunks (078–080), rever: quem mantém o chunk do campo
+> carregado (por jogador ou pelo servidor), se esse limite ainda faz
+> sentido e se o treino pode seguir sem o treinador por perto (ligado ao
+> "Treino que continua fora da tela" do backlog e ao dojo futuro).
 
 ---
 

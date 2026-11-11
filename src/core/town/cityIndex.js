@@ -55,6 +55,12 @@ const NEIGHBORS = [
   [0, -1],
 ]
 
+/**
+ * O id de um prédio único de `town.landmarks` (o que `town.sizes` cita): o
+ * `id` dele ou, sem, o `model` (o campo de treino não tem modelo).
+ */
+export const landmarkIdOf = (landmark) => landmark.id ?? landmark.model
+
 /** O retângulo `[minX, minZ, maxX, maxZ]` (m) do lote `(lotX, lotZ)`. */
 export function lotBoundsOf(town, lotX, lotZ) {
   const { blockSize, streetWidth, lotsPerSide } = town
@@ -186,7 +192,9 @@ export function createCityIndex({
   function landmarkListOf(size, theme) {
     if (!size) return [...town.landmarks, theme.special].filter(Boolean)
     return [
-      ...town.landmarks.filter(({ model }) => size.landmarks.includes(model)),
+      ...town.landmarks.filter((landmark) =>
+        size.landmarks.includes(landmarkIdOf(landmark)),
+      ),
       size.special ? theme.special : null,
     ].filter(Boolean)
   }

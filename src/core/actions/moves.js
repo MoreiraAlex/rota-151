@@ -227,9 +227,11 @@ export function somarDominio(world, pokemon, moveSlot, amount) {
 
 /**
  * Subiu de `fromLevel` pra `level`: golpes do learnset que passaram a
- * cumprir as condições (e que ela não sabe). Emite `moveUnlocked` se houver.
+ * cumprir as condições (e que ela não sabe). Entram nos não vistos
+ * (`unseen`, o marcador "novo") e emite `moveUnlocked`, se houver.
  */
 export function anunciarGolpesAptos(
+  world,
   events,
   pokemon,
   creature,
@@ -237,7 +239,8 @@ export function anunciarGolpesAptos(
   level,
 ) {
   const species = getSpecies(resolvePokemonSpeciesId(pokemon))
-  const state = pokemon.get(CreatureMoves)
+  const state = readMoves(pokemon)
+  if (!state) return []
   const moveIds = listLearnset(species)
     .filter(
       (entry) =>
@@ -247,6 +250,9 @@ export function anunciarGolpesAptos(
     )
     .map((entry) => entry.id)
   if (moveIds.length) {
+    // O marcador "novo" fica até o jogador abrir o Treino dele (067).
+    state.unseen = [...new Set([...state.unseen, ...moveIds])]
+    writeMoves(world, pokemon, state)
     events?.emit(
       moveUnlocked({
         trainer: resolveOwner(pokemon),
@@ -257,4 +263,22 @@ export function anunciarGolpesAptos(
     )
   }
   return moveIds
+}
+
+/**
+ * O jogador abriu o Treino do `pokemon`: os golpes novos deixam de ser
+ * novidade (some o marcador "novo", docs/features/067-campo-de-treino-e-
+ * avisos-de-nivel.md). Devolve se havia algum.
+ */
+export function marcarGolpesVistos(world, pokemon) {
+  const state = readMoves(pokemon)
+  if (!state?.unseen.length) return false
+  state.unseen = []
+  writeMoves(world, pokemon, state)
+  return true
+}
+
+/** O `pokemon` tem golpe novo que o jogador ainda não viu no Treino? */
+export function temGolpeNovo(pokemon) {
+  return (pokemon?.get?.(CreatureMoves)?.unseen?.length ?? 0) > 0
 }

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { CLIMATE_AXES } from '../../terrain/biomeMap'
 import { GAME_CONFIG } from '../../gameConfig'
 import { WEATHER_TYPES } from '../../weather/weatherMap'
+import { landmarkIdOf } from '../../town/cityIndex'
 import { BIOME_REGISTRY, getBiome, listBiomes } from '.'
 
 const HEX_COLOR = /^#[0-9a-f]{6}$/i
@@ -41,14 +42,28 @@ describe('registro de biomas', () => {
     (biome) => {
       const { sizes, landmarks } = biome.town
       expect(sizes.length).toBeGreaterThan(0)
-      const models = landmarks.map(({ model }) => model)
+      const ids = landmarks.map(landmarkIdOf)
       for (const size of sizes) {
         expect(size.name).toEqual(expect.any(String))
         expect(size.weight).toBeGreaterThan(0)
         expect(size.radius).toBeGreaterThan(0)
-        for (const model of size.landmarks) expect(models).toContain(model)
+        for (const id of size.landmarks) expect(ids).toContain(id)
       }
       expect(sizes.map(({ id }) => id)).toContain(GAME_CONFIG.CITIES.FIRST_SIZE)
+    },
+  )
+
+  // O campo de treino é o único lugar de treinar golpe (067): toda cidade,
+  // de qualquer porte, tem um.
+  it.each(townBiomes)(
+    '$id: todo porte de cidade tem campo de treino',
+    (biome) => {
+      const field = biome.town.landmarks.find(({ field }) => field)
+      expect(field).toBeDefined()
+      expect(biome.town.trainingField.dummy).toEqual(expect.any(String))
+      for (const size of biome.town.sizes) {
+        expect(size.landmarks).toContain(landmarkIdOf(field))
+      }
     },
   )
 

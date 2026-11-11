@@ -2,6 +2,10 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { givePartyPokemon, makeWorld } from '@/test/makeWorld'
 import { createEventQueue, EVENT_TYPES } from '../events'
 import { GAME_CONFIG } from '../gameConfig'
+import { getPlayerSpecies, listSpecies } from '../data/species'
+import { listBiomes } from '../data/biomes'
+import LGPE_COLLIDERS from '../data/lgpeColliders.json'
+import { resolveBodyFront } from '../actions/training'
 import {
   ActionState,
   CameraTarget,
@@ -14,6 +18,7 @@ import {
   StrayWarning,
   SummonBall,
   SummonedCreature,
+  Training,
 } from '../traits'
 import { followLimitSystem } from './followLimitSystem'
 import { partySummonSystem } from './partySummonSystem'
@@ -326,5 +331,84 @@ describe('followLimitSystem — o treinador ficou pra trás', () => {
     tick(ctx)
     // Agora quem segue é ela, e ela ainda não chegou perto deste líder.
     expect(ctx.creature.get(StrayWarning)?.reason).not.toBe('trainerFar')
+  })
+})
+
+// Quem treina num boneco (docs/features/067-campo-de-treino-e-avisos-de-
+// nivel.md): limite maior, com aviso antes da contagem.
+describe('followLimitSystem — criatura treinando', () => {
+  function setupTraining() {
+    const ctx = setup()
+    ctx.creature.add(Training({ moveId: 'tackle' }))
+    return ctx
+  }
+
+  it('além do limite normal, mas aquém do de treino: nada', () => {
+    const ctx = setupTraining()
+    placeAway(
+      ctx.creature,
+      ctx.player,
+      Math.min(FAR, FOLLOW_LIMIT.TRAINING_WARN_DISTANCE - 1),
+    )
+    tickTimes(ctx, COUNTDOWN_TICKS)
+    expect(ctx.creature.has(StrayWarning)).toBe(false)
+    expect(ctx.creature.has(StrayRecall)).toBe(false)
+  })
+
+  it('passou do aviso: aviso sem contagem', () => {
+    const ctx = setupTraining()
+    placeAway(ctx.creature, ctx.player, FOLLOW_LIMIT.TRAINING_WARN_DISTANCE + 1)
+    tick(ctx)
+    const warning = ctx.creature.get(StrayWarning)
+    expect(warning.stage).toBe('warn')
+    expect(warning.reason).toBe('trainingFar')
+  })
+
+  it('passou do limite de treino: contagem e volta pra bola', () => {
+    const ctx = setupTraining()
+    placeAway(
+      ctx.creature,
+      ctx.player,
+      FOLLOW_LIMIT.TRAINING_RECALL_DISTANCE + 1,
+    )
+    tick(ctx)
+    expect(ctx.creature.get(StrayWarning).stage).toBe('recall')
+
+    tickTimes(ctx, COUNTDOWN_TICKS)
+    tickUntilFree(ctx)
+
+    expect(ctx.world.query(SummonedCreature).length).toBe(0)
+    expect(strayedReasons(ctx.events)).toEqual(['trainingFar'])
+  })
+})
+
+describe('followLimitSystem — o campo não some antes do recolher', () => {
+  it('na menor distância de visão, quem treina volta pra bola antes de o chunk do boneco descarregar', () => {
+    const { CHUNK_SIZE, UNLOAD_MARGIN } = GAME_CONFIG.TERRAIN
+    const { MIN } = GAME_CONFIG.GRAPHICS.VIEW_DISTANCE
+    // Descarrega a mais de MIN + UNLOAD_MARGIN chunks (em cada eixo) de
+    // todo centro: a menor separação em que isso acontece.
+    const unloadDistance = (MIN + UNLOAD_MARGIN) * CHUNK_SIZE
+    // O mais rápido que alguém do jogo anda (correndo ou voando).
+    const fastest = Math.max(
+      ...listSpecies().flatMap((species) => [
+        species.movement?.runSpeed ?? 0,
+        species.flight?.fastSpeed ?? 0,
+      ]),
+    )
+    // Do começo da contagem até o recolher acontecer.
+    const recallTime =
+      FOLLOW_LIMIT.WARNING_TIME + getPlayerSpecies().actions.recall.effectAt
+    // Do lugar do treino até o centro do boneco (o maior possível).
+    const field = listBiomes().find(({ town }) => town).town.trainingField
+    const spotDistance =
+      LGPE_COLLIDERS[field.dummy].reach * field.scale +
+      GAME_CONFIG.MOVES.TRAINING.SPOT_GAP +
+      Math.max(...listSpecies().map(resolveBodyFront))
+    expect(
+      FOLLOW_LIMIT.TRAINING_RECALL_DISTANCE +
+        recallTime * fastest +
+        spotDistance,
+    ).toBeLessThan(unloadDistance)
   })
 })

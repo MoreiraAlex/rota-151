@@ -102,6 +102,9 @@ export const SPEAROW = {
     flyDash: 'run',
     battleIdle: 'battleIdle',
     appeal: 'appeal',
+    // Comemoração ao subir de nível (067).
+    // O `appeal` do Let's Go é o happy dele (`kw32_happyB01`).
+    happy: 'appeal',
     hit: 'hit',
   },
 
@@ -116,6 +119,9 @@ export const SPEAROW = {
   },
   actions: {
     appeal: { duration: 1.6 },
+    // Comemoração ao subir de nível (067): o tempo do clipe de
+    // `nativeAnimations.happy`, pra tocar na velocidade original.
+    happy: { duration: 1.8 },
   },
 
   body: {

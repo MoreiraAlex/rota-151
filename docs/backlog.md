@@ -216,7 +216,11 @@ de puxar ela pra frente.
       ninguém lutou, o XP iria só para o treinador.
 - [ ] **Tutor/dojo de golpes** — NPC ou lugar que acelera o treino de um
       golpe (ou relembra um esquecido). Saiu da
-      `docs/features/038-aprendizado-treino-e-dominio-de-golpes.md`.
+      `docs/features/038-aprendizado-treino-e-dominio-de-golpes.md`. Na
+      `docs/features/067-campo-de-treino-e-avisos-de-nivel.md` o treino no
+      campo ficou ao vivo (o treinador por perto); deixar o Pokémon treinando
+      em segundo plano, enquanto o treinador explora, fica para o dojo
+      (decisão do usuário).
 
 ## Mundo
 

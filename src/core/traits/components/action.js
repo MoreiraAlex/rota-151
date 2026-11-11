@@ -109,7 +109,8 @@ import { trait } from 'koota'
  * Dono de escrita: `playerActionSystem` (dash/arremesso/uso),
  * `partySummonSystem` (invocar/recolher), `creatureAttackSystem`
  * (ataque/skill), `creatureAppealSystem` (apresentação ao ser invocada —
- * o valor inicial vem do spawn em `summonBallSystem`).
+ * o valor inicial vem do spawn em `summonBallSystem`),
+ * `creatureCelebrationSystem` (comemoração ao subir de nível, `'happy'`).
  * Leem: `animationStateSystem` (repassa `current` pra tabela de prioridade).
  */
 export const ActionState = trait({

@@ -19,63 +19,23 @@ import { createTerrainChunkSet } from '../terrain/terrainChunkSet'
  *   rotation? }` — position é o centro.
  * - size: dimensões completas [largura(x), altura(y), profundidade(z)], em unidades.
  * - rotation (opcional): giro em um eixo — { axis: 'x' | 'y' | 'z', angle } (rad).
- * - trainingObjects (opcional): objetos de treino fixos (tronco, pedra,
- *   boneco) — `{ id, kind, position, size }`. Perto de um deles a criatura do
- *   time pode treinar um golpe (docs/features/038-aprendizado-treino-e-
- *   dominio-de-golpes.md). Também entram em `obstacles` (colisão, pathfind e
- *   mesh, com a cor do `kind`) — ver `TRAINING_OBJECTS` abaixo.
+ *
+ * Os objetos de treino fixos (tronco e pedra perto da origem, 038) saíram:
+ * agora se treina nos bonecos dos campos de treino das cidades
+ * (docs/features/067-campo-de-treino-e-avisos-de-nivel.md), que vêm com o
+ * chunk.
  */
-
-// Objetos de treino (ver `trainingObjects` no cabeçalho) — x/z fixos, o y
-// vem do relevo.
-const TRAINING_SPOTS = [
-  { id: 'training-log-1', kind: 'log', x: -9, z: -5, size: [0.8, 1.2, 0.8] },
-  { id: 'training-rock-1', kind: 'rock', x: 9, z: -6, size: [1.2, 1, 1.2] },
-]
 
 const terrainSeed = () => deriveSeed(GAME_CONFIG.WORLD.SEED, 'terrain')
 
-// Chão mais baixo debaixo de uma caixa (centro e cantos) — a caixa nunca
-// fica com um canto flutuando numa encosta.
-const groundUnder = (terrain, x, z, halfW, halfD) =>
-  Math.min(
-    terrain.heightAt(x, z),
-    terrain.heightAt(x - halfW, z - halfD),
-    terrain.heightAt(x + halfW, z - halfD),
-    terrain.heightAt(x - halfW, z + halfD),
-    terrain.heightAt(x + halfW, z + halfD),
-  )
-
-// Objetos de treino apoiados no relevo.
-const placeTrainingObjects = (terrain) =>
-  TRAINING_SPOTS.map(({ id, kind, x, z, size }) => {
-    const [w, h, d] = size
-    const y = groundUnder(terrain, x, z, w / 2, d / 2) + h / 2
-    return { id, kind, position: [x, y, z], size }
-  })
-
-// Os objetos de treino viram também obstáculos `box` comuns — sem mecanismo
-// novo em colliders/pathfinding/mesh.
-const trainingObstacles = (trainingObjects) =>
-  trainingObjects.map(({ id, kind, position, size }) => ({
-    id,
-    type: 'box',
-    position,
-    size,
-    trainingKind: kind,
-  }))
-
-// O que sai da altura do relevo (não depende de chunk carregado).
-function buildTerrainDependentLevel(terrain) {
-  const trainingObjects = placeTrainingObjects(terrain)
-  return {
-    obstacles: trainingObstacles(trainingObjects),
-    trainingObjects,
-  }
+// O que sai da altura do relevo (não depende de chunk carregado): hoje,
+// nenhum obstáculo fixo.
+function buildTerrainDependentLevel() {
+  return { obstacles: [] }
 }
 
 const terrain = createTerrainChunkSet({ seed: terrainSeed() })
-const initialLevel = buildTerrainDependentLevel(terrain)
+const initialLevel = buildTerrainDependentLevel()
 
 export const TEST_LEVEL = {
   terrain,
@@ -101,14 +61,14 @@ export function subscribeLevelChanges(listener) {
 /**
  * Refaz, com a config atual (`GAME_CONFIG.TERRAIN`/`BIOMES`/`WORLD.SEED` e
  * os biomas do registro), tudo do nível que sai do relevo: a receita do
- * terreno e os objetos de treino. Só
+ * terreno. Só
  * com nenhum chunk carregado (quem descarrega antes é `regenerarTerreno`).
  * Os selvagens já nascidos ficam (quem os sobe para a superfície é
  * `regenerarTerreno`). Só a ferramenta de debug chama isto.
  */
 export function rebuildTerrainDependentLevel() {
   TEST_LEVEL.terrain.reconfigure(terrainSeed())
-  Object.assign(TEST_LEVEL, buildTerrainDependentLevel(TEST_LEVEL.terrain))
+  Object.assign(TEST_LEVEL, buildTerrainDependentLevel())
   levelRevision += 1
   for (const listener of levelListeners) listener()
 }

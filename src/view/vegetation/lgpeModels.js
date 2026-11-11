@@ -160,7 +160,7 @@ export function lgpeChoicesOf(manifest, kind) {
 
 /**
  * Os modelos da cidade de um bioma (`town`, docs/features/056-bioma-
- * cidade.md): os prédios e os objetos de rua.
+ * cidade.md): os prédios, os objetos de rua e o boneco do campo de treino.
  */
 export function townModelIds(town) {
   if (!town) return []
@@ -178,6 +178,8 @@ export function townModelIds(town) {
     lamp,
     fence,
     bench,
+    // O boneco do campo de treino (067).
+    town.trainingField?.dummy,
   ].filter(Boolean)
 }
 

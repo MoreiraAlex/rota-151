@@ -63,6 +63,19 @@ describe('animações das espécies contra o .glb', () => {
     }
   })
 
+  it('toda espécie com modelo comemora (happy), no tempo do clipe do .glb', () => {
+    for (const species of WITH_MODEL.filter(({ kind }) => kind !== 'trainer')) {
+      const name = species.nativeAnimations?.happy
+      expect(typeof name, `${species.id}.happy`).toBe('string')
+      const { json } = parseGlb(readFileSync(`public${species.model.path}`))
+      const clip = json.animations.find((animation) => animation.name === name)
+      const length = Math.max(
+        ...clip.samplers.map(({ input }) => json.accessors[input].max[0]),
+      )
+      expect(species.actions.happy.duration, species.id).toBeCloseTo(length, 1)
+    }
+  })
+
   it('no Spearow o chão é procedural e o voo é o voo rasante do .glb', () => {
     const spearow = listSpecies().find(({ id }) => id === 'spearow')
     for (const state of ['walk', 'run']) {

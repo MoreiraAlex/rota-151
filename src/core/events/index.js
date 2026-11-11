@@ -27,6 +27,7 @@ export const EVENT_TYPES = {
   WILD_SPAWNED: 'wildSpawned',
   WILD_DESPAWNED: 'wildDespawned',
   PARTY_STRAYED: 'partyStrayed',
+  TRAINING_RECALL_WARNED: 'trainingRecallWarned',
 }
 
 /**
@@ -638,15 +639,33 @@ export function wildDespawned({ speciesId, reason, position }) {
  * (docs/features/064-revisao-da-ia-do-parceiro.md, Parte 1). `reason`:
  * `'far'` ela ficou longe demais, `'stuck'` ela ficou presa;
  * `'trainerFar'` / `'trainerStuck'` ela estava no controle e o TREINADOR,
- * que a seguia, ficou longe demais ou preso.
+ * que a seguia, ficou longe demais ou preso; `'trainingFar'` ela treinava
+ * num boneco e o treinador se afastou demais (docs/features/067-campo-de-
+ * treino-e-avisos-de-nivel.md).
  *
  * - Quem emite: `voltarParaABola` (`core/actions/followLimit.js`), no fim
  *   da contagem (o recolher em si vem logo depois, no `partySummonSystem.js`).
  * - Quem consome: `view/systems/battleLogSystem.js` (a linha no log). Sem
  *   consumidor, some.
  *
- * @returns {{ type: 'partyStrayed', speciesId: string, reason: 'far' | 'stuck' | 'trainerFar' | 'trainerStuck' }}
+ * @returns {{ type: 'partyStrayed', speciesId: string, reason: 'far' | 'stuck' | 'trainerFar' | 'trainerStuck' | 'trainingFar' }}
  */
 export function partyStrayed({ speciesId, reason }) {
   return { type: EVENT_TYPES.PARTY_STRAYED, speciesId, reason }
+}
+
+/**
+ * O jogador tocou o atalho de um Pokémon do time que está TREINANDO num
+ * boneco (docs/features/067-campo-de-treino-e-avisos-de-nivel.md): não
+ * recolheu ainda — um segundo toque no mesmo atalho, em até
+ * `TRAINING.RECALL_CONFIRM_TIME`, recolhe e acaba o treino.
+ *
+ * - Quem emite: `core/systems/partySummonSystem.js`.
+ * - Quem consome: `view/systems/noticeSystem.js` (o aviso na tela). Sem
+ *   consumidor, some.
+ *
+ * @returns {{ type: 'trainingRecallWarned', trainer: import('koota').Entity, creature: import('koota').Entity }}
+ */
+export function trainingRecallWarned({ trainer, creature }) {
+  return { type: EVENT_TYPES.TRAINING_RECALL_WARNED, trainer, creature }
 }

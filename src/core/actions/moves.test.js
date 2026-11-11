@@ -19,12 +19,15 @@ import {
 } from '../traits'
 import {
   adiarAprendizado,
+  anunciarGolpesAptos,
   aprenderGolpe,
   ganharDominio,
+  marcarGolpesVistos,
   pedirAprendizado,
   progredirTreino,
   resolveMoveLearnRequest,
   reordenarGolpes,
+  temGolpeNovo,
 } from './moves'
 
 const SLOT = 'slot1'
@@ -203,5 +206,64 @@ describe.skipIf(!found)('golpes da criatura do time', () => {
       ganharDominio(world, pokemon, newMoveId, false)
     }
     expect(pokemon.get(CreatureMoves).slots[1].mastery).toBe(MAX_MASTERY)
+  })
+})
+
+// O marcador "novo" (docs/features/067-campo-de-treino-e-avisos-de-nivel.md).
+describe('golpe novo não visto', () => {
+  // O primeiro golpe da espécie que pede nível — acha em vez de fixar.
+  const levelEntry = () =>
+    listLearnset(getSpecies(speciesId)).find(
+      (entry) => entry.requires?.level > 1,
+    )
+
+  it('subir até o nível do golpe marca ele como novo, no registro e em campo', () => {
+    const entry = levelEntry()
+    const creature = spawnSummoned()
+    const level = entry.requires.level
+
+    const moveIds = anunciarGolpesAptos(
+      world,
+      events,
+      pokemon,
+      creature,
+      level - 1,
+      level,
+    )
+
+    expect(moveIds).toContain(entry.id)
+    expect(pokemon.get(CreatureMoves).unseen).toContain(entry.id)
+    expect(creature.get(CreatureMoves).unseen).toContain(entry.id)
+    expect(temGolpeNovo(pokemon)).toBe(true)
+    expect(drainTypes()).toContain(EVENT_TYPES.MOVE_UNLOCKED)
+  })
+
+  it('o mesmo golpe não entra duas vezes', () => {
+    const entry = levelEntry()
+    const level = entry.requires.level
+    anunciarGolpesAptos(world, events, pokemon, null, level - 1, level)
+    anunciarGolpesAptos(world, events, pokemon, null, level - 1, level)
+
+    const unseen = pokemon.get(CreatureMoves).unseen
+    expect(unseen.filter((id) => id === entry.id)).toHaveLength(1)
+  })
+
+  it('abrir o Treino limpa o marcador', () => {
+    const entry = levelEntry()
+    const creature = spawnSummoned()
+    const level = entry.requires.level
+    anunciarGolpesAptos(world, events, pokemon, creature, level - 1, level)
+
+    expect(marcarGolpesVistos(world, pokemon)).toBe(true)
+    expect(temGolpeNovo(pokemon)).toBe(false)
+    expect(creature.get(CreatureMoves).unseen).toEqual([])
+    expect(marcarGolpesVistos(world, pokemon)).toBe(false)
+  })
+
+  it('subir sem passar do nível de nenhum golpe não marca nada', () => {
+    const entry = levelEntry()
+    const level = entry.requires.level
+    anunciarGolpesAptos(world, events, pokemon, null, level, level + 1)
+    expect(pokemon.get(CreatureMoves).unseen).not.toContain(entry.id)
   })
 })

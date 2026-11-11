@@ -89,6 +89,11 @@ export function EnergyPage({ data, version }) {
           </li>
           <li>A recarga começa a contar quando o golpe termina.</li>
           <li>
+            Nenhum golpe custa mais que a energia máxima de quem usa: um golpe
+            muito caro (por exemplo, recém-aprendido) gasta a energia toda, mas
+            sempre dá pra usar com a energia cheia.
+          </li>
+          <li>
             Golpes ainda não dominados custam mais energia e demoram mais pra
             recarregar (ver{' '}
             <WikiLink version={version} to="criaturas/golpes-e-treino#dominio">

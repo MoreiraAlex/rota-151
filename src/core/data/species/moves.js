@@ -97,7 +97,8 @@ export function createEmptyMoveSlots() {
 
 /**
  * Estado inicial de golpes de uma criatura da espécie: o kit nos slots, todo
- * dominado, e nenhum treino. Espécie sem kit (`null`) = slots vazios.
+ * dominado, nenhum treino e nenhum golpe novo por ver. Espécie sem kit
+ * (`null`) = slots vazios.
  */
 export function createMovesState(species) {
   const slots = createEmptyMoveSlots()
@@ -107,7 +108,7 @@ export function createMovesState(species) {
       slots[slot] = { id: reference.id, mastery: MAX_MASTERY }
     }
   }
-  return { slots, training: {} }
+  return { slots, training: {}, unseen: [] }
 }
 
 /** Número do slot em que o golpe está (ou `null`, se não está equipado). */
@@ -143,12 +144,16 @@ export function resolveMoveStatus(movesState, entry, context = {}) {
   return (movesState?.training?.[entry.id] ?? 0) >= 1 ? 'ready' : 'apt'
 }
 
-/** Cópia independente de um estado de golpes (slots e treino). */
+/** Cópia independente de um estado de golpes (slots, treino e não vistos). */
 export function cloneMovesState(movesState) {
   const slots = createEmptyMoveSlots()
   for (const slot of MOVE_SLOTS) {
     const move = movesState?.slots?.[slot]
     slots[slot] = move ? { ...move } : null
   }
-  return { slots, training: { ...(movesState?.training ?? {}) } }
+  return {
+    slots,
+    training: { ...(movesState?.training ?? {}) },
+    unseen: [...(movesState?.unseen ?? [])],
+  }
 }

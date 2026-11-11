@@ -93,15 +93,17 @@ describe.runIf(CITY)('a cidade nos dados', () => {
   })
 
   it('todo modelo da cidade tem caixa no chão', () => {
-    const { landmarks, themes, props } = CITY.town
+    const { landmarks, themes, props, trainingField } = CITY.town
     const models = [
-      ...[...landmarks, ...themes.flatMap(themeBuildings)].map(
-        ({ model }) => model,
-      ),
+      ...[...landmarks, ...themes.flatMap(themeBuildings)]
+        .map(({ model }) => model)
+        // O campo de treino não é um modelo (cerca e bonecos).
+        .filter(Boolean),
       ...themes.flatMap(({ lamp, fence }) => [lamp, fence]).filter(Boolean),
       props.lamp,
       props.fence,
       props.bench,
+      trainingField.dummy,
     ]
     for (const model of models) expect(() => modelBoxOf(model)).not.toThrow()
   })

@@ -37,6 +37,7 @@ import {
   WorldClock,
   WorldItemsMemory,
   WorldItemChunks,
+  TrainingObjectChunks,
   InteractionTarget,
   LocalWeather,
 } from '@/core/traits'
@@ -119,6 +120,8 @@ export function makeWorld({
   world.add(WorldClock, LocalWeather({ forced: weather }))
   // Itens do mundo (docs/features/055-itens-no-mundo.md), como no singleton.
   world.add(WorldItemsMemory, WorldItemChunks, InteractionTarget)
+  // Os bonecos de treino dos chunks carregados (067).
+  world.add(TrainingObjectChunks)
   // Spawn das selvagens (docs/features/062-spawn-estilo-cobblemon.md).
   world.add(WildSpawnState)
 

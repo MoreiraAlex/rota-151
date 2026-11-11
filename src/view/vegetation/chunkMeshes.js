@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import { getBiome, listBiomes } from '@/core/data/biomes'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import { createKindDensity } from '@/core/vegetation/vegetationDensity'
+import { TRAINING_DUMMY_KIND } from '@/core/town/townPlan'
 import {
   ROCK_KIND,
   STANDING_TREE_KINDS,
@@ -181,6 +182,9 @@ export function buildRockMeshes(chunk, models) {
 export function buildBuildingMeshes(chunk, models) {
   const groups = new Map()
   for (const building of chunk.solids?.buildings ?? []) {
+    // O boneco de treino é desenhado sozinho (`TrainingDummiesView.jsx`):
+    // balança ao levar o golpe do treino.
+    if (building.kind === TRAINING_DUMMY_KIND) continue
     const key = `${building.model}:${building.theme ?? ''}`
     if (!groups.has(key)) groups.set(key, [])
     groups.get(key).push(building)

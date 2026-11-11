@@ -93,8 +93,10 @@ export const CITY = {
     // Tamanho dos modelos do Let's Go na escala do treinador.
     scale: 1.6,
     // Os prédios únicos de toda cidade, um de cada, nos lotes perto do
-    // meio dela (sorteados entre os `centralLots` mais centrais). `bench`:
-    // banco ao lado da porta. O ginásio vai ser um por tema (futuro).
+    // meio dela (sorteados entre os `centralLots` mais centrais, na ordem
+    // da lista). `bench`: banco ao lado da porta. O ginásio vai ser um por
+    // tema (futuro). O campo de treino (`field`) não é um modelo: o lote
+    // ganha cerca e bonecos (`trainingField`, abaixo).
     landmarks: [
       { model: 'pokecenter', bench: true },
       { model: 'poke-mart', bench: true },
@@ -113,11 +115,34 @@ export const CITY = {
           ],
         },
       },
+      { id: 'training-field', field: true },
     ],
+    // O campo de treino (docs/features/067-campo-de-treino-e-avisos-de-
+    // nivel.md): o único lugar onde o Pokémon do time treina golpe. O lote
+    // inteiro, cercado (a cerca do tema; a entrada, de `gateWidth` m, de
+    // frente para a rua), com o chão de terra das estradas (até `groundInset`
+    // m da divisa, esmaecendo em `groundEdge` m) e os bonecos (`dummy`, o
+    // modelo; `scale` próprio; `turn`, quanto ele gira (rad) para a frente
+    // dele olhar a entrada) em `columns` × `rows`, a `spacing` m um do
+    // outro, virados para a entrada. `fenceInset`: quanto a cerca fica para
+    // dentro da divisa.
+    trainingField: {
+      dummy: 'treino-training-dummy',
+      scale: 1,
+      turn: -Math.PI / 2,
+      columns: 3,
+      rows: 2,
+      spacing: 5,
+      fenceInset: 0.6,
+      gateWidth: 4,
+      groundInset: 0.4,
+      groundEdge: 1.2,
+    },
     centralLots: 6,
     // O porte de cada cidade (core/town/citySites.js), sorteado pelo
     // `weight`: o `radius` (m) do disco dela no mapa e quais prédios únicos
-    // ela tem (`landmarks`: os `model` de `landmarks` acima; `special`: o
+    // ela tem (`landmarks`: o `id` ou o `model` de `landmarks` acima; o
+    // campo de treino em todas; `special`: o
     // prédio especial do tema). A primeira cidade tem o porte
     // `CITIES.FIRST_SIZE`.
     sizes: [
@@ -126,7 +151,7 @@ export const CITY = {
         name: 'Vila',
         weight: 4,
         radius: 110,
-        landmarks: ['pokecenter'],
+        landmarks: ['pokecenter', 'training-field'],
         special: false,
       },
       {
@@ -134,7 +159,7 @@ export const CITY = {
         name: 'Cidade',
         weight: 4.5,
         radius: 160,
-        landmarks: ['pokecenter', 'poke-mart'],
+        landmarks: ['pokecenter', 'poke-mart', 'training-field'],
         special: false,
       },
       {
@@ -142,7 +167,7 @@ export const CITY = {
         name: 'Cidade grande',
         weight: 1.5,
         radius: 230,
-        landmarks: ['pokecenter', 'poke-mart', 'gym'],
+        landmarks: ['pokecenter', 'poke-mart', 'gym', 'training-field'],
         special: true,
       },
     ],

@@ -6,14 +6,15 @@ import {
   resolveDirectionTo,
   tryStartAttack,
 } from '../battle/attackCasting'
-import { isSelfAttack } from '../battle/channelAttack'
 import { resolveTrainingHours } from '../battle/actionCost'
 import { TRAINING_SLOT, resolveEntityMoveSet } from '../battle/creatureAttack'
 import {
-  resolveHitTrigger,
-  resolveTriggerFrontEdge,
-} from '../battle/hitTrigger'
-import { pararTreino, resolveTrainingGoal } from '../actions/training'
+  pararTreino,
+  resolveBodyFront,
+  resolveTrainingGoal,
+  resolveTrainingSpot,
+} from '../actions/training'
+import { steerTowards } from '../steering'
 import { progredirTreino, treinarDominio } from '../actions/moves'
 import { resolvePokemonOf } from '../actions/pokemon'
 import {
@@ -28,20 +29,17 @@ import {
   Rotation,
   SummonedCreature,
   Training,
-  TrainingObject,
   Velocity,
   Vitals,
   resolveEntityLevel,
 } from '../traits'
 
-// Fração do alcance em que a criatura para pra treinar (folga pra não ficar
-// na borda exata do golpe).
-const REACH_FRACTION = 0.8
-
 /**
  * Treino automático de golpe (docs/features/038-aprendizado-treino-e-
- * dominio-de-golpes.md): a criatura com `Training` anda até o alcance do
- * golpe no objeto de treino e repete o golpe sozinha (slot interno
+ * dominio-de-golpes.md): a criatura com `Training` vai até o lugar do treino
+ * — um ponto fixo na frente do boneco (`resolveTrainingSpot`, docs/features/
+ * 067-campo-de-treino-e-avisos-de-nivel.md), contornando obstáculos e
+ * correndo se estiver longe —, vira para ele e repete o golpe sozinha (slot interno
  * `'training'`), sem entrar em combate. Sem energia pra repetir, descansa até
  * `REST_STAMINA_FRACTION`.
  *
@@ -65,7 +63,13 @@ const REACH_FRACTION = 0.8
  */
 export function trainingSystem(context) {
   const { world, delta, events } = context
-  const { REPETITION_INTERVAL, TIME_MULTIPLIER } = GAME_CONFIG.MOVES.TRAINING
+  const {
+    REPETITION_INTERVAL,
+    TIME_MULTIPLIER,
+    SPOT_ARRIVAL,
+    SPOT_LEAVE,
+    RUN_DISTANCE,
+  } = GAME_CONFIG.MOVES.TRAINING
 
   const stopped = []
   const repetitions = []
@@ -114,10 +118,6 @@ export function trainingSystem(context) {
         }
 
         const objectPos = object.get(Position)
-        const objectRadius = object.get(TrainingObject).radius
-        const distance =
-          Math.hypot(objectPos.x - pos.x, objectPos.z - pos.z) - objectRadius
-
         const species = getSpecies(creature.speciesId)
         const level = resolveEntityLevel(entity, species)
         const moveSet = resolveEntityMoveSet(entity, species)
@@ -166,27 +166,31 @@ export function trainingSystem(context) {
           attack.staminaCost,
         )
 
-        // Golpe em si mesmo não precisa chegar perto; os outros, até o
-        // alcance (somado ao raio do objeto), contado da borda da frente.
-        const reach = isSelfAttack(attack)
-          ? Infinity
-          : resolveTriggerFrontEdge(resolveHitTrigger(species.body)) +
-            attack.range * REACH_FRACTION
-        const facing = Math.atan2(objectPos.x - pos.x, objectPos.z - pos.z)
-        if (distance > reach) {
-          rot.y = lerpAngle(rot.y, facing, stats.turnSpeed * delta)
-          vel.x = Math.sin(rot.y) * stats.walkSpeed
-          vel.z = Math.cos(rot.y) * stats.walkSpeed
+        // O lugar do treino: um ponto fixo na frente do boneco (067). Vai
+        // até ele de onde estiver, contornando o que houver no caminho
+        // (a cerca do campo); chegou, só sai se for empurrada além de
+        // `SPOT_LEAVE` (ex.: a arrancada do golpe) — aí volta.
+        const spot = resolveTrainingSpot(object, resolveBodyFront(species))
+        const toSpot = Math.hypot(spot.x - pos.x, spot.z - pos.z)
+        if (training.arrived && toSpot > SPOT_LEAVE) training.arrived = false
+        if (!training.arrived && toSpot <= SPOT_ARRIVAL) {
+          training.arrived = true
+        }
+        if (!training.arrived) {
+          const speed = toSpot > RUN_DISTANCE ? stats.runSpeed : stats.walkSpeed
+          steerTowards(entity, { pos, rot, vel, stats }, spot, speed, delta)
           return
         }
 
         vel.x = 0
         vel.z = 0
-        // No objeto: repetindo, esperando ou descansando, o tempo conta.
+        // No lugar, de frente para o boneco: repetindo, esperando ou
+        // descansando, o tempo conta.
+        const facing = Math.atan2(objectPos.x - pos.x, objectPos.z - pos.z)
+        rot.y = lerpAngle(rot.y, facing, stats.turnSpeed * delta)
         training.elapsed += delta * TIME_MULTIPLIER
         training.wait = Math.max(0, training.wait - delta)
         if (training.resting || training.wait > 0) {
-          rot.y = lerpAngle(rot.y, facing, stats.turnSpeed * delta)
           training.waiting = true
           return
         }
@@ -262,10 +266,15 @@ function creditTraining(world, events, pokemon, moveId, seconds, hours) {
 
 /**
  * Descanso do treino: entra quando a energia não paga mais o golpe; sai ao
- * recuperar `REST_STAMINA_FRACTION` da máxima.
+ * recuperar `REST_STAMINA_FRACTION` da máxima — ou o custo do golpe, se for
+ * mais (golpe caro, docs/features/067-campo-de-treino-e-avisos-de-nivel.md:
+ * sem isso, saía do descanso sem energia pra repetir e voltava a ele).
  */
 export function resolveTrainingRest(resting, vitals, cost) {
   const { REST_STAMINA_FRACTION } = GAME_CONFIG.MOVES.TRAINING
-  if (resting) return vitals.stamina < vitals.maxStamina * REST_STAMINA_FRACTION
+  if (resting) {
+    const enough = Math.max(vitals.maxStamina * REST_STAMINA_FRACTION, cost)
+    return vitals.stamina < enough
+  }
   return vitals.stamina < cost
 }

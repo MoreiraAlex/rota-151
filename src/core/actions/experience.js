@@ -8,6 +8,7 @@ import {
   resolveGrowthRate,
 } from '../data/species/experience'
 import { experienceGained, leveledUp } from '../events'
+import { pedirComemoracao } from './celebration'
 import { anunciarGolpesAptos } from './moves'
 import { resolveOwner } from './owner'
 import {
@@ -117,8 +118,11 @@ export function ganharExperiencia(world, events, pokemon, amount) {
   if (level === fromLevel) return
 
   subirDeNivel(pokemon, creature, species, fromLevel, level)
+  // Em campo, comemora (a animação happy) quando ficar livre — docs/
+  // features/067-campo-de-treino-e-avisos-de-nivel.md.
+  if (creature) pedirComemoracao(creature)
   events?.emit(leveledUp({ trainer, pokemon, creature, fromLevel, level }))
-  anunciarGolpesAptos(events, pokemon, creature, fromLevel, level)
+  anunciarGolpesAptos(world, events, pokemon, creature, fromLevel, level)
 }
 
 /**

@@ -6,6 +6,7 @@ import { findOwnedCreature, hasOwnedBallInFlight } from '../actions/owner'
 import { derrubarComida } from '../actions/eating'
 import { devolverControleAoDono } from '../actions/control'
 import { guardarCondicoes } from '../actions/conditions'
+import { trainingRecallWarned } from '../events'
 import {
   findPartyPokemon,
   isPokemonFainted,
@@ -27,6 +28,9 @@ import {
   StoredFaint,
   StoredVitals,
   SummonBall,
+  SummonRequest,
+  RecallConfirm,
+  Training,
   SummonedCreature,
   StrayRecall,
   SummonedFrom,
@@ -136,9 +140,19 @@ function beginRecall(world, trainer, action, pos, rot, slot, duration) {
  * `playerActionSystem.js`).
  */
 function beginSummon(world, action, pos, rot, body, slot) {
+  const aimPoint = resolveAimPoint(world, pos, body.colliderHandle)
+  beginSummonToward(action, pos, rot, slot, aimPoint)
+}
+
+/**
+ * Dispara a ação `'summon'` jogando a bola rumo a `aimPoint` (`{x, y, z}`):
+ * o da mira (`beginSummon`) ou um ponto pedido (`SummonRequest` — o treino
+ * chama o Pokémon para a frente do boneco, docs/features/067-campo-de-
+ * treino-e-avisos-de-nivel.md).
+ */
+function beginSummonToward(action, pos, rot, slot, aimPoint) {
   const SUMMON = getPlayerSpecies().actions.summon
   const handOrigin = resolveHandOrigin(pos, rot.y, SUMMON)
-  const aimPoint = resolveAimPoint(world, pos, body.colliderHandle)
 
   action.current = 'summon'
   action.elapsed = 0
@@ -369,8 +383,32 @@ function spawnSummonBall(
  * (que precisa da `SummonedCreature` já ter sumido neste mesmo tick, no
  * caso do recall).
  */
+/**
+ * Recolher quem está treinando pede confirmação (docs/features/067-campo-
+ * de-treino-e-avisos-de-nivel.md): o primeiro toque só avisa
+ * (`trainingRecallWarned`) e abre a janela (`RecallConfirm`); o segundo, no
+ * mesmo slot dentro dela, pode recolher. Devolve se pode recolher agora.
+ */
+function confirmTrainingRecall(world, events, trainer, slot) {
+  const creature = findOwnedCreature(world, trainer, slot)
+  if (!creature?.has(Training)) return true
+  const pending = trainer.get(RecallConfirm)
+  if (pending?.slot === slot && pending.timeLeft > 0) {
+    trainer.remove(RecallConfirm)
+    return true
+  }
+  const timeLeft = GAME_CONFIG.MOVES.TRAINING.RECALL_CONFIRM_TIME
+  if (trainer.has(RecallConfirm)) {
+    trainer.set(RecallConfirm, { slot, timeLeft })
+  } else {
+    trainer.add(RecallConfirm({ slot, timeLeft }))
+  }
+  events?.emit(trainingRecallWarned({ trainer, creature }))
+  return false
+}
+
 export function partySummonSystem(context) {
-  const { world, delta } = context
+  const { world, delta, events } = context
   const input = context.input ?? {}
   const { summon: SUMMON, recall: RECALL } = getPlayerSpecies().actions
 
@@ -378,6 +416,12 @@ export function partySummonSystem(context) {
     .query(Party, Position, Rotation, ActionState, PhysicsBody)
     // `Party` é tag (sem dados): não entra no array do `updateEach`.
     .updateEach(([pos, rot, action, body], entity) => {
+      // A janela do segundo toque (recolher quem treina, 067).
+      if (entity.has(RecallConfirm)) {
+        const timeLeft = entity.get(RecallConfirm).timeLeft - delta
+        if (timeLeft <= 0) entity.remove(RecallConfirm)
+        else entity.set(RecallConfirm, { timeLeft })
+      }
       // Recolhimento automático — só quando o treinador está livre (não
       // interrompe uma ação já em andamento). Só uma por tick: se sobrar
       // mais de um slot órfão, os próximos são pegos nos ticks seguintes,
@@ -434,6 +478,19 @@ export function partySummonSystem(context) {
       // espera acabar (docs/features/042-itens-da-beta.md).
       if (action.current !== null) return
 
+      // Invocar pedido por uma action (o treino chama o Pokémon da bola
+      // rumo ao boneco, 067): atendido assim que o treinador fica livre;
+      // sem quem invocar no slot (já em campo, desmaiado, bola em voo),
+      // desiste.
+      if (entity.has(SummonRequest)) {
+        const request = entity.get(SummonRequest)
+        entity.remove(SummonRequest)
+        if (resolveSlotCommand(world, entity, request.slot) === 'summon') {
+          beginSummonToward(action, pos, rot, request.slot, request)
+          return
+        }
+      }
+
       // secondaryN (Q/E/R) só invoca/recolhe enquanto o TREINADOR está no
       // controle — `context.input` é um snapshot global (único dispositivo
       // de input), então sem essa checagem a criatura controlada (ver
@@ -449,7 +506,9 @@ export function partySummonSystem(context) {
 
         const command = resolveSlotCommand(world, entity, slot)
         if (command === 'recall') {
-          beginRecall(world, entity, action, pos, rot, slot, RECALL.duration)
+          if (confirmTrainingRecall(world, events, entity, slot)) {
+            beginRecall(world, entity, action, pos, rot, slot, RECALL.duration)
+          }
         } else if (command === 'summon') {
           beginSummon(world, action, pos, rot, body, slot)
         }

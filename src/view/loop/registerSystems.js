@@ -27,6 +27,11 @@ import { partySummonSystem } from '@/core/systems/partySummonSystem'
 import { followLimitSystem } from '@/core/systems/followLimitSystem'
 import { summonBallSystem } from '@/core/systems/summonBallSystem'
 import { creatureAppealSystem } from '@/core/systems/creatureAppealSystem'
+import {
+  celebrationDamageSystem,
+  celebrationInputSystem,
+  creatureCelebrationSystem,
+} from '@/core/systems/creatureCelebrationSystem'
 import { creatureHitStunSystem } from '@/core/systems/creatureHitStunSystem'
 import { conditionSystem } from '@/core/systems/conditionSystem'
 import { storedConditionSystem } from '@/core/systems/storedConditionSystem'
@@ -35,8 +40,9 @@ import { captureAimSystem } from '@/core/systems/captureAimSystem'
 import { creatureFollowSystem } from '@/core/systems/creatureFollowSystem'
 import { wildDespawnSystem } from '@/core/systems/wildDespawnSystem'
 import { wildSpawnSystem } from '@/core/systems/wildSpawnSystem'
-import { trainingObjectSpawnSystem } from '@/core/systems/trainingObjectSpawnSystem'
+import { trainingObjectStreamingSystem } from '@/core/systems/trainingObjectStreamingSystem'
 import { trainingSystem } from '@/core/systems/trainingSystem'
+import { pendingTrainingSystem } from '@/core/systems/pendingTrainingSystem'
 import { partyActionMenuInputSystem } from '@/core/systems/partyActionMenuInputSystem'
 import { wildWanderSystem } from '@/core/systems/wildWanderSystem'
 import { wildAwarenessSystem } from '@/core/systems/wildAwarenessSystem'
@@ -66,6 +72,10 @@ import { flightTiltSystem } from '@/view/systems/flightTiltSystem'
 import { hitStopSystem } from '@/view/systems/hitStopSystem'
 import { heldItemViewSystem } from '@/view/systems/heldItemViewSystem'
 import { eatingFoodViewSystem } from '@/view/systems/eatingFoodViewSystem'
+import { levelNoticeAudioSystem } from '@/view/systems/levelNoticeAudioSystem'
+import { noticeSystem } from '@/view/systems/noticeSystem'
+import { trainingFieldHintSystem } from '@/view/systems/trainingFieldHintSystem'
+import { trainingDummyWobbleSystem } from '@/view/systems/trainingDummyWobbleSystem'
 import { droppedFoodViewSystem } from '@/view/systems/droppedFoodViewSystem'
 import { captureBallViewSystem } from '@/view/systems/captureBallViewSystem'
 import { captureAimViewSystem } from '@/view/systems/captureAimViewSystem'
@@ -195,6 +205,9 @@ export function registerGameSystems() {
   registered = true
 
   registerSystem(GAME_PHASES.INPUT, inputSystem)
+  // Qualquer ação do jogador corta a comemoração de nível das criaturas
+  // dele — antes do menu de ações, que engole o aperto de Q/E/R (067).
+  registerSystem(GAME_PHASES.INPUT, celebrationInputSystem)
   // Toque × segurar em Q/E/R no modo treinador (segurar abre o menu de
   // ações) e bloqueio de input com o menu aberto — docs/features/038-*.
   registerSystem(GAME_PHASES.INPUT, partyActionMenuInputSystem)
@@ -228,9 +241,15 @@ export function registerGameSystems() {
   registerSystem(GAME_PHASES.SIMULATION, dashCooldownSystem)
   registerSystem(GAME_PHASES.SIMULATION, playerActionSystem)
   registerSystem(GAME_PHASES.SIMULATION, scannerModeSystem)
-  // Objetos de treino do nível (uma vez) e o treino automático de golpe —
-  // antes do ataque, que lança o golpe de treino pedido aqui no mesmo tick.
-  registerSystem(GAME_PHASES.SIMULATION, trainingObjectSpawnSystem)
+  // Os bonecos de treino dos chunks carregados (067) e o treino automático
+  // de golpe — antes do ataque, que lança o golpe de treino pedido aqui no
+  // mesmo tick.
+  // Comemoração de nível (067): começa quando a criatura fica livre —
+  // antes do treino e do ataque, que pediriam a próxima ação.
+  registerSystem(GAME_PHASES.SIMULATION, creatureCelebrationSystem)
+  registerSystem(GAME_PHASES.SIMULATION, trainingObjectStreamingSystem)
+  // O treino pedido com o Pokémon na bola começa quando ele nasce (067).
+  registerSystem(GAME_PHASES.SIMULATION, pendingTrainingSystem)
   registerSystem(GAME_PHASES.SIMULATION, trainingSystem)
   registerSystem(GAME_PHASES.SIMULATION, creatureAttackSystem)
   // Logo depois do ataque: avança o atordoamento de quem teve um golpe de
@@ -303,6 +322,8 @@ export function registerGameSystems() {
   registerSystem(GAME_PHASES.EVENTS, partyReactionSystem)
   // Tomar dano comendo derruba a fruta.
   registerSystem(GAME_PHASES.EVENTS, eatingInterruptSystem)
+  // Tomar dano corta a comemoração de nível (067).
+  registerSystem(GAME_PHASES.EVENTS, celebrationDamageSystem)
   // Pede o save automático (por tempo e depois de uma captura) — por último:
   // o passo já terminou de mudar o estado (docs/features/044-*.md).
   registerSystem(GAME_PHASES.EVENTS, autosaveSystem)
@@ -355,6 +376,14 @@ export function registerGameSystems() {
   // Sons e partículas da Pokébola (043): captura, invocar e recolher.
   registerSystem(GAME_PHASES.PRESENTATION, pokeballFeedbackSystem)
   registerSystem(GAME_PHASES.PRESENTATION, worldItemFeedbackSystem)
+  // Sons de aviso de nível e de golpe novo (067).
+  registerSystem(GAME_PHASES.PRESENTATION, levelNoticeAudioSystem)
+  // Avisos no canto da tela: nível e golpe novo (067).
+  registerSystem(GAME_PHASES.PRESENTATION, noticeSystem)
+  // A dica do campo de treino, na primeira vez perto de um boneco (067).
+  registerSystem(GAME_PHASES.PRESENTATION, trainingFieldHintSystem)
+  // O boneco de treino balança ao levar o golpe do treino (067).
+  registerSystem(GAME_PHASES.PRESENTATION, trainingDummyWobbleSystem)
   // Brilho em quem tomou dano — consome `attackResolved` de
   // `context.frameEvents` (ver `GameLoop.jsx`).
   registerSystem(GAME_PHASES.PRESENTATION, hitFlashSystem)

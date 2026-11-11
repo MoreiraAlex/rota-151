@@ -24,6 +24,9 @@ import {
   InputControlled,
   MovementStats,
   PartyBehavior,
+  PathState,
+  PendingTraining,
+  SummonRequest,
   SummonedFrom,
   PhysicsBody,
   Position,
@@ -36,9 +39,15 @@ import {
   WildCreature,
   vitalsFromSpecies,
 } from '../traits'
-import { iniciarTreino, resolveTrainingBlock } from '../actions/training'
+import {
+  iniciarTreino,
+  resolveBodyFront,
+  resolveTrainingBlock,
+  resolveTrainingSpot,
+} from '../actions/training'
+import { pendingTrainingSystem } from './pendingTrainingSystem'
 import { creatureAttackSystem } from './creatureAttackSystem'
-import { trainingSystem } from './trainingSystem'
+import { resolveTrainingRest, trainingSystem } from './trainingSystem'
 import { partyReactionSystem } from './partyReactionSystem'
 
 const SLOT = 'slot1'
@@ -85,14 +94,32 @@ function spawnCreature(speciesId, position = { x: 0, y: 1, z: 0 }) {
     CreatureLevel(progress),
     CreatureMoves(cloneMovesState(pokemon.get(CreatureMoves))),
     PartyBehavior,
+    PathState,
   )
 }
 
 function spawnObject(position = { x: 2, y: 0.5, z: 0 }) {
   return world.spawn(
     Position(position),
-    TrainingObject({ id: 'test', kind: 'log', radius: 0.4 }),
+    TrainingObject({ id: 'test', chunkKey: 'test', radius: 0.4 }),
   )
+}
+
+// O lugar do treino no boneco `object` para a espécie testada.
+function spotOf(object) {
+  return resolveTrainingSpot(
+    object,
+    resolveBodyFront(getSpecies(found.speciesId)),
+  )
+}
+
+// Boneco perto do treinador e a criatura já no lugar do treino (o teste não
+// roda a física, então ela não andaria até lá).
+function spawnAtSpot() {
+  const object = spawnObject()
+  const spot = spotOf(object)
+  const creature = spawnCreature(found.speciesId, { ...spot, y: 1 })
+  return { creature, object }
 }
 
 function step() {
@@ -139,8 +166,7 @@ afterEach(() => world?.destroy())
 
 describe.skipIf(!found)('treino de golpe', () => {
   it('o progresso de uma repetição é o tempo dela sobre as horas do golpe', () => {
-    spawnCreature(found.speciesId)
-    spawnObject()
+    spawnAtSpot()
     iniciarTreino(world, pokemon, found.moveId)
 
     let ticks = 0
@@ -165,8 +191,7 @@ describe.skipIf(!found)('treino de golpe', () => {
     const equippedId = state.slots[1].id
     state.slots[1].mastery = 0.5
     pokemon.set(CreatureMoves, state)
-    const creature = spawnCreature(found.speciesId)
-    spawnObject()
+    const { creature } = spawnAtSpot()
     expect(iniciarTreino(world, pokemon, equippedId)).toBe(true)
 
     withTimeMultiplier(1e3, () => {
@@ -180,26 +205,76 @@ describe.skipIf(!found)('treino de golpe', () => {
   })
 
   it('golpe já dominado não tem o que treinar', () => {
-    spawnCreature(found.speciesId)
-    spawnObject()
+    spawnAtSpot()
     const dominated = pokemon.get(CreatureMoves).slots[1].id
     expect(iniciarTreino(world, pokemon, dominated)).toBe(false)
   })
 
-  it('sem objeto de treino perto, não começa', () => {
+  it('sem boneco perto do treinador, não começa', () => {
     spawnCreature(found.speciesId)
     expect(resolveTrainingBlock(world, pokemon)).toBe('no-object')
     expect(iniciarTreino(world, pokemon, found.moveId)).toBe(false)
   })
 
-  it('sem a criatura invocada, não começa', () => {
+  it('na bola: pede para invocar rumo ao boneco e começa quando ela nasce', () => {
+    const object = spawnObject()
+    expect(resolveTrainingBlock(world, pokemon)).toBeNull()
+    expect(iniciarTreino(world, pokemon, found.moveId)).toBe(true)
+
+    expect(pokemon.get(PendingTraining).object).toBe(object)
+    const request = player.get(SummonRequest)
+    expect(request.slot).toBe(SLOT)
+    const spot = spotOf(object)
+    expect(request.x).toBeCloseTo(spot.x)
+    expect(request.z).toBeCloseTo(spot.z)
+
+    const creature = spawnCreature(found.speciesId)
+    pendingTrainingSystem({ world, delta: DELTA })
+    expect(creature.get(Training).moveId).toBe(found.moveId)
+    expect(creature.get(Training).object).toBe(object)
+    expect(pokemon.has(PendingTraining)).toBe(false)
+  })
+
+  it('o treino pedido na bola desiste se ela não sair a tempo', () => {
     spawnObject()
-    expect(resolveTrainingBlock(world, pokemon)).toBe('not-summoned')
+    iniciarTreino(world, pokemon, found.moveId)
+    const { PENDING_TIMEOUT } = GAME_CONFIG.MOVES.TRAINING
+    for (let t = 0; t <= PENDING_TIMEOUT + DELTA; t += DELTA) {
+      pendingTrainingSystem({ world, delta: DELTA })
+    }
+    expect(pokemon.has(PendingTraining)).toBe(false)
+  })
+
+  it('o treinador longe do boneco não começa, mesmo com o Pokémon perto', () => {
+    spawnAtSpot()
+    const { START_RADIUS } = GAME_CONFIG.MOVES.TRAINING
+    player.set(Position, { x: START_RADIUS + 20, y: 2, z: 0 })
+    expect(resolveTrainingBlock(world, pokemon)).toBe('no-object')
+    expect(iniciarTreino(world, pokemon, found.moveId)).toBe(false)
+  })
+
+  it('longe do lugar do treino, ela vem até ele; chegando, para de frente pro boneco', () => {
+    const object = spawnObject()
+    const spot = spotOf(object)
+    const creature = spawnCreature(found.speciesId, {
+      x: spot.x,
+      y: 1,
+      z: spot.z + 10,
+    })
+    iniciarTreino(world, pokemon, found.moveId)
+    // Vira e anda rumo ao lugar (que está em z menor); sem física no
+    // teste, ela não sai do lugar.
+    for (let i = 0; i < 60; i++) step()
+    expect(creature.get(Velocity).z).toBeLessThan(0)
+    expect(creature.get(Training).arrived).toBe(false)
+
+    creature.set(Position, { ...spot, y: 1 })
+    step()
+    expect(creature.get(Training).arrived).toBe(true)
   })
 
   it('perto do objeto, repete o golpe e o treino progride', () => {
-    const creature = spawnCreature(found.speciesId)
-    spawnObject()
+    const { creature } = spawnAtSpot()
     expect(iniciarTreino(world, pokemon, found.moveId)).toBe(true)
 
     for (let i = 0; i < 60 * 20 && progressOf(found.moveId) === 0; i++) step()
@@ -209,9 +284,22 @@ describe.skipIf(!found)('treino de golpe', () => {
     expect(creature.has(CombatMode)).toBe(false)
   })
 
+  it('golpe que custa mais que o descanso normal: descansa até pagar o golpe', () => {
+    const { REST_STAMINA_FRACTION } = GAME_CONFIG.MOVES.TRAINING
+    const maxStamina = 100
+    const cost = maxStamina * (REST_STAMINA_FRACTION + 0.2)
+    const between = {
+      stamina: maxStamina * (REST_STAMINA_FRACTION + 0.1),
+      maxStamina,
+    }
+    expect(resolveTrainingRest(true, between, cost)).toBe(true)
+    expect(resolveTrainingRest(true, { stamina: cost, maxStamina }, cost)).toBe(
+      false,
+    )
+  })
+
   it('sem energia pra repetir, descansa em vez de repetir', () => {
-    const creature = spawnCreature(found.speciesId)
-    spawnObject()
+    const { creature } = spawnAtSpot()
     iniciarTreino(world, pokemon, found.moveId)
     creature.set(Vitals, { stamina: 0 })
 
@@ -223,8 +311,7 @@ describe.skipIf(!found)('treino de golpe', () => {
   })
 
   it('assumir o controle no meio de uma repetição para o treino e o golpe', () => {
-    const creature = spawnCreature(found.speciesId)
-    spawnObject()
+    const { creature } = spawnAtSpot()
     iniciarTreino(world, pokemon, found.moveId)
     for (let i = 0; i < 60 * 5; i++) {
       step()
@@ -240,8 +327,7 @@ describe.skipIf(!found)('treino de golpe', () => {
   })
 
   it('no meio de uma repetição não está esperando; depois dela, sim', () => {
-    const creature = spawnCreature(found.speciesId)
-    spawnObject()
+    const { creature } = spawnAtSpot()
     iniciarTreino(world, pokemon, found.moveId)
     for (let i = 0; i < 60 * 5; i++) {
       step()
@@ -258,8 +344,7 @@ describe.skipIf(!found)('treino de golpe', () => {
   })
 
   it('o time entrar numa luta não tira ela do treino', () => {
-    const creature = spawnCreature(found.speciesId)
-    spawnObject()
+    const { creature } = spawnAtSpot()
     iniciarTreino(world, pokemon, found.moveId)
     creature.add(CombatMode({ timeLeft: 5 }))
     creature.set(PartyBehavior, { state: 'fight' })
@@ -270,8 +355,7 @@ describe.skipIf(!found)('treino de golpe', () => {
   })
 
   it('o treinador se afastar não tira ela do treino; longe do objeto, ela volta', () => {
-    const creature = spawnCreature(found.speciesId)
-    const object = spawnObject()
+    const { creature, object } = spawnAtSpot()
     iniciarTreino(world, pokemon, found.moveId)
     player.set(Position, { x: 500, y: 2, z: 500 })
     creature.set(Position, { x: 50, y: 1, z: 0 })
@@ -285,8 +369,7 @@ describe.skipIf(!found)('treino de golpe', () => {
   })
 
   it('ser atacada tira do treino (mesmo um golpe que errou)', () => {
-    const creature = spawnCreature(found.speciesId)
-    spawnObject()
+    const { creature } = spawnAtSpot()
     iniciarTreino(world, pokemon, found.moveId)
     const wild = world.spawn(WildCreature({ speciesId: found.speciesId }))
     const reactionEvents = createEventQueue()
@@ -308,8 +391,7 @@ describe.skipIf(!found)('treino de golpe', () => {
   })
 
   it('outra criatura do time ser atacada não tira esta do treino', () => {
-    const creature = spawnCreature(found.speciesId)
-    spawnObject()
+    const { creature } = spawnAtSpot()
     iniciarTreino(world, pokemon, found.moveId)
     const wild = world.spawn(
       Position({ x: 3, y: 1, z: 0 }),
@@ -336,8 +418,7 @@ describe.skipIf(!found)('treino de golpe', () => {
   })
 
   it('treino completo acaba o treino', () => {
-    const creature = spawnCreature(found.speciesId)
-    spawnObject()
+    const { creature } = spawnAtSpot()
     const state = cloneMovesState(pokemon.get(CreatureMoves))
     state.training[found.moveId] = 0.999
     pokemon.set(CreatureMoves, state)

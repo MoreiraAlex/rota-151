@@ -58,7 +58,7 @@ describe('validateSave', () => {
           level: 1,
           xp: 0,
           ivs: {},
-          moves: { slots: {}, training: {} },
+          moves: { slots: {}, training: {}, unseen: [] },
           storedVitals: null,
           faintTimeLeft: null,
           conditions: null,
@@ -237,7 +237,7 @@ describe('migração 4 → 5 (postura, 064)', () => {
     level: 1,
     xp: 0,
     ivs: {},
-    moves: { slots: {}, training: {} },
+    moves: { slots: {}, training: {}, unseen: [] },
     storedVitals: null,
     faintTimeLeft: null,
     conditions: null,
@@ -266,6 +266,47 @@ describe('migração 4 → 5 (postura, 064)', () => {
       validateSave(minimalSave({ pokemon: [pokemon({ posture: 'furiosa' })] }))
         .ok,
     ).toBe(false)
+  })
+})
+
+describe('migração 7 → 8 (golpes novos não vistos, 067)', () => {
+  const pokemon = (moves) => ({
+    id: 'a',
+    speciesId: 'x',
+    ballId: null,
+    level: 1,
+    xp: 0,
+    ivs: {},
+    moves,
+    storedVitals: null,
+    faintTimeLeft: null,
+    conditions: null,
+    posture: GAME_CONFIG.PARTY_BEHAVIOR.DEFAULT_POSTURE,
+    location: { kind: 'party', slot: 'slot1' },
+  })
+
+  it('save da versão 7 carrega com nenhum golpe novo por ver', () => {
+    const result = migrateSave(
+      minimalSave({
+        version: 7,
+        pokemon: [pokemon({ slots: {}, training: { ember: 0.5 } })],
+      }),
+    )
+
+    expect(result.ok).toBe(true)
+    expect(result.save.pokemon[0].moves).toEqual({
+      slots: {},
+      training: { ember: 0.5 },
+      unseen: [],
+    })
+  })
+
+  it('a versão atual guarda os não vistos e exige a lista', () => {
+    const seen = pokemon({ slots: {}, training: {}, unseen: ['ember'] })
+    expect(validateSave(minimalSave({ pokemon: [seen] })).ok).toBe(true)
+
+    const without = pokemon({ slots: {}, training: {} })
+    expect(validateSave(minimalSave({ pokemon: [without] })).ok).toBe(false)
   })
 })
 

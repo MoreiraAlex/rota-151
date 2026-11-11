@@ -66,6 +66,9 @@ export const CATERPIE = {
     dash: 'jumpLoop',
     battleIdle: 'battleIdle',
     appeal: 'appeal',
+    // Comemoração ao subir de nível (067).
+    // O `appeal` do Let's Go é o happy dele (`kw32_happyB01`).
+    happy: 'appeal',
     hit: 'hit',
     // atordoada por condição (a paralisia): sem `stun` no modelo, o
     // descanso dele (entra, repete e sai)
@@ -83,6 +86,9 @@ export const CATERPIE = {
   },
   actions: {
     appeal: { duration: 1.6 },
+    // Comemoração ao subir de nível (067): o tempo do clipe de
+    // `nativeAnimations.happy`, pra tocar na velocidade original.
+    happy: { duration: 1.67 },
   },
 
   body: {

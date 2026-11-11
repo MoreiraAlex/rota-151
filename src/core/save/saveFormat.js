@@ -17,7 +17,7 @@ import { PARTY_SLOT_IDS } from '../traits'
  * O schema é a fronteira: o adapter (cliente) e a rota da API (servidor)
  * validam com ele antes de o dado entrar no jogo ou no banco.
  */
-export const SAVE_VERSION = 7
+export const SAVE_VERSION = 8
 
 const numberRecord = z.record(z.string(), z.number())
 
@@ -54,6 +54,9 @@ export const pokemonSaveSchema = z.object({
   moves: z.object({
     slots: z.record(z.string(), moveSlotSchema),
     training: numberRecord,
+    // Golpes novos que o jogador ainda não viu no Treino (o marcador "novo",
+    // docs/features/067-campo-de-treino-e-avisos-de-nivel.md).
+    unseen: z.array(z.string().min(1)),
   }),
   storedVitals: numberRecord.nullable(),
   faintTimeLeft: z.number().min(0).nullable(),
@@ -195,6 +198,8 @@ export const saveSchema = z.object({
  *   treinador, com os volumes e a frequência da música padrão.
  * - 6 → 7 (docs/features/066-revisao-dos-biomas.md): entram os gráficos
  *   nos ajustes, com os padrão.
+ * - 7 → 8 (docs/features/067-campo-de-treino-e-avisos-de-nivel.md): entram
+ *   os golpes novos não vistos de cada Pokémon, começando sem nenhum.
  */
 const MIGRATIONS = {
   1: (save) => ({ ...save, worldItems: { chunks: {}, foraged: {} } }),
@@ -232,6 +237,13 @@ const MIGRATIONS = {
         graphics: save.trainer?.settings?.graphics ?? defaultGraphics(),
       },
     },
+  }),
+  7: (save) => ({
+    ...save,
+    pokemon: (save.pokemon ?? []).map((pokemon) => ({
+      ...pokemon,
+      moves: { ...pokemon.moves, unseen: pokemon.moves?.unseen ?? [] },
+    })),
   }),
 }
 

@@ -89,6 +89,8 @@ export const CHARMANDER = {
     dash: { sequence: ['stepIn', { animation: 'stepInEnd', frames: 10 }] },
     battleIdle: 'battleIdle',
     appeal: 'appeal',
+    // Comemoração ao subir de nível (067).
+    happy: 'happy',
     // atordoada por golpe interrompido (ação `'hit'`)
     hit: 'hit',
     // atordoada por condição (a paralisia): entra, repete e sai
@@ -118,6 +120,9 @@ export const CHARMANDER = {
   nativeBlink: { animation: 'blink', minInterval: 2, maxInterval: 6 },
   actions: {
     appeal: { duration: 1 },
+    // Comemoração ao subir de nível (067): o tempo do clipe de
+    // `nativeAnimations.happy`, pra tocar na velocidade original.
+    happy: { duration: 1.67 },
   },
 
   body: {

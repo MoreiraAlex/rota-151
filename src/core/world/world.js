@@ -38,6 +38,7 @@ import {
   LocalWeather,
   WorldItemsMemory,
   WorldItemChunks,
+  TrainingObjectChunks,
   InteractionTarget,
   WildSpawnState,
 } from '../traits'
@@ -52,6 +53,8 @@ world.add(WorldClock, LocalWeather)
 // entidade e o alvo do F (docs/features/055-itens-no-mundo.md). O salvo
 // volta no `prepararTreinador`.
 world.add(WorldItemsMemory, WorldItemChunks, InteractionTarget)
+// Os bonecos de treino dos chunks carregados (067).
+world.add(TrainingObjectChunks)
 // Os temporizadores do spawn das selvagens e o registro do debug
 // (docs/features/062-spawn-estilo-cobblemon.md).
 world.add(WildSpawnState)

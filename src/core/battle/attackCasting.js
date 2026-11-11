@@ -19,7 +19,7 @@ import { isAttackCharging } from './attackTelegraph'
 import { GAME_CONFIG } from '../gameConfig'
 import { entrarEmCombate } from '../actions/combat'
 import { gameplayRng } from '../rng'
-import { AttackCooldowns } from '../traits'
+import { AttackCooldowns, resolveMaxStamina } from '../traits'
 import { readSpeedStage, speedStageTimeFactor } from './statStages'
 import { withActionCost } from './actionCost'
 import { resolveFormulaLevel } from '../data/species/formulaLevel'
@@ -96,7 +96,8 @@ function resolveScaledDuration(attack, speedFactor) {
  * `resolveCreatureAttack` (o golpe do slot) +:
  * - o `duration`/`effectAt` pelo `speed` (acima);
  * - `staminaCost`/`cooldown` pela fórmula (`withActionCost`,
- *   `core/battle/actionCost.js`) quando a definição não escreve os seus.
+ *   `core/battle/actionCost.js`) quando a definição não escreve os seus;
+ *   o custo nunca passa da energia máxima dela (`withStaminaCap`).
  * Chamada várias vezes por ataque (disparo, cada tick de progresso, IA, HUD)
  * — sempre com o MESMO resultado pra um dado slot/entidade, já que
  * `IndividualValues` está congelado pra aquela entidade (o resultado muda
@@ -142,7 +143,23 @@ export function resolveAttackForEntity(
           ...resolveScaledDuration(costed, speedStageTimeFactor(speedStage)),
         }
       : costed
-  return withMastery(staged, resolveSlotMove(species, slot, moveSet)?.mastery)
+  const mastered = withMastery(
+    staged,
+    resolveSlotMove(species, slot, moveSet)?.mastery,
+  )
+  return withStaminaCap(
+    mastered,
+    resolveMaxStamina(species, individualValues, level),
+  )
+}
+
+// Nenhum golpe custa mais que a energia máxima de quem usa (decisão do
+// usuário, docs/features/067-campo-de-treino-e-avisos-de-nivel.md): golpe
+// caro com domínio baixo passa a gastar tudo, mas dá para usar com a energia
+// cheia — antes, ficava impossível (no treino, descansava para sempre).
+function withStaminaCap(attack, maxStamina) {
+  if (!(maxStamina > 0) || !(attack.staminaCost > maxStamina)) return attack
+  return { ...attack, staminaCost: maxStamina }
 }
 
 // Domínio baixo: mais energia e mais recarga. Sem domínio, igual.

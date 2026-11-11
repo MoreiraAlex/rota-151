@@ -105,6 +105,8 @@ export const PIDGEY = {
     flyDash: { sequence: ['flyDash', { animation: 'flyDashEnd', frames: 10 }] },
     battleIdle: 'battleIdle',
     appeal: 'appeal',
+    // Comemoração ao subir de nível (067).
+    happy: 'happy',
     hit: 'hit',
     // atordoada por condição (a paralisia): entra, repete e sai
     stunned: { start: 'stunStart', loop: 'stunLoop', end: 'stunEnd' },
@@ -122,6 +124,9 @@ export const PIDGEY = {
   nativeBlink: { animation: 'blink', minInterval: 2, maxInterval: 6 },
   actions: {
     appeal: { duration: 1 },
+    // Comemoração ao subir de nível (067): o tempo do clipe de
+    // `nativeAnimations.happy`, pra tocar na velocidade original.
+    happy: { duration: 2.17 },
   },
 
   body: {

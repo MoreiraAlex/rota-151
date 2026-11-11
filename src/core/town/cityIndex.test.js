@@ -7,8 +7,14 @@ import {
   createTerrainSampler,
   currentTerrainRecipe,
 } from '../terrain/terrainHeight'
-import { createCityIndex, lotBoundsOf, lotKey } from './cityIndex'
-import { BUILDING_KIND, placeTown, streetStrengthAt } from './townPlan'
+import { createCityIndex, landmarkIdOf, lotBoundsOf, lotKey } from './cityIndex'
+import {
+  BUILDING_KIND,
+  TRAINING_DUMMY_KIND,
+  chunkTrainingFields,
+  placeTown,
+  streetStrengthAt,
+} from './townPlan'
 
 const recipe = copyTerrainRecipe(currentTerrainRecipe())
 const CITY = recipe.biomeList.find(({ town }) => town)
@@ -35,20 +41,20 @@ function worldIndex(seed = SEED) {
   }
 }
 
-// Os modelos dos prédios únicos que o porte da cidade pede.
-const expectedLandmarks = ({ size, theme }) =>
+// Os prédios únicos que o porte da cidade pede.
+const expectedLandmarkEntries = ({ size, theme }) =>
   [
-    ...CITY.town.landmarks.filter(({ model }) =>
-      size.landmarks.includes(model),
+    ...CITY.town.landmarks.filter((landmark) =>
+      size.landmarks.includes(landmarkIdOf(landmark)),
     ),
     size.special ? theme.special : null,
-  ]
-    .filter(Boolean)
-    .map(({ model }) => model)
-    .sort()
+  ].filter(Boolean)
+
+const expectedLandmarks = (city) =>
+  expectedLandmarkEntries(city).map(landmarkIdOf).sort()
 
 const landmarkModels = (city) =>
-  [...city.landmarks.values()].map(({ model }) => model).sort()
+  [...city.landmarks.values()].map(landmarkIdOf).sort()
 
 // O quarteirão do meio de uma cidade da seed.
 const blockAt = (x, z) => [
@@ -164,7 +170,10 @@ describe.runIf(CITY)('createCityIndex', () => {
     const count = new Map()
     const { theme } = found.city
     const houses = theme.houses.map(({ model }) => model)
-    const unique = expectedLandmarks(found.city).map((model) => ({ model }))
+    // Os que são um prédio (o campo de treino é cerca e bonecos).
+    const unique = expectedLandmarkEntries(found.city).filter(
+      ({ model }) => model,
+    )
     for (const key of solidBlocks) {
       const [bx, bz] = key.split(',').map(Number)
       const chunk = generateTerrainChunk(sampler, bx, bz, {
@@ -192,6 +201,92 @@ describe.runIf(CITY)('createCityIndex', () => {
       (model) => !unique.some((landmark) => landmark.model === model),
     )
     for (const model of others) expect(houses).toContain(model)
+  })
+
+  // O campo de treino (docs/features/067-campo-de-treino-e-avisos-de-
+  // nivel.md): o lote do prédio único `field`.
+  const fieldLot = () => {
+    const [key] = [...found.city.landmarks].find(
+      ([, landmark]) => landmark.field,
+    )
+    const [lotX, lotZ] = key.split(',').map(Number)
+    return lotBoundsOf(CITY.town, lotX, lotZ)
+  }
+
+  it('o campo de treino tem todos os bonecos, dentro do lote dele', () => {
+    const { town } = CITY
+    const { sampler, cities: index } = worldIndex()
+    const blockSize = recipe.terrain.SOLIDS_BLOCK_SIZE
+    const solidBlocks = new Set(
+      found.blocks.map(([x, z]) =>
+        [
+          chunkCoordAt((x + 0.5) * town.blockSize, blockSize),
+          chunkCoordAt((z + 0.5) * town.blockSize, blockSize),
+        ].join(),
+      ),
+    )
+    const dummies = []
+    for (const key of solidBlocks) {
+      const [bx, bz] = key.split(',').map(Number)
+      const chunk = generateTerrainChunk(sampler, bx, bz, {
+        ...recipe.terrain,
+        CHUNK_SIZE: blockSize,
+      })
+      const { buildings } = placeTown(chunk, {
+        seed: SEED,
+        biomeList: recipe.biomeList,
+        terrain: recipe.terrain,
+        cities: index,
+      })
+      dummies.push(
+        ...buildings.filter(({ kind }) => kind === TRAINING_DUMMY_KIND),
+      )
+    }
+    const { columns, rows, dummy } = town.trainingField
+    expect(dummies).toHaveLength(columns * rows)
+    const [minX, minZ, maxX, maxZ] = fieldLot()
+    for (const placed of dummies) {
+      expect(placed.model).toBe(dummy)
+      expect(placed.x).toBeGreaterThan(minX)
+      expect(placed.x).toBeLessThan(maxX)
+      expect(placed.z).toBeGreaterThan(minZ)
+      expect(placed.z).toBeLessThan(maxZ)
+    }
+  })
+
+  it('o chão do campo é de terra no meio do lote e nada fora dele', () => {
+    const { sampler, cities: index } = worldIndex()
+    const [minX, minZ, maxX, maxZ] = fieldLot()
+    const size = recipe.terrain.CHUNK_SIZE
+    const centerX = (minX + maxX) / 2
+    const centerZ = (minZ + maxZ) / 2
+    const chunk = generateTerrainChunk(
+      sampler,
+      chunkCoordAt(centerX, size),
+      chunkCoordAt(centerZ, size),
+      recipe.terrain,
+    )
+    const fields = chunkTrainingFields(chunk, {
+      biomeList: recipe.biomeList,
+      cities: index,
+    })
+    expect(fields).not.toBeNull()
+    const { resolution } = chunk
+    const step = chunk.size / resolution
+    const valueAt = (x, z) => {
+      const ix = Math.round((x - chunk.minX) / step)
+      const iz = Math.round((z - chunk.minZ) / step)
+      return fields[iz + ix * (resolution + 1)]
+    }
+    expect(valueAt(centerX, centerZ)).toBe(1)
+    for (let ix = 0; ix <= resolution; ix++) {
+      for (let iz = 0; iz <= resolution; iz++) {
+        const x = chunk.minX + ix * step
+        const z = chunk.minZ + iz * step
+        const isOutside = x < minX || x > maxX || z < minZ || z > maxZ
+        if (isOutside) expect(fields[iz + ix * (resolution + 1)]).toBe(0)
+      }
+    }
   })
 
   it('o id e o porte são os da cidade da seed', () => {

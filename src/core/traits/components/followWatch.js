@@ -36,10 +36,12 @@ export const FollowWatch = trait({
  * criatura que VAI voltar — a do time que ficou para trás, ou a controlada
  * quando quem ficou para trás foi o treinador.
  *
- * - `stage`: `'warn'` (a controlada longe do treinador, ainda sem contagem)
- *   ou `'recall'` (contando para puxar).
- * - `reason`: `'far'` / `'stuck'` (ela) ou `'trainerFar'` / `'trainerStuck'`
- *   (o treinador que a seguia).
+ * - `stage`: `'warn'` (a controlada longe do treinador, ou o treinador longe
+ *   de quem treina, ainda sem contagem) ou `'recall'` (contando para puxar).
+ * - `reason`: `'far'` / `'stuck'` (ela), `'trainerFar'` / `'trainerStuck'`
+ *   (o treinador que a seguia) ou `'trainingFar'` (o treinador se afastou de
+ *   quem treina num boneco, docs/features/067-campo-de-treino-e-avisos-de-
+ *   nivel.md).
  * - `duration` / `timeLeft` (s): a contagem toda e quanto falta, em degraus
  *   de `FEEDBACK.RECALL_WARNING.DISPLAY_STEP` (a tela atualiza poucas vezes
  *   por segundo, não a cada tick).

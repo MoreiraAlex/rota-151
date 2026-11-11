@@ -38,7 +38,13 @@ export {
   MoveLearnRequest,
   resolveEntityMoves,
 } from './components/creatureMoves'
-export { Training, TrainingObject } from './components/training'
+export {
+  PendingTraining,
+  Training,
+  TrainingObject,
+  TrainingObjectChunks,
+} from './components/training'
+export { PendingCelebration } from './components/celebration'
 export { PartyActionMenu, SlotHold } from './components/partyActionMenu'
 export { PokedexEntries } from './components/pokedexEntries'
 export {
@@ -51,7 +57,13 @@ export { ScanMode } from './components/scanMode'
 export { Targeting, Scanned } from './components/targeting'
 export { Conditions, conditionSource } from './components/conditions'
 export { Inventory } from './components/inventory'
-export { Party, SummonPulse, RecallPulse } from './components/party'
+export {
+  Party,
+  SummonPulse,
+  RecallPulse,
+  SummonRequest,
+  RecallConfirm,
+} from './components/party'
 export { Projectile } from './components/projectile'
 export { Eating, DroppedFood } from './components/eating'
 export {

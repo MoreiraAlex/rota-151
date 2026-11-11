@@ -74,8 +74,8 @@ export function TeamPage({ data, version }) {
         </p>
         <ul>
           <li>
-            <strong>Treino</strong> — treinar um golpe novo perto de um objeto
-            de treino (
+            <strong>Treino</strong> — treinar um golpe num boneco de um campo de
+            treino, com o treinador por perto (
             <WikiLink version={version} to="criaturas/golpes-e-treino#treino">
               Golpes e treino
             </WikiLink>

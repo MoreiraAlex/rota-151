@@ -348,6 +348,13 @@ function buildMoves() {
     restFraction: TRAINING.REST_STAMINA_FRACTION,
     forgetRetained: TRAINING.FORGET_RETAINED,
     slots: MOVE_SLOTS.length,
+    // O treino no campo (docs/features/067-campo-de-treino-e-avisos-de-
+    // nivel.md): o treinador por perto, o aviso e a volta para a bola.
+    trainingWarnDistance:
+      GAME_CONFIG.PARTY_BEHAVIOR.FOLLOW_LIMIT.TRAINING_WARN_DISTANCE,
+    trainingRecallDistance:
+      GAME_CONFIG.PARTY_BEHAVIOR.FOLLOW_LIMIT.TRAINING_RECALL_DISTANCE,
+    recallConfirmTime: TRAINING.RECALL_CONFIRM_TIME,
   }
 }
 

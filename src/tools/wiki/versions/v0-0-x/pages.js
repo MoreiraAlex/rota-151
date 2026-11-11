@@ -72,7 +72,7 @@ const PAGES = {
   'criaturas/golpes-e-treino': {
     title: 'Golpes e treino',
     summary:
-      'Os três golpes de cada criatura, como aprender um novo e o domínio.',
+      'Os três golpes de cada criatura, o campo de treino, como aprender um novo e o domínio.',
     Component: MoveTrainingPage,
   },
   'batalha/golpes': {

@@ -49,7 +49,7 @@ export function MoveTrainingPage({ data, version }) {
             ],
             [
               'Em treino',
-              'Treinando perto de um objeto de treino, a barra de treino enche.',
+              'Treinando num boneco de um campo de treino, a barra de treino enche.',
             ],
             [
               'Aprendido',
@@ -62,8 +62,18 @@ export function MoveTrainingPage({ data, version }) {
           ]}
         />
         <p>
-          Ao subir de nível, a criatura avisa quando fica apta pra um golpe
-          novo.
+          Ao subir de nível, um aviso na tela (com som) diz quando a criatura
+          fica apta pra um golpe novo, e um selo <strong>novo</strong> fica no
+          cartão dela no time até você abrir o Treino dela.
+        </p>
+      </Section>
+
+      <Section id="campo" title="Campo de treino">
+        <p>
+          Golpe só se treina num <strong>campo de treino</strong>: toda cidade,
+          de qualquer tamanho, tem um — um terreno cercado, de chão de terra,
+          com bonecos de treino virados pra entrada. Cada boneco recebe uma
+          criatura por vez.
         </p>
       </Section>
 
@@ -76,40 +86,51 @@ export function MoveTrainingPage({ data, version }) {
         </p>
         <ul>
           <li>
-            Só dá pra treinar com a criatura em campo, fora de combate e a até{' '}
-            {formatMeters(moves.trainingRadius)} de um{' '}
-            <strong>objeto de treino</strong> (troncos e pedras marcados no
-            mapa).
+            Quem precisa estar perto do boneco é o <strong>treinador</strong>: a
+            até {formatMeters(moves.trainingRadius)} de um boneco livre. A
+            criatura pode estar em qualquer lugar, ou até na Pokébola — aí o
+            treinador a joga rumo ao boneco. Ela não pode estar desmaiada nem
+            lutando.
           </li>
           <li>
-            A criatura vai até o objeto e repete o golpe sozinha, com uma pausa
-            de {formatSeconds(moves.repetitionInterval)} entre as repetições. O
-            treino conta o <strong>tempo</strong> que ela passa no objeto
-            (repetindo, esperando ou descansando) — quanto tempo cada golpe pede
-            está logo abaixo.
+            A criatura vai até a frente do boneco, vira pra ele e repete o golpe
+            sozinha, com uma pausa de {formatSeconds(moves.repetitionInterval)}{' '}
+            entre as repetições. A cada golpe que acerta, o boneco balança. O
+            treino conta o <strong>tempo</strong> que ela passa no boneco
+            (repetindo, esperando ou descansando) — o tempo de ir até ele não
+            conta. Quanto tempo cada golpe pede está logo abaixo.
           </li>
           <li>
             Cada repetição gasta energia, como um golpe normal. Sem energia, ela
             descansa até recuperar {formatPercent(moves.restFraction, 0)} da
-            energia máxima e volta a treinar.
+            energia máxima (ou o bastante pro golpe, se ele custar mais) e volta
+            a treinar.
           </li>
           <li>
-            Treinando, ela só para se você assumir o controle dela, recolher
-            ela, mandar parar, ou se alguém atacá-la (mesmo errando) — aí ela
-            entra na luta. Você pode se afastar, e o resto do time pode lutar à
-            vontade: ela continua treinando. O progresso fica guardado.
+            O treino é ao vivo: o treinador tem que ficar por perto. Dá pra
+            explorar em volta do campo, mas a mais de{' '}
+            {formatMeters(moves.trainingWarnDistance)} da criatura aparece um
+            aviso; a mais de {formatMeters(moves.trainingRecallDistance)}, uma
+            contagem — se você não voltar, ela volta pra Pokébola e o treino
+            acaba.
+          </li>
+          <li>
+            Treinando, ela também para se você assumir o controle dela, mandar
+            parar, trocá-la pelo inventário (só o time treina) ou se alguém
+            atacá-la (mesmo errando) — aí ela entra na luta. Pra recolher quem
+            está treinando, o primeiro toque só avisa; um segundo toque em até{' '}
+            {formatSeconds(moves.recallConfirmTime)} recolhe. O resto do time
+            pode lutar à vontade: ela continua treinando.
+          </li>
+          <li>
+            O progresso de cada golpe fica guardado, inclusive no jogo salvo:
+            parar o treino não perde o que já foi treinado.
           </li>
           <li>
             O jogo só avança com ele aberto na tela: com a janela minimizada ou
             em outra aba, o treino fica parado.
           </li>
         </ul>
-        <Notice tone="missing">
-          <p>
-            Salvar o jogo ainda não existe: recarregar ou fechar o jogo perde o
-            progresso de treino.
-          </p>
-        </Notice>
       </Section>
 
       <Section id="tempo" title="Quanto tempo">
@@ -151,7 +172,7 @@ export function MoveTrainingPage({ data, version }) {
             `${formatNumber(skill.trainingHours.learn, 1)} h`,
             `${formatNumber(skill.trainingHours.mastery, 1)} h`,
           ])}
-          caption="Tempo de treino no objeto. O progresso fica guardado entre uma sessão e outra."
+          caption="Tempo de treino no boneco. O progresso fica guardado entre uma sessão e outra."
         />
       </Section>
 
@@ -210,7 +231,7 @@ export function MoveTrainingPage({ data, version }) {
         />
         <p>
           O domínio sobe de dois jeitos. <strong>Treinando</strong> o golpe
-          equipado num objeto de treino (pela ação Treino, como pra aprender),
+          equipado num boneco de treino (pela ação Treino, como pra aprender),
           devagar e sempre igual — veja as horas pra dominar na tabela acima. E{' '}
           <strong>usando o golpe em combate</strong>, bem mais rápido — com uma
           criatura selvagem lutando a até {formatMeters(moves.opponentRadius)}.
@@ -230,8 +251,9 @@ export function MoveTrainingPage({ data, version }) {
 
       <Notice tone="missing">
         <p>
-          Lugares ou pessoas que ensinam golpes mais rápido, e condições além do
-          nível pra ficar apto, ainda não existem.
+          Lugares ou pessoas que ensinam golpes mais rápido (como um dojo, onde
+          dê pra deixar a criatura treinando sem ficar por perto), e condições
+          além do nível pra ficar apto, ainda não existem.
         </p>
       </Notice>
     </>

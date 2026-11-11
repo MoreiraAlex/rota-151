@@ -65,6 +65,23 @@ const TOWN_CONTROLS = {
     range: [3, 20, 1],
   },
 }
+// O campo de treino da cidade (`town.trainingField`, docs/features/067-
+// campo-de-treino-e-avisos-de-nivel.md) — refaz o terreno ao soltar.
+const TRAINING_FIELD_CONTROLS = {
+  spacing: { label: 'Espaço entre bonecos (m)', range: [1.5, 8, 0.1] },
+  columns: { label: 'Colunas', range: [1, 5, 1] },
+  rows: { label: 'Fileiras', range: [1, 4, 1] },
+  scale: { label: 'Tamanho do boneco', range: [0.5, 2, 0.05] },
+  turn: { label: 'Giro do boneco (rad)', range: [-Math.PI, Math.PI, 0.01] },
+}
+// O balanço do boneco ao levar o golpe (`FEEDBACK.TRAINING_DUMMY_WOBBLE`) —
+// vale na hora, no próximo golpe.
+const DUMMY_WOBBLE_CONTROLS = {
+  AMPLITUDE: { label: 'Inclinação máxima (rad)', range: [0, 0.6, 0.01] },
+  FREQUENCY: { label: 'Idas e voltas por segundo', range: [0.5, 6, 0.1] },
+  DAMPING: { label: 'Quanto morre por segundo', range: [0, 10, 0.1] },
+  DURATION: { label: 'Duração (s)', range: [0.2, 4, 0.05] },
+}
 // As texturas que a rua de um tema pode usar (as camadas de cor do chão).
 const STREET_LAYER_OPTIONS = TERRAIN_COLOR_LAYERS.map(([name]) => name)
 // Onde ficam as cidades (`GAME_CONFIG.CITIES`, core/town/citySites.js,
@@ -645,6 +662,21 @@ export function VegetationPanel() {
         .add(biome.town, 'blockSize', quarterSizesOf(GAME_CONFIG.TERRAIN))
         .name('Quarteirão (m)')
         .onFinishChange(regenerate)
+      // O campo de treino (067): a grade de bonecos e o balanço deles.
+      if (biome.town.trainingField) {
+        const fieldFolder = folder.addFolder('Campo de treino')
+        addControls(
+          fieldFolder,
+          biome.town.trainingField,
+          TRAINING_FIELD_CONTROLS,
+          regenerate,
+        )
+        addControls(
+          fieldFolder.addFolder('Balanço do boneco'),
+          GAME_CONFIG.FEEDBACK.TRAINING_DUMMY_WOBBLE,
+          DUMMY_WOBBLE_CONTROLS,
+        )
+      }
       // Um tema por pasta: o peso no sorteio e a rua (a textura refaz o
       // terreno; o tamanho dela vale na hora).
       for (const theme of biome.town.themes) {

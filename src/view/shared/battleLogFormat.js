@@ -45,7 +45,7 @@ export function formatCombatantName(entity) {
 }
 
 /** Nome da criatura do time num evento de progresso (em campo ou na bola). */
-function formatPartyName(event) {
+export function formatPartyName(event) {
   if (event.creature?.isAlive?.()) return formatCombatantName(event.creature)
   const speciesId = event.pokemon?.get?.(Pokemon)?.speciesId
   return speciesId ? formatSpeciesName(speciesId) : 'Sua criatura'
@@ -76,6 +76,8 @@ function formatStrayedLine(event) {
       return `${name} se afastou demais do treinador e voltou para a Pokébola.`
     case 'trainerStuck':
       return `O treinador ficou preso — ${name} voltou para a Pokébola.`
+    case 'trainingFar':
+      return `O treinador se afastou do treino — ${name} parou de treinar e voltou para a Pokébola.`
     default:
       return `${name} se afastou demais e voltou para a Pokébola.`
   }

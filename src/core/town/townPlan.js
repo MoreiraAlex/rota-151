@@ -4,7 +4,7 @@ import { smoothstep } from '../math'
 import { createRng, deriveSeed } from '../rng'
 import { chunkHeightAt } from '../terrain/terrainChunk'
 import { densityAt } from '../vegetation/vegetationDensity'
-import { createCityIndex, lotKey } from './cityIndex'
+import { createCityIndex, lotBoundsOf, lotKey } from './cityIndex'
 
 /**
  * A planta das cidades (docs/features/056-bioma-cidade.md): nos biomas com
@@ -25,6 +25,11 @@ import { createCityIndex, lotKey } from './cityIndex'
  *   de `town.props`.
  * - **Objetos de rua**: poste nas esquinas, cerca nas casas que pedem,
  *   banco ao lado da porta dos prédios que pedem.
+ * - **Campo de treino** (docs/features/067-campo-de-treino-e-avisos-de-
+ *   nivel.md): um dos prédios únicos não é prédio — o lote dele ganha cerca
+ *   nos quatro lados (a entrada de frente para a rua), os bonecos de treino
+ *   (`TRAINING_DUMMY_KIND`) em grade e o chão de terra
+ *   (`chunkTrainingFields`).
  *
  * Tudo é sólido (`SolidPlacement` com `model`, o id do LGPE): colide pelo
  * casco do modelo (`lgpeColliders.json`) e a pegada é a caixa dele em
@@ -34,6 +39,7 @@ import { createCityIndex, lotKey } from './cityIndex'
 
 export const BUILDING_KIND = 'building'
 export const STREET_PROP_KIND = 'street-prop'
+export const TRAINING_DUMMY_KIND = 'training-dummy'
 
 /** A `town` dos biomas do chunk, na ordem de `chunk.biomeIds` (ou `null`). */
 const townsOf = (chunk, biomeList) =>
@@ -106,6 +112,85 @@ export function withStreets(trails, streets) {
   if (!streets) return trails
   if (!trails) return streets
   return trails.map((value, index) => Math.max(value, streets[index]))
+}
+
+/**
+ * Os lotes de campo de treino (`[minX, minZ, maxX, maxZ]`) dos quarteirões
+ * que encostam no retângulo `bounds`, pelo índice de cidades.
+ */
+function trainingFieldLots(town, cities, [minX, minZ, maxX, maxZ]) {
+  const { blockSize, lotsPerSide } = town
+  const lots = []
+  for (
+    let blockX = Math.floor(minX / blockSize);
+    blockX <= Math.floor(maxX / blockSize);
+    blockX++
+  ) {
+    for (
+      let blockZ = Math.floor(minZ / blockSize);
+      blockZ <= Math.floor(maxZ / blockSize);
+      blockZ++
+    ) {
+      const city = cities.cityOf(blockX, blockZ)
+      if (!city) continue
+      for (let i = 0; i < lotsPerSide; i++) {
+        for (let j = 0; j < lotsPerSide; j++) {
+          const lotX = blockX * lotsPerSide + i
+          const lotZ = blockZ * lotsPerSide + j
+          if (!city.landmarks.get(lotKey(lotX, lotZ))?.field) continue
+          lots.push(lotBoundsOf(town, lotX, lotZ))
+        }
+      }
+    }
+  }
+  return lots
+}
+
+/**
+ * Força do chão de terra dos campos de treino por vértice do chunk (na
+ * ordem de `heights`), ou `null` se nenhum campo encosta nele. Vai no canal
+ * das estradas (o chão pinta a terra delas) e no das trilhas (a vegetação
+ * não nasce nele): de `groundInset` m para dentro da divisa do lote, em
+ * `groundEdge` m.
+ *
+ * @param {import('../terrain/terrainChunk').TerrainChunk} chunk
+ * @param {object} options
+ * @param {object[]} options.biomeList
+ * @param {import('./cityIndex').CityIndex | null} options.cities - o índice
+ *   de cidades do mundo
+ */
+export function chunkTrainingFields(chunk, { biomeList, cities }) {
+  const town = townsOf(chunk, biomeList).find(Boolean)
+  const field = town?.trainingField
+  if (!field || !cities) return null
+  const { resolution, minX, minZ, size } = chunk
+  const lots = trainingFieldLots(town, cities, [
+    minX,
+    minZ,
+    minX + size,
+    minZ + size,
+  ])
+  if (lots.length === 0) return null
+  const step = size / resolution
+  const values = new Float32Array(chunk.heights.length)
+  let isEmpty = true
+  for (let ix = 0; ix <= resolution; ix++) {
+    for (let iz = 0; iz <= resolution; iz++) {
+      const x = minX + ix * step
+      const z = minZ + iz * step
+      let strength = 0
+      for (const [x0, z0, x1, z1] of lots) {
+        const inside = Math.min(x - x0, x1 - x, z - z0, z1 - z)
+        const depth = inside - field.groundInset
+        if (depth <= 0) continue
+        strength = Math.max(strength, smoothstep(0, field.groundEdge, depth))
+      }
+      if (strength <= 0) continue
+      values[iz + ix * (resolution + 1)] = strength
+      isEmpty = false
+    }
+  }
+  return isEmpty ? null : values
 }
 
 /**
@@ -333,16 +418,18 @@ function createPlacer(chunk, { seed, terrain, town, biome, cities }) {
     return true
   }
 
-  // Cerca na frente do lote, com o portão diante da porta.
-  function placeFence(fence, center, side, yaw) {
+  // Uma fileira de cerca no lado `side` do lote, a `inset` m da divisa,
+  // virada para fora; com `gate` (m), o vão do portão no meio.
+  function placeFenceLine(fence, center, side, { inset, gate = 0 }) {
     const box = modelBoxOf(fence)
     const piece = (box[2] - box[0]) * scale
     const count = Math.floor((lotSize - 2 * LOT_MARGIN) / piece)
     const along = { dx: side.dz, dz: -side.dx }
-    const reach = lotSize / 2 - FENCE_INSET
+    const reach = lotSize / 2 - inset
+    const yaw = yawFacing(side)
     for (let k = 0; k < count; k++) {
       const offset = (k - (count - 1) / 2) * piece
-      if (Math.abs(offset) < GATE_WIDTH / 2 + piece / 2) continue
+      if (gate > 0 && Math.abs(offset) < gate / 2 + piece / 2) continue
       put(
         STREET_PROP_KIND,
         fence,
@@ -350,6 +437,36 @@ function createPlacer(chunk, { seed, terrain, town, biome, cities }) {
         center.z + side.dz * reach + along.dz * offset,
         yaw,
       )
+    }
+  }
+
+  // O campo de treino: cerca nos quatro lados (a entrada no lado da rua) e
+  // os bonecos em grade, virados para a entrada.
+  function placeTrainingField(center, side, city) {
+    const field = town.trainingField
+    if (!field) return
+    const fence = themeOf(city).fence ?? props.fence
+    for (const fenceSide of SIDES) {
+      placeFenceLine(fence, center, fenceSide, {
+        inset: field.fenceInset,
+        gate: fenceSide === side ? field.gateWidth : 0,
+      })
+    }
+    const yaw = yawFacing(side) + (field.turn ?? 0)
+    const along = { dx: side.dz, dz: -side.dx }
+    for (let column = 0; column < field.columns; column++) {
+      for (let row = 0; row < field.rows; row++) {
+        const across = (column - (field.columns - 1) / 2) * field.spacing
+        const ahead = (row - (field.rows - 1) / 2) * field.spacing
+        put(
+          TRAINING_DUMMY_KIND,
+          field.dummy,
+          center.x + along.dx * across + side.dx * ahead,
+          center.z + along.dz * across + side.dz * ahead,
+          yaw,
+          { size: field.scale },
+        )
+      }
     }
   }
 
@@ -391,6 +508,10 @@ function createPlacer(chunk, { seed, terrain, town, biome, cities }) {
     const building =
       city?.landmarks.get(lotKey(lotX, lotZ)) ??
       pickHouse(themeOf(city).houses, roll)
+    if (building.field) {
+      placeTrainingField(center, side, city)
+      return
+    }
     const size = building.scale ?? scale
     const [minX, minZ, maxX, maxZ] = modelBoxOf(building.model).map(
       (value) => value * size,
@@ -412,7 +533,10 @@ function createPlacer(chunk, { seed, terrain, town, biome, cities }) {
     if (!isPlaced) return
 
     if (building.fence) {
-      placeFence(themeOf(city).fence ?? props.fence, center, side, yaw)
+      placeFenceLine(themeOf(city).fence ?? props.fence, center, side, {
+        inset: FENCE_INSET,
+        gate: GATE_WIDTH,
+      })
     }
     if (building.bench) {
       besideDoor(props.bench, center, side, yaw, halfWidth)

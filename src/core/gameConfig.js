@@ -641,6 +641,26 @@ export const GAME_CONFIG = {
     },
     // Log de batalha em texto, estilo jogo de turno (`battleLogSystem.js` +
     // `tools/hud/BattleLogHud.jsx`, docs/features/039-tipos-e-combate-classico.md).
+    // Avisos no canto da tela (`tools/hud/NoticeHud.jsx`, docs/features/
+    // 067-campo-de-treino-e-avisos-de-nivel.md): subiu de nível, golpe novo
+    // e a dica do campo de treino. DURATION em s; MAX_VISIBLE avisos ao mesmo
+    // tempo (o mais antigo sai).
+    NOTICES: {
+      DURATION: 6,
+      MAX_VISIBLE: 4,
+    },
+    // Balanço do boneco de treino ao levar o golpe do treino
+    // (`trainingDummyWobbleSystem.js`, docs/features/067-campo-de-treino-e-
+    // avisos-de-nivel.md): inclina para longe de quem bateu e vai e volta
+    // diminuindo — inclinação máxima AMPLITUDE (rad), FREQUENCY idas e
+    // voltas por segundo, DAMPING o quanto morre por segundo e DURATION (s)
+    // até parar de vez.
+    TRAINING_DUMMY_WOBBLE: {
+      AMPLITUDE: 0.2,
+      FREQUENCY: 2.2,
+      DAMPING: 3,
+      DURATION: 1.6,
+    },
     BATTLE_LOG: {
       // Quantas linhas ficam guardadas/visíveis (as mais antigas saem).
       MAX_LINES: 7,
@@ -1300,6 +1320,16 @@ export const GAME_CONFIG = {
       // Contagem (s) na tela antes de puxar para a bola — dá tempo de voltar
       // ou de desprender. Resolvido no meio, cancela.
       WARNING_TIME: 3,
+      // O Pokémon TREINANDO num boneco (docs/features/067-campo-de-treino-e-
+      // avisos-de-nivel.md) tem um limite maior: o treinador pode explorar em
+      // volta. Passou de TRAINING_WARN_DISTANCE (m) de quem ele segue, aviso
+      // sem contagem; passou de TRAINING_RECALL_DISTANCE, a contagem — no
+      // fim ele volta para a bola e o treino acaba. Com a contagem e o
+      // recolher, na velocidade mais rápida do jogo, tem que acabar antes de
+      // o campo sair da memória na MENOR distância de visão (teste em
+      // followLimitSystem.test.js).
+      TRAINING_WARN_DISTANCE: 55,
+      TRAINING_RECALL_DISTANCE: 70,
     },
   },
   // Treinador numa luta, fora do controle (`trainerBattleSystem.js`): fica
@@ -1536,6 +1566,11 @@ export const GAME_CONFIG = {
     DEFAULT_GROWTH_RATE: 'medium-slow',
     // XP dado pelo botão "+XP" do `DebugPanel`.
     DEBUG_XP_AMOUNT: 100,
+    // Comemoração ao subir de nível (docs/features/067-campo-de-treino-e-
+    // avisos-de-nivel.md): quanto tempo (s) a criatura em campo espera ficar
+    // livre (ex.: terminar o golpe do nocaute) pra tocar a animação happy;
+    // passado isso, desiste.
+    CELEBRATION_WAIT: 3,
   },
 
   // Golpes aprendidos, treino e domínio
@@ -1562,9 +1597,25 @@ export const GAME_CONFIG = {
       OPPONENT_RADIUS: 15,
     },
     TRAINING: {
-      // Distância máxima entre a criatura e um objeto de treino pra poder
-      // começar (e continuar) o treino.
+      // Distância máxima (m) entre o TREINADOR e a borda de um boneco de
+      // treino pra poder começar o treino (docs/features/067-campo-de-
+      // treino-e-avisos-de-nivel.md) — o Pokémon vem de onde estiver.
       START_RADIUS: 6,
+      // O lugar do treino: na frente do boneco (do lado da entrada do
+      // campo), a SPOT_GAP m entre a borda do boneco e a do corpo do
+      // Pokémon. Chegou quando está a SPOT_ARRIVAL m do ponto; empurrado
+      // além de SPOT_LEAVE m, volta andando. Mais longe que RUN_DISTANCE m,
+      // vem correndo.
+      SPOT_GAP: 0.8,
+      SPOT_ARRIVAL: 0.3,
+      SPOT_LEAVE: 0.9,
+      RUN_DISTANCE: 6,
+      // Quanto tempo (s) o treino pedido espera o Pokémon sair da bola
+      // (o treinador ocupado, a bola em voo); passado isso, desiste.
+      PENDING_TIMEOUT: 8,
+      // Tocar o atalho de quem está treinando só avisa; um segundo toque
+      // nesta janela (s) recolhe e acaba o treino.
+      RECALL_CONFIRM_TIME: 4,
       // TEMPO de treino (horas) pra APRENDER um golpe: proporcional ao peso
       // do golpe (o mesmo da conta de energia, `resolveAttackWeight`) —
       // LEARN_HOURS_PER_100_WEIGHT é o tempo de um golpe de peso 100; nunca

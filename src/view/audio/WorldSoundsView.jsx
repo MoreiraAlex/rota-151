@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react'
 import { POKEBALL_SOUNDS } from '@/core/data/audio/pokeballSounds'
 import { WORLD_ITEM_SOUNDS } from '@/core/data/audio/worldItemSounds'
+import { UI_SOUNDS } from '@/core/data/audio/uiSounds'
+import { preloadUiSounds } from './uiSounds'
 import {
   preloadWorldSounds,
   registerWorldSoundsRoot,
@@ -10,7 +12,8 @@ import {
 /**
  * O grupo da cena onde moram os sons pontuais (`worldSounds.js`) — e já
  * começa a carregar os da Pokébola (docs/features/043-captura.md) e os dos
- * itens no mundo (docs/features/055-itens-no-mundo.md).
+ * itens no mundo (docs/features/055-itens-no-mundo.md), e os de aviso de
+ * nível e golpe novo (`uiSounds.js`, 067).
  */
 export function WorldSoundsView() {
   const groupRef = useRef()
@@ -20,6 +23,7 @@ export function WorldSoundsView() {
     registerWorldSoundsRoot(group)
     preloadWorldSounds(POKEBALL_SOUNDS)
     preloadWorldSounds(WORLD_ITEM_SOUNDS)
+    preloadUiSounds(UI_SOUNDS)
     return () => unregisterWorldSoundsRoot(group)
   }, [])
 

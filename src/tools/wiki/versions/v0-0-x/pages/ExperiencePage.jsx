@@ -153,8 +153,14 @@ export function ExperiencePage({ data, version }) {
           <li>Uma criatura desmaiada não acorda por subir de nível.</li>
           <li>Dá pra subir mais de um nível de uma vez.</li>
           <li>
-            Golpes que pedem o nível novo ficam <strong>aptos</strong> — a
-            criatura avisa, mas ainda precisa treinar pra aprender (
+            Um aviso aparece na tela, com som, mesmo com a criatura na Pokébola.
+            Em campo, ela comemora — qualquer ação sua interrompe a comemoração.
+          </li>
+          <li>
+            Golpes que pedem o nível novo ficam <strong>aptos</strong> — um
+            aviso (com outro som) diz quais, e um selo <strong>novo</strong>{' '}
+            fica no cartão dela no time até você abrir o Treino dela. Ela ainda
+            precisa treinar pra aprender (
             <WikiLink version={version} to="criaturas/golpes-e-treino">
               Golpes e treino
             </WikiLink>

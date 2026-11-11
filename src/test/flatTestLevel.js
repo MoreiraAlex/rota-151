@@ -2,7 +2,8 @@
  * O nível de teste de antes do relevo (docs/features/045-terreno-de-um-
  * chunk.md): chão plano de 150 m (uma caixa, topo em y = 0, muros em ±75) com as peças
  * de sempre — parede em z = -7, degrau, bloco, rampa, plataforma, pilar,
- * corredor, pedras, a trilha de 4 terraços e os objetos de treino. Para os
+ * corredor, pedras, a trilha de 4 terraços e as duas caixas onde ficavam os
+ * objetos de treino (antes da 067 — ficam como obstáculos). Para os
  * testes de física/navegação que dependem dessas peças, no lugar do
  * `TEST_LEVEL` do jogo:
  *
@@ -14,16 +15,15 @@
 
 const SIZE = 150
 
-const TRAINING_OBJECTS = [
+// Onde ficavam o tronco e a pedra de treino (038): só caixas agora.
+const OLD_TRAINING_BOXES = [
   {
     id: 'training-log-1',
-    kind: 'log',
     position: [-9, 0.6, -5],
     size: [0.8, 1.2, 0.8],
   },
   {
     id: 'training-rock-1',
-    kind: 'rock',
     position: [9, 0.5, -6],
     size: [1.2, 1, 1.2],
   },
@@ -190,12 +190,11 @@ export const FLAT_TEST_OBSTACLES = [
     position: [4.405, 3.6, 20],
     size: [5, 7.2, 14],
   },
-  ...TRAINING_OBJECTS.map(({ id, kind, position, size }) => ({
+  ...OLD_TRAINING_BOXES.map(({ id, position, size }) => ({
     id,
     type: 'box',
     position,
     size,
-    trainingKind: kind,
   })),
 ]
 
@@ -220,14 +219,13 @@ function flatTerrain() {
   }
 }
 
-/** O nível plano: `{ terrain, bounds, obstacles, trainingObjects }`. */
+/** O nível plano: `{ terrain, bounds, obstacles }`. */
 export function makeFlatTestLevel() {
   const half = SIZE / 2
   return {
     terrain: flatTerrain(),
     bounds: { minX: -half, maxX: half, minZ: -half, maxZ: half },
     obstacles: [GROUND, ...FLAT_TEST_OBSTACLES],
-    trainingObjects: TRAINING_OBJECTS,
   }
 }
 

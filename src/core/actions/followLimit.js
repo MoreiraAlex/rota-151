@@ -8,7 +8,7 @@ import { StrayRecall, SummonedCreature } from '../traits'
  * `partySummonSystem.js`) e avisa (`partyStrayed`). Já marcada, não faz
  * nada — o aviso sai uma vez só.
  *
- * @param {'far' | 'stuck' | 'trainerFar' | 'trainerStuck'} reason
+ * @param {'far' | 'stuck' | 'trainerFar' | 'trainerStuck' | 'trainingFar'} reason
  */
 export function voltarParaABola(events, creature, reason) {
   if (!creature.has(SummonedCreature) || creature.has(StrayRecall)) return

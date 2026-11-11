@@ -271,6 +271,16 @@ export function WorldPage({ data, version }) {
             e o prédio especial dela.
           </li>
         </ul>
+        <p>
+          Toda cidade, de qualquer tamanho, também tem um{' '}
+          <strong>campo de treino</strong> perto do meio: um terreno cercado, de
+          chão de terra, com bonecos de treino — é lá que as criaturas treinam
+          golpes (
+          <WikiLink version={version} to="criaturas/golpes-e-treino#campo">
+            Golpes e treino
+          </WikiLink>
+          ).
+        </p>
         <ul>
           <li>
             Os prédios são sólidos: dá pra contornar, mas ainda não dá pra

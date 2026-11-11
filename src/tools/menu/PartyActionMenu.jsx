@@ -17,6 +17,7 @@ import {
   CreatureMoves,
   Inventory,
   OwnedBy,
+  PendingTraining,
   Pokemon,
   SummonedCreature,
   Training,
@@ -27,7 +28,8 @@ import {
   definirPostura,
   fecharMenuDeAcoes,
   iniciarTreino,
-  pararTreino,
+  marcarGolpesVistos,
+  pararTreinoDoPokemon,
   pedirAprendizado,
   reordenarGolpes,
   resolveItemUseBlock,
@@ -38,6 +40,7 @@ import { formatSpeciesName, TypeBadge } from '@/view/shared/statusDisplay'
 import { getSkill } from '@/core/data/skills'
 import { resolveSkillType } from '@/core/data/types'
 import { formatProgressPercent } from '@/view/shared/formatProgress'
+import { GAME_CONFIG } from '@/core/gameConfig'
 import { POSTURE_TEXT } from '@/view/shared/postureText'
 import { normalizePosture, POSTURES } from '@/core/party/posture'
 import { SlotPreview } from '../shared/SlotPreview'
@@ -46,12 +49,16 @@ import { formatItemName } from './inventory/InventoryDetails'
 const SLOT_KEYS = { 1: 'Q', 2: 'E', 3: 'R' }
 
 // Por que não dá pra treinar agora (`resolveTrainingBlock`) — texto pro jogador.
+const { MOVE_NOTICE_COLOR } = GAME_CONFIG.FEEDBACK
+
 const TRAINING_BLOCK_TEXT = {
-  'not-summoned': 'Invoque o Pokémon perto de um objeto de treino.',
   fainted: 'Desmaiado — não pode treinar.',
   controlled: 'Volte a controlar o treinador.',
   'in-combat': 'Em combate — termine a luta primeiro.',
-  'no-object': 'Leve o Pokémon até um objeto de treino.',
+  'no-object':
+    'Chegue perto de um boneco de treino (nos campos de treino das cidades).',
+  occupied:
+    'Os bonecos perto de você estão ocupados — chegue perto de um livre.',
 }
 
 // Por que não dá pra usar o item agora (`resolveItemUseBlock`) — texto pro
@@ -74,10 +81,14 @@ const REFRESH_MS = 250
  * (`PartyActionMenu.slot`). Quatro abas:
  *
  * - **Treino** — o learnset inteiro da criatura: golpe bloqueado aparece
- *   como `???`; apto, com a barra de treino e "Treinar" (só perto de um
- *   objeto de treino, fora de combate); pronto, com "Aprender"; aprendido,
- *   com a barra de domínio e "Treinar" enquanto não estiver dominado (o
- *   treino no objeto também sobe o domínio).
+ *   como `???`; apto, com a barra de treino e "Treinar" (com o treinador
+ *   perto de um boneco de um campo de treino; o Pokémon vem até o boneco,
+ *   saindo da bola se precisar); pronto, com "Aprender";
+ *   aprendido, com a barra de domínio e "Treinar" enquanto não estiver
+ *   dominado (o treino no boneco também sobe o domínio). Abrir a aba tira
+ *   o marcador "novo" do Pokémon (`marcarGolpesVistos`, docs/features/067-
+ *   campo-de-treino-e-avisos-de-nivel.md); os golpes que eram novos ficam
+ *   com o selo enquanto o menu estiver aberto.
  * - **Golpes** — os 3 slots (Q/E/R), com setas pra reordenar.
  * - **Itens** — as frutas do treinador, pra dar à criatura invocada
  *   (docs/features/042-itens-da-beta.md, `usarItemNaCriatura`).
@@ -105,6 +116,17 @@ export function PartyActionMenu({ trainer, slot }) {
     summoned.find((entity) => entity.get(SummonedCreature)?.slot === slot) ??
     null
   const training = useTrait(creature, Training)
+  // Treino pedido com o Pokémon ainda na bola (ele sai rumo ao boneco).
+  const pendingTraining = useTrait(pokemon, PendingTraining)
+  // Golpes que eram novos quando o jogador abriu o Treino — mantêm o selo
+  // até o menu fechar, mesmo depois de o marcador sair do Pokémon.
+  const [seenMoveIds, setSeenMoveIds] = useState([])
+  const unseen = moves?.unseen
+  useEffect(() => {
+    if (tab !== 'training' || !pokemon || !unseen?.length) return
+    setSeenMoveIds((previous) => [...new Set([...previous, ...unseen])])
+    marcarGolpesVistos(world, pokemon)
+  }, [tab, pokemon, unseen, world])
 
   useEffect(() => {
     const id = setInterval(() => setRefresh((n) => n + 1), REFRESH_MS)
@@ -140,6 +162,7 @@ export function PartyActionMenu({ trainer, slot }) {
             onClick={() => setTab('training')}
           >
             Treino
+            {unseen?.length > 0 && <NewDot />}
           </TabButton>
           <TabButton active={tab === 'moves'} onClick={() => setTab('moves')}>
             Golpes
@@ -164,8 +187,8 @@ export function PartyActionMenu({ trainer, slot }) {
             moves={moves}
             level={level}
             block={block}
-            creature={creature}
-            trainingMoveId={training?.moveId ?? null}
+            trainingMoveId={training?.moveId ?? pendingTraining?.moveId ?? null}
+            newMoveIds={seenMoveIds}
           />
         )}
 
@@ -275,8 +298,8 @@ function TrainingList({
   moves,
   level,
   block,
-  creature,
   trainingMoveId,
+  newMoveIds,
 }) {
   const learnset = listLearnset(species)
 
@@ -316,7 +339,9 @@ function TrainingList({
               />
               {/* Equipado sem domínio total: dá pra treinar o domínio. */}
               {status === 'learned' && isTraining && (
-                <ActionButton onClick={() => pararTreino(creature)}>
+                <ActionButton
+                  onClick={() => pararTreinoDoPokemon(world, pokemon)}
+                >
                   Parar
                 </ActionButton>
               )}
@@ -335,7 +360,12 @@ function TrainingList({
         const trainingProgress = Math.min(1, moves.training?.[entry.id] ?? 0)
         const isTraining = trainingMoveId === entry.id
         return (
-          <MoveRow key={entry.id} name={name} moveId={entry.id}>
+          <MoveRow
+            key={entry.id}
+            name={name}
+            moveId={entry.id}
+            isNew={newMoveIds.includes(entry.id)}
+          >
             <Bar
               value={trainingProgress}
               colorClass="bg-amber-400"
@@ -357,7 +387,9 @@ function TrainingList({
               </ActionButton>
             )}
             {status === 'apt' && isTraining && (
-              <ActionButton onClick={() => pararTreino(creature)}>
+              <ActionButton
+                onClick={() => pararTreinoDoPokemon(world, pokemon)}
+              >
                 Parar
               </ActionButton>
             )}
@@ -459,7 +491,7 @@ function MoveTypeBadge({ moveId }) {
   return <TypeBadge type={resolveSkillType(skill)} />
 }
 
-function MoveRow({ name, moveId, dim = false, children }) {
+function MoveRow({ name, moveId, dim = false, isNew = false, children }) {
   return (
     <div
       className={`flex items-center gap-2 rounded bg-white/5 px-2 py-1.5 text-xs ${
@@ -469,6 +501,14 @@ function MoveRow({ name, moveId, dim = false, children }) {
       <span className="flex flex-1 items-center gap-1.5 truncate">
         {name}
         {moveId && <MoveTypeBadge moveId={moveId} />}
+        {isNew && (
+          <span
+            className="rounded-sm px-1 text-[9px] font-bold uppercase leading-tight text-black"
+            style={{ backgroundColor: MOVE_NOTICE_COLOR }}
+          >
+            novo
+          </span>
+        )}
       </span>
       {children}
     </div>
@@ -491,6 +531,16 @@ function Bar({ value, colorClass, label }) {
         />
       </div>
     </div>
+  )
+}
+
+// Ponto na aba Treino: o Pokémon tem golpe novo que o jogador não viu.
+function NewDot() {
+  return (
+    <span
+      className="ml-1 inline-block size-1.5 rounded-full align-middle"
+      style={{ backgroundColor: MOVE_NOTICE_COLOR }}
+    />
   )
 }
 

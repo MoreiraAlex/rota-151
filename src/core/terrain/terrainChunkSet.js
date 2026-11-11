@@ -2,7 +2,11 @@ import { GAME_CONFIG } from '../gameConfig'
 import { placeChunkBushes } from '../vegetation/bushPlacement'
 import { createCityIndex } from '../town/cityIndex'
 import { chunkRoads } from '../town/roads'
-import { chunkStreets, withStreets } from '../town/townPlan'
+import {
+  chunkStreets,
+  chunkTrainingFields,
+  withStreets,
+} from '../town/townPlan'
 import { placeChunkSolids } from '../vegetation/solidPlacement'
 import { carveTrails, chunkTrails } from './trails'
 import { chunkMountainPaths, trailsOffMountains } from './mountains'
@@ -219,6 +223,19 @@ export function createTerrainChunkSet({
     chunk.trails = withStreets(chunk.trails, chunk.roads)
   }
 
+  // O chão de terra dos campos de treino das cidades (docs/features/067-
+  // campo-de-treino-e-avisos-de-nivel.md): pinta como a estrada e afasta a
+  // vegetação, sem afundar.
+  function addTrainingFields(chunk) {
+    const fields = chunkTrainingFields(chunk, {
+      biomeList: recipe.biomeList,
+      cities,
+    })
+    if (!fields) return
+    chunk.roads = withStreets(chunk.roads, fields)
+    chunk.trails = withStreets(chunk.trails, fields)
+  }
+
   // O caminho até o topo das montanhas (docs/features/066-revisao-dos-
   // biomas.md) no canal das trilhas, sem afundar.
   function addMountainPaths(chunk) {
@@ -247,6 +264,7 @@ export function createTerrainChunkSet({
     addRoads(ground)
     ground.streets = chunkStreets(ground, { biomeList: recipe.biomeList })
     ground.trails = withStreets(ground.trails, ground.streets)
+    addTrainingFields(ground)
     return ground
   }
 
@@ -340,6 +358,7 @@ export function createTerrainChunkSet({
       // nasce na rua.
       chunk.streets = chunkStreets(chunk, { biomeList: recipe.biomeList })
       chunk.trails = withStreets(chunk.trails, chunk.streets)
+      addTrainingFields(chunk)
       // A rua da cidade pinta com o calçamento do tema dela
       // (docs/features/056-bioma-cidade.md).
       chunk.streetLayer =

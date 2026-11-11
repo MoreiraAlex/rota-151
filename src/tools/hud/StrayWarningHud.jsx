@@ -12,6 +12,20 @@ import { RecallWarningIcon } from '@/view/scene/RecallWarningIcon'
  * treinador, quem volta é a criatura que o jogador controla — "você".
  */
 function resolveText(warning, name) {
+  // Longe de quem treina num boneco (docs/features/067-campo-de-treino-e-
+  // avisos-de-nivel.md).
+  if (warning.reason === 'trainingFar') {
+    if (warning.stage === 'warn') {
+      return {
+        title: `Longe do treino de ${name}`,
+        detail: 'Volte, ou ele vai parar de treinar e voltar para a Pokébola.',
+      }
+    }
+    return {
+      title: `Puxando ${name} de volta para a Pokébola`,
+      detail: 'Você se afastou do treino — ele vai parar de treinar.',
+    }
+  }
   if (warning.stage === 'warn') {
     return {
       title: 'Longe demais do treinador',

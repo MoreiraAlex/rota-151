@@ -5,8 +5,11 @@ import { createMovesState } from '../../data/species/moves'
  * Golpes DESTA criatura (docs/features/038-aprendizado-treino-e-dominio-de-
  * golpes.md): os 3 slots (Q/E/R) com o id e o domínio de cada golpe, e o
  * progresso de treino dos golpes que ela ainda não sabe (`training`, por id,
- * fração até aprender — inclui o que sobrou de um golpe esquecido). Formato
- * em `core/data/species/moves.js` (`createMovesState`).
+ * fração até aprender — inclui o que sobrou de um golpe esquecido) e os
+ * golpes que ficaram aptos ao subir de nível e o jogador ainda não viu no
+ * Treino (`unseen`, ids — o marcador "novo", docs/features/067-campo-de-
+ * treino-e-avisos-de-nivel.md). Formato em `core/data/species/moves.js`
+ * (`createMovesState`).
  *
  * Só a criatura do time tem; a selvagem usa o kit da espécie, dominado
  * (fallback de `resolveEntityMoves`).
@@ -21,6 +24,7 @@ import { createMovesState } from '../../data/species/moves'
 export const CreatureMoves = trait(() => ({
   slots: { 1: null, 2: null, 3: null },
   training: {},
+  unseen: [],
 }))
 
 /**

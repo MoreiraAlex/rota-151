@@ -26,6 +26,22 @@ import {
 
 // O motivo visto do treinador: quem ficou longe/preso foi ELE.
 const TRAINER_REASONS = { far: 'trainerFar', stuck: 'trainerStuck' }
+// O motivo de quem treina num boneco: o treinador se afastou do treino.
+const TRAINING_REASONS = { far: 'trainingFar', stuck: 'stuck' }
+
+/**
+ * As distâncias do limite de quem segue: as normais, ou as maiores do
+ * Pokémon treinando (067) — o treinador pode explorar em volta do campo.
+ */
+function limitsOf(entity, isTrainer, LIMIT) {
+  if (isTrainer || !entity.has(Training)) {
+    return { recall: LIMIT.RECALL_DISTANCE, warn: null }
+  }
+  return {
+    recall: LIMIT.TRAINING_RECALL_DISTANCE,
+    warn: LIMIT.TRAINING_WARN_DISTANCE,
+  }
+}
 
 /**
  * Se quem segue está TENTANDO andar até o líder agora: o
@@ -82,7 +98,11 @@ function applyWarning(entity, warning) {
  *   começa a contagem (`WARNING_TIME`) e, no fim, ela volta para a bola;
  * - **treinador** longe demais da controlada ou preso → a CONTROLADA conta e
  *   volta (e o controle volta para ele). Antes disso, passou de
- *   `WARN_DISTANCE`, aviso sem contagem.
+ *   `WARN_DISTANCE`, aviso sem contagem;
+ * - **criatura treinando** num boneco (docs/features/067-campo-de-treino-e-
+ *   avisos-de-nivel.md): limite maior (`TRAINING_RECALL_DISTANCE`, motivo
+ *   `'trainingFar'`), com o aviso sem contagem antes
+ *   (`TRAINING_WARN_DISTANCE`); voltar para a bola acaba o treino.
  *
  * Resolvido no meio da contagem (voltou para perto, desprendeu), cancela. O
  * aviso vai para a tela pelo `StrayWarning` da criatura que vai voltar. A
@@ -118,7 +138,9 @@ export function followLimitSystem(context) {
 
     const leaderPos = leader.get(Position)
     const distance = Math.hypot(leaderPos.x - pos.x, leaderPos.z - pos.z)
-    if (distance <= LIMIT.RECALL_DISTANCE) watch.joined = true
+    const isTrainer = entity.has(Party)
+    const limits = limitsOf(entity, isTrainer, LIMIT)
+    if (distance <= limits.recall) watch.joined = true
     const stuck = resolveStuckStep(watch, pos, {
       isTrying: isTryingToFollow(entity),
       delta,
@@ -129,9 +151,11 @@ export function followLimitSystem(context) {
     watch.stuckTime = stuck.stuckTime
 
     // O treinador seguindo: quem volta é a controlada que ele segue.
-    const isTrainer = entity.has(Party)
     const stray = isTrainer ? leader : entity
-    const toReason = (reason) => (isTrainer ? TRAINER_REASONS[reason] : reason)
+    const toReason = (reason) => {
+      if (isTrainer) return TRAINER_REASONS[reason]
+      return limits.warn !== null ? TRAINING_REASONS[reason] : reason
+    }
     // Já vai voltar: mantém o aviso até ela sumir.
     if (stray.has(StrayRecall)) {
       warnings.set(stray, stray.get(StrayWarning) ?? null)
@@ -141,7 +165,7 @@ export function followLimitSystem(context) {
     const far = isTooFar(distance, {
       joined: watch.joined,
       counting: watch.pendingReason === 'far',
-      recallDistance: LIMIT.RECALL_DISTANCE,
+      recallDistance: limits.recall,
       cancelMargin: LIMIT.CANCEL_MARGIN,
     })
     const reason = resolveStrayReason(far, watch.stuckTime, {
@@ -171,17 +195,21 @@ export function followLimitSystem(context) {
       return
     }
 
-    if (!isTrainer) return
+    // O aviso sem contagem: o treinador seguindo a controlada, ou quem
+    // treina num boneco (067).
+    if (!isTrainer && limits.warn === null) return
+    const warnDistance = isTrainer ? LIMIT.WARN_DISTANCE : limits.warn
+    const resetMargin = LIMIT.WARN_DISTANCE - LIMIT.WARN_RESET_DISTANCE
     watch.warned =
       watch.joined &&
       resolveTooFarWarning(distance, watch.warned, {
-        warnDistance: LIMIT.WARN_DISTANCE,
-        resetDistance: LIMIT.WARN_RESET_DISTANCE,
+        warnDistance,
+        resetDistance: warnDistance - resetMargin,
       })
     if (watch.warned) {
       warnings.set(stray, {
         stage: 'warn',
-        reason: 'trainerFar',
+        reason: toReason('far'),
         duration: 0,
         timeLeft: 0,
       })

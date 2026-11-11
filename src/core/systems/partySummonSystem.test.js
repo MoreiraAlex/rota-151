@@ -8,8 +8,10 @@ import {
 import { getPlayerSpecies } from '@/core/data/species'
 import { listItems } from '@/core/data/items'
 import { comecarAComer, isEating } from '@/core/actions/eating'
+import { pedirInvocacao } from '@/core/actions/training'
 import { computeAimRay } from '@/core/camera/orbitCamera'
 import { GAME_CONFIG } from '@/core/gameConfig'
+import { EVENT_TYPES, createEventQueue } from '@/core/events'
 import {
   ActionState,
   AnimationState,
@@ -26,7 +28,9 @@ import {
   RecallBeam,
   Rotation,
   SummonBall,
+  SummonRequest,
   SummonedCreature,
+  Training,
   Velocity,
   Vitals,
 } from '@/core/traits'
@@ -233,6 +237,73 @@ describe('partySummonSystem', () => {
     expect(player.get(Rotation).y).toBeCloseTo(Math.atan2(dir.x, dir.z))
     expect(world.query(SummonBall).length).toBe(0) // ainda não — só no efeito
     expect(world.query(SummonedCreature).length).toBe(0)
+  })
+
+  // O treino chama o Pokémon da bola rumo ao boneco (docs/features/067-
+  // campo-de-treino-e-avisos-de-nivel.md).
+  it('pedido de invocar joga a bola rumo ao ponto pedido, não à mira', () => {
+    const { world, player } = spawnWorld({
+      playerPosition: { x: 0, y: 1, z: 0 },
+    })
+    givePartyPokemon(world, player, { slot1: 'bulbasaur' })
+    pedirInvocacao(player, 'slot1', { x: -10, y: 1, z: 0 })
+
+    tick(world, {})
+
+    expect(player.get(ActionState).current).toBe('summon')
+    expect(player.has(SummonRequest)).toBe(false)
+    // Virou para o ponto (em x menor), não para a câmera.
+    expect(Math.sin(player.get(Rotation).y)).toBeLessThan(-0.9)
+    advanceUntilResolved(world, player)
+    expect(world.query(SummonedCreature).length).toBe(1)
+    expect(world.query(SummonedCreature)[0].get(Position).x).toBeLessThan(0)
+  })
+
+  it('recolher quem treina: o primeiro toque só avisa; o segundo recolhe', () => {
+    const { world, player } = spawnWorld()
+    givePartyPokemon(world, player, { slot1: 'bulbasaur' })
+    tick(world, { secondary1: true })
+    advanceUntilResolved(world, player)
+    const creature = world.queryFirst(SummonedCreature)
+    creature.add(Training({ moveId: 'tackle' }))
+    const events = createEventQueue()
+    const press = (input) =>
+      partySummonSystem({ world, delta: DELTA, input, events })
+
+    press({ secondary1: true })
+    expect(player.get(ActionState).current).toBe(null)
+    expect(events.drain().map(({ type }) => type)).toContain(
+      EVENT_TYPES.TRAINING_RECALL_WARNED,
+    )
+
+    press({ secondary1: true })
+    expect(player.get(ActionState).current).toBe('recall')
+  })
+
+  it('recolher quem treina: passada a janela, o toque volta a só avisar', () => {
+    const { world, player } = spawnWorld()
+    givePartyPokemon(world, player, { slot1: 'bulbasaur' })
+    tick(world, { secondary1: true })
+    advanceUntilResolved(world, player)
+    world.queryFirst(SummonedCreature).add(Training({ moveId: 'tackle' }))
+    const press = (input) => partySummonSystem({ world, delta: DELTA, input })
+
+    press({ secondary1: true })
+    const { RECALL_CONFIRM_TIME } = GAME_CONFIG.MOVES.TRAINING
+    for (let t = 0; t <= RECALL_CONFIRM_TIME; t += DELTA) press({})
+    press({ secondary1: true })
+
+    expect(player.get(ActionState).current).toBe(null)
+  })
+
+  it('pedido de invocar sem quem invocar no slot desiste', () => {
+    const { world, player } = spawnWorld()
+    pedirInvocacao(player, 'slot1', { x: 5, y: 0, z: 0 })
+
+    tick(world, {})
+
+    expect(player.has(SummonRequest)).toBe(false)
+    expect(player.get(ActionState).current).toBe(null)
   })
 
   it('a esfera nasce no instante de efeito (EFFECT_AT), exatamente uma vez — a criatura só nasce quando ela pousa', () => {

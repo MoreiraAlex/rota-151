@@ -86,13 +86,23 @@ export {
   treinarDominio,
   somarDominio,
   anunciarGolpesAptos,
+  marcarGolpesVistos,
+  temGolpeNovo,
 } from './moves'
+export {
+  isPlayerActing,
+  pedirComemoracao,
+  pararComemoracao,
+  isCelebrating,
+} from './celebration'
 export {
   findNearbyTrainingObject,
   resolveTrainingBlock,
   resolveTrainingGoal,
   iniciarTreino,
   pararTreino,
+  pararTreinoDoPokemon,
+  pedirInvocacao,
   resolveTrainingMove,
 } from './training'
 export {
