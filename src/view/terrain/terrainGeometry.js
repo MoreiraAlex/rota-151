@@ -1,9 +1,17 @@
 import * as THREE from 'three'
-import { getBiome } from '@/core/data/biomes'
+import { getBiome, listBiomes } from '@/core/data/biomes'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import { heightIndex } from '@/core/terrain/terrainChunk'
 import { paintsTrails } from '@/core/terrain/trails'
 import { clearingNoiseAt, opennessOf } from '@/core/vegetation/clearings'
+import {
+  createKindDensity,
+  densityAt,
+  kindDensities,
+} from '@/core/vegetation/vegetationDensity'
+import { vegetationEntryOf } from '@/core/vegetation/vegetationEntry'
+import { BLADE_GRASS_ID } from '@/view/vegetation/bladeGrass'
+import { withBiomeTint } from '@/view/vegetation/biomeColor'
 import {
   COLOR_WEIGHT_GROUPS,
   MAX_COLOR_LAYERS,
@@ -192,11 +200,12 @@ export function addGroundLayers(
  * docs/features/058-ajuste-dos-biomas.md), o alto (`high`, como a cor vai
  * de `low` a `high`), a encosta (`slope`) e o pico (`peak`). Cada papel
  * cobre os de antes pela força dele; papel sem camada no bioma fica de
- * fora.
+ * fora. Com `perPixelSlope`, a encosta fica de fora: o shader decide por
+ * pixel (`slopeInfoOf`, docs/features/066-revisao-dos-biomas.md).
  */
 export function addColorLayers(
   biome,
-  { heightAboveWater, normalY, shade, trail, road = 0 },
+  { heightAboveWater, normalY, shade, trail, road = 0, perPixelSlope = false },
   weight,
   colorWeights,
 ) {
@@ -212,7 +221,7 @@ export function addColorLayers(
     ],
     ['trail', trail],
     ['road', road],
-    ['slope', smoothstep(SLOPE_START, SLOPE_FULL, normalY)],
+    ['slope', perPixelSlope ? 0 : smoothstep(SLOPE_START, SLOPE_FULL, normalY)],
     [
       'peak',
       palette.peak
@@ -237,6 +246,48 @@ export function addColorLayers(
 }
 
 /**
+ * A encosta de um vértice para o shader decidir por pixel
+ * (docs/features/066-revisao-dos-biomas.md): no barranco a troca por
+ * vértice desenhava faixas em diagonal (a parede tem poucos vértices e a
+ * mistura corria pelos triângulos). Devolve `[camada, parte, pico]`: a
+ * camada de cor da encosta do bioma de mais peso que tem uma
+ * (`colors.slope`), a parte do vértice que é de biomas com encosta e o
+ * quanto o pico cobre (ele cobre a encosta).
+ *
+ * @param {object[]} biomes - os do chunk, na ordem dos pesos
+ * @param {number[]} weights - o peso de cada bioma no vértice (somam 1)
+ */
+export function slopeInfoOf(biomes, weights, heightAboveWater) {
+  const { SHORE_HEIGHT } = GAME_CONFIG.TERRAIN_COLOR
+  let layer = 0
+  let best = 0
+  let share = 0
+  let peak = 0
+  biomes.forEach((biome, index) => {
+    const weight = weights[index]
+    const colors = biome.ground.colors
+    if (!weight || !colors) return
+    const { palette } = biome
+    if (palette.peak) {
+      peak +=
+        weight *
+        smoothstep(
+          palette.peakHeight,
+          palette.peakHeight + SHORE_HEIGHT * 4,
+          heightAboveWater,
+        )
+    }
+    if (!colors.slope) return
+    share += weight
+    if (weight > best) {
+      best = weight
+      layer = terrainColorLayerIndex(colors.slope)
+    }
+  })
+  return [layer, share, peak]
+}
+
+/**
  * Atributos do desenho do chão por vértice (terrainMaterial.js): o peso de
  * cada camada (`groundLayers0`/`groundLayers1`, quatro em cada) e a força
  * do desenho (`groundDetail`, o `ground.detail` dos biomas pelo peso).
@@ -255,6 +306,9 @@ function groundAttributes(chunk, side, vertex, positions, normals, waterLevel) {
     () => new Float32Array(side * side * 4),
   )
   const textureShare = new Float32Array(side * side)
+  // A encosta por pixel (`slopeInfoOf`): camada, parte, pico.
+  const slope = new Float32Array(side * side * 4)
+  const vertexWeights = new Array(biomeIds.length).fill(0)
   const colorWeights = new Float32Array(MAX_COLOR_LAYERS)
   const hasColors = biomes.some(({ ground }) => ground.colors)
 
@@ -292,6 +346,7 @@ function groundAttributes(chunk, side, vertex, positions, normals, waterLevel) {
               shade: amount > 0 ? 1 - opennessOf(noise, amount) : 0,
               trail: paintsTrails(biomes[biome]) ? strength : 0,
               road,
+              perPixelSlope: true,
             },
             weight,
             colorWeights,
@@ -308,6 +363,10 @@ function groundAttributes(chunk, side, vertex, positions, normals, waterLevel) {
         )
         detail[i] += weight * biomes[biome].ground.detail
       }
+      for (let biome = 0; biome < biomeIds.length; biome++) {
+        vertexWeights[biome] = biomeWeights[first + biome] / total
+      }
+      slope.set(slopeInfoOf(biomes, vertexWeights, heightAboveWater), i * 4)
       const trail = trailShareAt(chunk, biomes, heightIndex(resolution, ix, iz))
       if (trail) {
         // A trilha troca o desenho do chão pela textura dela — só nos
@@ -337,7 +396,124 @@ function groundAttributes(chunk, side, vertex, positions, normals, waterLevel) {
     detail,
     colors,
     textureShare,
+    slope,
   }
+}
+
+// A grama do bioma que é em fios (só ela pinta o chão debaixo, `groundGrass`).
+const bladeGrassEntryOf = (biome) => {
+  const entry = vegetationEntryOf(biome, 'tall-grass')
+  return entry?.models?.includes(BLADE_GRASS_ID) ? entry : null
+}
+
+// Faixas (m acima da folga da margem; rad antes da encosta máxima) em que a
+// grama do chão some aos poucos, em vez de num degrau.
+const SHORE_FADE = 0.3
+const SLOPE_FADE = 0.1
+
+// Os biomas com a grama dos outros (sem ser em fios) tirada: a densidade
+// da grama que pinta o chão. Montada a cada chunk (os biomas mudam ao vivo
+// no lab).
+function paintingBiomes() {
+  return listBiomes().map((biome) =>
+    bladeGrassEntryOf(biome)
+      ? biome
+      : {
+          ...biome,
+          vegetation: (biome.vegetation ?? []).filter(
+            (entry) => entry.kind !== 'tall-grass',
+          ),
+        },
+  )
+}
+
+/**
+ * Quanto do chão de cada vértice é mancha de grama em fios, e a tinta dela
+ * (docs/features/066-revisao-dos-biomas.md): `rgb` = a cor `a` da grama
+ * dos biomas que a têm (pelo peso deles), `a` = a cobertura (0 a 1) — a
+ * mesma conta que decide onde a grama nasce (conjuntos, clareiras,
+ * trilhas, `createKindDensity`), sem a densidade em si (dentro da mancha,
+ * 1), vezes a parte do vértice que é desses biomas, e nada abaixo da água
+ * mais a folga nem em encosta íngreme (`GRASS.SHORE_GAP`, `MAX_SLOPE`). O
+ * desenho do chão puxa a cor para a da grama por ela: de longe, onde as
+ * lâminas já sumiram, a mancha continua lá.
+ */
+export function grassGroundOf(
+  chunk,
+  side,
+  vertex,
+  positions,
+  normals,
+  waterLevel,
+) {
+  const out = new Float32Array(side * side * 4)
+  const biomes = chunk.biomeIds.map((id) => getBiome(id))
+  const entries = biomes.map(bladeGrassEntryOf)
+  if (!entries.some(Boolean)) return out
+
+  const biomeList = paintingBiomes()
+  const density = createKindDensity(chunk, 'tall-grass', {
+    biomeList,
+    seed: chunk.vegetationSeed ?? 0,
+  })
+  const densities = kindDensities(biomeList, chunk.biomeIds, 'tall-grass')
+  // A cor `a` da grama com a tinta do bioma, como as lâminas a recebem
+  // (o chão multiplica pela cor da grama em fios, `GRASS_BLADES.COLOR`).
+  const bladeColor = colorOf(GAME_CONFIG.GRASS_BLADES.COLOR)
+  const tints = entries.map((entry) => {
+    const own = colorOf(entry?.colors?.a ?? '#ffffff')
+    if (!entry?.tint) return own
+    const tinted = withBiomeTint(own.clone().multiply(bladeColor), entry.tint)
+    return tinted.set(
+      tinted.r / Math.max(bladeColor.r, 1e-3),
+      tinted.g / Math.max(bladeColor.g, 1e-3),
+      tinted.b / Math.max(bladeColor.b, 1e-3),
+    )
+  })
+  const { GRASS } = GAME_CONFIG
+  const { resolution, biomeIds, biomeWeights } = chunk
+
+  for (let ix = 0; ix < side; ix++) {
+    for (let iz = 0; iz < side; iz++) {
+      const i = vertex(ix, iz)
+      const x = positions[i * 3]
+      const z = positions[i * 3 + 2]
+      const first = heightIndex(resolution, ix, iz) * biomeIds.length
+      let total = 0
+      for (let biome = 0; biome < biomeIds.length; biome++) {
+        total += biomeWeights[first + biome]
+      }
+      let share = 0
+      let r = 0
+      let g = 0
+      let b = 0
+      for (let biome = 0; biome < biomeIds.length; biome++) {
+        if (!entries[biome] || total <= 0) continue
+        const weight = biomeWeights[first + biome] / total
+        share += weight
+        r += tints[biome].r * weight
+        g += tints[biome].g * weight
+        b += tints[biome].b * weight
+      }
+      if (share <= 0) continue
+      const base = densityAt(chunk, densities, x, z)
+      const shaped = base > 0 ? Math.min(density.at(x, z) / base, 1) : 0
+      const heightAboveWater = positions[i * 3 + 1] - waterLevel
+      const slope = Math.acos(THREE.MathUtils.clamp(normals.getY(i), -1, 1))
+      const ground =
+        smoothstep(
+          GRASS.SHORE_GAP,
+          GRASS.SHORE_GAP + SHORE_FADE,
+          heightAboveWater,
+        ) *
+        (1 - smoothstep(GRASS.MAX_SLOPE - SLOPE_FADE, GRASS.MAX_SLOPE, slope))
+      out[i * 4] = r / share
+      out[i * 4 + 1] = g / share
+      out[i * 4 + 2] = b / share
+      out[i * 4 + 3] = shaped * share * ground
+    }
+  }
+  return out
 }
 
 /**
@@ -432,6 +608,17 @@ export function buildTerrainChunkGeometry(chunk, waterLevel) {
   geometry.setAttribute(
     'groundTextureShare',
     new THREE.BufferAttribute(ground.textureShare, 1),
+  )
+  geometry.setAttribute(
+    'groundSlope',
+    new THREE.BufferAttribute(ground.slope, 4),
+  )
+  geometry.setAttribute(
+    'groundGrass',
+    new THREE.BufferAttribute(
+      grassGroundOf(chunk, side, vertex, positions, normals, waterLevel),
+      4,
+    ),
   )
   geometry.computeBoundingSphere()
 

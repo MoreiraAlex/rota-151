@@ -11,7 +11,12 @@ import { notifyRenderSettingsChanged } from '@/view/scene/renderSettings'
 import { TERRAIN_COLOR_LAYERS } from '@/view/terrain/terrainLayers'
 import { setColorLayerSizes } from '@/view/terrain/terrainMaterial'
 import { requestLgpeModels } from '@/view/vegetation/lgpeChoices'
-import { LGPE_MANIFEST_PATH, lgpeChoicesOf } from '@/view/vegetation/lgpeModels'
+import { withProceduralProps } from '@/view/vegetation/bladeGrass'
+import {
+  LGPE_MANIFEST_PATH,
+  lgpeChoicesOf,
+  mergeLgpeManifests,
+} from '@/view/vegetation/lgpeModels'
 import {
   getVegetationSettings,
   rebuildVegetation,
@@ -197,6 +202,7 @@ const KIND_LABELS = {
   'encounter-grass': 'Mato alto',
   flower: 'Flores',
   'broadleaf-tree': 'Folhosa',
+  'giant-tree': 'Gigante',
   'ancient-tree': 'Antiga',
   'pine-tree': 'Pinheiro',
   'acacia-tree': 'Acácia',
@@ -333,6 +339,7 @@ const PARTS = [
 ]
 const TREE_KINDS = [
   'broadleaf-tree',
+  'giant-tree',
   'ancient-tree',
   'pine-tree',
   'acacia-tree',
@@ -349,7 +356,7 @@ function copyValues() {
   const { CLEARINGS, ROCKS, BUSHES, FERNS } = GAME_CONFIG
   const { ANCIENT_TREES, PINES, ACACIAS, DEAD_TREES, LEAFY_PLANTS } =
     GAME_CONFIG
-  const { VEGETATION_PATCHES } = GAME_CONFIG
+  const { GIANT_TREES, VEGETATION_PATCHES } = GAME_CONFIG
   const vegetationByBiome = Object.fromEntries(
     listBiomes().map(({ id, vegetation }) => [id, vegetation]),
   )
@@ -366,6 +373,7 @@ function copyValues() {
     `ROADS: ${JSON.stringify(GAME_CONFIG.ROADS, null, 2)},`,
     `BACKDROP: ${JSON.stringify(GAME_CONFIG.BACKDROP, null, 2)},`,
     ...Object.entries({
+      GIANT_TREES,
       ANCIENT_TREES,
       PINES,
       ACACIAS,
@@ -404,7 +412,9 @@ export function VegetationPanel() {
     fetch(LGPE_MANIFEST_PATH)
       .then((response) => response.json())
       .then((loaded) => {
-        if (!cancelled) setManifest(loaded)
+        if (!cancelled) {
+          setManifest(withProceduralProps(mergeLgpeManifests(loaded)))
+        }
       })
     return () => {
       cancelled = true
@@ -582,6 +592,7 @@ export function VegetationPanel() {
       .name('Variação do tom')
       .onFinishChange(rebuildVegetation)
     addTreeSpecies(treeFolder, 'Folhosa', TREES)
+    addTreeSpecies(treeFolder, 'Gigante', GAME_CONFIG.GIANT_TREES)
     addTreeSpecies(treeFolder, 'Antiga', ANCIENT_TREES)
     addTreeSpecies(treeFolder, 'Pinheiro', PINES)
     addTreeSpecies(treeFolder, 'Acácia', ACACIAS)

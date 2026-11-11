@@ -5,6 +5,7 @@ import { useFrame } from '@react-three/fiber'
 import { useQuery } from 'koota/react'
 import * as THREE from 'three'
 import { world } from '@/core/world/world'
+import { TEST_LEVEL } from '@/core/data/testLevel'
 import {
   CameraTarget,
   OrbitCamera,
@@ -82,7 +83,7 @@ export function WildSpawnDebugView() {
   const coneRef = useRef()
 
   const lines = useMemo(() => {
-    const params = spawnParams()
+    const params = spawnParams(TEST_LEVEL.terrain.loadRadius())
     return {
       rings: [
         circle(params.MIN_RADIUS, COLORS.spawn),
@@ -134,7 +135,7 @@ export function WildSpawnDebugView() {
  */
 export function WildSpawnDebugCounter() {
   const wilds = useQuery(WildCreature)
-  const params = spawnParams()
+  const params = spawnParams(TEST_LEVEL.terrain.loadRadius())
   const log = world.has(WildSpawnState) ? world.get(WildSpawnState).log : []
 
   return (

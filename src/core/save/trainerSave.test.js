@@ -7,6 +7,13 @@ import {
   definirFrequenciaDaMusica,
   definirVolume,
 } from '../actions/soundSettings'
+import {
+  ASPECT_LEVELS,
+  SHADOW_LEVELS,
+  definirProporcao,
+  definirSombra,
+  definirTamanhoDaTela,
+} from '../actions/graphicsSettings'
 import { VOLUME_KEYS } from '../data/audio/mixer'
 import {
   DEFAULT_MUSIC_FREQUENCY,
@@ -21,6 +28,7 @@ import {
   Rotation,
   ScanHistory,
   SoundSettings,
+  GraphicsSettings,
 } from '../traits'
 import { TEST_LEVEL } from '../data/testLevel'
 import { GAME_CONFIG } from '../gameConfig'
@@ -99,6 +107,31 @@ describe('serializeTrainer / restoreTrainer', () => {
     restoreTrainer(target.player, saved)
 
     expect(target.player.get(SoundSettings)).toEqual(player.get(SoundSettings))
+  })
+
+  // docs/features/066-revisao-dos-biomas.md
+  it('ida e volta: os gráficos do jogador', () => {
+    const { player } = setup()
+    const other = SHADOW_LEVELS.find(
+      (level) => level !== player.get(GraphicsSettings).shadow,
+    )
+    definirSombra(player, other)
+    definirTamanhoDaTela(player, GAME_CONFIG.GRAPHICS.CANVAS_SIZE.MIN)
+    definirProporcao(
+      player,
+      ASPECT_LEVELS.find(
+        (level) => level !== player.get(GraphicsSettings).aspect,
+      ),
+    )
+    const saved = serializeTrainer(player)
+    expect(trainerSaveSchema.safeParse(saved).success).toBe(true)
+
+    const target = setup()
+    restoreTrainer(target.player, saved)
+
+    expect(target.player.get(GraphicsSettings)).toEqual(
+      player.get(GraphicsSettings),
+    )
   })
 
   it('volta na posição e direção salvas', () => {

@@ -15,6 +15,7 @@ import { vegetationEntryOf } from './vegetationEntry'
  */
 
 export const TREE_KIND = 'broadleaf-tree'
+export const GIANT_TREE_KIND = 'giant-tree'
 export const ANCIENT_TREE_KIND = 'ancient-tree'
 export const PINE_KIND = 'pine-tree'
 export const ACACIA_KIND = 'acacia-tree'
@@ -23,10 +24,11 @@ export const ROCK_KIND = 'rock'
 
 /**
  * As espécies de árvore em pé, na ordem em que ocupam o chão: as grandes
- * primeiro (a árvore antiga e a acácia abrem espaço para a copa larga
- * delas), o pinheiro antes da folhosa (nos bosques dele, ele domina).
+ * primeiro (a gigante, a árvore antiga e a acácia abrem espaço para a copa
+ * larga delas), o pinheiro antes da folhosa (nos bosques dele, ele domina).
  */
 export const STANDING_TREE_KINDS = [
+  GIANT_TREE_KIND,
   ANCIENT_TREE_KIND,
   ACACIA_KIND,
   PINE_KIND,
@@ -37,6 +39,7 @@ export const STANDING_TREE_KINDS = [
 // O bloco de números (`solidParams`) de cada tipo.
 const SPEC_KEYS = {
   [TREE_KIND]: 'trees',
+  [GIANT_TREE_KIND]: 'giantTrees',
   [ANCIENT_TREE_KIND]: 'ancientTrees',
   [PINE_KIND]: 'pines',
   [ACACIA_KIND]: 'acacias',
@@ -115,6 +118,39 @@ export function solidFootprintOf(solid, params) {
   const collider = lgpeColliderOf(solid)
   if (!collider) return footprintOf(solid.kind, solid, params)[0]
   return { x: solid.x, z: solid.z, radius: collider.reach * solid.scale }
+}
+
+// Pontos em volta do centro onde a base mede o chão (mais o centro).
+const BASE_SAMPLES = 8
+
+/**
+ * A altura em que um objeto sólido fica (docs/features/066-revisao-dos-
+ * biomas.md): o chão mais baixo debaixo da base — o centro e uma volta de
+ * pontos na largura da pegada do modelo (`radius` × `SOLID_GROUND.REACH`)
+ * — afundada `SOLID_GROUND.SINK` m. Num barranco, pela altura do centro, o
+ * lado de baixo da base ficava no ar.
+ */
+export function groundedBaseY(
+  chunk,
+  x,
+  z,
+  radius,
+  ground = GAME_CONFIG.SOLID_GROUND,
+) {
+  const reach = radius * ground.REACH
+  let lowest = chunkHeightAt(chunk, x, z)
+  for (let i = 0; i < BASE_SAMPLES; i++) {
+    const angle = (i / BASE_SAMPLES) * Math.PI * 2
+    lowest = Math.min(
+      lowest,
+      chunkHeightAt(
+        chunk,
+        x + Math.cos(angle) * reach,
+        z + Math.sin(angle) * reach,
+      ),
+    )
+  }
+  return lowest - ground.SINK
 }
 
 /**
@@ -257,6 +293,13 @@ function placeKind(
       const placement = { kind, x, y, z, yaw, scale, variant, biome }
       const footprint = footprintOf(kind, placement, params)
       if (overlaps(footprint, taken)) continue
+      // A base inteira no chão (não só o centro).
+      placement.y = groundedBaseY(
+        chunk,
+        x,
+        z,
+        solidFootprintOf(placement, params).radius,
+      )
       if (isStandingTree(kind)) {
         const crown = crownOf(kind, placement, params)
         if (crowdsCrowns(footprint[0], crown, crowns)) continue
@@ -325,15 +368,16 @@ export function placeChunkSolids(
 
 /** Os números dos objetos sólidos agora (`GAME_CONFIG`). */
 export function solidParams() {
-  const { TREES, ANCIENT_TREES, PINES, ACACIAS, DEAD_TREES, ROCKS } =
+  const { TREES, GIANT_TREES, ANCIENT_TREES, PINES, ACACIAS, DEAD_TREES } =
     GAME_CONFIG
   return {
     trees: TREES,
+    giantTrees: GIANT_TREES,
     ancientTrees: ANCIENT_TREES,
     pines: PINES,
     acacias: ACACIAS,
     deadTrees: DEAD_TREES,
-    rocks: ROCKS,
+    rocks: GAME_CONFIG.ROCKS,
     clearings: GAME_CONFIG.CLEARINGS,
     patches: GAME_CONFIG.VEGETATION_PATCHES,
     altitude: GAME_CONFIG.VEGETATION_ALTITUDE,

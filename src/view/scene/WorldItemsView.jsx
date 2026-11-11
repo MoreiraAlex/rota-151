@@ -26,7 +26,10 @@ export function WorldItemsView() {
   useFrame(({ camera }) => {
     const group = groupRef.current
     if (!group) return
-    const limit = loadedFogRange(TEST_LEVEL.terrain.chunkSize()).far
+    const limit = loadedFogRange(
+      TEST_LEVEL.terrain.chunkSize(),
+      TEST_LEVEL.terrain.loadRadius(),
+    ).far
     for (const child of group.children) {
       const dx = child.position.x - camera.position.x
       const dz = child.position.z - camera.position.z

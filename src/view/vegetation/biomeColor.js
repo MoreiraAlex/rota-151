@@ -52,6 +52,34 @@ export function createBiomeTint(chunk, kind) {
   }
 }
 
+// Pesos da luminância (os mesmos do toonMaterial.js).
+const LUMA = [0.2126, 0.7152, 0.0722]
+const lumaOf = (color) =>
+  color.r * LUMA[0] + color.g * LUMA[1] + color.b * LUMA[2]
+
+/**
+ * A cor `color` com a tinta `tint` (`{ color, amount }` da entrada do
+ * bioma) aplicada como o material toon aplica (toonMaterial.js): o tom
+ * troca pelo da tinta, mantendo a luminância, na força `amount`. Para quem
+ * pinta fora do material — o chão debaixo da grama em fios
+ * (view/terrain/terrainGeometry.js). Sem tinta, a cor como está.
+ *
+ * @param {THREE.Color} color - cor linear
+ * @param {{ color: string, amount: number } | null | undefined} tint
+ * @returns {THREE.Color} nova cor (linear)
+ */
+export function withBiomeTint(color, tint) {
+  const out = color.clone()
+  if (!(tint?.amount > 0)) return out
+  scratch.set(tint.color)
+  const scale = lumaOf(color) / Math.max(lumaOf(scratch), 1e-3)
+  const amount = Math.min(tint.amount, 1)
+  out.r += (scratch.r * scale - out.r) * amount
+  out.g += (scratch.g * scale - out.g) * amount
+  out.b += (scratch.b * scale - out.b) * amount
+  return out
+}
+
 /**
  * O tom e a tinta de cada objeto de `kind` no chunk: `tint` é o do lugar
  * (`tintAt`, até `variation`); `recolor`, a tinta do bioma

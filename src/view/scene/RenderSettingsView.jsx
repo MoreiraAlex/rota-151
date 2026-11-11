@@ -6,11 +6,17 @@ import * as THREE from 'three'
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
 import { SMAAPass } from 'three/examples/jsm/postprocessing/SMAAPass.js'
+import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import {
   getRenderSettingsRevision,
   subscribeRenderSettings,
 } from './renderSettings'
+import {
+  applyColorGrade,
+  createColorGradeShader,
+  isNeutralGrade,
+} from './colorGrade'
 
 const TONE_MAPPINGS = {
   aces: THREE.ACESFilmicToneMapping,
@@ -18,23 +24,28 @@ const TONE_MAPPINGS = {
 }
 
 /**
- * SMAA por cima da cena. A cena é desenhada num alvo com a curva de cor e
- * o sRGB já aplicados, igual à tela — o céu (`DayNightView`) escreve cor de
- * tela direto, e um pós-processamento comum (curva aplicada no fim) mudaria
- * a cor dele. O three só aplica curva e sRGB fora da tela num alvo marcado
- * como de XR (`isXRRenderTarget`); com `HalfFloatType`, o sRGB fica no valor
- * guardado, sem conversão do hardware. O SMAA lê esse alvo e escreve na
- * tela como está.
+ * Pós-processamento: a correção de cor (`colorGrade.js`,
+ * docs/features/066-revisao-dos-biomas.md) e o SMAA por cima da cena. A
+ * cena é desenhada num alvo com a curva de cor e o sRGB já aplicados,
+ * igual à tela — o céu (`DayNightView`) escreve cor de tela direto, e um
+ * pós-processamento comum (curva aplicada no fim) mudaria a cor dele. O
+ * three só aplica curva e sRGB fora da tela num alvo marcado como de XR
+ * (`isXRRenderTarget`); com `HalfFloatType`, o sRGB fica no valor guardado,
+ * sem conversão do hardware. A correção e o SMAA leem esse alvo e escrevem
+ * na tela como está. A correção lê `RENDER.GRADE` a cada quadro e, neutra,
+ * fica desligada.
  *
  * `useFrame` com prioridade: assume o desenho do quadro no lugar do R3F —
  * exceção das regras (3.4), só visual.
  */
-function SmaaComposer() {
-  const { gl, scene, camera, size } = useThree()
+function PostComposer({ smaa }) {
+  const { gl, scene, camera, size, viewport } = useThree()
 
   const composer = useMemo(() => {
     const target = new THREE.WebGLRenderTarget(1, 1, {
       type: THREE.HalfFloatType,
+      // O stencil dos personagens (materials/characterStencil.js).
+      stencilBuffer: true,
     })
     const result = new EffectComposer(gl, target)
     for (const buffer of [result.renderTarget1, result.renderTarget2]) {
@@ -42,26 +53,36 @@ function SmaaComposer() {
       buffer.texture.colorSpace = THREE.SRGBColorSpace
     }
     result.addPass(new RenderPass(scene, camera))
-    result.addPass(new SMAAPass())
-    return result
-  }, [gl, scene, camera])
+    const grade = new ShaderPass(createColorGradeShader())
+    result.addPass(grade)
+    if (smaa) result.addPass(new SMAAPass())
+    return { composer: result, grade }
+  }, [gl, scene, camera, smaa])
 
+  // A densidade entra junto: a resolução do menu muda sem mudar o tamanho.
   useEffect(() => {
-    composer.setPixelRatio(gl.getPixelRatio())
-    composer.setSize(size.width, size.height)
-  }, [composer, gl, size])
+    composer.composer.setPixelRatio(gl.getPixelRatio())
+    composer.composer.setSize(size.width, size.height)
+  }, [composer, gl, size, viewport.dpr])
 
-  useEffect(() => () => composer.dispose(), [composer])
+  useEffect(() => () => composer.composer.dispose(), [composer])
 
-  useFrame((_, delta) => composer.render(delta), 1)
+  useFrame((_, delta) => {
+    const { GRADE } = GAME_CONFIG.RENDER
+    composer.grade.enabled = !isNeutralGrade(GRADE)
+    if (composer.grade.enabled) applyColorGrade(composer.grade.uniforms, GRADE)
+    composer.composer.render(delta)
+  }, 1)
   return null
 }
 
 /**
- * Curva de cor da cena (ACES ou Neutral), o SMAA (`GAME_CONFIG.RENDER`) e
- * a densidade de pixels máxima da qualidade (`VEGETATION_QUALITY`),
- * docs/features/049-vegetacao-e-floresta.md. Trocar a curva recompila os
- * materiais (ela entra no shader).
+ * Curva de cor da cena (ACES ou Neutral), a correção de cor e o SMAA
+ * (`GAME_CONFIG.RENDER`; o pós-processamento só monta com um dos dois, e
+ * quem muda a correção ao vivo avisa por `notifyRenderSettingsChanged`).
+ * A resolução do desenho 3D é do `GameCanvas` (o menu "Gráficos"); o
+ * pós-processamento acompanha a densidade dele. Trocar a curva recompila
+ * os materiais (ela entra no shader).
  */
 export function RenderSettingsView() {
   const revision = useSyncExternalStore(
@@ -69,14 +90,7 @@ export function RenderSettingsView() {
     getRenderSettingsRevision,
     getRenderSettingsRevision,
   )
-  const { gl, scene, setDpr } = useThree()
-
-  // Densidade de pixels: a da tela, até o máximo da qualidade.
-  useEffect(() => {
-    const { VEGETATION_QUALITY } = GAME_CONFIG
-    const { maxDpr } = VEGETATION_QUALITY[VEGETATION_QUALITY.CURRENT]
-    setDpr(Math.min(window.devicePixelRatio || 1, maxDpr))
-  }, [setDpr, revision])
+  const { gl, scene } = useThree()
 
   useEffect(() => {
     const toneMapping =
@@ -91,5 +105,6 @@ export function RenderSettingsView() {
     })
   }, [gl, scene, revision])
 
-  return GAME_CONFIG.RENDER.SMAA ? <SmaaComposer /> : null
+  const { SMAA, GRADE } = GAME_CONFIG.RENDER
+  return SMAA || !isNeutralGrade(GRADE) ? <PostComposer smaa={SMAA} /> : null
 }

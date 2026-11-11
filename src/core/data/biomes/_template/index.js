@@ -48,6 +48,14 @@ export const BIOME_TEMPLATE = {
     // picos pontudos no lugar de morros redondos (a montanha). Sobe a
     // encosta: conferir o limite de subida do personagem.
     // ridges: 0.6,
+    // Opcional: platôs (core/terrain/terraces.js, docs/features/066-revisao-
+    // dos-biomas.md) — o relevo sobe em patamares de `step` m, com a subida
+    // num barranco (`cliff`, 0 a 1: 0 = sem degrau) e `tilt` (0 a 1) do
+    // declive natural no topo (nunca plano de todo); em manchas pela seed
+    // (`ramps`, parte do chão, de `rampSize` m), o degrau vira rampa — o
+    // caminho até o topo. A encosta íngreme pinta com `ground.slopeTexture`
+    // e `colors.slope`.
+    // terraces: { step: 4, cliff: 0.85, tilt: 0.15, ramps: 0.25, rampSize: 40 },
   },
   // Opcional: quanto o bioma aceita de rio e de lago (0 a 1 cada; sem ele,
   // nenhum — a cidade). Na fronteira vale a média pelo peso dos biomas, então
@@ -116,7 +124,8 @@ export const BIOME_TEMPLATE = {
   // aparecem no mundo: `tall-grass` (grama), `flower`, `bush`, `fern`,
   // `leafy-plant`, `pebble` e `encounter-grass` (o mato alto do Let's Go,
   // no miolo dos conjuntos de grama) (atravessáveis); `broadleaf-tree`,
-  // `ancient-tree`, `pine-tree`, `acacia-tree`, `dead-tree` e `rock` (com
+  // `giant-tree`, `ancient-tree`, `pine-tree`, `acacia-tree`, `dead-tree`
+  // e `rock` (com
   // colisão). Os outros tipos só estão declarados.
   // - `place` (opcional, com `clearings`): 'shade' = rareia nas clareiras;
   //   'clearing' = nas clareiras (com `shade`, 0 a 1, a fração que ainda

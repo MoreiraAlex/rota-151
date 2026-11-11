@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Not } from 'koota'
 import { useQuery, useQueryFirst, useTrait } from 'koota/react'
@@ -34,6 +34,10 @@ import {
   StatStageBadges,
   VitalBar,
 } from '../shared/statusDisplay'
+import {
+  clearNameplate,
+  setNameplateShown,
+} from '@/view/materials/silhouetteVisibility'
 
 // Margem (m) além do topo da cápsula (`verticalClearance`,
 // `core/physics/colliders.js`) — sem isso a etiqueta ficaria colada
@@ -168,6 +172,8 @@ function resolveEntitySpecies(entity) {
  * testar visualmente neste sandbox) — deixado de fora nesta rodada.
  */
 function NameplateView({ entity, species }) {
+  // Sem a etiqueta, sem a silhueta (silhouetteVisibility.js).
+  useEffect(() => () => clearNameplate(entity), [entity])
   const groupRef = useRef()
   const contentRef = useRef()
   const plateRef = useRef()
@@ -223,6 +229,8 @@ function NameplateView({ entity, species }) {
     // O aviso de voltar para a bola (064) também: a criatura longe é
     // justamente a que tem a etiqueta escondida pela distância.
     const visible = opacity > 0 || (hasEmote && fogOpacity > 0)
+    // A silhueta atrás das plantas só aparece com a etiqueta à mostra (066).
+    setNameplateShown(entity, opacity > 0)
     content.style.opacity = '1'
     content.style.visibility = visible ? 'visible' : 'hidden'
   })

@@ -1,15 +1,17 @@
-import { describe, expect, it } from 'vitest'
+import { afterAll, describe, expect, it } from 'vitest'
 import * as THREE from 'three'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import { createTerrainSampler } from '@/core/terrain/terrainHeight'
 import {
   chunkHeightAt,
   generateTerrainChunk,
+  heightIndex,
 } from '@/core/terrain/terrainChunk'
 import {
   addColorLayers,
   addGroundLayers,
   buildTerrainChunkGeometry,
+  slopeInfoOf,
   terrainColorAt,
 } from './terrainGeometry'
 import {
@@ -20,7 +22,11 @@ import {
   terrainColorLayerIndex,
   terrainLayerIndex,
 } from './terrainLayers'
-import { listBiomes } from '@/core/data/biomes'
+import { getBiome, listBiomes } from '@/core/data/biomes'
+import { TEST_LEVEL } from '@/core/data/testLevel'
+import { vegetationEntryOf } from '@/core/vegetation/vegetationEntry'
+import { findBiomePoints } from '@/tools/biomeLab/labPoints'
+import { BLADE_GRASS_ID } from '@/view/vegetation/bladeGrass'
 
 const { WATER_LEVEL } = GAME_CONFIG.TERRAIN
 const { SHORE_HEIGHT, SLOPE_FULL } = GAME_CONFIG.TERRAIN_COLOR
@@ -228,3 +234,124 @@ describe.each(listBiomes().filter(({ ground }) => ground.colors))(
     )
   },
 )
+
+describe('encosta por pixel (066)', () => {
+  const withSlope = listBiomes().filter(({ ground }) => ground.colors?.slope)
+  const middleOf = ({ palette }) => (SHORE_HEIGHT + palette.highHeight) / 2
+
+  it.each(withSlope)(
+    '$id: com perPixelSlope a encosta fica de fora dos pesos',
+    (biome) => {
+      const place = {
+        heightAboveWater: middleOf(biome),
+        normalY: 0,
+        shade: 0,
+        trail: 0,
+      }
+      const steep = new Float32Array(MAX_COLOR_LAYERS)
+      addColorLayers(biome, { ...place, perPixelSlope: true }, 1, steep)
+      const flat = new Float32Array(MAX_COLOR_LAYERS)
+      addColorLayers(biome, { ...place, normalY: 1 }, 1, flat)
+      steep.forEach((value, i) => expect(value).toBeCloseTo(flat[i], 6))
+    },
+  )
+
+  it.each(withSlope)('$id: a encosta do bioma vai para o shader', (biome) => {
+    const [layer, share, peak] = slopeInfoOf([biome], [1], middleOf(biome))
+    expect(layer).toBe(terrainColorLayerIndex(biome.ground.colors.slope))
+    expect(share).toBe(1)
+    expect(peak).toBe(0)
+  })
+
+  it('na fronteira: a camada do bioma de mais peso e a parte com encosta', () => {
+    const [a] = withSlope
+    const without = {
+      ...a,
+      ground: { ...a.ground, colors: { base: a.ground.colors.base } },
+    }
+    const [layer, share] = slopeInfoOf([without, a], [0.7, 0.3], middleOf(a))
+    expect(layer).toBe(terrainColorLayerIndex(a.ground.colors.slope))
+    expect(share).toBeCloseTo(0.3, 6)
+  })
+
+  it('a geometria leva a encosta de cada vértice', () => {
+    const geometry = buildTerrainChunkGeometry(chunk, WATER_LEVEL)
+    const slope = geometry.getAttribute('groundSlope')
+    expect(slope.itemSize).toBe(4)
+    expect(slope.count).toBe(geometry.getAttribute('position').count)
+  })
+})
+
+describe('grama em fios no chão (066)', () => {
+  const terrain = TEST_LEVEL.terrain
+  const { forest } = findBiomePoints(terrain, ['forest'])
+  const size = terrain.chunkSize()
+  const center = {
+    x: Math.floor(forest.x / size),
+    z: Math.floor(forest.z / size),
+  }
+  const chunks = []
+  for (let dx = -2; dx <= 2; dx++) {
+    for (let dz = -2; dz <= 2; dz++) {
+      chunks.push(terrain.load(center.x + dx, center.z + dz))
+    }
+  }
+  afterAll(() => {
+    for (const loaded of chunks) terrain.unload(loaded.chunkX, loaded.chunkZ)
+  })
+  const grassOf = (loaded) =>
+    buildTerrainChunkGeometry(loaded, WATER_LEVEL).getAttribute('groundGrass')
+
+  // A parte de cada vértice que é de bioma com grama em fios.
+  const bladeShareOf = (loaded, vertexIndex) => {
+    const side = loaded.resolution + 1
+    const ix = vertexIndex % side
+    const iz = Math.floor(vertexIndex / side)
+    const count = loaded.biomeIds.length
+    const first = heightIndex(loaded.resolution, ix, iz) * count
+    let total = 0
+    let share = 0
+    loaded.biomeIds.forEach((id, biome) => {
+      const weight = loaded.biomeWeights[first + biome]
+      total += weight
+      const entry = vegetationEntryOf(getBiome(id), 'tall-grass')
+      if (entry?.models?.includes(BLADE_GRASS_ID)) share += weight
+    })
+    return total > 0 ? share / total : 0
+  }
+
+  it('na floresta, as manchas de grama aparecem no chão', () => {
+    const covers = chunks.flatMap((loaded) => {
+      const grass = grassOf(loaded)
+      return Array.from({ length: grass.count }, (_, i) => grass.getW(i))
+    })
+    expect(Math.max(...covers)).toBeGreaterThan(0.9)
+    expect(Math.min(...covers)).toBeCloseTo(0, 6)
+  })
+
+  it('a cobertura fica entre 0 e a parte do vértice que tem grama em fios', () => {
+    for (const loaded of chunks) {
+      const grass = grassOf(loaded)
+      for (let i = 0; i < grass.count; i++) {
+        expect(grass.getW(i)).toBeGreaterThanOrEqual(0)
+        expect(grass.getW(i)).toBeLessThanOrEqual(
+          bladeShareOf(loaded, i) + 1e-6,
+        )
+      }
+    }
+  })
+
+  it('nada debaixo da água nem na margem', () => {
+    const { SHORE_GAP } = GAME_CONFIG.GRASS
+    for (const loaded of chunks) {
+      const geometry = buildTerrainChunkGeometry(loaded, WATER_LEVEL)
+      const position = geometry.getAttribute('position')
+      const grass = geometry.getAttribute('groundGrass')
+      for (let i = 0; i < grass.count; i++) {
+        if (position.getY(i) - WATER_LEVEL <= SHORE_GAP) {
+          expect(grass.getW(i)).toBe(0)
+        }
+      }
+    }
+  })
+})

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { listBiomes } from '../data/biomes'
 import { GAME_CONFIG } from '../gameConfig'
-import { generateTerrainChunk } from '../terrain/terrainChunk'
+import { chunkHeightAt, generateTerrainChunk } from '../terrain/terrainChunk'
 import {
   copyTerrainRecipe,
   createTerrainSampler,
@@ -42,9 +42,20 @@ function worldOf(ids, edit = () => {}) {
   return recipe
 }
 
-function solidsOf(recipe, seed, chunkX, chunkZ) {
+// `size` (m): o lado do pedaço sorteado — o chunk, ou o bloco de sólidos
+// (`SOLIDS_BLOCK_SIZE`), como o jogo sorteia (`terrainChunkSet.js`).
+function solidsOf(
+  recipe,
+  seed,
+  chunkX,
+  chunkZ,
+  size = recipe.terrain.CHUNK_SIZE,
+) {
   const sampler = createTerrainSampler(seed, recipe)
-  const chunk = generateTerrainChunk(sampler, chunkX, chunkZ, recipe.terrain)
+  const chunk = generateTerrainChunk(sampler, chunkX, chunkZ, {
+    ...recipe.terrain,
+    CHUNK_SIZE: size,
+  })
   const solids = placeChunkSolids(chunk, {
     seed,
     biomeList: recipe.biomeList,
@@ -92,7 +103,7 @@ describe.runIf(withAllSolids)('placeChunkSolids', () => {
           world.biomeList[0].vegetation.find(({ kind }) => kind === item.kind)
             ?.scale ?? 1
         const gap = borderGapOf(item.kind, params, biomeScale)
-        expect(item.y).toBeGreaterThanOrEqual(
+        expect(chunkHeightAt(chunk, item.x, item.z)).toBeGreaterThanOrEqual(
           TERRAIN.WATER_LEVEL + spec.SHORE_GAP,
         )
         expect(slopeAt(chunk, item.x, item.z)).toBeLessThanOrEqual(
@@ -114,6 +125,26 @@ describe.runIf(withAllSolids)('placeChunkSolids', () => {
       }
     },
   )
+
+  it('a base inteira fica enterrada, mesmo no barranco (066)', () => {
+    const { REACH, SINK } = GAME_CONFIG.SOLID_GROUND
+    for (const [chunkX, chunkZ] of CHUNKS) {
+      const { chunk, solids } = solidsOf(world, 11, chunkX, chunkZ)
+      for (const item of allOf(solids)) {
+        const reach = solidFootprintOf(item, params).radius * REACH
+        for (let i = 0; i <= 8; i++) {
+          const angle = (i / 8) * Math.PI * 2
+          const radius = i === 8 ? 0 : reach
+          const ground = chunkHeightAt(
+            chunk,
+            item.x + Math.cos(angle) * radius,
+            item.z + Math.sin(angle) * radius,
+          )
+          expect(item.y).toBeLessThanOrEqual(ground - SINK + 1e-9)
+        }
+      }
+    }
+  })
 
   it('a pegada de cada objeto fica dentro do chunk (navegação por chunk)', () => {
     const { chunk, solids } = solidsOf(world, 3, 1, 1)
@@ -233,14 +264,16 @@ describe('placeChunkSolids — cada espécie de árvore', () => {
           .filter((entry) => entry.kind === kind)
           .map(({ kind: only, models }) => ({ kind: only, density: 1, models }))
       })
-      // Uma área maior que `CHUNKS`: as árvores grandes têm células de
-      // mais de um chunk.
-      const area = Array.from({ length: 36 }, (_, i) => [
-        i % 6,
-        Math.floor(i / 6),
+      // Em blocos de sólidos, como o jogo sorteia (as árvores grandes têm
+      // células e troncos maiores que um chunk), numa área de vários.
+      const block = GAME_CONFIG.TERRAIN.SOLIDS_BLOCK_SIZE
+      const area = Array.from({ length: 9 }, (_, i) => [
+        i % 3,
+        Math.floor(i / 3),
       ])
       const trees = area.flatMap(
-        ([chunkX, chunkZ]) => solidsOf(world, 21, chunkX, chunkZ).solids.trees,
+        ([blockX, blockZ]) =>
+          solidsOf(world, 21, blockX, blockZ, block).solids.trees,
       )
       expect(trees.length).toBeGreaterThan(0)
       expect(trees.every((tree) => tree.kind === kind)).toBe(true)
@@ -249,9 +282,12 @@ describe('placeChunkSolids — cada espécie de árvore', () => {
 })
 
 describe('placeChunkSolids — tamanho por bioma', () => {
-  // O bioma do registro com mais pedra; o mesmo mundo com e sem `scale`.
-  const rockDensityOf = (candidate) =>
-    vegetationEntryOf(candidate, ROCK_KIND)?.density ?? 0
+  // O bioma do registro com mais pedra (das que nascem: com modelos); o
+  // mesmo mundo com e sem `scale`.
+  const rockDensityOf = (candidate) => {
+    const entry = vegetationEntryOf(candidate, ROCK_KIND)
+    return entry?.models?.length ? entry.density : 0
+  }
   const biome = [...listBiomes()].sort(
     (a, b) => rockDensityOf(b) - rockDensityOf(a),
   )[0]
@@ -262,18 +298,20 @@ describe('placeChunkSolids — tamanho por bioma', () => {
       )
       entry.scale = scale
     })
-  // Um `scale` diferente do do bioma que ainda cabe folgado no chunk (a
-  // folga da borda até um quarto dele), qualquer que seja o tamanho das
-  // pedras no config.
+  // Em blocos de sólidos, como o jogo sorteia (`terrainChunkSet.js`). Um
+  // `scale` diferente do do bioma que ainda cabe folgado no bloco (a folga
+  // da borda até um quarto dele), qualquer que seja o tamanho das pedras no
+  // config.
   const params = currentTerrainRecipe().solids
   const { OBSTACLE_MARGIN, CELL_SIZE } = GAME_CONFIG.PATHFINDING
+  const block = GAME_CONFIG.TERRAIN.SOLIDS_BLOCK_SIZE
   const reach = params.rocks.RADIUS * params.rocks.SCALE[1]
-  const room = GAME_CONFIG.TERRAIN.CHUNK_SIZE / 4 - OBSTACLE_MARGIN - CELL_SIZE
+  const room = block / 4 - OBSTACLE_MARGIN - CELL_SIZE
   const fitting = Math.min(2, room / reach)
-  const area = Array.from({ length: 16 }, (_, i) => [i % 4, Math.floor(i / 4)])
+  const area = Array.from({ length: 4 }, (_, i) => [i % 2, Math.floor(i / 2)])
   const rocksOf = (recipe) =>
-    area.flatMap(([chunkX, chunkZ]) => {
-      const { chunk, solids } = solidsOf(recipe, 17, chunkX, chunkZ)
+    area.flatMap(([blockX, blockZ]) => {
+      const { chunk, solids } = solidsOf(recipe, 17, blockX, blockZ, block)
       return solids.rocks.map((rock) => ({ rock, chunk, solids }))
     })
 

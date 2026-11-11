@@ -115,4 +115,17 @@ export {
   forcarClima,
 } from './environment'
 export { definirVolume, definirFrequenciaDaMusica } from './soundSettings'
+export {
+  aspectRatioOf,
+  ASPECT_LEVELS,
+  canvasScaleOf,
+  canvasSizeOf,
+  definirDistanciaDeVisao,
+  definirProporcao,
+  definirSombra,
+  definirTamanhoDaTela,
+  SHADOW_LEVELS,
+  shadowLevelOf,
+  viewDistanceOf,
+} from './graphicsSettings'
 export { darKitInicial } from './startingKit'

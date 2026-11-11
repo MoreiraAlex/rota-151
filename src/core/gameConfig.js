@@ -34,7 +34,7 @@ export const GAME_CONFIG = {
   // (docs/features/047-biomas.md).
   TERRAIN: {
     // Identifica a receita do relevo; subir quando a geração mudar.
-    GENERATION_VERSION: 19,
+    GENERATION_VERSION: 22,
     // Altura (m) da superfície da água: o que fica abaixo vira lago na 057.
     // O relevo dos biomas é medido a partir dela (`relief.baseHeight`).
     WATER_LEVEL: -2,
@@ -45,15 +45,12 @@ export const GAME_CONFIG = {
     // chunks (os chunks são centrados na origem; só assim a borda do bloco
     // cai na borda de um chunk).
     SOLIDS_BLOCK_SIZE: 80,
-    // Raio (em chunks) carregado em volta do treinador e da criatura
-    // controlada — um quadrado de lado 2 × raio + 1. É ele que define até
-    // onde se vê (a névoa fecha antes da borda): mais raio, mais mundo na
-    // tela e mais peso para a máquina.
-    LOAD_RADIUS: 8,
-    // Raio (em chunks) a partir do qual um chunk descarrega. Maior que o de
-    // carregar: a folga entre os dois evita carregar e descarregar o mesmo
+    // O raio (em chunks) carregado em volta do treinador e da criatura
+    // controlada é a distância de visão do menu "Gráficos"
+    // (`GRAPHICS.VIEW_DISTANCE`). Um chunk descarrega a mais deste tanto
+    // (em chunks) além dele: a folga evita carregar e descarregar o mesmo
     // chunk andando na borda.
-    UNLOAD_RADIUS: 10,
+    UNLOAD_MARGIN: 2,
     // Raio (em chunks) que carrega na hora, sem esperar a vez — o chão
     // debaixo e em volta de quem anda.
     NEAR_RADIUS: 2,
@@ -149,6 +146,17 @@ export const GAME_CONFIG = {
     PATCH_SIZE: 9,
     // ...e um granulado fino por cima.
     GRAIN_STRENGTH: 0.05,
+    // Tom e brilho do chão inteiro (docs/features/066-revisao-dos-
+    // biomas.md): a cor puxa para `TINT` (`TINT_AMOUNT`, 0 = nada) mantendo
+    // o claro e escuro, e `BRIGHTNESS` multiplica (1 = como está).
+    TINT: '#3f6e30',
+    TINT_AMOUNT: 0.75,
+    BRIGHTNESS: 0.7,
+    // Luz do chão (docs/features/066-revisao-dos-biomas.md, desempenho):
+    // 'lambert' (só a luz difusa, mais leve — a diferença para a outra quase
+    // não se vê) ou 'standard' (com o brilho especular). Troca o material ao
+    // vivo.
+    LIGHTING: 'lambert',
   },
   // Cor do chão (view/terrain/terrainGeometry.js); as cores são de cada
   // bioma (`palette`, core/data/biomes/).
@@ -700,6 +708,13 @@ export const GAME_CONFIG = {
       SELF_EDGE_COLOR: '#dcedc8',
       // Quantos avisos simultâneos no máximo (pool fixo de leques).
       POOL_SIZE: 16,
+      // Por cima da grama e dos arbustos, que o golpe não colide
+      // (view/materials/overPlants.js, docs/features/066-revisao-dos-
+      // biomas.md): HEIGHT (m) é a altura da camada de plantas que o aviso
+      // atravessa; MIN_ANGLE (rad), o menor ângulo da câmera com o chão
+      // usado na conta (câmera rente ao chão não puxa sem fim). Os
+      // personagens continuam por cima do aviso.
+      OVER_PLANTS: { ENABLED: true, HEIGHT: 1.6, MIN_ANGLE: 0.2 },
     },
     // Efeito visual do dash (`view/vfx/dashVfx.js`, `view/scene/
     // DashEffectsView.jsx`): linhas de velocidade enquanto dura o dash e poeira
@@ -1061,9 +1076,12 @@ export const GAME_CONFIG = {
   // (docs/features/062-spawn-estilo-cobblemon.md, `core/wildSpawn/`).
   // Distâncias no plano horizontal, do treinador ou da criatura controlada
   // (a mais perto). O raio longe fica dentro do raio de carga dos chunks
-  // (`TERRAIN.LOAD_RADIUS`): a selvagem some antes do chão dela.
+  // (`GRAPHICS.VIEW_DISTANCE`): a selvagem some antes do chão dela.
   WILD_SPAWN: {
     // Selvagens vivas, no máximo, até o raio longe de cada jogador.
+    // Liga o spawn (o laboratório de biomas desliga para a cena ficar
+    // parada, docs/features/066-revisao-dos-biomas.md).
+    ENABLED: true,
     MAX_PER_PLAYER: 12,
     // Segundos entre as tentativas de spawn, quantos pontos cada uma tenta
     // e quantas nascem, no máximo, por tentativa — poucas de cada vez: o
@@ -1090,7 +1108,9 @@ export const GAME_CONFIG = {
     MOVING_SPEED: 1,
     // Faixas do despawn (m): até o perto, nunca some; além do longe, some;
     // no meio, some quem está velho e fora da vista. O longe fica além da
-    // faixa da frente (névoa + `AHEAD_DEPTH`).
+    // faixa da frente (névoa + `AHEAD_DEPTH`) e dentro do chão carregado:
+    // é o da distância de visão padrão (`GRAPHICS.VIEW_DISTANCE`) e acompanha
+    // a escolhida no menu, na mesma proporção (`spawnParams`).
     NEAR_RADIUS: 40,
     FAR_RADIUS: 125,
     // Idade (s de jogo) da faixa do meio: antes da mínima, não some; dali a
@@ -1747,6 +1767,18 @@ export const GAME_CONFIG = {
     // - OPACITY: quanto fica visível dentro dele (0 some, 1 não muda).
     // - TARGET_GAP: perto do alvo (m) o efeito vai apagando — o que está
     //   encostado nele, do lado, não some.
+    // O que some com a câmera dentro (docs/features/066-revisao-dos-
+    // biomas.md, view/vegetation/toonMaterial.js): a copa de uma árvore (só
+    // as folhas — a tela coberta de folha era o quadro mais caro do jogo)
+    // e as pedras e os prédios da cidade (o modelo inteiro). Some quando a
+    // câmera chega a HIDE (m) da caixa do que some (negativo: só depois de
+    // entrar nela) e vai sumindo em pontilhado ao longo dos FADE (m)
+    // antes disso. A sombra fica. CANOPY: copas; SOLID: pedras e prédios.
+    NEAR_HIDE: {
+      ENABLED: true,
+      CANOPY: { HIDE: 0.5, FADE: 1 },
+      SOLID: { HIDE: 0.3, FADE: 0.5 },
+    },
     SEE_THROUGH: {
       ENABLED: true,
       RADIUS: 1.2,
@@ -1955,18 +1987,15 @@ export const GAME_CONFIG = {
     MOON_SIZE: 0.035,
     SUN_COLOR: '#fff3c4',
     MOON_COLOR: '#e8eefc',
-    // Sombra do sol e da lua (view/scene/DayLightView.jsx): ela acompanha
-    // quem está no controle. Lado (m) da área com sombra e distância (m) da
-    // luz até o centro dela.
-    SHADOW_AREA: 120,
+    // Sombra do sol e da lua (view/scene/DayNightView.jsx): distância (m)
+    // da luz até o centro da área com sombra. O tamanho da área, o mapa e o
+    // resto são do nível escolhido no menu (`GRAPHICS.SHADOW`).
     SHADOW_DISTANCE: 80,
-    // Quanto (m) o centro da área de sombra vai à frente de quem está no
-    // controle, na direção em que a câmera olha (docs/features/058-ajuste-
-    // dos-biomas.md): a área cobre o que se vê até a névoa, não o que fica
-    // atrás da câmera. Menos que metade do `SHADOW_AREA`, para quem está no
-    // controle e a volta dele seguirem dentro.
-    SHADOW_AHEAD: 45,
-    SHADOW_MAP_SIZE: 2048,
+    // Ajuste por cima das horas marcadas (docs/features/066-revisao-dos-
+    // biomas.md, laboratório de biomas): multiplica a força da luz direta
+    // (`SUN`), da luz ambiente (`AMBIENT`) e o escuro da sombra (`SHADOW`,
+    // 0 = sem sombra). 1 = como as horas marcadas.
+    ADJUST: { SUN: 1, AMBIENT: 1, SHADOW: 1 },
   },
   // Nuvens no céu (view/scene/DayNightView.jsx, docs/features/048-dia-
   // noite-e-clima.md): desenhadas no próprio céu, sem objeto 3D. A cor vem
@@ -2053,18 +2082,22 @@ export const GAME_CONFIG = {
   // Let's Go de cada bioma (`models` da entrada `tall-grass`), espalhados
   // por bloco e tingidos pela cor do bioma.
   GRASS: {
+    // A grama aparece? Escondida não some dos dados (os biomas continuam
+    // com ela) — só não é desenhada; o F2 ("Vegetação → Mostrar → Grama")
+    // liga ao vivo (docs/features/066-revisao-dos-biomas.md).
+    VISIBLE: true,
     // Lado (m) de um bloco de grama — a grama nasce e some por bloco. O
     // `TERRAIN.CHUNK_SIZE` tem que ser múltiplo dele.
     TILE_SIZE: 16,
     // Tufos por m² onde a `density` do bioma é 1 (cada modelo cobre mais
     // de um m²).
-    CLUMPS_PER_M2: 1.2,
+    CLUMPS_PER_M2: 6,
     // Tamanho (multiplica o modelo) — sorteado entre os dois.
     SCALE: [0.8, 1.2],
     // Altura: multiplica o modelo só na vertical (por cima do tamanho).
-    HEIGHT: 1.5,
+    HEIGHT: 0.7,
     // Quanto a altura varia em manchas (0 = toda igual).
-    HEIGHT_VARIATION: 0.45,
+    HEIGHT_VARIATION: 0.6,
     // Tamanho (m) das manchas de altura.
     HEIGHT_PATCH_SIZE: 7,
     // Tamanho (m) das manchas de cor (entre a cor `a` e a `b` do bioma)...
@@ -2072,21 +2105,62 @@ export const GAME_CONFIG = {
     // ...e quanto uma mancha pode puxar para a `b` (0 a 1).
     COLOR_VARIATION: 0.5,
     // Variação grande de claro e escuro (0 a 1) e o tamanho (m) dela.
-    MACRO_VARIATION: 0.25,
+    MACRO_VARIATION: 0.35,
     MACRO_SIZE: 9,
     // Sem grama: abaixo da água + esta folga (m) e em encosta mais
     // íngreme que esta (rad).
     SHORE_GAP: 0.4,
     MAX_SLOPE: 0.6,
   },
+  // Grama em fios (view/vegetation/bladeGrass.js, docs/features/066-
+  // revisao-dos-biomas.md): o tufo de lâminas finas gerado por código, que
+  // o bioma escolhe nos `models` da grama (`blade-grass`). A cor base vale
+  // ao vivo; a forma, ao refazer o tufo (laboratório de biomas). O tamanho
+  // e a altura no mundo seguem o `GRASS` (como os outros modelos).
+  // - COUNT: lâminas por tufo (o que mais pesa: o custo da grama na tela
+  //   segue o número de lâminas, mais que a altura ou a distância);
+  //   RADIUS (m): o disco onde nascem;
+  // - HEIGHT (m) e HEIGHT_VARIATION: altura da lâmina e quanto ela varia;
+  // - WIDTH (m): largura no pé; SEGMENTS: partes da lâmina (a curva do
+  //   vento — a lâmina nasce reta, virada para um lado sorteado);
+  // - ROOT_SHADE e TIP_SHADE: o tom da raiz e da ponta (vezes a cor);
+  // - SEED: o sorteio do tufo;
+  // - FADE_START e FADE_END (m da câmera): a grama em fios encolhe entre
+  //   os dois e some depois (longe, o chão faz o papel dela) — o bloco
+  //   inteiro deixa de ser desenhado além do fim; nessa faixa, o tom da
+  //   lâmina (raiz e ponta) vai virando o GROUND_SHADE, o mesmo do chão
+  //   debaixo dela;
+  // - GROUND_COVER (0 a 1) e GROUND_SHADE: o chão debaixo das manchas de
+  //   grama em fios puxa para a cor dela (COLOR, com a tinta do bioma, vezes
+  //   GROUND_SHADE) — de longe, onde as lâminas já sumiram, a mancha
+  //   continua lá e, perto, elas brotam em cima da mesma cor
+  //   (view/terrain/terrainGeometry.js, `groundGrass`).
+  // O tufo não vira para a câmera (como no stylized-scene): fica de pé e
+  // todas as lâminas dobram para o lado do vento.
+  GRASS_BLADES: {
+    COLOR: '#5cc417',
+    COUNT: 20,
+    RADIUS: 0.5,
+    HEIGHT: 0.75,
+    HEIGHT_VARIATION: 0.35,
+    WIDTH: 0.07,
+    SEGMENTS: 4,
+    ROOT_SHADE: 0.6,
+    TIP_SHADE: 1.3,
+    SEED: 7,
+    FADE_START: 40,
+    FADE_END: 100,
+    GROUND_COVER: 1,
+    GROUND_SHADE: 1,
+  },
   FLOWERS: {
     // Moitas de flores por m² onde a `density` é 1.
-    CLUMPS_PER_M2: 0.5,
+    CLUMPS_PER_M2: 0.25,
   },
   // Árvores (docs/features/049-vegetacao-e-floresta.md). `TREES` é a
   // folhosa comum (`broadleaf-tree`) e o que vale para todas as espécies
   // (tom, LOD); cada espécie tem o próprio bloco com a colocação
-  // (`ANCIENT_TREES`, `PINES`, `DEAD_TREES`).
+  // (`GIANT_TREES`, `ANCIENT_TREES`, `PINES`, `DEAD_TREES`).
   TREES: {
     // Lado (m) da grade de candidatas: no máximo uma árvore por célula —
     // é o espaço mínimo entre duas.
@@ -2125,6 +2199,20 @@ export const GAME_CONFIG = {
     TRUNK_RADIUS: 0.95,
     TRUNK_HEIGHT: 6,
     CROWN_RADIUS: 4.5,
+  },
+  // Árvore gigante (`giant-tree`, docs/features/066-revisao-dos-
+  // biomas.md): poucas, da altura de vários andares, com tronco largo e
+  // bastante espaço em volta (a copa não deixa outro tronco nascer
+  // debaixo). Mesmos campos de `TREES`.
+  GIANT_TREES: {
+    SPACING: 60,
+    CHANCE: 0.8,
+    SCALE: [3.5, 4.5],
+    MAX_SLOPE: 0.3,
+    SHORE_GAP: 2,
+    TRUNK_RADIUS: 0.6,
+    TRUNK_HEIGHT: 8,
+    CROWN_RADIUS: 3,
   },
   // Pinheiro (`pine-tree`): em bosques (`patches` no bioma), com a casca
   // um pouco mais quente que a da folhosa.
@@ -2187,9 +2275,9 @@ export const GAME_CONFIG = {
   },
   // Pedras (`rock`) — colidem e entram no pathfinding.
   ROCKS: {
-    SPACING: 5,
-    CHANCE: 0.75,
-    SCALE: [0.1, 3],
+    SPACING: 10,
+    CHANCE: 0.25,
+    SCALE: [0.25, 3],
     MAX_SLOPE: 0.6,
     SHORE_GAP: 0.2,
     // Raio (m) da colisão no tamanho 1 (o modelo é um pouco maior que ele:
@@ -2198,6 +2286,20 @@ export const GAME_CONFIG = {
     HEIGHT: 1.8,
     // Quanto a pedra afunda no chão (fração da altura).
     SINK: 0.12,
+  },
+  // O chão para o som do passo (core/terrain/groundSurface.js,
+  // docs/features/066-revisao-dos-biomas.md): é grama onde a parte da
+  // grama do bioma no ponto (as manchas, sem trilha) chega a GRASS (0 a 1).
+  GROUND_SURFACE: {
+    GRASS: 0.5,
+  },
+  // Base das árvores e pedras no chão (core/vegetation/solidPlacement.js,
+  // `groundedBaseY`): o objeto fica na altura do chão mais baixo debaixo
+  // da base — numa volta do tamanho da pegada do modelo vezes REACH — e
+  // afunda SINK (m) a mais. Num barranco, a base inteira fica enterrada.
+  SOLID_GROUND: {
+    REACH: 1.2,
+    SINK: 0.15,
   },
   // Arbustos (`bush`) — atravessáveis.
   BUSHES: {
@@ -2248,6 +2350,16 @@ export const GAME_CONFIG = {
     // Tamanho sorteado das plantas baixas (vezes o `scale` da entrada do
     // bioma) — os modelos já vêm em metros.
     PLANT_SCALE: [0.8, 1.2],
+    // Base das plantas mais escura (docs/features/066-revisao-dos-
+    // biomas.md): o pé da grama e das plantas escurece até `BASE_SHADE`
+    // (0 = desligado, 1 = preto) e clareia até a altura `BASE_SHADE_HEIGHT`
+    // (fração da altura do modelo) — a sombra que a grama faz em si mesma.
+    BASE_SHADE: 0.45,
+    BASE_SHADE_HEIGHT: 0.6,
+    // As árvores dos pacotes de fora (docs/features/066-revisao-dos-
+    // biomas.md) com as folhas de uma árvore do LGPE (id do prop no
+    // manifesto; `null` = as folhas delas): ao carregar a vegetação.
+    PACK_LEAVES: 'round-tree',
   },
 
   // Mato alto do LGPE (`encounter-grass`, o "mato de encontro"): pontos
@@ -2292,11 +2404,9 @@ export const GAME_CONFIG = {
   // - canopyShadow: se copas e arbustos fazem sombra;
   // - shadowRing: até quantos blocos de sólidos (`TERRAIN.SOLIDS_BLOCK_SIZE`)
   //   da câmera os objetos fazem sombra — o bastante para cobrir a área de
-  //   sombra (`DAY_CYCLE.SHADOW_AREA`); 0 = nenhum;
+  //   sombra (`GRAPHICS.SHADOW`, a `AREA` do nível); 0 = nenhum;
   // - treeDistance: até onde (m, do centro do bloco da câmera ao centro do
   //   bloco) aparecem árvores e pedras;
-  // - maxDpr: densidade de pixels máxima da tela (telas de alta resolução
-  //   desenham até o dobro de pixels).
   VEGETATION_QUALITY: {
     CURRENT: 'high',
     high: {
@@ -2304,15 +2414,102 @@ export const GAME_CONFIG = {
       canopyShadow: true,
       shadowRing: 2,
       treeDistance: 150,
-      maxDpr: 1.5,
     },
     low: {
       density: 0.5,
       canopyShadow: false,
       shadowRing: 0,
       treeDistance: 100,
-      maxDpr: 1,
     },
+  },
+  // Gráficos que o jogador escolhe no menu (docs/features/066-revisao-dos-
+  // biomas.md, desempenho): vão no save da conta (`GraphicsSettings`),
+  // como o som. Cada opção tem os níveis em ordem, do mais leve ao mais
+  // bonito, e o padrão de quem nunca mexeu.
+  GRAPHICS: {
+    // Sombra do sol (view/scene/DayNightView.jsx). Por nível:
+    // - ENABLED: se há sombra (desligada, nada é desenhado nem lido);
+    // - MAP_SIZE: lado (px) do mapa de sombra — mais, sombra mais nítida;
+    // - AREA: lado (m) da área com sombra, em volta de quem está no
+    //   controle, e AHEAD: quanto (m) ela vai à frente, para onde a câmera
+    //   olha (menos que metade da AREA, para quem está no controle e a
+    //   volta dele seguirem dentro);
+    // - UPDATE_EVERY: o mapa é redesenhado a cada quantos quadros (1 =
+    //   todo quadro; mais, a sombra de quem se mexe anda aos saltos);
+    // - SOFT: borda macia no chão e nos personagens (várias leituras do
+    //   mapa por pixel); sem ela, uma leitura só. A vegetação lê uma vez
+    //   sempre (nas folhas a diferença não aparece);
+    // - VEGETATION_RECEIVES: se a sombra cai em cima da vegetação (copas,
+    //   troncos, plantas) ou só no chão e nos personagens.
+    SHADOW: {
+      DEFAULT: 'high',
+      LEVELS: {
+        off: {
+          ENABLED: false,
+          MAP_SIZE: 1024,
+          AREA: 80,
+          AHEAD: 30,
+          UPDATE_EVERY: 1,
+          SOFT: false,
+          VEGETATION_RECEIVES: false,
+        },
+        low: {
+          ENABLED: true,
+          MAP_SIZE: 1024,
+          AREA: 80,
+          AHEAD: 30,
+          UPDATE_EVERY: 2,
+          SOFT: false,
+          VEGETATION_RECEIVES: false,
+        },
+        medium: {
+          ENABLED: true,
+          MAP_SIZE: 2048,
+          AREA: 100,
+          AHEAD: 38,
+          UPDATE_EVERY: 2,
+          SOFT: false,
+          VEGETATION_RECEIVES: true,
+        },
+        high: {
+          ENABLED: true,
+          MAP_SIZE: 2048,
+          AREA: 120,
+          AHEAD: 45,
+          UPDATE_EVERY: 1,
+          SOFT: true,
+          VEGETATION_RECEIVES: true,
+        },
+      },
+    },
+    // Proporção do canvas (view/scene/GameCanvas.jsx): com ela, o canvas
+    // fica no maior retângulo dessa proporção que cabe na janela, no centro,
+    // com faixas pretas no que sobra; a interface continua na tela inteira.
+    // Por nível, RATIO: largura ÷ altura (null = a da janela, sem faixas).
+    ASPECT: {
+      DEFAULT: 'fill',
+      LEVELS: {
+        fill: { RATIO: null },
+        '21:9': { RATIO: 21 / 9 },
+        '16:9': { RATIO: 16 / 9 },
+        '16:10': { RATIO: 16 / 10 },
+        '4:3': { RATIO: 4 / 3 },
+      },
+    },
+    // Tamanho do canvas (view/scene/GameCanvas.jsx): fração do lado do
+    // retângulo da proporção, de MIN até a janela toda (1), em passos de
+    // STEP. O desenho é sempre um pixel por pixel do canvas (nítido, sem
+    // esticar); o que sobra da janela fica preto. Canvas menor, menos
+    // pixels para a placa de vídeo desenhar.
+    CANVAS_SIZE: { DEFAULT: 1, MIN: 0.5, STEP: 0.05 },
+    // Distância de visão (core/systems/chunkStreamingSystem.js): o raio, em
+    // chunks inteiros, do mundo carregado em volta de quem anda — um
+    // quadrado de lado 2 × raio + 1. Define até onde se vê (a névoa fecha
+    // antes da borda, `core/terrain/fogRange.js`) e onde as selvagens
+    // nascem e somem: mais raio, mais mundo na tela e mais peso para a
+    // máquina. MIN: abaixo dele, o anel de spawn das selvagens sairia do
+    // chão carregado.
+    VIEW_DISTANCE: { DEFAULT: 8, MIN: 5, MAX: 12 },
   },
   RENDER: {
     // Curva de cor da cena inteira (docs/features/049-*.md): 'aces' (a de
@@ -2334,11 +2531,37 @@ export const GAME_CONFIG = {
     OUTLINE_WIDTH: 0.0045, // espessura do contorno, em unidades do modelo (antes do scale)
     OUTLINE_COLOR: '#3a1410',
     OUTLINE_SKIP: ['fire'], // materiais (por nome) que não ganham contorno
+    // Silhueta de quem está escondido atrás de planta (grama, arbusto,
+    // flor — docs/features/066-revisao-dos-biomas.md,
+    // view/materials/toonMaterial.js): a forma do corpo numa cor chapada,
+    // ALLY_COLOR para o treinador e o time, WILD_COLOR para as selvagens,
+    // com OPACITY. Atrás de chão, tronco, pedra ou prédio, não aparece.
+    // WILD_AT_NIGHT: a das selvagens também à noite (desligado: de noite
+    // elas não se destacam de longe — batalha e captura mais difíceis).
+    SILHOUETTE: {
+      ENABLED: true,
+      WILD_AT_NIGHT: false,
+      ALLY_COLOR: '#3fa9ff',
+      WILD_COLOR: '#ffb35c',
+      OPACITY: 0.6,
+    },
     RIM_STRENGTH: 0.22, // brilho de borda; 0 desliga
     // faixa do rim (0 = de frente pra câmera, 1 = de lado): começa a acender
     // no primeiro valor e chega no máximo no segundo — perto um do outro =
     // corte seco, estilo toon
     RIM_EDGE: [0.62, 0.68],
     RIM_COLOR: '#ffe6b3',
+    // Correção de cor no fim da imagem (view/scene/colorGrade.js,
+    // docs/features/066-revisao-dos-biomas.md), depois da curva de cor:
+    // saturação, contraste e gama (1 = sem mudança), exposição (0 = sem
+    // mudança, em pontos de luz) e temperatura (0 = neutra; positivo
+    // esquenta, negativo esfria). Com os valores neutros a etapa nem roda.
+    GRADE: {
+      SATURATION: 1,
+      CONTRAST: 1,
+      EXPOSURE: 0,
+      GAMMA: 1,
+      TEMPERATURE: 0,
+    },
   },
 }

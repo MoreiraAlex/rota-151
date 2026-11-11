@@ -348,3 +348,62 @@ describe('createKindDensity (linha das árvores, docs/features/051-*.md)', () =>
     }
   })
 })
+
+describe('createKindDensity (trilha por bioma)', () => {
+  // O mesmo tipo: de trilha num bioma, espalhado no outro.
+  const trailBiome = {
+    id: 'de-trilha',
+    vegetation: [
+      { kind: 'seixo', density: 0.6, models: MODELS, place: 'trail' },
+    ],
+  }
+  const spreadBiome = {
+    id: 'espalhado',
+    vegetation: [{ kind: 'seixo', density: 0.6, models: MODELS }],
+  }
+  const options = { biomeList: [trailBiome, spreadBiome], seed: 3 }
+  const vertices = chunk.heights.length
+  const only = (id, trail) => ({
+    ...chunk,
+    biomeIds: [id],
+    biomeWeights: new Uint8Array(vertices).fill(255),
+    trails: new Float32Array(vertices).fill(trail),
+    streets: null,
+  })
+  const points = Array.from({ length: 50 }, (_, i) => [
+    chunk.minX + ((i * 7.7) % chunk.size),
+    chunk.minZ + ((i * 3.3) % chunk.size),
+  ])
+
+  it('no bioma em que não é de trilha, nasce fora dela mesmo que outro bioma o ponha na trilha', () => {
+    const open = createKindDensity(only('espalhado', 0), 'seixo', options)
+    const onTrail = createKindDensity(only('espalhado', 1), 'seixo', options)
+    for (const [x, z] of points) {
+      expect(open.at(x, z)).toBeCloseTo(0.6, 4)
+      expect(onTrail.at(x, z)).toBeCloseTo(0, 4)
+    }
+  })
+
+  it('no bioma em que é de trilha, só nasce nela', () => {
+    const open = createKindDensity(only('de-trilha', 0), 'seixo', options)
+    const onTrail = createKindDensity(only('de-trilha', 1), 'seixo', options)
+    for (const [x, z] of points) {
+      expect(open.at(x, z)).toBeCloseTo(0, 4)
+      expect(onTrail.at(x, z)).toBeCloseTo(0.6, 4)
+    }
+  })
+
+  it('na fronteira, cada bioma pela regra dele, pelo peso', () => {
+    const half = {
+      ...chunk,
+      biomeIds: ['de-trilha', 'espalhado'],
+      biomeWeights: new Uint8Array(vertices * 2).fill(128),
+      trails: new Float32Array(vertices).fill(0),
+      streets: null,
+    }
+    const density = createKindDensity(half, 'seixo', options)
+    for (const [x, z] of points) {
+      expect(density.at(x, z)).toBeCloseTo((0.6 * 128) / 255, 3)
+    }
+  })
+})

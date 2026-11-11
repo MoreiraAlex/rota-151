@@ -3,6 +3,7 @@
 import { X } from 'lucide-react'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import { ConfigPanel } from './ConfigEditor'
+import { GraphicsSettingsPanel } from './GraphicsSettingsPanel'
 import { InventoryPanel } from './InventoryPanel'
 import { PokedexMenu } from './pokedex/PokedexMenu'
 import { SoundSettingsPanel } from './SoundSettingsPanel'
@@ -16,6 +17,7 @@ const BOX_WIDTH = {
   main: 'w-80',
   settings: 'w-80',
   sound: 'w-80',
+  graphics: 'w-80',
   inventory: 'w-[36rem]',
   pokedex: 'w-[800px]',
 }
@@ -84,6 +86,9 @@ export function PauseMenu({
               Inventário
             </MenuButton>
             <MenuButton onClick={() => setView('sound')}>Som</MenuButton>
+            <MenuButton onClick={() => setView('graphics')}>
+              Gráficos
+            </MenuButton>
             <MenuButton onClick={() => setView('settings')}>
               Configurações
             </MenuButton>
@@ -109,6 +114,12 @@ export function PauseMenu({
         {view === 'sound' && (
           <MenuView title="Som" onClose={onResume}>
             <SoundSettingsPanel />
+          </MenuView>
+        )}
+
+        {view === 'graphics' && (
+          <MenuView title="Gráficos" onClose={onResume}>
+            <GraphicsSettingsPanel />
           </MenuView>
         )}
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { parseArgs } from 'node:util'
 import { readGlbPositions } from './glb.js'
@@ -25,6 +25,10 @@ import { readGlbPositions } from './glb.js'
  * O casco sai reduzido: só os pontos mais longe em cada uma de
  * `DIRECTIONS` direções (todos vértices do casco de verdade).
  *
+ * Lê também os pacotes de fora que o jogo usa (`--packs`, a pasta de
+ * `public/assets/vegetation/packs/`, docs/features/066-revisao-dos-
+ * biomas.md), no mesmo formato.
+ *
  * Grava `src/core/data/lgpeColliders.json`: id →
  * `{ points: [x, y, z, ...], reach, box? }` (m, no tamanho do modelo;
  * `reach` é o maior afastamento do eixo no chão — a pegada; `box`, só nos
@@ -37,6 +41,7 @@ import { readGlbPositions } from './glb.js'
 const { values: args } = parseArgs({
   options: {
     lgpe: { type: 'string', default: 'public/assets/vegetation/lgpe' },
+    packs: { type: 'string', default: 'public/assets/vegetation/packs' },
     out: { type: 'string', default: 'src/core/data/lgpeColliders.json' },
   },
 })
@@ -154,17 +159,27 @@ function colliderOf(prop, primitives) {
   }
 }
 
-const manifest = JSON.parse(
-  readFileSync(join(args.lgpe, 'manifest.json'), 'utf8'),
-)
+// O LGPE e os pacotes do jogo (cada um na pasta dele).
+const packsList = join(args.packs, 'packs.json')
+const dirs = [
+  args.lgpe,
+  ...(existsSync(packsList)
+    ? JSON.parse(readFileSync(packsList, 'utf8')).map((id) =>
+        join(args.packs, id),
+      )
+    : []),
+]
 const colliders = {}
-for (const [id, prop] of Object.entries(manifest.props)) {
-  if (!SOLID_CATEGORIES.has(prop.category)) continue
-  const primitives = readGlbPositions(readFileSync(join(args.lgpe, prop.file)))
-  colliders[id] = colliderOf(prop, primitives)
-  console.log(
-    `${id.padEnd(16)} ${colliders[id].points.length / 3} pontos, alcance ${colliders[id].reach} m`,
-  )
+for (const dir of dirs) {
+  const manifest = JSON.parse(readFileSync(join(dir, 'manifest.json'), 'utf8'))
+  for (const [id, prop] of Object.entries(manifest.props)) {
+    if (!SOLID_CATEGORIES.has(prop.category)) continue
+    const primitives = readGlbPositions(readFileSync(join(dir, prop.file)))
+    colliders[id] = colliderOf(prop, primitives)
+    console.log(
+      `${id.padEnd(24)} ${colliders[id].points.length / 3} pontos, alcance ${colliders[id].reach} m`,
+    )
+  }
 }
 // Um prop por linha (os pontos não cabem um por linha).
 const lines = Object.entries(colliders).map(

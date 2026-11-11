@@ -1,3 +1,5 @@
+import { GAME_CONFIG } from '@/core/gameConfig'
+
 /**
  * O que o debug (F2, painel "Vegetação") mexe na vegetação
  * (docs/features/049-vegetacao-e-floresta.md): ligar e desligar grama,
@@ -7,8 +9,9 @@
  * Os números de material (vento, cor da folha) o `VegetationView` lê a cada
  * quadro e não precisam disto.
  */
+// A grama começa como o config diz (`GRASS.VISIBLE`); o resto, à mostra.
 let state = {
-  grass: true,
+  grass: GAME_CONFIG.GRASS.VISIBLE,
   flowers: true,
   trees: true,
   undergrowth: true,

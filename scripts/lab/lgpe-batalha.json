@@ -1,0 +1,12 @@
+[
+  {
+    "id": "lgpe-batalha-folhosa",
+    "label": "Folhosa grande (batalha da floresta)",
+    "category": "tree",
+    "map": "btl_N_wood/btl_N_wood.gfbmdl",
+    "folder": "btl_N_wood",
+    "node": "tree_set/tree_model_1",
+    "whole": true,
+    "scale": 0.5
+  }
+]

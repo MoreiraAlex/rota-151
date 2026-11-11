@@ -17,9 +17,17 @@ import { PARTY_SLOT_IDS } from '../traits'
  * O schema é a fronteira: o adapter (cliente) e a rota da API (servidor)
  * validam com ele antes de o dado entrar no jogo ou no banco.
  */
-export const SAVE_VERSION = 6
+export const SAVE_VERSION = 7
 
 const numberRecord = z.record(z.string(), z.number())
+
+// Os gráficos de quem nunca mexeu (docs/features/066-revisao-dos-biomas.md).
+const defaultGraphics = () => ({
+  shadow: GAME_CONFIG.GRAPHICS.SHADOW.DEFAULT,
+  aspect: GAME_CONFIG.GRAPHICS.ASPECT.DEFAULT,
+  canvasScale: GAME_CONFIG.GRAPHICS.CANVAS_SIZE.DEFAULT,
+  viewDistance: GAME_CONFIG.GRAPHICS.VIEW_DISTANCE.DEFAULT,
+})
 
 // Uma condição guardada (a mesma forma das entradas de `Conditions`).
 const conditionSchema = z.object({
@@ -83,6 +91,30 @@ export const trainerSaveSchema = z.object({
     musicFrequency: z
       .enum(Object.keys(MUSIC_FREQUENCIES))
       .default(DEFAULT_MUSIC_FREQUENCY),
+    // Gráficos (docs/features/066-revisao-dos-biomas.md): o nível da
+    // sombra, a proporção e o tamanho do canvas e a distância de visão
+    // (`GAME_CONFIG.GRAPHICS`).
+    // Um valor que deixou de valer (ou ainda não existia no save) volta ao
+    // padrão; o que saiu do formato (a antiga resolução) é ignorado.
+    graphics: z.object({
+      shadow: z
+        .enum(Object.keys(GAME_CONFIG.GRAPHICS.SHADOW.LEVELS))
+        .catch(GAME_CONFIG.GRAPHICS.SHADOW.DEFAULT),
+      aspect: z
+        .enum(Object.keys(GAME_CONFIG.GRAPHICS.ASPECT.LEVELS))
+        .catch(GAME_CONFIG.GRAPHICS.ASPECT.DEFAULT),
+      canvasScale: z
+        .number()
+        .min(GAME_CONFIG.GRAPHICS.CANVAS_SIZE.MIN)
+        .max(1)
+        .catch(GAME_CONFIG.GRAPHICS.CANVAS_SIZE.DEFAULT),
+      viewDistance: z
+        .number()
+        .int()
+        .min(GAME_CONFIG.GRAPHICS.VIEW_DISTANCE.MIN)
+        .max(GAME_CONFIG.GRAPHICS.VIEW_DISTANCE.MAX)
+        .catch(GAME_CONFIG.GRAPHICS.VIEW_DISTANCE.DEFAULT),
+    }),
   }),
   pokedex: z.object({
     speciesIds: z.array(z.string()),
@@ -161,6 +193,8 @@ export const saveSchema = z.object({
  *   postura de cada Pokémon, começando na padrão.
  * - 5 → 6 (docs/features/065-sons-do-mundo.md): entram os ajustes do
  *   treinador, com os volumes e a frequência da música padrão.
+ * - 6 → 7 (docs/features/066-revisao-dos-biomas.md): entram os gráficos
+ *   nos ajustes, com os padrão.
  */
 const MIGRATIONS = {
   1: (save) => ({ ...save, worldItems: { chunks: {}, foraged: {} } }),
@@ -186,6 +220,16 @@ const MIGRATIONS = {
       settings: save.trainer?.settings ?? {
         volume: { ...DEFAULT_VOLUMES },
         musicFrequency: DEFAULT_MUSIC_FREQUENCY,
+      },
+    },
+  }),
+  6: (save) => ({
+    ...save,
+    trainer: {
+      ...save.trainer,
+      settings: {
+        ...save.trainer?.settings,
+        graphics: save.trainer?.settings?.graphics ?? defaultGraphics(),
       },
     },
   }),

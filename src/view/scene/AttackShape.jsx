@@ -1,6 +1,12 @@
 'use client'
 
-import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
+import {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useLayoutEffect,
+  useRef,
+} from 'react'
 import * as THREE from 'three'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import {
@@ -18,6 +24,7 @@ import {
 import { resolveAttackImpactPoint } from '@/core/battle/attackTrajectory'
 import { castRay } from '@/core/physics/raycast'
 import { capsuleShape, coneShape, discShape } from './attackShapeMesh'
+import { applyOverPlants } from '@/view/materials/overPlants'
 
 const { GROUND_LIFT, DRAPE_STEP, DRAPE_RAY_UP, DRAPE_RAY_DOWN } =
   GAME_CONFIG.FEEDBACK.ATTACK_INDICATOR
@@ -54,7 +61,15 @@ const HEIGHT_CACHE_DECIMALS = 2
  * inteiro). Sem lógica de jogo.
  */
 export const AttackShape = forwardRef(function AttackShape(
-  { fillColor, fillOpacity, edgeColor, edgeOpacity, depthTest, renderOrder },
+  {
+    fillColor,
+    fillOpacity,
+    edgeColor,
+    edgeOpacity,
+    depthTest,
+    renderOrder,
+    overPlants = false,
+  },
   ref,
 ) {
   const rootRef = useRef()
@@ -66,6 +81,14 @@ export const AttackShape = forwardRef(function AttackShape(
     fill: fillRef.current,
     edge: edgeRef.current,
   }))
+
+  // Por cima da grama e dos arbustos (`overPlants.js`), antes do primeiro
+  // desenho.
+  useLayoutEffect(() => {
+    if (!overPlants) return
+    applyOverPlants(fillRef.current.material)
+    applyOverPlants(edgeRef.current.material)
+  }, [overPlants])
 
   useEffect(() => {
     const fill = fillRef.current

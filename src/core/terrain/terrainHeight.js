@@ -7,6 +7,14 @@ import { createBiomeSampler } from './biomeMap'
 import { createCitySites } from '../town/citySites'
 import { createRoads } from '../town/roads'
 import { createWaterBodies } from './waterBodies'
+import { rampShareAt, terracedHeight } from './terraces'
+import {
+  createMountainSites,
+  dryShareAt,
+  isDryAround,
+  mountainAt,
+  pathStartOf,
+} from './mountains'
 
 // Cada camada de ondulação tem metade do tamanho da anterior (o padrão da
 // técnica)...
@@ -25,6 +33,9 @@ const RIDGE_SHIFT = 1 / 3
 // Peso abaixo do qual um bioma não entra na altura (economiza o ruído dele
 // longe da fronteira; o erro fica muito abaixo da precisão do float32).
 const MIN_RELIEF_WEIGHT = 1e-6
+// O ruído das rampas dos platôs é o mesmo do relevo, lido longe dele (um
+// deslocamento grande: não acompanha os morros).
+const RAMP_NOISE_OFFSET = 7919
 
 /** Quantas camadas cabem de `hillSize` até a menor visível. */
 export function countLayers(hillSize) {
@@ -86,11 +97,15 @@ export function copyTerrainRecipe(recipe) {
  * anterior. Com `ridges` (docs/features/051-montanha.md), parte de cada
  * camada vira crista (`1 − |ruído|`, ao quadrado: serras e picos pontudos
  * no lugar de morros redondos). O resultado (-1 a 1) passa por `flatness`
- * (achata o meio) e vira metros (`hillHeight`).
+ * (achata o meio) e vira metros (`hillHeight`). Com `terraces`
+ * (docs/features/066-revisao-dos-biomas.md, `terraces.js`), a altura sobe
+ * em patamares com barranco, e vira rampa nas manchas do ruído de rampa.
+ * Com `mountains` (`mountains.js`), as montanhas da seed somam por cima.
  */
-function createReliefSampler(noise2D, relief) {
+function createReliefSampler(noise2D, relief, mountainSites) {
   const { baseHeight, hillSize, hillHeight, roughness, flatness } = relief
   const ridges = relief.ridges ?? 0
+  const terraces = relief.terraces ?? null
   const layers = countLayers(hillSize)
 
   return function reliefAt(x, z) {
@@ -111,8 +126,23 @@ function createReliefSampler(noise2D, relief) {
     // A crista centralizada pode passar um pouco de 1: `hillHeight` continua
     // sendo o quanto o morro sobe, no máximo.
     const value = Math.min(Math.max(sum / totalWeight, -1), 1)
-    return (
+    const hills =
       baseHeight + hillHeight * Math.sign(value) * Math.abs(value) ** flatness
+    const mountain = mountainSites
+      ? mountainAt(mountainSites.siteAt(x, z), x, z, relief.mountains).height
+      : 0
+    if (!terraces) return hills + mountain
+    const rampFrequency = 1 / Math.max(terraces.rampSize, 1)
+    const rampNoise =
+      (noise2D(
+        x * rampFrequency + RAMP_NOISE_OFFSET,
+        z * rampFrequency - RAMP_NOISE_OFFSET,
+      ) +
+        1) /
+      2
+    return (
+      terracedHeight(hills, terraces, rampShareAt(rampNoise, terraces.ramps)) +
+      mountain
     )
   }
 }
@@ -168,13 +198,86 @@ export function createTerrainSampler(seed, recipe = currentTerrainRecipe()) {
     biomes: biomeList,
     cities,
   })
-  const reliefs = biomeList.map((biome) =>
+  // As montanhas de cada bioma com `relief.mountains`
+  // (docs/features/066-revisao-dos-biomas.md), longe da água.
+  const insideWater = (x, z) =>
+    Math.max(waterBodies.insideRiver(x, z), waterBodies.insideLake(x, z))
+  const mountainSites = biomeList.map((biome) =>
+    biome.relief.mountains
+      ? createMountainSites(seed, biome.id, biome.relief.mountains, (site) =>
+          isDryAround(site, biome.relief.mountains, insideWater),
+        )
+      : null,
+  )
+  const hasMountains = mountainSites.some(Boolean)
+  const reliefs = biomeList.map((biome, i) =>
     createReliefSampler(
       createNoise2D(createRng(deriveSeed(seed, `relief:${biome.id}`))),
       biome.relief,
+      mountainSites[i],
     ),
   )
   const weights = new Float64Array(biomeList.length)
+  const pathWeights = new Float64Array(biomeList.length)
+
+  /**
+   * O caminho até o topo das montanhas (0 a 1) em `(x, z)`, pelo peso de
+   * cada bioma com montanha.
+   */
+  function mountainPathAt(x, z) {
+    if (!hasMountains) return 0
+    biomeMap.weightsAt(x, z, pathWeights)
+    let path = 0
+    for (let i = 0; i < biomeList.length; i++) {
+      if (!mountainSites[i] || pathWeights[i] < MIN_RELIEF_WEIGHT) continue
+      const params = biomeList[i].relief.mountains
+      const site = mountainSites[i].siteAt(x, z)
+      path += pathWeights[i] * mountainAt(site, x, z, params).path
+    }
+    return path
+  }
+
+  /**
+   * Quanto `(x, z)` fica debaixo de montanha (0 a 1), pelo peso de cada
+   * bioma com montanha (`dryShareAt`).
+   */
+  function mountainCoverAt(x, z) {
+    if (!hasMountains) return 0
+    biomeMap.weightsAt(x, z, pathWeights)
+    let cover = 0
+    for (let i = 0; i < biomeList.length; i++) {
+      if (!mountainSites[i] || pathWeights[i] < MIN_RELIEF_WEIGHT) continue
+      const params = biomeList[i].relief.mountains
+      const site = mountainSites[i].siteAt(x, z)
+      cover += pathWeights[i] * dryShareAt(site, x, z, params)
+    }
+    return cover
+  }
+
+  /**
+   * A montanha mais perto de `(x, z)` no bioma dela (a de centro dentro do
+   * bioma), com o começo do caminho (`foot`) — ou `null`.
+   */
+  function nearestMountain(x, z) {
+    let best = null
+    let bestDistance = Infinity
+    for (let i = 0; i < biomeList.length; i++) {
+      if (!mountainSites[i]) continue
+      const params = biomeList[i].relief.mountains
+      for (const site of mountainSites[i].sitesAround(x, z, 2)) {
+        if (biomeMap.biomeAt(site.x, site.z).id !== biomeList[i].id) continue
+        const distance = Math.hypot(site.x - x, site.z - z)
+        if (distance >= bestDistance) continue
+        bestDistance = distance
+        best = {
+          ...site,
+          biome: biomeList[i].id,
+          foot: pathStartOf(site, params),
+        }
+      }
+    }
+    return best
+  }
   const waterShare = { rivers: 0, lakes: 0 }
 
   /**
@@ -189,8 +292,19 @@ export function createTerrainSampler(seed, recipe = currentTerrainRecipe()) {
     for (let i = 0; i < reliefs.length; i++) {
       if (weightsOut[i] < MIN_RELIEF_WEIGHT) continue
       height += weightsOut[i] * reliefs[i](x, z)
-      waterShare.rivers += weightsOut[i] * (biomeList[i].water?.rivers ?? 0)
-      waterShare.lakes += weightsOut[i] * (biomeList[i].water?.lakes ?? 0)
+      // A montanha tira a água de baixo dela (`mountains.js`).
+      const wet = mountainSites[i]
+        ? weightsOut[i] *
+          (1 -
+            dryShareAt(
+              mountainSites[i].siteAt(x, z),
+              x,
+              z,
+              biomeList[i].relief.mountains,
+            ))
+        : weightsOut[i]
+      waterShare.rivers += wet * (biomeList[i].water?.rivers ?? 0)
+      waterShare.lakes += wet * (biomeList[i].water?.lakes ?? 0)
     }
     const carved = waterBodies.carveAt(x, z, height, waterShare)
     return terrain.WATER_LEVEL + withFord(x, z, carved)
@@ -208,5 +322,11 @@ export function createTerrainSampler(seed, recipe = currentTerrainRecipe()) {
     roads,
     // Correnteza dos rios (só visual — `waterBodies.flowAt`).
     flowAt: waterBodies.flowAt,
+    // O caminho das montanhas (0 a 1) e a montanha mais perto
+    // (`mountains.js`).
+    hasMountains,
+    mountainPathAt,
+    mountainCoverAt,
+    nearestMountain,
   }
 }

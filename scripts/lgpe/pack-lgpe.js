@@ -41,6 +41,14 @@ import { clusterObjects, piecesOf, sizeSignature } from './splitObjects.js'
  * `--extra <arquivo.json>`: props a mais (a mesma forma de `MAP_PROPS`),
  * para olhar candidatos sem mexer na lista — com `--out` numa pasta à
  * parte.
+ *
+ * Nos do `--extra`, `scale` (opcional) muda o tamanho do modelo (a
+ * árvore de 12 m do cenário de batalha vira uma de rota).
+ *
+ * `--only-extra`: só os do `--extra` (sem os do jogo, o chão e as tabelas
+ * de toon) e `--prefix <texto>` antes do nome de cada textura — um pacote
+ * para o laboratório de biomas (docs/features/066-revisao-dos-biomas.md,
+ * `scripts/lab/README.md`), ex.: a folhosa do cenário de batalha.
  */
 
 const { values: args } = parseArgs({
@@ -48,8 +56,11 @@ const { values: args } = parseArgs({
     field: { type: 'string' },
     out: { type: 'string', default: 'public/assets/vegetation/lgpe' },
     extra: { type: 'string' },
+    'only-extra': { type: 'boolean', default: false },
+    prefix: { type: 'string', default: '' },
   },
 })
+const onlyExtra = args['only-extra']
 if (!args.field) throw new Error('faltou --field <pasta field/ extraída>')
 
 const MAX_TEXTURE = 512
@@ -579,23 +590,24 @@ for (const dir of ['', 'props', 'textures'])
 
 const textures = {}
 function packTexture(folder, name) {
-  if (textures[name]) return name
+  const id = `${args.prefix}${name}`
+  if (textures[id]) return id
   const path = join(args.field, folder, `${name}.dds`)
   if (!existsSync(path)) return null
   const image = decodeDds(readFileSync(path))
   const small = shrinkTo(image, MAX_TEXTURE)
   const alpha = hasAlpha(small)
   writeFileSync(
-    join(out, 'textures', `${name}.png`),
+    join(out, 'textures', `${id}.png`),
     encodePng(small, { opaque: !alpha }),
   )
-  textures[name] = {
-    file: `textures/${name}.png`,
+  textures[id] = {
+    file: `textures/${id}.png`,
     width: small.width,
     height: small.height,
     alpha,
   }
-  return name
+  return id
 }
 
 function materialEntry(model, material, folder) {
@@ -628,7 +640,7 @@ function materialEntry(model, material, folder) {
  * (`keepVertex(mesh, vertex)`), em metros, com o centro em XZ e a base em
  * Y = 0.
  */
-function buildPrimitives(model, meshes, keepVertex) {
+function buildPrimitives(model, meshes, keepVertex, scale = 1) {
   const parts = []
   const box = [Infinity, Infinity, Infinity, -Infinity, -Infinity, -Infinity]
   for (const { meshIndex, decoded } of meshes) {
@@ -663,7 +675,9 @@ function buildPrimitives(model, meshes, keepVertex) {
         })
         return array
       }
-      const position = pick('position', 3).map((value) => value * CENTIMETERS)
+      const position = pick('position', 3).map(
+        (value) => value * CENTIMETERS * scale,
+      )
       for (let i = 0; i < position.length; i += 3) {
         for (let c = 0; c < 3; c++) {
           box[c] = Math.min(box[c], position[i + c])
@@ -830,7 +844,7 @@ function nthBuildingOf(objectBoxes, n) {
 const isNodeOf = (spec, path) =>
   path === spec.node ||
   ((spec.whole || spec.object != null) && path.startsWith(`${spec.node}/`))
-for (const spec of [...MAP_PROPS, ...extraProps]) {
+for (const spec of [...(onlyExtra ? [] : MAP_PROPS), ...extraProps]) {
   const map = mapOf(spec.map)
   const meshes = map.groups
     .filter(({ boneIndex }) => isNodeOf(spec, bonePath(map, boneIndex)))
@@ -848,7 +862,7 @@ for (const spec of [...MAP_PROPS, ...extraProps]) {
       spec.folder,
       withDoor(
         spec,
-        buildPrimitives(map, meshes, () => true),
+        buildPrimitives(map, meshes, () => true, spec.scale),
       ),
     )
     continue
@@ -894,6 +908,7 @@ for (const spec of [...MAP_PROPS, ...extraProps]) {
         map,
         meshes,
         (meshIndex, vertex) => objectOf(meshIndex, vertex) === chosen,
+        spec.scale,
       ),
     ),
     { copiesInMap: objects.length },
@@ -901,7 +916,7 @@ for (const spec of [...MAP_PROPS, ...extraProps]) {
 }
 
 // Soltos: o modelo inteiro.
-for (const spec of LOOSE_PROPS) {
+for (const spec of onlyExtra ? [] : LOOSE_PROPS) {
   const model = parseGfbmdl(
     readFileSync(join(args.field, 'buildmodel', `${spec.file}.gfbmdl`)),
   )
@@ -917,20 +932,25 @@ for (const spec of LOOSE_PROPS) {
   )
 }
 
-const ground = Object.entries(GROUND_TEXTURES)
-  .flatMap(([folder, names]) => names.map((name) => packTexture(folder, name)))
-  .filter(Boolean)
-for (const name of TOON_TABLES) packTexture('forest', name)
+const ground = onlyExtra
+  ? []
+  : Object.entries(GROUND_TEXTURES)
+      .flatMap(([folder, names]) =>
+        names.map((name) => packTexture(folder, name)),
+      )
+      .filter(Boolean)
+if (!onlyExtra) for (const name of TOON_TABLES) packTexture('forest', name)
 
 writeFileSync(
   join(out, 'manifest.json'),
   JSON.stringify(
     {
-      source:
-        "Pokémon Let's Go Pikachu/Eevee — forest001_00, road001_00, road003_00, road022_00, road004_1_00, road009_00, town001_00, town003_00 e buildmodel",
+      source: onlyExtra
+        ? `Pokémon Let's Go Pikachu/Eevee — ${args.extra}`
+        : "Pokémon Let's Go Pikachu/Eevee — forest001_00, road001_00, road003_00, road022_00, road004_1_00, road009_00, town001_00, town003_00 e buildmodel",
       props,
       ground,
-      toonTables: TOON_TABLES,
+      toonTables: onlyExtra ? [] : TOON_TABLES,
       textures,
     },
     null,

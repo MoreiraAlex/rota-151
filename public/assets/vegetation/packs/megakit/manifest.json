@@ -1,0 +1,307 @@
+{
+  "source": "megakit",
+  "props": {
+    "megakit-commontree-1": {
+      "label": "MegaKit — CommonTree_1",
+      "category": "tree",
+      "file": "props/megakit-commontree-1.glb",
+      "size": [
+        4.748,
+        8,
+        5.041
+      ],
+      "materials": {
+        "Bark_NormalTree": {
+          "shader": "Lab",
+          "maps": {
+            "Texture01": "megakit-bark-normaltree-5a4c40"
+          },
+          "cutoff": 0.5,
+          "doubleSided": true,
+          "shadowColor": null,
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "Leaves_NormalTree": {
+          "shader": "Lab",
+          "maps": {
+            "Texture01": "megakit-leaves-normaltree-c"
+          },
+          "cutoff": 0.5,
+          "doubleSided": true,
+          "shadowColor": null,
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        }
+      }
+    },
+    "megakit-commontree-2": {
+      "label": "MegaKit — CommonTree_2",
+      "category": "tree",
+      "file": "props/megakit-commontree-2.glb",
+      "size": [
+        4.673,
+        8,
+        4.476
+      ],
+      "materials": {
+        "Bark_NormalTree": {
+          "shader": "Lab",
+          "maps": {
+            "Texture01": "megakit-bark-normaltree-5a4c40"
+          },
+          "cutoff": 0.5,
+          "doubleSided": true,
+          "shadowColor": null,
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "Leaves_NormalTree": {
+          "shader": "Lab",
+          "maps": {
+            "Texture01": "megakit-leaves-normaltree-c"
+          },
+          "cutoff": 0.5,
+          "doubleSided": true,
+          "shadowColor": null,
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        }
+      }
+    },
+    "megakit-commontree-5": {
+      "label": "MegaKit — CommonTree_5",
+      "category": "tree",
+      "file": "props/megakit-commontree-5.glb",
+      "size": [
+        4.192,
+        8,
+        4.818
+      ],
+      "materials": {
+        "Bark_NormalTree": {
+          "shader": "Lab",
+          "maps": {
+            "Texture01": "megakit-bark-normaltree-5a4c40"
+          },
+          "cutoff": 0.5,
+          "doubleSided": true,
+          "shadowColor": null,
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "Leaves_NormalTree": {
+          "shader": "Lab",
+          "maps": {
+            "Texture01": "megakit-leaves-normaltree-c"
+          },
+          "cutoff": 0.5,
+          "doubleSided": true,
+          "shadowColor": null,
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        }
+      }
+    },
+    "megakit-twistedtree-1": {
+      "label": "MegaKit — TwistedTree_1",
+      "category": "tree",
+      "file": "props/megakit-twistedtree-1.glb",
+      "size": [
+        6.465,
+        8,
+        5.524
+      ],
+      "materials": {
+        "Bark_TwistedTree": {
+          "shader": "Lab",
+          "maps": {
+            "Texture01": "megakit-bark-twistedtree-5a4c40"
+          },
+          "cutoff": 0.5,
+          "doubleSided": true,
+          "shadowColor": null,
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "Leaves_TwistedTree": {
+          "shader": "Lab",
+          "maps": {
+            "Texture01": "megakit-leaves-twistedtree-c-4a7a32"
+          },
+          "cutoff": 0.5,
+          "doubleSided": true,
+          "shadowColor": null,
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        }
+      }
+    },
+    "megakit-twistedtree-3": {
+      "label": "MegaKit — TwistedTree_3",
+      "category": "tree",
+      "file": "props/megakit-twistedtree-3.glb",
+      "size": [
+        5.653,
+        8,
+        5.727
+      ],
+      "materials": {
+        "Bark_TwistedTree": {
+          "shader": "Lab",
+          "maps": {
+            "Texture01": "megakit-bark-twistedtree-5a4c40"
+          },
+          "cutoff": 0.5,
+          "doubleSided": true,
+          "shadowColor": null,
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "Leaves_TwistedTree": {
+          "shader": "Lab",
+          "maps": {
+            "Texture01": "megakit-leaves-twistedtree-c-4a7a32"
+          },
+          "cutoff": 0.5,
+          "doubleSided": true,
+          "shadowColor": null,
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        }
+      }
+    },
+    "megakit-rock-medium-1": {
+      "label": "MegaKit — Rock_Medium_1",
+      "category": "rock",
+      "file": "props/megakit-rock-medium-1.glb",
+      "size": [
+        2.141,
+        1.5,
+        1.984
+      ],
+      "materials": {
+        "Rocks": {
+          "shader": "Lab",
+          "maps": {
+            "Texture01": "megakit-rocks-diffuse"
+          },
+          "cutoff": 0.5,
+          "doubleSided": true,
+          "shadowColor": null,
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        }
+      }
+    },
+    "megakit-rock-medium-2": {
+      "label": "MegaKit — Rock_Medium_2",
+      "category": "rock",
+      "file": "props/megakit-rock-medium-2.glb",
+      "size": [
+        2.408,
+        1.5,
+        1.958
+      ],
+      "materials": {
+        "Rocks": {
+          "shader": "Lab",
+          "maps": {
+            "Texture01": "megakit-rocks-diffuse"
+          },
+          "cutoff": 0.5,
+          "doubleSided": true,
+          "shadowColor": null,
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        }
+      }
+    },
+    "megakit-rock-medium-3": {
+      "label": "MegaKit — Rock_Medium_3",
+      "category": "rock",
+      "file": "props/megakit-rock-medium-3.glb",
+      "size": [
+        2.215,
+        1.5,
+        2.251
+      ],
+      "materials": {
+        "Rocks": {
+          "shader": "Lab",
+          "maps": {
+            "Texture01": "megakit-rocks-diffuse"
+          },
+          "cutoff": 0.5,
+          "doubleSided": true,
+          "shadowColor": null,
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        }
+      }
+    }
+  },
+  "textures": {
+    "megakit-bark-normaltree-5a4c40": {
+      "file": "textures/megakit-bark-normaltree-5a4c40.png",
+      "width": 1024,
+      "height": 1024,
+      "alpha": true,
+      "flipY": false
+    },
+    "megakit-leaves-normaltree-c": {
+      "file": "textures/megakit-leaves-normaltree-c.png",
+      "width": 1024,
+      "height": 1024,
+      "alpha": true,
+      "flipY": false
+    },
+    "megakit-bark-twistedtree-5a4c40": {
+      "file": "textures/megakit-bark-twistedtree-5a4c40.png",
+      "width": 1024,
+      "height": 1024,
+      "alpha": true,
+      "flipY": false
+    },
+    "megakit-leaves-twistedtree-c-4a7a32": {
+      "file": "textures/megakit-leaves-twistedtree-c-4a7a32.png",
+      "width": 1024,
+      "height": 1024,
+      "alpha": true,
+      "flipY": false
+    },
+    "megakit-rocks-diffuse": {
+      "file": "textures/megakit-rocks-diffuse.png",
+      "width": 1024,
+      "height": 1024,
+      "alpha": true,
+      "flipY": false
+    }
+  }
+}

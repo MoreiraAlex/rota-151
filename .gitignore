@@ -39,3 +39,5 @@ next-env.d.ts
 
 /db
 /.exemple
+# Pacotes do laboratório de biomas (scripts/lab/, docs/features/066-revisao-dos-biomas.md)
+/public/assets/lab

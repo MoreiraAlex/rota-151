@@ -8,7 +8,7 @@ import { RecallBeam, Position, Rotation } from '@/core/traits'
 import { playerEntity } from '@/core/world/world'
 import { getAnimatedBonesEntry } from '@/view/registry/animationRegistry'
 import { HAND_BONE_BY_SPECIES } from '@/view/handBoneBySpecies'
-import { loadTexture } from '../textures/textureCache'
+import { cloneTexture, loadTexture } from '../textures/textureCache'
 import { resolveBeamColor, resolveBeamPhase } from '../phaseBeam'
 import { registerView, unregisterView } from '../registry/viewRegistry'
 
@@ -123,10 +123,11 @@ export function RecallBeamView({ entity }) {
     loadTexture(BEAM_TEXTURE_PATH).then((loaded) => {
       if (!loaded || cancelled) return
       for (const mesh of [coreRef.current, glowRef.current]) {
-        const texture = loaded.clone()
+        // Sem reenviar a imagem (`cloneTexture`); a repetição entra na
+        // chave da textura no three e sobe sozinha se for nova.
+        const texture = cloneTexture(loaded)
         texture.wrapS = THREE.RepeatWrapping
         texture.wrapT = THREE.RepeatWrapping
-        texture.needsUpdate = true
         mesh.material.map = texture
         mesh.material.needsUpdate = true
         textures.push(texture)

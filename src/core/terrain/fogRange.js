@@ -33,14 +33,19 @@ export function fogFactorAt(distance, fog) {
 }
 
 /**
- * `fogRange` do mundo carregado agora (`GAME_CONFIG`, lado do chunk
- * `chunkSize`): até onde tudo aparece inteiro (`near`, onde a névoa começa)
- * e onde ela fecha (`far`) — docs/features/058-ajuste-dos-biomas.md.
+ * `fogRange` do mundo carregado agora (lado do chunk `chunkSize`, raio
+ * `loadRadius` em chunks — o `terrain.loadRadius()`, a distância de visão
+ * do menu "Gráficos"): até onde tudo aparece inteiro (`near`, onde a névoa
+ * começa) e onde ela fecha (`far`) — docs/features/058-ajuste-dos-
+ * biomas.md.
  */
-export function loadedFogRange(chunkSize) {
-  const { TERRAIN, CAMERA, FOG } = GAME_CONFIG
+export function loadedFogRange(
+  chunkSize,
+  loadRadius = GAME_CONFIG.GRAPHICS.VIEW_DISTANCE.DEFAULT,
+) {
+  const { CAMERA, FOG } = GAME_CONFIG
   return fogRange({
-    loadRadius: TERRAIN.LOAD_RADIUS,
+    loadRadius,
     chunkSize,
     cameraMaxDistance: CAMERA.MAX_DISTANCE,
     startFraction: FOG.START_FRACTION,

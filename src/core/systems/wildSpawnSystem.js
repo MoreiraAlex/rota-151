@@ -35,13 +35,14 @@ import { Position, WildCreature, WildSpawnState, WorldClock } from '../traits'
 export function wildSpawnSystem(context) {
   const { world, delta = 0, events } = context
   if (!world.has(WildSpawnState)) return
+  if (!GAME_CONFIG.WILD_SPAWN.ENABLED) return
 
   const state = world.get(WildSpawnState)
   state.spawnTimer -= delta
   if (state.spawnTimer > 0) return
   state.spawnTimer = GAME_CONFIG.WILD_SPAWN.INTERVAL
 
-  const params = spawnParams()
+  const params = spawnParams(TEST_LEVEL.terrain.loadRadius())
   const time = world.has(WorldClock) ? world.get(WorldClock).time : 0
   const phase = dayPhaseOf(time)
   const speciesList = listSpecies().filter((species) => species.spawn)

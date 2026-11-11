@@ -147,17 +147,21 @@ export function createKindDensity(
     }
   })
   // O que é de trilha (`place: 'trail'`, os seixos) só nasce nela — não
-  // na rua das cidades; o resto, fora das duas.
-  const isTrailKind = biomeList.some(
-    (biome) => vegetationEntryOf(biome, kind)?.place === 'trail',
+  // na rua das cidades; o resto, fora das duas. Por bioma: o mesmo tipo
+  // pode ser de trilha num e espalhado no outro (os seixos da savana,
+  // docs/features/066-revisao-dos-biomas.md).
+  const onTrail = chunk.biomeIds.map(
+    (id) =>
+      vegetationEntryOf(
+        biomeList.find((candidate) => candidate.id === id),
+        kind,
+      )?.place === 'trail',
   )
-  const offTrail = isTrailKind
-    ? (x, z) => naturalTrailAt(chunk, x, z)
-    : (x, z) => 1 - trailAt(chunk, x, z)
+  const placedAt = createTrailPlacement(chunk, onTrail)
   if (isEmpty || shaping.every((item) => !item)) {
     return {
       isEmpty,
-      at: (x, z) => densityAt(chunk, densities, x, z) * offTrail(x, z),
+      at: (x, z) => placedAt(densities, x, z),
       heightAt: () => 1,
     }
   }
@@ -196,7 +200,7 @@ export function createKindDensity(
     isEmpty,
     at(x, z) {
       shapeAt(x, z)
-      return densityAt(chunk, scaled, x, z) * offTrail(x, z)
+      return placedAt(scaled, x, z)
     },
     // A altura dos biomas pesada pelo quanto de grama cada um põe ali.
     heightAt(x, z) {
@@ -208,6 +212,35 @@ export function createKindDensity(
       }
       return densityAt(chunk, heights, x, z) / total
     },
+  }
+}
+
+/**
+ * A densidade (`values`, uma por bioma do chunk) com as trilhas: a dos
+ * biomas em que o tipo é de trilha (`onTrail`) só nelas (`naturalTrailAt`),
+ * a dos outros fora delas e da rua (`trailAt`), cada parte misturada pelo
+ * peso dos biomas no ponto.
+ */
+function createTrailPlacement(chunk, onTrail) {
+  const offTrail = (x, z) => 1 - trailAt(chunk, x, z)
+  if (!onTrail.some(Boolean)) {
+    return (values, x, z) => densityAt(chunk, values, x, z) * offTrail(x, z)
+  }
+  if (onTrail.every(Boolean)) {
+    return (values, x, z) =>
+      densityAt(chunk, values, x, z) * naturalTrailAt(chunk, x, z)
+  }
+  const trailPart = new Float32Array(onTrail.length)
+  const otherPart = new Float32Array(onTrail.length)
+  return (values, x, z) => {
+    for (let biome = 0; biome < onTrail.length; biome++) {
+      trailPart[biome] = onTrail[biome] ? values[biome] : 0
+      otherPart[biome] = onTrail[biome] ? 0 : values[biome]
+    }
+    return (
+      densityAt(chunk, trailPart, x, z) * naturalTrailAt(chunk, x, z) +
+      densityAt(chunk, otherPart, x, z) * offTrail(x, z)
+    )
   }
 }
 

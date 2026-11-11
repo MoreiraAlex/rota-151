@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import { fogFactorAt, fogRange, loadedFogRange } from './fogRange'
 
-const { CHUNK_SIZE, LOAD_RADIUS } = GAME_CONFIG.TERRAIN
+const { CHUNK_SIZE } = GAME_CONFIG.TERRAIN
+const LOAD_RADIUS = GAME_CONFIG.GRAPHICS.VIEW_DISTANCE.DEFAULT
 const { START_FRACTION, MIN_DISTANCE } = GAME_CONFIG.FOG
 const { MAX_DISTANCE } = GAME_CONFIG.CAMERA
 
@@ -48,11 +49,18 @@ describe('loadedFogRange (docs/features/058-ajuste-dos-biomas.md)', () => {
     const { near, far } = loadedFogRange(TERRAIN.CHUNK_SIZE)
     expect(far).toBe(
       Math.max(
-        TERRAIN.LOAD_RADIUS * TERRAIN.CHUNK_SIZE - CAMERA.MAX_DISTANCE,
+        LOAD_RADIUS * TERRAIN.CHUNK_SIZE - CAMERA.MAX_DISTANCE,
         FOG.MIN_DISTANCE,
       ),
     )
     expect(near).toBeCloseTo(far * FOG.START_FRACTION, 9)
+  })
+
+  it('acompanha a distância de visão escolhida', () => {
+    const { MIN, MAX } = GAME_CONFIG.GRAPHICS.VIEW_DISTANCE
+    expect(loadedFogRange(CHUNK_SIZE, MAX).far).toBeGreaterThan(
+      loadedFogRange(CHUNK_SIZE, MIN).far,
+    )
   })
 
   it('fogFactorAt: nada até a névoa começar, tudo onde ela fecha', () => {

@@ -2,19 +2,32 @@
 
 import { useEffect, useMemo, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
+import { useTrait } from 'koota/react'
 import * as THREE from 'three'
+import { shadowLevelOf } from '@/core/actions'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import { fogColorOf } from './backdropGeometry'
-import { lightingAt } from '@/core/time/dayCycle'
+import { dayPhaseOf, lightingAt } from '@/core/time/dayCycle'
+import { updateSilhouettes } from '@/view/materials/silhouetteVisibility'
 import {
+  GraphicsSettings,
   InputControlled,
   LocalWeather,
   Position,
   WorldClock,
 } from '@/core/traits'
-import { world } from '@/core/world/world'
+import { playerEntity, world } from '@/core/world/world'
 import { flashLevel } from '@/view/systems/lightningSystem'
 import { resolveSkyLook } from '@/view/weather/skyLook'
+import { installShadowFilter } from './shadowFilter'
+
+// A leitura da sombra de uma leitura só, antes de qualquer shader montar.
+installShadowFilter()
+
+// Raio do filtro da sombra com a borda macia (o do three) e sem ela (uma
+// leitura — view/scene/shadowFilter.js).
+const SOFT_SHADOW_RADIUS = 1
+const SINGLE_TAP_RADIUS = 0
 
 // Raio (m) da esfera do céu — dentro do alcance da câmera; o shader joga o
 // céu para o fundo de qualquer jeito.
@@ -130,14 +143,14 @@ const skyFragmentShader = /* glsl */ `
 const toVector = ({ x, y, z }, out) => out.set(x, y, z)
 
 /**
- * A câmera da sombra no tamanho da área de sombra (`SHADOW_AREA`, com a
- * luz a `SHADOW_DISTANCE` do centro) — direto na câmera da luz: as props
+ * A câmera da sombra no tamanho da área de sombra (`area`, a do nível, com a
+ * luz a `distance` do centro) — direto na câmera da luz: as props
  * `shadow-camera-*` do JSX não chegavam nela (ficava a de 10 m do three,
  * docs/features/058-ajuste-dos-biomas.md). Só refaz a projeção quando muda.
  */
-function fitShadowCamera(shadowCamera, { SHADOW_AREA, SHADOW_DISTANCE }) {
-  const half = SHADOW_AREA / 2
-  const far = SHADOW_DISTANCE * 2
+function fitShadowCamera(shadowCamera, area, distance) {
+  const half = area / 2
+  const far = distance * 2
   if (shadowCamera.right === half && shadowCamera.far === far) return
   shadowCamera.left = -half
   shadowCamera.right = half
@@ -194,6 +207,11 @@ function createSkyMaterial() {
  *   com quem está no controle (o mundo não tem borda). Só o sol faz sombra:
  *   sem ela (noite, céu fechado), o mapa de sombra nem é refeito — sem
  *   desligar `castShadow`, que recompilaria todos os materiais;
+ * - **nível da sombra** escolhido no menu (`GraphicsSettings`,
+ *   `GAME_CONFIG.GRAPHICS.SHADOW`, docs/features/066-revisao-dos-
+ *   biomas.md): desligada (aí sim `castShadow` sai — troca rara, pelo
+ *   menu), tamanho do mapa e da área, a cada quantos quadros o mapa é
+ *   redesenhado e a borda macia ou de uma leitura;
  * - **luz ambiente** e **cor da névoa** (o horizonte).
  *
  * `useFrame` aqui é a exceção das regras (3.4): componente só visual, que
@@ -211,6 +229,19 @@ export function DayNightView() {
   )
   const target = useMemo(() => new THREE.Object3D(), [])
   const scratch = useMemo(() => new THREE.Vector3(), [])
+  const graphics = useTrait(playerEntity, GraphicsSettings)
+  const shadow = shadowLevelOf(graphics?.shadow)
+  const shadowRef = useRef(shadow)
+  shadowRef.current = shadow
+  const frameRef = useRef(0)
+
+  // Mapa de outro tamanho: o three só refaz o mapa se ele não existir.
+  useEffect(() => {
+    const light = lightRef.current
+    if (!light?.shadow.map) return
+    light.shadow.map.dispose()
+    light.shadow.map = null
+  }, [shadow.MAP_SIZE])
 
   useEffect(
     () => () => {
@@ -234,6 +265,9 @@ export function DayNightView() {
     const clock = world.get(WorldClock)
     const weather = world.get(LocalWeather)
     if (!clock || !weather) return
+    // A silhueta atrás das plantas: só com o nameplate à mostra e, a das
+    // selvagens, não à noite (066).
+    updateSilhouettes(dayPhaseOf(clock.time) === 'night')
     const look = resolveSkyLook(lightingAt(clock.time), weather, flashLevel())
 
     const uniforms = material.uniforms
@@ -264,30 +298,41 @@ export function DayNightView() {
       fogColorOf(horizon, scene.fog.color)
     }
 
+    // O ajuste por cima das horas marcadas (`DAY_CYCLE.ADJUST`,
+    // docs/features/066-revisao-dos-biomas.md).
+    const { ADJUST } = DAY_CYCLE
     const ambient = ambientRef.current
     if (ambient) {
       ambient.color.setRGB(...look.ambient, THREE.SRGBColorSpace)
-      ambient.intensity = look.ambientIntensity
+      ambient.intensity = look.ambientIntensity * ADJUST.AMBIENT
     }
 
     const light = lightRef.current
     if (!light) return
-    fitShadowCamera(light.shadow.camera, DAY_CYCLE)
+    const level = shadowRef.current
+    fitShadowCamera(light.shadow.camera, level.AREA, DAY_CYCLE.SHADOW_DISTANCE)
     light.color.setRGB(...look.light, THREE.SRGBColorSpace)
-    light.intensity = look.lightIntensity
-    light.shadow.intensity = look.shadowIntensity
-    light.shadow.autoUpdate = look.shadowIntensity > 0
+    light.intensity = look.lightIntensity * ADJUST.SUN
+    light.shadow.intensity = Math.min(1, look.shadowIntensity * ADJUST.SHADOW)
+    light.shadow.radius = level.SOFT ? SOFT_SHADOW_RADIUS : SINGLE_TAP_RADIUS
+    // O mapa só é redesenhado com sol e a cada `UPDATE_EVERY` quadros — ou
+    // já, se ainda não existe (trocou de tamanho): sem ele, o shader leria
+    // uma textura que não é de sombra.
+    frameRef.current = (frameRef.current + 1) % level.UPDATE_EVERY
+    light.shadow.autoUpdate = false
+    light.shadow.needsUpdate =
+      !light.shadow.map || (look.shadowIntensity > 0 && frameRef.current === 0)
     // Centro da sombra à frente de quem está no controle, para onde a
-    // câmera olha (`SHADOW_AHEAD`: a área cobre o que se vê até a névoa),
+    // câmera olha (`AHEAD` do nível: a área cobre o que se vê até a névoa),
     // preso à grade de texels do mapa de sombra (a sombra não tremula
     // andando).
     const controlled = world.queryFirst(InputControlled, Position)
     const center = controlled?.get(Position) ?? camera.position
     camera.getWorldDirection(scratch)
     const flat = Math.hypot(scratch.x, scratch.z) || 1
-    const aheadX = center.x + (scratch.x / flat) * DAY_CYCLE.SHADOW_AHEAD
-    const aheadZ = center.z + (scratch.z / flat) * DAY_CYCLE.SHADOW_AHEAD
-    const texel = DAY_CYCLE.SHADOW_AREA / DAY_CYCLE.SHADOW_MAP_SIZE
+    const aheadX = center.x + (scratch.x / flat) * level.AHEAD
+    const aheadZ = center.z + (scratch.z / flat) * level.AHEAD
+    const texel = level.AREA / level.MAP_SIZE
     target.position.set(
       Math.round(aheadX / texel) * texel,
       Math.round(center.y / texel) * texel,
@@ -300,9 +345,8 @@ export function DayNightView() {
     target.updateMatrixWorld()
   })
 
-  const { SHADOW_AREA, SHADOW_DISTANCE, SHADOW_MAP_SIZE } =
-    GAME_CONFIG.DAY_CYCLE
-  const half = SHADOW_AREA / 2
+  const { SHADOW_DISTANCE } = GAME_CONFIG.DAY_CYCLE
+  const half = shadow.AREA / 2
 
   return (
     <>
@@ -318,8 +362,8 @@ export function DayNightView() {
       <directionalLight
         ref={lightRef}
         target={target}
-        castShadow
-        shadow-mapSize={[SHADOW_MAP_SIZE, SHADOW_MAP_SIZE]}
+        castShadow={shadow.ENABLED}
+        shadow-mapSize={[shadow.MAP_SIZE, shadow.MAP_SIZE]}
         shadow-camera-left={-half}
         shadow-camera-right={half}
         shadow-camera-top={half}

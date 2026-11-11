@@ -1,0 +1,748 @@
+{
+  "source": "usn",
+  "props": {
+    "usn-normaltree-1": {
+      "label": "Ultimate Nature — NormalTree_1",
+      "category": "tree",
+      "file": "props/usn-normaltree-1.glb",
+      "size": [
+        4.72,
+        8,
+        3.197
+      ],
+      "materials": {
+        "NormalTree_Bark": {
+          "shader": "Lab",
+          "maps": {
+            "Texture01": "usn-normaltree-bark-5a4c40"
+          },
+          "cutoff": 0.5,
+          "doubleSided": true,
+          "shadowColor": null,
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "NormalTree_Leaves": {
+          "shader": "Lab",
+          "maps": {
+            "Texture01": "usn-normaltree-leaves-4a8034"
+          },
+          "cutoff": 0.5,
+          "doubleSided": true,
+          "shadowColor": null,
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        }
+      }
+    },
+    "usn-normaltree-2": {
+      "label": "Ultimate Nature — NormalTree_2",
+      "category": "tree",
+      "file": "props/usn-normaltree-2.glb",
+      "size": [
+        5.558,
+        8,
+        3.4
+      ],
+      "materials": {
+        "NormalTree_Bark": {
+          "shader": "Lab",
+          "maps": {
+            "Texture01": "usn-normaltree-bark-5a4c40"
+          },
+          "cutoff": 0.5,
+          "doubleSided": true,
+          "shadowColor": null,
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "NormalTree_Leaves": {
+          "shader": "Lab",
+          "maps": {
+            "Texture01": "usn-normaltree-leaves-4a8034"
+          },
+          "cutoff": 0.5,
+          "doubleSided": true,
+          "shadowColor": null,
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        }
+      }
+    },
+    "usn-normaltree-3": {
+      "label": "Ultimate Nature — NormalTree_3",
+      "category": "tree",
+      "file": "props/usn-normaltree-3.glb",
+      "size": [
+        7.633,
+        8,
+        4.362
+      ],
+      "materials": {
+        "NormalTree_Bark": {
+          "shader": "Lab",
+          "maps": {
+            "Texture01": "usn-normaltree-bark-5a4c40"
+          },
+          "cutoff": 0.5,
+          "doubleSided": true,
+          "shadowColor": null,
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "NormalTree_Leaves": {
+          "shader": "Lab",
+          "maps": {
+            "Texture01": "usn-normaltree-leaves-4a8034"
+          },
+          "cutoff": 0.5,
+          "doubleSided": true,
+          "shadowColor": null,
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        }
+      }
+    },
+    "usn-normaltree-4": {
+      "label": "Ultimate Nature — NormalTree_4",
+      "category": "tree",
+      "file": "props/usn-normaltree-4.glb",
+      "size": [
+        8.905,
+        8,
+        3.769
+      ],
+      "materials": {
+        "NormalTree_Bark": {
+          "shader": "Lab",
+          "maps": {
+            "Texture01": "usn-normaltree-bark-5a4c40"
+          },
+          "cutoff": 0.5,
+          "doubleSided": true,
+          "shadowColor": null,
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "NormalTree_Leaves": {
+          "shader": "Lab",
+          "maps": {
+            "Texture01": "usn-normaltree-leaves-4a8034"
+          },
+          "cutoff": 0.5,
+          "doubleSided": true,
+          "shadowColor": null,
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        }
+      }
+    },
+    "usn-normaltree-5": {
+      "label": "Ultimate Nature — NormalTree_5",
+      "category": "tree",
+      "file": "props/usn-normaltree-5.glb",
+      "size": [
+        8.314,
+        8,
+        6.89
+      ],
+      "materials": {
+        "NormalTree_Bark": {
+          "shader": "Lab",
+          "maps": {
+            "Texture01": "usn-normaltree-bark-5a4c40"
+          },
+          "cutoff": 0.5,
+          "doubleSided": true,
+          "shadowColor": null,
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "NormalTree_Leaves": {
+          "shader": "Lab",
+          "maps": {
+            "Texture01": "usn-normaltree-leaves-4a8034"
+          },
+          "cutoff": 0.5,
+          "doubleSided": true,
+          "shadowColor": null,
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        }
+      }
+    },
+    "usn-mapletree-1": {
+      "label": "Ultimate Nature — MapleTree_1",
+      "category": "tree",
+      "file": "props/usn-mapletree-1.glb",
+      "size": [
+        7.5,
+        8,
+        5.904
+      ],
+      "materials": {
+        "MapleTree_Bark": {
+          "shader": "Lab",
+          "maps": {
+            "Texture01": "usn-mapletree-bark-5a4c40"
+          },
+          "cutoff": 0.5,
+          "doubleSided": true,
+          "shadowColor": null,
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "MapleTree_Leaves": {
+          "shader": "Lab",
+          "maps": {
+            "Texture01": "usn-mapletree-leaves-4f8a36"
+          },
+          "cutoff": 0.5,
+          "doubleSided": true,
+          "shadowColor": null,
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        }
+      }
+    },
+    "usn-mapletree-2": {
+      "label": "Ultimate Nature — MapleTree_2",
+      "category": "tree",
+      "file": "props/usn-mapletree-2.glb",
+      "size": [
+        7.984,
+        8,
+        7.44
+      ],
+      "materials": {
+        "MapleTree_Bark": {
+          "shader": "Lab",
+          "maps": {
+            "Texture01": "usn-mapletree-bark-5a4c40"
+          },
+          "cutoff": 0.5,
+          "doubleSided": true,
+          "shadowColor": null,
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "MapleTree_Leaves": {
+          "shader": "Lab",
+          "maps": {
+            "Texture01": "usn-mapletree-leaves-4f8a36"
+          },
+          "cutoff": 0.5,
+          "doubleSided": true,
+          "shadowColor": null,
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        }
+      }
+    },
+    "usn-mapletree-4": {
+      "label": "Ultimate Nature — MapleTree_4",
+      "category": "tree",
+      "file": "props/usn-mapletree-4.glb",
+      "size": [
+        6.165,
+        8,
+        5.419
+      ],
+      "materials": {
+        "MapleTree_Bark": {
+          "shader": "Lab",
+          "maps": {
+            "Texture01": "usn-mapletree-bark-5a4c40"
+          },
+          "cutoff": 0.5,
+          "doubleSided": true,
+          "shadowColor": null,
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "MapleTree_Leaves": {
+          "shader": "Lab",
+          "maps": {
+            "Texture01": "usn-mapletree-leaves-4f8a36"
+          },
+          "cutoff": 0.5,
+          "doubleSided": true,
+          "shadowColor": null,
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        }
+      }
+    },
+    "usn-mapletree-5": {
+      "label": "Ultimate Nature — MapleTree_5",
+      "category": "tree",
+      "file": "props/usn-mapletree-5.glb",
+      "size": [
+        7.706,
+        8,
+        5.578
+      ],
+      "materials": {
+        "MapleTree_Bark": {
+          "shader": "Lab",
+          "maps": {
+            "Texture01": "usn-mapletree-bark-5a4c40"
+          },
+          "cutoff": 0.5,
+          "doubleSided": true,
+          "shadowColor": null,
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "MapleTree_Leaves": {
+          "shader": "Lab",
+          "maps": {
+            "Texture01": "usn-mapletree-leaves-4f8a36"
+          },
+          "cutoff": 0.5,
+          "doubleSided": true,
+          "shadowColor": null,
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        }
+      }
+    },
+    "usn-rock-1": {
+      "label": "Ultimate Nature — Rock_1",
+      "category": "rock",
+      "file": "props/usn-rock-1.glb",
+      "size": [
+        0.985,
+        1.5,
+        1.23
+      ],
+      "materials": {
+        "Rock": {
+          "shader": "Lab",
+          "maps": {
+            "Texture01": "usn-rocks"
+          },
+          "cutoff": 0.5,
+          "doubleSided": true,
+          "shadowColor": null,
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        }
+      }
+    },
+    "usn-rock-2": {
+      "label": "Ultimate Nature — Rock_2",
+      "category": "rock",
+      "file": "props/usn-rock-2.glb",
+      "size": [
+        1.405,
+        1.5,
+        1.434
+      ],
+      "materials": {
+        "Rock": {
+          "shader": "Lab",
+          "maps": {
+            "Texture01": "usn-rocks"
+          },
+          "cutoff": 0.5,
+          "doubleSided": true,
+          "shadowColor": null,
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        }
+      }
+    },
+    "usn-rock-3": {
+      "label": "Ultimate Nature — Rock_3",
+      "category": "rock",
+      "file": "props/usn-rock-3.glb",
+      "size": [
+        0.964,
+        1.5,
+        1.025
+      ],
+      "materials": {
+        "Rock": {
+          "shader": "Lab",
+          "maps": {
+            "Texture01": "usn-rocks"
+          },
+          "cutoff": 0.5,
+          "doubleSided": true,
+          "shadowColor": null,
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        }
+      }
+    },
+    "usn-rock-4": {
+      "label": "Ultimate Nature — Rock_4",
+      "category": "rock",
+      "file": "props/usn-rock-4.glb",
+      "size": [
+        0.599,
+        1.5,
+        0.566
+      ],
+      "materials": {
+        "Rock": {
+          "shader": "Lab",
+          "maps": {
+            "Texture01": "usn-rocks"
+          },
+          "cutoff": 0.5,
+          "doubleSided": true,
+          "shadowColor": null,
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        }
+      }
+    },
+    "usn-rock-5": {
+      "label": "Ultimate Nature — Rock_5",
+      "category": "rock",
+      "file": "props/usn-rock-5.glb",
+      "size": [
+        1.143,
+        1.5,
+        1.166
+      ],
+      "materials": {
+        "Rock": {
+          "shader": "Lab",
+          "maps": {
+            "Texture01": "usn-rocks"
+          },
+          "cutoff": 0.5,
+          "doubleSided": true,
+          "shadowColor": null,
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        }
+      }
+    },
+    "usn-gianttree-4": {
+      "label": "Ultimate Nature — GiantTree_4",
+      "category": "tree",
+      "file": "props/usn-gianttree-4.glb",
+      "size": [
+        9.163,
+        8,
+        4.401
+      ],
+      "materials": {
+        "NormalTree_Bark": {
+          "shader": "Lab",
+          "maps": {
+            "Texture01": "usn-normaltree-bark-5a4c40"
+          },
+          "cutoff": 0.5,
+          "doubleSided": true,
+          "shadowColor": null,
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "NormalTree_Leaves": {
+          "shader": "Lab",
+          "maps": {
+            "Texture01": "usn-normaltree-leaves-4a8034"
+          },
+          "cutoff": 0.5,
+          "doubleSided": true,
+          "shadowColor": null,
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        }
+      }
+    },
+    "usn-gianttree-8": {
+      "label": "Ultimate Nature — GiantTree_8",
+      "category": "tree",
+      "file": "props/usn-gianttree-8.glb",
+      "size": [
+        10.09,
+        8,
+        7.918
+      ],
+      "materials": {
+        "NormalTree_Bark": {
+          "shader": "Lab",
+          "maps": {
+            "Texture01": "usn-normaltree-bark-5a4c40"
+          },
+          "cutoff": 0.5,
+          "doubleSided": true,
+          "shadowColor": null,
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "NormalTree_Leaves": {
+          "shader": "Lab",
+          "maps": {
+            "Texture01": "usn-normaltree-leaves-4a8034"
+          },
+          "cutoff": 0.5,
+          "doubleSided": true,
+          "shadowColor": null,
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        }
+      }
+    },
+    "usn-gianttree-mk1": {
+      "label": "Ultimate Nature — GiantTree_MK1",
+      "category": "tree",
+      "file": "props/usn-gianttree-mk1.glb",
+      "size": [
+        6.661,
+        8,
+        6.376
+      ],
+      "materials": {
+        "NormalTree_Bark": {
+          "shader": "Lab",
+          "maps": {
+            "Texture01": "usn-normaltree-bark-5a4c40"
+          },
+          "cutoff": 0.5,
+          "doubleSided": true,
+          "shadowColor": null,
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "NormalTree_Leaves": {
+          "shader": "Lab",
+          "maps": {
+            "Texture01": "usn-normaltree-leaves-4a8034"
+          },
+          "cutoff": 0.5,
+          "doubleSided": true,
+          "shadowColor": null,
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        }
+      }
+    },
+    "usn-deadtree-10": {
+      "label": "Ultimate Nature — DeadTree_10",
+      "category": "tree",
+      "file": "props/usn-deadtree-10.glb",
+      "size": [
+        6.131,
+        8,
+        3.643
+      ],
+      "materials": {
+        "MapleTree_Bark": {
+          "shader": "Lab",
+          "maps": {
+            "Texture01": "usn-mapletree-bark-5a4c40"
+          },
+          "cutoff": 0.5,
+          "doubleSided": true,
+          "shadowColor": null,
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        }
+      }
+    },
+    "usn-deadtree-3": {
+      "label": "Ultimate Nature — DeadTree_3",
+      "category": "tree",
+      "file": "props/usn-deadtree-3.glb",
+      "size": [
+        6.807,
+        8,
+        2.746
+      ],
+      "materials": {
+        "NormalTree_Bark": {
+          "shader": "Lab",
+          "maps": {
+            "Texture01": "usn-normaltree-bark-5a4c40"
+          },
+          "cutoff": 0.5,
+          "doubleSided": true,
+          "shadowColor": null,
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        }
+      }
+    },
+    "usn-deadtree-5": {
+      "label": "Ultimate Nature — DeadTree_5",
+      "category": "tree",
+      "file": "props/usn-deadtree-5.glb",
+      "size": [
+        4.427,
+        8,
+        4.712
+      ],
+      "materials": {
+        "NormalTree_Bark": {
+          "shader": "Lab",
+          "maps": {
+            "Texture01": "usn-normaltree-bark-5a4c40"
+          },
+          "cutoff": 0.5,
+          "doubleSided": true,
+          "shadowColor": null,
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        }
+      }
+    },
+    "usn-deadtree-6": {
+      "label": "Ultimate Nature — DeadTree_6",
+      "category": "tree",
+      "file": "props/usn-deadtree-6.glb",
+      "size": [
+        6.744,
+        8,
+        4.114
+      ],
+      "materials": {
+        "MapleTree_Bark": {
+          "shader": "Lab",
+          "maps": {
+            "Texture01": "usn-mapletree-bark-5a4c40"
+          },
+          "cutoff": 0.5,
+          "doubleSided": true,
+          "shadowColor": null,
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        }
+      }
+    },
+    "usn-deadtree-7": {
+      "label": "Ultimate Nature — DeadTree_7",
+      "category": "tree",
+      "file": "props/usn-deadtree-7.glb",
+      "size": [
+        7.776,
+        8,
+        6.378
+      ],
+      "materials": {
+        "MapleTree_Bark": {
+          "shader": "Lab",
+          "maps": {
+            "Texture01": "usn-mapletree-bark-5a4c40"
+          },
+          "cutoff": 0.5,
+          "doubleSided": true,
+          "shadowColor": null,
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        }
+      }
+    }
+  },
+  "textures": {
+    "usn-normaltree-bark-5a4c40": {
+      "file": "textures/usn-normaltree-bark-5a4c40.png",
+      "width": 1024,
+      "height": 1024,
+      "alpha": true,
+      "flipY": false
+    },
+    "usn-normaltree-leaves-4a8034": {
+      "file": "textures/usn-normaltree-leaves-4a8034.png",
+      "width": 1024,
+      "height": 1024,
+      "alpha": true,
+      "flipY": false
+    },
+    "usn-mapletree-bark-5a4c40": {
+      "file": "textures/usn-mapletree-bark-5a4c40.png",
+      "width": 1024,
+      "height": 1024,
+      "alpha": true,
+      "flipY": false
+    },
+    "usn-mapletree-leaves-4f8a36": {
+      "file": "textures/usn-mapletree-leaves-4f8a36.png",
+      "width": 1024,
+      "height": 1024,
+      "alpha": true,
+      "flipY": false
+    },
+    "usn-rocks": {
+      "file": "textures/usn-rocks.png",
+      "width": 1024,
+      "height": 1024,
+      "alpha": true,
+      "flipY": false
+    }
+  }
+}

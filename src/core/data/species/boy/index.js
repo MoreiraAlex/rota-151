@@ -111,7 +111,7 @@ export const BOY = {
   // docs/features/035-balanceamento-de-acoes-e-correcoes.md), na barra dele:
   vitals: {
     // Stamina gasta por segundo enquanto realmente correndo.
-    runStaminaDrainPerSecond: 3.2,
+    runStaminaDrainPerSecond: 2,
     // Custo de stamina do pulo, descontado uma vez no disparo.
     jumpStaminaCost: 4,
     // Custo do dash, descontado uma vez no disparo.
@@ -330,9 +330,9 @@ export const BOY = {
       regenDelay: 5,
     },
     energy: {
-      stat: 80,
-      regenPercent: 10,
-      regenDelay: 3,
+      stat: 100,
+      regenPercent: 75,
+      regenDelay: 1,
     },
   },
   moves: [],

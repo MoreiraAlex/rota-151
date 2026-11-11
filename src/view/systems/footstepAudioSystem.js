@@ -1,3 +1,4 @@
+import { levelGroundSurfaceAt } from '@/core/actions/groundSurface'
 import { levelWaterDepthAt } from '@/core/actions/water'
 import { WATER_SOUNDS } from '@/core/data/audio/waterSounds'
 import { GAME_CONFIG } from '@/core/gameConfig'
@@ -46,7 +47,9 @@ const RUN_RIPPLE = 1.3
  *
  * No raso (docs/features/057-lagos-e-rios.md), o passo é o da água
  * (`waterBuffers`, com o volume dela) e acende uma marolinha na superfície
- * nos pés (`addFootRipple`) — maior correndo.
+ * nos pés (`addFootRipple`) — maior correndo. No chão de grama
+ * (`levelGroundSurfaceAt`, docs/features/066-revisao-dos-biomas.md), o da
+ * grama (`grassBuffers`, no volume do passo da espécie), para quem tem.
  *
  * Vive na view (mexe em nó Three de áudio). Fase: presentation, perto de
  * `animationSystem` (depende do relógio de animação já avançado neste
@@ -103,11 +106,20 @@ export function footstepAudioSystem() {
 
     // No voo, o som próprio do voo se a espécie tiver (`flightBuffers`).
     const flightSound = flying && entry.flightBuffers[stateId].length > 0
+    // Na grama, o passo da grama (quem tem: `grassBuffers` carregados).
+    const onGrass =
+      !inWater &&
+      !flying &&
+      position &&
+      entry.grassBuffers[stateId].length > 0 &&
+      levelGroundSurfaceAt(position.x, position.z) === 'grass'
     const source = inWater
       ? entry.waterBuffers
       : flightSound
         ? entry.flightBuffers
-        : entry.buffers
+        : onGrass
+          ? entry.grassBuffers
+          : entry.buffers
     const buffers = source[stateId]
     if (!buffers || buffers.length === 0) continue
 

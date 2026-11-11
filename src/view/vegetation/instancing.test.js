@@ -63,6 +63,24 @@ describe('buildLodKindMeshes', () => {
     expect(meshes[0].count).toBe(instances.length)
     expect(meshes[1].count).toBe(0)
   })
+
+  it('a malha sem nenhuma instância fica invisível, e volta quando ganha', () => {
+    const {
+      meshes: [near, far],
+      setNear,
+    } = buildLodKindMeshes([makeModel()], instances)
+
+    expect(near.visible).toBe(false)
+    expect(far.visible).toBe(true)
+
+    setNear(() => true)
+    expect(near.visible).toBe(true)
+    expect(far.visible).toBe(false)
+
+    setNear(isNear)
+    expect(near.visible).toBe(true)
+    expect(far.visible).toBe(true)
+  })
 })
 
 describe('finishMesh', () => {

@@ -56,6 +56,15 @@ export function setShadowsEnabled(mesh, isEnabled) {
 }
 
 /**
+ * Se a sombra cai na malha (o nível de sombra do menu, docs/features/066-
+ * revisao-dos-biomas.md). Trocar muda o shader dela (o three guarda os
+ * dois).
+ */
+export function setReceivesShadow(mesh, isReceiving) {
+  mesh.receiveShadow = isReceiving
+}
+
+/**
  * Geometria nova que aponta para os MESMOS buffers de `base` (índice,
  * posição, normal, UV): só o que for posto nela depois (os atributos por
  * instância) é dela.
@@ -216,6 +225,8 @@ function snapshotInstances(mesh) {
 }
 
 // Desenha só as instâncias `indices` (nos primeiros lugares, `count`).
+// Sem nenhuma, a malha fica invisível: o three nem passa por ela no
+// quadro (vazia, ela ainda trocava de programa e mandava os uniforms).
 function compactInstances(mesh, snapshot, indices) {
   for (const { attribute, source } of snapshot) {
     const size = attribute.itemSize
@@ -228,6 +239,7 @@ function compactInstances(mesh, snapshot, indices) {
     attribute.needsUpdate = true
   }
   mesh.count = indices.length
+  mesh.visible = indices.length > 0
 }
 
 /**

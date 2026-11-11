@@ -7,7 +7,7 @@ import {
   createTerrainSampler,
   currentTerrainRecipe,
 } from '@/core/terrain/terrainHeight'
-import { createBiomeTint } from './biomeColor'
+import { createBiomeTint, withBiomeTint } from './biomeColor'
 
 // Um bioma do registro com arbusto do Let's Go; o mundo só com ele.
 const biome = listBiomes().find(({ vegetation }) =>
@@ -57,5 +57,39 @@ describe('createBiomeTint', () => {
     expect(g).toBeCloseTo(expected.g, 2)
     expect(b).toBeCloseTo(expected.b, 2)
     expect(amount).toBeCloseTo(bushEntry.tint.amount, 2)
+  })
+})
+
+describe('withBiomeTint', () => {
+  const green = new THREE.Color('#5cc417')
+  const lumaOf = (color) =>
+    color.r * 0.2126 + color.g * 0.7152 + color.b * 0.0722
+  const hueOf = (color) => {
+    const luma = lumaOf(color)
+    return [color.r / luma, color.g / luma, color.b / luma]
+  }
+
+  it('sem tinta ou com força 0, a cor como está (e uma cópia)', () => {
+    for (const tint of [null, undefined, { color: '#e0c060', amount: 0 }]) {
+      const out = withBiomeTint(green, tint)
+      expect(out).not.toBe(green)
+      expect(out.equals(green)).toBe(true)
+    }
+  })
+
+  it('na força cheia, fica com o tom da tinta e a luminância da cor', () => {
+    const tint = { color: '#e0c060', amount: 1 }
+    const out = withBiomeTint(green, tint)
+    expect(lumaOf(out)).toBeCloseTo(lumaOf(green), 5)
+    const target = hueOf(new THREE.Color(tint.color))
+    hueOf(out).forEach((value, i) => expect(value).toBeCloseTo(target[i], 5))
+  })
+
+  it('a força mistura entre a cor e a tingida', () => {
+    const full = withBiomeTint(green, { color: '#e0c060', amount: 1 })
+    const half = withBiomeTint(green, { color: '#e0c060', amount: 0.5 })
+    expect(half.r).toBeCloseTo((green.r + full.r) / 2, 5)
+    expect(half.g).toBeCloseTo((green.g + full.g) / 2, 5)
+    expect(half.b).toBeCloseTo((green.b + full.b) / 2, 5)
   })
 })

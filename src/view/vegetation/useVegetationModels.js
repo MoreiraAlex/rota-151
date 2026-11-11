@@ -5,6 +5,8 @@ import * as THREE from 'three'
 import {
   LGPE_MANIFEST_PATH,
   buildLgpeModels,
+  mergeLgpeManifests,
+  withBorrowedLeaves,
   lgpePropPath,
   lgpeTextureNames,
   lgpeTexturePath,
@@ -12,6 +14,13 @@ import {
   usedLgpeIds,
 } from './lgpeModels'
 import { getReadyLgpeIds, subscribeLgpeChoices } from './lgpeChoices'
+import {
+  BLADE_GRASS_ID,
+  getBladeGrassRevision,
+  isProceduralProp,
+  subscribeBladeGrass,
+  withProceduralProps,
+} from './bladeGrass'
 
 /**
  * Modelos e materiais da vegetação, prontos para as malhas instanciadas:
@@ -49,15 +58,30 @@ function useOwned(build, deps) {
 
 export function useLgpeManifest() {
   const manifestText = useLoader(THREE.FileLoader, LGPE_MANIFEST_PATH)
-  return useMemo(() => JSON.parse(manifestText), [manifestText])
+  // Com os pacotes de fora, se houver (`registerExtraLgpePack`,
+  // docs/features/066-revisao-dos-biomas.md) — as árvores deles com as
+  // folhas do LGPE (`withBorrowedLeaves`) —, e os gerados por código (a
+  // grama em fios, bladeGrass.js).
+  return useMemo(
+    () =>
+      withProceduralProps(
+        withBorrowedLeaves(mergeLgpeManifests(JSON.parse(manifestText))),
+      ),
+    [manifestText],
+  )
 }
 
-// Os `.glb` e as texturas dos modelos `ids` (suspende até chegarem).
-export function useLgpeFiles(manifest, ids) {
+// Os `.glb` e as texturas dos modelos `allIds` (suspende até chegarem); os
+// gerados por código não têm arquivo e ficam de fora (`ids`: os com).
+export function useLgpeFiles(manifest, allIds) {
+  const ids = useMemo(
+    () => allIds.filter((id) => !isProceduralProp(manifest, id)),
+    [manifest, allIds],
+  )
   const gltfs = useGLTF(ids.map(lgpePropPath))
   const names = useMemo(() => lgpeTextureNames(manifest, ids), [manifest, ids])
   const textures = useTexture(names.map(lgpeTexturePath))
-  return { gltfs, names, textures }
+  return { gltfs, names, textures, ids }
 }
 
 /**
@@ -73,21 +97,36 @@ function useLgpeModels() {
     getReadyLgpeIds,
     getReadyLgpeIds,
   )
-  const ids = useMemo(
+  // A grama em fios se refaz quando a forma do tufo muda (o lab pede).
+  const bladeRevision = useSyncExternalStore(
+    subscribeBladeGrass,
+    getBladeGrassRevision,
+    getBladeGrassRevision,
+  )
+  const allIds = useMemo(
     () => [...new Set([...LGPE_IDS, ...readyIds])],
     [readyIds],
   )
-  const { gltfs, names, textures } = useLgpeFiles(manifest, ids)
+  const { gltfs, names, textures, ids } = useLgpeFiles(manifest, allIds)
+  // Os gerados por código entram sem mudar os arquivos: contam à parte.
+  const proceduralKey = allIds
+    .filter((id) => isProceduralProp(manifest, id))
+    .join(',')
   return useOwned(() => {
     const byName = new Map(
-      names.map((name, index) => [name, prepareLgpeTexture(textures[index])]),
+      names.map((name, index) => [
+        name,
+        prepareLgpeTexture(textures[index], manifest.textures[name]),
+      ]),
     )
     return buildLgpeModels(
       manifest,
       Object.fromEntries(ids.map((id, index) => [id, gltfs[index].scene])),
       (name) => byName.get(name) ?? null,
+      proceduralKey ? proceduralKey.split(',') : [],
     )
-  }, [manifest, gltfs, textures])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [manifest, gltfs, textures, bladeRevision, proceduralKey])
 }
 
 /**
@@ -106,4 +145,13 @@ export function useVegetationModels() {
   )
 }
 
-useGLTF.preload(LGPE_IDS.map(lgpePropPath))
+/**
+ * Pede de antemão os `.glb` dos modelos que os biomas usam. Chamar depois
+ * de registrar os pacotes de fora (`loadVegetationPacks`): antes, os
+ * modelos deles seriam pedidos na pasta do LGPE (e dariam 404).
+ */
+export function preloadVegetationModels() {
+  useGLTF.preload(
+    LGPE_IDS.filter((id) => id !== BLADE_GRASS_ID).map(lgpePropPath),
+  )
+}

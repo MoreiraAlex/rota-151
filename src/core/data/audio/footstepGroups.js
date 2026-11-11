@@ -17,6 +17,9 @@
  * asa de penas do Cobblemon (`sounds/animation/wings/plumage_wing_flap_*`,
  * a pequena andando e a média correndo), pra quem se move voando.
  *
+ * `grass`: na grama, o passo vira o da grama (`grassSounds.js`,
+ * docs/features/066-revisao-dos-biomas.md) — só nos grupos de quem pisa.
+ *
  * `volume`/`refDistance` (distância de referência do falloff espacial do
  * `THREE.PositionalAudio`) moram no GRUPO — "as outras configs" que
  * viajam junto com o som escolhido: um grupo pra criaturas grandes já
@@ -26,6 +29,7 @@ export const FOOTSTEP_GROUPS = {
   // Passo pesado, batida cheia — treinador (bipede, humanoide).
   medium: {
     volume: 0.02,
+    grass: true,
     refDistance: 6,
     walk: [
       '/assets/audio/footsteps/medium/walk-01.ogg',
@@ -43,6 +47,7 @@ export const FOOTSTEP_GROUPS = {
   // Passo leve, mais metálico/curto — criaturas pequenas.
   light: {
     volume: 0.05,
+    grass: true,
     refDistance: 4,
     walk: [
       '/assets/audio/footsteps/light/walk-01.ogg',

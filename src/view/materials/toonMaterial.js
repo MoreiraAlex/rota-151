@@ -1,6 +1,8 @@
 import * as THREE from 'three'
 
 import { GAME_CONFIG } from '@/core/gameConfig'
+import { markAsCharacter, onlyBehindPlants } from './characterStencil'
+import { trackSilhouettes } from './silhouetteVisibility'
 
 /**
  * Visual toon (estilo Zelda BotW): luz cortada em poucos tons chapados,
@@ -103,7 +105,7 @@ export class OutlineMaterial extends THREE.MeshBasicMaterial {
 export function toToonMaterial(source) {
   const Material =
     RENDER.RIM_STRENGTH > 0 ? ToonRimMaterial : THREE.MeshToonMaterial
-  return new Material({
+  const material = new Material({
     name: source.name,
     map: source.map ?? null,
     color: source.color ? source.color.clone() : new THREE.Color(0xffffff),
@@ -114,6 +116,8 @@ export function toToonMaterial(source) {
     side: source.side ?? THREE.FrontSide,
     gradientMap: toonRamp,
   })
+  // Personagem no stencil: o aviso de golpe não desenha por cima dele.
+  return markAsCharacter(material)
 }
 
 /**
@@ -134,7 +138,7 @@ export function shouldOutline(mesh) {
  * original.
  */
 export function createOutline(mesh) {
-  const material = new OutlineMaterial()
+  const material = markAsCharacter(new OutlineMaterial())
   const outline = mesh.isSkinnedMesh
     ? new THREE.SkinnedMesh(mesh.geometry, material)
     : new THREE.Mesh(mesh.geometry, material)
@@ -150,6 +154,46 @@ export function createOutline(mesh) {
   outline.frustumCulled = mesh.frustumCulled
   mesh.parent.add(outline)
   return outline
+}
+
+/**
+ * Silhueta de quem está escondido atrás de planta (docs/features/066-
+ * revisao-dos-biomas.md, `RENDER.SILHOUETTE`): cópia do mesh numa cor
+ * chapada e meio transparente que só desenha onde o corpo está ATRÁS do
+ * que já foi desenhado (profundidade maior) e onde quem está na frente é
+ * planta (`onlyBehindPlants`, stencil) — atrás de grama e arbusto, a forma
+ * aparece; atrás de chão, tronco ou pedra, não. Como o contorno: liga no
+ * mesmo esqueleto e conta como contorno para quem percorre o modelo
+ * (`isOutline`). Quando ela aparece (só com o nameplate à mostra; a das
+ * selvagens, não à noite) é de `silhouetteVisibility.js`.
+ */
+export function createSilhouette(mesh, color) {
+  const material = onlyBehindPlants(
+    new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity: RENDER.SILHOUETTE.OPACITY,
+      depthWrite: false,
+      depthFunc: THREE.GreaterDepth,
+      fog: false,
+    }),
+  )
+  const silhouette = mesh.isSkinnedMesh
+    ? new THREE.SkinnedMesh(mesh.geometry, material)
+    : new THREE.Mesh(mesh.geometry, material)
+  if (mesh.isSkinnedMesh) silhouette.bind(mesh.skeleton, mesh.bindMatrix)
+
+  silhouette.name = `${mesh.name}-silhouette`
+  silhouette.userData.isOutline = true
+  silhouette.userData.isSilhouette = true
+  silhouette.position.copy(mesh.position)
+  silhouette.quaternion.copy(mesh.quaternion)
+  silhouette.scale.copy(mesh.scale)
+  silhouette.castShadow = false
+  silhouette.receiveShadow = false
+  silhouette.frustumCulled = mesh.frustumCulled
+  mesh.parent.add(silhouette)
+  return silhouette
 }
 
 /**
@@ -173,9 +217,21 @@ export function disposeOutline(outline) {
  * por um toon próprio e cria os contornos. Devolve a função que desfaz tudo
  * (contornos fora, material original de volta, toons liberados) — o cleanup
  * do efeito que aplicou. Desfazer também deixa o efeito seguro pra rodar de
- * novo (StrictMode), sem converter toon em toon.
+ * novo (StrictMode), sem converter toon em toon. Com `silhouetteColor`,
+ * cria também a silhueta de cada mesh com contorno (`createSilhouette`),
+ * a das selvagens (`silhouetteWild`) ligada ao nameplate de
+ * `silhouetteOwner` e, com `silhouetteHidesAtNight`, à noite
+ * (`silhouetteVisibility.js`).
  */
-export function applyToonLook(meshes) {
+export function applyToonLook(
+  meshes,
+  {
+    silhouetteColor = null,
+    silhouetteOwner = null,
+    silhouetteWild = false,
+    silhouetteHidesAtNight = false,
+  } = {},
+) {
   const originals = meshes.map((mesh) => mesh.material)
   // os toons criados aqui — o mesh pode ter trocado de material depois (hit
   // flash e tint clonam), então quem é liberado é o que ESTE efeito criou
@@ -184,9 +240,21 @@ export function applyToonLook(meshes) {
     mesh.material = toons[index]
   })
   const outlines = meshes.filter(shouldOutline).map(createOutline)
+  const silhouettes =
+    silhouetteColor && RENDER.SILHOUETTE.ENABLED
+      ? meshes
+          .filter(shouldOutline)
+          .map((mesh) => createSilhouette(mesh, silhouetteColor))
+      : []
+  const untrack = trackSilhouettes(silhouetteOwner, silhouettes, {
+    wild: silhouetteWild,
+    hideAtNight: silhouetteHidesAtNight,
+  })
 
   return () => {
+    untrack()
     for (const outline of outlines) disposeOutline(outline)
+    for (const silhouette of silhouettes) disposeOutline(silhouette)
     for (const toon of toons) toon.dispose()
     meshes.forEach((mesh, index) => {
       mesh.material = originals[index]

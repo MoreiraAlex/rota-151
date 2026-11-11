@@ -108,6 +108,7 @@ export { WanderState } from './components/wander'
 export { SaveClock, SaveRequested, TrainerReady } from './components/save'
 export { WorldClock, LocalWeather } from './components/environment'
 export { SoundSettings } from './components/soundSettings'
+export { GraphicsSettings } from './components/graphicsSettings'
 export {
   WorldItemsMemory,
   WorldItemChunks,

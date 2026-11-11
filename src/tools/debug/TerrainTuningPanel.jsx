@@ -14,16 +14,11 @@ import { rebuildVegetation } from '@/view/vegetation/vegetationSettings'
 // lê a config a cada tick) — não precisa refazer o relevo.
 const CONTROLS = {
   WATER_LEVEL: { label: 'Nível da água (m)', range: [-15, 15, 0.1] },
-  // O lado do chunk é fixo (`TERRAIN.CHUNK_SIZE`). O raio é o controle
-  // de gráfico: máquina mais forte aguenta mais mundo na tela.
-  LOAD_RADIUS: {
-    label: 'Raio de carregar (chunks)',
-    range: [1, 32, 1],
-    keepsTerrain: true,
-  },
-  UNLOAD_RADIUS: {
-    label: 'Raio de descarregar (chunks)',
-    range: [1, 40, 1],
+  // O lado do chunk é fixo (`TERRAIN.CHUNK_SIZE`); o raio carregado é a
+  // distância de visão do menu "Gráficos" — aqui, só a folga de descarregar.
+  UNLOAD_MARGIN: {
+    label: 'Folga de descarregar (chunks)',
+    range: [0, 8, 1],
     keepsTerrain: true,
   },
 }

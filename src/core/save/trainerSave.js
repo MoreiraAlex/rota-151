@@ -15,6 +15,7 @@ import {
   Rotation,
   ScanHistory,
   SoundSettings,
+  GraphicsSettings,
   restoreScanHistoryEntries,
 } from '../traits'
 
@@ -107,6 +108,7 @@ export function serializeTrainer(trainer) {
     settings: {
       volume: pickVolumes(trainer.get(SoundSettings)),
       musicFrequency: trainer.get(SoundSettings).musicFrequency,
+      graphics: { ...trainer.get(GraphicsSettings) },
     },
     inventory: { counts: { ...counts }, positions: { ...positions } },
     pokedex: {
@@ -141,6 +143,7 @@ export function restoreTrainer(trainer, saved) {
     ...pickVolumes(saved.settings.volume),
     musicFrequency: saved.settings.musicFrequency,
   })
+  trainer.set(GraphicsSettings, { ...saved.settings.graphics })
 
   const counts = {}
   const positions = {}

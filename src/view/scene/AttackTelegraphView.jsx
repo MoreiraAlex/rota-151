@@ -16,6 +16,7 @@ import {
   Position,
   resolveCreatureSpeciesId,
 } from '@/core/traits'
+import { updateOverPlants } from '@/view/materials/overPlants'
 import { AttackShape, paintAttackShape, placeAttackShape } from './AttackShape'
 
 const {
@@ -49,7 +50,9 @@ const PAINT = {
  * Mesma forma e trajetória do indicador de mira (`placeAttackShape`), mas na
  * direção TRAVADA no disparo (`ActionState.dirX/dirZ`), não na da câmera.
  * Respeita profundidade (diferente do indicador de mira): corpos e
- * obstáculos tampam o leque normalmente.
+ * obstáculos tampam o leque normalmente — menos a grama e os arbustos,
+ * que o golpe não colide: o aviso passa por cima deles
+ * (`materials/overPlants.js`, docs/features/066-revisao-dos-biomas.md).
  * Pool fixo de `POOL_SIZE` leques (efeito que nasce várias vezes por
  * segundo — regra do projeto); atacantes além disso ficam sem aviso.
  *
@@ -62,6 +65,11 @@ export function AttackTelegraphView() {
   const paintedRefs = useRef([])
 
   useFrame(() => {
+    // Os números do "por cima das plantas" ao vivo (lab, F2).
+    for (const shape of shapeRefs.current) {
+      if (shape?.fill) updateOverPlants(shape.fill.material)
+      if (shape?.edge) updateOverPlants(shape.edge.material)
+    }
     let used = 0
     world
       .query(ActionState, CharacterController, PhysicsBody, Position)
@@ -111,6 +119,9 @@ export function AttackTelegraphView() {
       edgeColor={EDGE_COLOR}
       edgeOpacity={EDGE_OPACITY}
       depthTest
+      // Por cima da grama e dos arbustos (o golpe não colide com eles);
+      // personagens, pedras e troncos continuam tampando.
+      overPlants
       // Acima do anel de tempo da ação (`ActionTimerRingView`, ordens 14 e 15):
       // onde os dois se sobrepõem, o aviso fica POR CIMA do anel.
       renderOrder={16}

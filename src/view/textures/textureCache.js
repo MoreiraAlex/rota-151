@@ -15,6 +15,9 @@ const cache = new Map()
  * `loadAudioBuffer` (espécie sem `model.texture` configurado é o caso
  * normal, não um erro).
  *
+ * A imagem já vem decodificada (`image.decode()`), para o envio à placa
+ * de vídeo não decodificar dentro do quadro.
+ *
  * Defaults genéricos, aplicados a QUALQUER textura carregada por aqui,
  * independente de quem chama:
  * - `colorSpace = SRGBColorSpace` — convenção de textura de cor base
@@ -49,7 +52,15 @@ export function loadTexture(path) {
             texture.colorSpace = THREE.SRGBColorSpace
             texture.wrapS = THREE.RepeatWrapping
             texture.wrapT = THREE.RepeatWrapping
-            resolve(texture)
+            // Decodifica a imagem fora do quadro antes de entregar: sem
+            // isso, o navegador decodifica no envio para a placa de vídeo,
+            // dentro do quadro em que ela aparece (docs/features/066-
+            // revisao-dos-biomas.md, desempenho). Sem `decode` (ou com
+            // erro), entrega como está.
+            const decoded = texture.image?.decode?.()
+            Promise.resolve(decoded)
+              .catch(() => {})
+              .then(() => resolve(texture))
           },
           undefined,
           () => resolve(null),
@@ -58,4 +69,21 @@ export function loadTexture(path) {
     )
   }
   return cache.get(path)
+}
+
+/**
+ * Cópia de `texture` com recorte próprio (`offset`, `repeat`, `center`,
+ * `rotation` — os quadros de um flipbook, o olho que pisca) que reaproveita
+ * a imagem já enviada à placa de vídeo. O `clone()` do three marca a imagem
+ * compartilhada para subir de novo (`needsUpdate` mexe na versão dela): cada
+ * cópia reenviava a imagem inteira, uma travada a cada criatura ou
+ * partícula nova (docs/features/066-revisao-dos-biomas.md, desempenho).
+ * Só a versão da imagem volta ao que era; a cópia em si fica marcada, para
+ * ser montada no primeiro desenho.
+ */
+export function cloneTexture(texture) {
+  const imageVersion = texture.source.version
+  const copy = texture.clone()
+  copy.source.version = imageVersion
+  return copy
 }

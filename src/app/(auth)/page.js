@@ -8,7 +8,7 @@ import {
   useState,
   useSyncExternalStore,
 } from 'react'
-import { Canvas } from '@react-three/fiber'
+import { GameCanvas } from '@/view/scene/GameCanvas'
 import { Stats } from '@react-three/drei'
 import { useHas, useTrait } from 'koota/react'
 import { WorldProvider } from '@/core/world/WorldProvider'
@@ -48,6 +48,11 @@ import { createAutosave } from '@/platform/persistence/autosave'
 import { createPokemonUid } from '@/platform/persistence/pokemonUid'
 import { initPhysics } from '@/core/physics/physicsWorld'
 import { preloadGameAssets } from '@/view/preload/preloadGameAssets'
+import {
+  GAME_PACKS_DIR,
+  loadVegetationPacks,
+} from '@/view/vegetation/vegetationPacks'
+import { preloadVegetationModels } from '@/view/vegetation/useVegetationModels'
 import { SceneReady } from '@/view/scene/SceneReady'
 import { LoadingScreen } from '@/view/loading/LoadingScreen'
 import { loadingProgress } from '@/view/loading/loadingProgress'
@@ -172,6 +177,12 @@ export default function GamePage() {
         ),
       ),
       preloadGameAssets(loadingProgress),
+      // Os modelos de fora do Let's Go que os biomas usam
+      // (docs/features/066-revisao-dos-biomas.md), antes da cena.
+      loadingProgress.track(
+        'Carregando a vegetação…',
+        loadVegetationPacks(GAME_PACKS_DIR).then(preloadVegetationModels),
+      ),
     ]).then(([result, physicsLoaded]) => {
       if (cancelled) return
       if (!physicsLoaded) {
@@ -406,7 +417,7 @@ function GameScreen({ saveError, onDeleteSave, onSceneReady }) {
         className="relative h-screen w-screen overflow-hidden"
       >
         {/* Quem manda desenhar é o FrameLimiter (limite de FPS). */}
-        <Canvas
+        <GameCanvas
           shadows
           frameloop="never"
           gl={{ antialias: GAME_CONFIG.RENDER.MSAA }}
@@ -432,7 +443,7 @@ function GameScreen({ saveError, onDeleteSave, onSceneReady }) {
           </GameScene>
           {/* A cena só monta com os modelos prontos: tira o carregamento. */}
           <SceneReady onReady={onSceneReady} />
-        </Canvas>
+        </GameCanvas>
 
         {/* z-10 — bug relatado: "o Nameplate está ficando sobre o menu e
             outras coisas, isso é controlado por z-index?". É, sim:

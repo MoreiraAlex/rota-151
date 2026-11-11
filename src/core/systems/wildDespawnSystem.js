@@ -1,5 +1,6 @@
 import { despawnarSelvagem } from '../actions/wildSpawn'
 import { GAME_CONFIG } from '../gameConfig'
+import { TEST_LEVEL } from '../data/testLevel'
 import { gameplayRng } from '../rng'
 import {
   despawnReason,
@@ -51,7 +52,7 @@ export function wildDespawnSystem(context) {
   const viewers = players.flatMap((player) => player.viewers)
   const views = players.map((player) => player.view)
 
-  const params = spawnParams()
+  const params = spawnParams(TEST_LEVEL.terrain.loadRadius())
   const leaving = []
   world
     .query(WildCreature, WildSpawnInfo, Position)

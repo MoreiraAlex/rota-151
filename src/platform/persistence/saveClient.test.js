@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { SAVE_VERSION } from '@/core/save/saveFormat'
+import { GAME_CONFIG } from '@/core/gameConfig'
 import { DEFAULT_VOLUMES } from '@/core/data/audio/mixer'
 import { DEFAULT_MUSIC_FREQUENCY } from '@/core/data/audio/musicTracks'
 import { createSaveClient } from './saveClient'
@@ -12,6 +13,12 @@ const VALID_SAVE = {
     settings: {
       volume: { ...DEFAULT_VOLUMES },
       musicFrequency: DEFAULT_MUSIC_FREQUENCY,
+      graphics: {
+        shadow: GAME_CONFIG.GRAPHICS.SHADOW.DEFAULT,
+        aspect: GAME_CONFIG.GRAPHICS.ASPECT.DEFAULT,
+        canvasScale: GAME_CONFIG.GRAPHICS.CANVAS_SIZE.DEFAULT,
+        viewDistance: GAME_CONFIG.GRAPHICS.VIEW_DISTANCE.DEFAULT,
+      },
     },
     inventory: { counts: {}, positions: {} },
     pokedex: { speciesIds: [], history: [] },

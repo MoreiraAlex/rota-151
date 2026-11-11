@@ -9,13 +9,15 @@ import {
   useSyncExternalStore,
 } from 'react'
 import { useFrame } from '@react-three/fiber'
+import { useTrait } from 'koota/react'
+import { shadowLevelOf } from '@/core/actions'
 import { TEST_LEVEL } from '@/core/data/testLevel'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import { chunkCoordAt, chunkKey } from '@/core/terrain/terrainChunk'
 import { lightingAt } from '@/core/time/dayCycle'
-import { LocalWeather, WorldClock } from '@/core/traits'
+import { GraphicsSettings, LocalWeather, WorldClock } from '@/core/traits'
 import { windStrengthOf } from '@/core/weather/wind'
-import { world } from '@/core/world/world'
+import { playerEntity, world } from '@/core/world/world'
 import { useTerrainChunks } from '@/view/hooks/useTerrainChunks'
 import { loadedFogRange } from '@/core/terrain/fogRange'
 import { resolveSkyLook } from '@/view/weather/skyLook'
@@ -25,7 +27,11 @@ import {
   buildTreeMeshes,
   buildUndergrowthMeshes,
 } from './chunkMeshes'
-import { disposeVegetationMesh, setShadowsEnabled } from './instancing'
+import {
+  disposeVegetationMesh,
+  setReceivesShadow,
+  setShadowsEnabled,
+} from './instancing'
 import { useVegetationModels } from './useVegetationModels'
 import { createGrassPushMap } from './grassPush'
 import { LgpeChoiceLoader } from './LgpeChoiceLoader'
@@ -49,24 +55,50 @@ const NEW_TILES_PER_FRAME = 2
 /**
  * Monta e tira as malhas que `build` devolve: uma malha, uma lista delas
  * ou `null`. `castShadows`: liga a sombra das que
- * podem fazer (`allowShadow`).
+ * podem fazer (`allowShadow`); `receiveShadows`: se a sombra cai nelas (o
+ * nível de sombra do menu, `VEGETATION_RECEIVES`).
  */
-function MeshesOf({ build, castShadows = true }) {
+function MeshesOf({
+  build,
+  castShadows = true,
+  receiveShadows = true,
+  bladeCenter = null,
+}) {
   const built = useMemo(build, [build])
   const meshes = useMemo(
     () => (Array.isArray(built) ? built : [built]).filter(Boolean),
     [built],
   )
+  // A grama em fios do bloco (bladeGrass.js) só é desenhada até onde ela
+  // some (`GRASS_BLADES.FADE_END`, mais meio bloco): longe, nem vai à GPU.
+  const blades = useMemo(
+    () => meshes.filter((mesh) => mesh.material?.userData?.bladeGrass),
+    [meshes],
+  )
+  useFrame(({ camera }) => {
+    if (!bladeCenter || blades.length === 0) return
+    const { FADE_END } = GAME_CONFIG.GRASS_BLADES
+    const reach = FADE_END + GAME_CONFIG.GRASS.TILE_SIZE * 0.75
+    const isNear =
+      Math.hypot(
+        camera.position.x - bladeCenter.x,
+        camera.position.z - bladeCenter.z,
+      ) <= reach
+    for (const mesh of blades) mesh.visible = isNear
+  })
   useEffect(
     () => () => {
       for (const mesh of meshes) disposeVegetationMesh(mesh)
     },
     [meshes],
   )
-  // Sombra pela distância: liga e desliga sem remontar.
+  // Sombra pela distância e pelo nível: liga e desliga sem remontar.
   useEffect(() => {
-    for (const mesh of meshes) setShadowsEnabled(mesh, castShadows)
-  }, [meshes, castShadows])
+    for (const mesh of meshes) {
+      setShadowsEnabled(mesh, castShadows)
+      setReceivesShadow(mesh, receiveShadows)
+    }
+  }, [meshes, castShadows, receiveShadows])
   return meshes.map((mesh) => <primitive key={mesh.uuid} object={mesh} />)
 }
 
@@ -75,7 +107,7 @@ function MeshesOf({ build, castShadows = true }) {
  * registra o `setNear` no `lod` com a distância de perto (`distanceOf`, lida
  * a cada atualização — o debug mexe) e tira ao desmontar.
  */
-function LodMeshesOf({ build, castShadows, lod, distanceOf }) {
+function LodMeshesOf({ build, castShadows, receiveShadows, lod, distanceOf }) {
   const built = useMemo(build, [build])
   useEffect(() => {
     lod.add(built.setNear, distanceOf)
@@ -85,12 +117,27 @@ function LodMeshesOf({ build, castShadows, lod, distanceOf }) {
     }
   }, [built, lod, distanceOf])
   useEffect(() => {
-    for (const mesh of built.meshes) setShadowsEnabled(mesh, castShadows)
-  }, [built, castShadows])
+    for (const mesh of built.meshes) {
+      setShadowsEnabled(mesh, castShadows)
+      setReceivesShadow(mesh, receiveShadows)
+    }
+  }, [built, castShadows, receiveShadows])
   return built.meshes.map((mesh) => <primitive key={mesh.uuid} object={mesh} />)
 }
 
-function GrassTile({ chunk, tile, models, showGrass, showFlowers }) {
+function GrassTile({
+  chunk,
+  tile,
+  models,
+  showGrass,
+  showFlowers,
+  receiveShadows,
+}) {
+  // O meio do bloco (o corte da grama em fios pela distância).
+  const center = useMemo(() => {
+    const { TILE_SIZE } = GAME_CONFIG.GRASS
+    return { x: tile.tileX * TILE_SIZE, z: tile.tileZ * TILE_SIZE }
+  }, [tile])
   const buildGrass = useMemo(
     () => () => buildGrassMeshes(chunk, tile, models),
     [chunk, tile, models],
@@ -106,9 +153,19 @@ function GrassTile({ chunk, tile, models, showGrass, showFlowers }) {
   )
   return (
     <>
-      {showGrass && <MeshesOf build={buildGrass} />}
-      {showGrass && <MeshesOf build={buildEncounterGrass} />}
-      {showFlowers && <MeshesOf build={buildFlowers} />}
+      {showGrass && (
+        <MeshesOf
+          build={buildGrass}
+          bladeCenter={center}
+          receiveShadows={receiveShadows}
+        />
+      )}
+      {showGrass && (
+        <MeshesOf build={buildEncounterGrass} receiveShadows={receiveShadows} />
+      )}
+      {showFlowers && (
+        <MeshesOf build={buildFlowers} receiveShadows={receiveShadows} />
+      )}
     </>
   )
 }
@@ -120,8 +177,9 @@ function GrassTile({ chunk, tile, models, showGrass, showFlowers }) {
  * samambaias, plantas, seixos), sorteados sobre o relevo do
  * bloco inteiro (`ground`). Pela distância da câmera
  * (`VEGETATION_QUALITY`): `showSolids` (até `treeDistance`), `showDetail`
- * (sub-bosque, até a névoa) e `castShadows` (até `shadowRing`) — ligar
- * e desligar não refaz o que já foi montado.
+ * (sub-bosque, até a névoa) e `castShadows` (até `shadowRing`); pelo
+ * nível de sombra do menu, `receiveShadows` — ligar e desligar não refaz o
+ * que já foi montado.
  */
 function BlockVegetation({
   ground: chunk,
@@ -131,6 +189,7 @@ function BlockVegetation({
   showSolids,
   showDetail,
   castShadows,
+  receiveShadows,
   lod,
 }) {
   const builds = useMemo(() => {
@@ -155,6 +214,7 @@ function BlockVegetation({
         <LodMeshesOf
           build={builds.trees}
           castShadows={castShadows}
+          receiveShadows={receiveShadows}
           lod={lod}
           distanceOf={treeLodDistance}
         />
@@ -166,6 +226,7 @@ function BlockVegetation({
               key={name}
               build={builds[name]}
               castShadows={castShadows}
+              receiveShadows={receiveShadows}
               lod={lod}
               distanceOf={detailDistance}
             />
@@ -173,10 +234,18 @@ function BlockVegetation({
         </>
       )}
       {settings.rocks && (
-        <MeshesOf build={builds.rocks} castShadows={castShadows} />
+        <MeshesOf
+          build={builds.rocks}
+          castShadows={castShadows}
+          receiveShadows={receiveShadows}
+        />
       )}
       {settings.buildings && (
-        <MeshesOf build={builds.buildings} castShadows={castShadows} />
+        <MeshesOf
+          build={builds.buildings}
+          castShadows={castShadows}
+          receiveShadows={receiveShadows}
+        />
       )}
     </>
   )
@@ -189,7 +258,11 @@ const LOD_STEP = 2
 // O sub-bosque vai até a névoa fechar: até onde ela começa, tudo aparece
 // inteiro (docs/features/058-ajuste-dos-biomas.md).
 const treeLodDistance = () => GAME_CONFIG.TREES.LOD_DISTANCE
-const detailDistance = () => loadedFogRange(TEST_LEVEL.terrain.chunkSize()).far
+const detailDistance = () =>
+  loadedFogRange(
+    TEST_LEVEL.terrain.chunkSize(),
+    TEST_LEVEL.terrain.loadRadius(),
+  ).far
 
 // Até que anel de blocos (em volta do da câmera) o sub-bosque é montado:
 // o bastante para cobrir até a névoa fechar — a câmera pode estar na borda
@@ -262,6 +335,9 @@ export function VegetationView() {
     getVegetationSettings,
   )
   const models = useVegetationModels()
+  // O nível de sombra do menu (docs/features/066-revisao-dos-biomas.md).
+  const graphics = useTrait(playerEntity, GraphicsSettings)
+  const receiveShadows = shadowLevelOf(graphics?.shadow).VEGETATION_RECEIVES
 
   const chunksByKey = new Map(
     TEST_LEVEL.terrain
@@ -305,7 +381,10 @@ export function VegetationView() {
       camera.position.z,
       // Até a borda do mundo carregado (a névoa pode ir além, com o
       // relevo distante).
-      loadedFogRange(TEST_LEVEL.terrain.chunkSize()).far,
+      loadedFogRange(
+        TEST_LEVEL.terrain.chunkSize(),
+        TEST_LEVEL.terrain.loadRadius(),
+      ).far,
       GAME_CONFIG.GRASS.TILE_SIZE,
     ).filter((tile) =>
       TEST_LEVEL.terrain.isLoaded(...chunkOfTile(tile, GAME_CONFIG)),
@@ -351,6 +430,7 @@ export function VegetationView() {
               models={models}
               showGrass={settings.grass}
               showFlowers={settings.flowers}
+              receiveShadows={receiveShadows}
             />
           )
         })}
@@ -370,6 +450,7 @@ export function VegetationView() {
             showSolids={distance <= quality.treeDistance}
             showDetail={ring <= detailRing()}
             castShadows={ring <= quality.shadowRing}
+            receiveShadows={receiveShadows}
             lod={lod}
           />
         )

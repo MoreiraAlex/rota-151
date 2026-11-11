@@ -18,6 +18,12 @@ function minimalSave(overrides = {}) {
       settings: {
         volume: { ...DEFAULT_VOLUMES },
         musicFrequency: DEFAULT_MUSIC_FREQUENCY,
+        graphics: {
+          shadow: GAME_CONFIG.GRAPHICS.SHADOW.DEFAULT,
+          aspect: GAME_CONFIG.GRAPHICS.ASPECT.DEFAULT,
+          canvasScale: GAME_CONFIG.GRAPHICS.CANVAS_SIZE.DEFAULT,
+          viewDistance: GAME_CONFIG.GRAPHICS.VIEW_DISTANCE.DEFAULT,
+        },
       },
       inventory: { counts: {}, positions: {} },
       pokedex: { speciesIds: [], history: [] },
@@ -301,6 +307,111 @@ describe('ajustes do treinador', () => {
     const save = minimalSave()
     save.trainer.settings.musicFrequency = 'nunca-mais'
     expect(validateSave(save).ok).toBe(false)
+  })
+
+  // docs/features/066-revisao-dos-biomas.md
+  it('save da versão 6 carrega com os gráficos padrão e o som que tinha', () => {
+    const save = minimalSave({ version: 6 })
+    delete save.trainer.settings.graphics
+    save.trainer.settings.volume = {
+      ...save.trainer.settings.volume,
+      master: 0.3,
+    }
+    const result = migrateSave(save)
+
+    expect(result.ok).toBe(true)
+    expect(result.save.trainer.settings.graphics).toEqual({
+      shadow: GAME_CONFIG.GRAPHICS.SHADOW.DEFAULT,
+      aspect: GAME_CONFIG.GRAPHICS.ASPECT.DEFAULT,
+      canvasScale: GAME_CONFIG.GRAPHICS.CANVAS_SIZE.DEFAULT,
+      viewDistance: GAME_CONFIG.GRAPHICS.VIEW_DISTANCE.DEFAULT,
+    })
+    expect(result.save.trainer.settings.volume.master).toBe(0.3)
+  })
+
+  it('aceita todo nível de sombra; um desconhecido volta ao padrão', () => {
+    for (const shadow of Object.keys(GAME_CONFIG.GRAPHICS.SHADOW.LEVELS)) {
+      const save = minimalSave()
+      save.trainer.settings.graphics = { shadow }
+      expect(validateSave(save).save.trainer.settings.graphics.shadow).toBe(
+        shadow,
+      )
+    }
+    const save = minimalSave()
+    save.trainer.settings.graphics = { shadow: 'ultra-raytracing' }
+    expect(validateSave(save).save.trainer.settings.graphics.shadow).toBe(
+      GAME_CONFIG.GRAPHICS.SHADOW.DEFAULT,
+    )
+  })
+
+  it('aceita toda proporção; uma desconhecida ou ausente volta ao padrão', () => {
+    const { LEVELS, DEFAULT } = GAME_CONFIG.GRAPHICS.ASPECT
+    for (const aspect of Object.keys(LEVELS)) {
+      const save = minimalSave()
+      save.trainer.settings.graphics.aspect = aspect
+      expect(validateSave(save).save.trainer.settings.graphics.aspect).toBe(
+        aspect,
+      )
+    }
+    for (const aspect of ['32:9-curva', undefined]) {
+      const save = minimalSave()
+      save.trainer.settings.graphics.aspect = aspect
+      expect(validateSave(save).save.trainer.settings.graphics.aspect).toBe(
+        DEFAULT,
+      )
+    }
+  })
+
+  it('aceita todo tamanho de canvas válido; fora da faixa ou ausente volta ao padrão', () => {
+    const { DEFAULT, MIN } = GAME_CONFIG.GRAPHICS.CANVAS_SIZE
+    for (const canvasScale of [MIN, 1]) {
+      const save = minimalSave()
+      save.trainer.settings.graphics.canvasScale = canvasScale
+      expect(
+        validateSave(save).save.trainer.settings.graphics.canvasScale,
+      ).toBe(canvasScale)
+    }
+    for (const canvasScale of [MIN / 2, 2, 'metade', undefined]) {
+      const save = minimalSave()
+      save.trainer.settings.graphics.canvasScale = canvasScale
+      expect(
+        validateSave(save).save.trainer.settings.graphics.canvasScale,
+      ).toBe(DEFAULT)
+    }
+  })
+
+  it('aceita toda distância de visão da faixa; fora dela ou ausente volta ao padrão', () => {
+    const { DEFAULT, MIN, MAX } = GAME_CONFIG.GRAPHICS.VIEW_DISTANCE
+    for (const viewDistance of [MIN, MAX]) {
+      const save = minimalSave()
+      save.trainer.settings.graphics.viewDistance = viewDistance
+      expect(
+        validateSave(save).save.trainer.settings.graphics.viewDistance,
+      ).toBe(viewDistance)
+    }
+    for (const viewDistance of [
+      MIN - 1,
+      MAX + 1,
+      MIN + 0.5,
+      'longe',
+      undefined,
+    ]) {
+      const save = minimalSave()
+      save.trainer.settings.graphics.viewDistance = viewDistance
+      expect(
+        validateSave(save).save.trainer.settings.graphics.viewDistance,
+      ).toBe(DEFAULT)
+    }
+  })
+
+  it('ignora a resolução que saiu do formato', () => {
+    const save = minimalSave()
+    save.trainer.settings.graphics.resolution = 'half'
+    const result = validateSave(save)
+    expect(result.ok).toBe(true)
+    expect(result.save.trainer.settings.graphics).not.toHaveProperty(
+      'resolution',
+    )
   })
 
   it('save da versão atual sem os ajustes é recusado', () => {

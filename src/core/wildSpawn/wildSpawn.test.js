@@ -365,20 +365,39 @@ describe('config', () => {
     )
   })
 
+  // Em toda distância de visão que o menu oferece.
+  const { MIN, MAX } = GAME_CONFIG.GRAPHICS.VIEW_DISTANCE
+  const everyDistance = Array.from({ length: MAX - MIN + 1 }, (_, i) => MIN + i)
+
   it('quem nasce na frente, além da névoa, não some logo pelo longe', () => {
-    expect(params.VIEW_DISTANCE + params.AHEAD_DEPTH).toBeLessThan(
-      params.FAR_RADIUS,
-    )
+    for (const radius of everyDistance) {
+      const at = spawnParams(radius)
+      expect(at.VIEW_DISTANCE + at.AHEAD_DEPTH).toBeLessThan(at.FAR_RADIUS)
+    }
   })
 
   it('o raio longe fica dentro do raio de carga dos chunks', () => {
-    const { LOAD_RADIUS, CHUNK_SIZE } = GAME_CONFIG.TERRAIN
-    expect(params.FAR_RADIUS).toBeLessThan(LOAD_RADIUS * CHUNK_SIZE)
+    const { CHUNK_SIZE } = GAME_CONFIG.TERRAIN
+    for (const radius of everyDistance) {
+      expect(spawnParams(radius).FAR_RADIUS).toBeLessThan(radius * CHUNK_SIZE)
+    }
+  })
+
+  it('a distância de visão e o raio longe acompanham o raio carregado', () => {
+    expect(spawnParams(MAX).VIEW_DISTANCE).toBeGreaterThan(
+      spawnParams(MIN).VIEW_DISTANCE,
+    )
+    expect(spawnParams(MAX).FAR_RADIUS).toBeGreaterThan(
+      spawnParams(MIN).FAR_RADIUS,
+    )
   })
 
   it('o anel do spawn cabe antes da faixa longe do despawn', () => {
-    expect(params.MIN_RADIUS).toBeLessThan(params.MAX_RADIUS)
-    expect(params.MAX_RADIUS).toBeLessThan(params.FAR_RADIUS)
-    expect(params.NEAR_RADIUS).toBeLessThan(params.FAR_RADIUS)
+    for (const radius of everyDistance) {
+      const at = spawnParams(radius)
+      expect(at.MIN_RADIUS).toBeLessThan(at.MAX_RADIUS)
+      expect(at.MAX_RADIUS).toBeLessThan(at.FAR_RADIUS)
+      expect(at.NEAR_RADIUS).toBeLessThan(at.FAR_RADIUS)
+    }
   })
 })

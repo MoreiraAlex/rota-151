@@ -1,9 +1,11 @@
+import { GAME_CONFIG } from '../gameConfig'
 import { placeChunkBushes } from '../vegetation/bushPlacement'
 import { createCityIndex } from '../town/cityIndex'
 import { chunkRoads } from '../town/roads'
 import { chunkStreets, withStreets } from '../town/townPlan'
 import { placeChunkSolids } from '../vegetation/solidPlacement'
 import { carveTrails, chunkTrails } from './trails'
+import { chunkMountainPaths, trailsOffMountains } from './mountains'
 import {
   copyTerrainRecipe,
   createTerrainSampler,
@@ -49,12 +51,15 @@ import {
  *
  * `streamingStatus` diz, por chave, os chunks que o streaming quer e ainda
  * não carregou (`pending`) e os carregados que só ficam pela folga entre os
- * raios (`kept`) — para o debug. Quem desenha assina as mudanças
+ * raios (`kept`) — para o debug. `loadRadius` é o raio (em chunks) com que
+ * o streaming carrega agora (a distância de visão do menu "Gráficos",
+ * docs/features/066-revisao-dos-biomas.md): a névoa e o spawn das
+ * selvagens medem por ele. Quem desenha assina as mudanças
  * (`subscribe`/`getRevision`).
  *
  * Dono de escrita: `carregarChunk`/`descarregarChunk` (chunks),
- * `chunkStreamingSystem` (`streamingStatus`), `rebuildTerrainDependentLevel`
- * (`reconfigure`).
+ * `chunkStreamingSystem` (`streamingStatus`, `loadRadius`),
+ * `rebuildTerrainDependentLevel` (`reconfigure`).
  *
  * @typedef {object} TerrainChunkSet
  * @property {(x: number, z: number) => number} heightAt
@@ -71,6 +76,8 @@ import {
  * @property {(chunkX: number, chunkZ: number) => import('./terrainChunk').TerrainChunk | null} unload
  * @property {(chunkX: number, chunkZ: number) => boolean} isLoaded
  * @property {(x: number, z: number) => boolean} isLoadedAt
+ * @property {(x: number, z: number) => import('./terrainChunk').TerrainChunk | null} loadedChunkAt -
+ *   o chunk carregado que contém `(x, z)`, ou `null`
  * @property {() => import('./terrainChunk').TerrainChunk[]} loadedChunks
  * @property {(minX: number, maxX: number, minZ: number, maxZ: number) => import('../vegetation/solidPlacement').Footprint[]} footprintsIn -
  *   pegadas dos objetos sólidos que tocam o retângulo (dos blocos dos
@@ -86,6 +93,8 @@ import {
  *   chunk carregado
  * @property {(status: StreamingStatus) => void} setStreamingStatus
  * @property {() => StreamingStatus} streamingStatus
+ * @property {(radius: number) => void} setLoadRadius
+ * @property {() => number} loadRadius
  * @property {(seed: number, recipe?: import('./terrainHeight').TerrainRecipe) => void} reconfigure
  * @property {() => number} chunkSize
  * @property {() => number} getRevision
@@ -188,6 +197,7 @@ export function createTerrainChunkSet({
   const chunks = new Map()
   const blocks = new Map()
   let status = NO_STATUS
+  let loadRadius = GAME_CONFIG.GRAPHICS.VIEW_DISTANCE.DEFAULT
   let revision = 0
   const listeners = new Set()
 
@@ -209,6 +219,15 @@ export function createTerrainChunkSet({
     chunk.trails = withStreets(chunk.trails, chunk.roads)
   }
 
+  // O caminho até o topo das montanhas (docs/features/066-revisao-dos-
+  // biomas.md) no canal das trilhas, sem afundar.
+  function addMountainPaths(chunk) {
+    chunk.trails = withStreets(
+      chunk.trails,
+      chunkMountainPaths(chunk, sampler, recipe.terrain.WATER_LEVEL),
+    )
+  }
+
   // O chunk do relevo de um bloco inteiro, com as trilhas afundadas — de
   // onde saem os sólidos dele (a mesma conta dos chunks: as alturas batem).
   function blockGround(blockX, blockZ) {
@@ -222,7 +241,9 @@ export function createTerrainChunkSet({
       params: recipe.trails,
       waterLevel: recipe.terrain.WATER_LEVEL,
     })
+    ground.trails = trailsOffMountains(ground, ground.trails, sampler)
     carveTrails(ground, ground.trails, recipe.trails)
+    addMountainPaths(ground)
     addRoads(ground)
     ground.streets = chunkStreets(ground, { biomeList: recipe.biomeList })
     ground.trails = withStreets(ground.trails, ground.streets)
@@ -284,6 +305,9 @@ export function createTerrainChunkSet({
       sampler.cities?.nearestCities(x, z, count) ?? [],
     // Correnteza dos rios em `(x, z)` (docs/features/057-lagos-e-rios.md).
     flowAt: (x, z) => sampler.flowAt(x, z),
+    // A montanha mais perto de `(x, z)`, com o começo do caminho até o topo
+    // (`mountains.js`) — `null` sem montanhas.
+    nearestMountain: (x, z) => sampler.nearestMountain(x, z),
 
     sample: (x, z, weightsOut) => sampler.sample(x, z, weightsOut),
     recipe: () => recipe,
@@ -305,7 +329,10 @@ export function createTerrainChunkSet({
         params: recipe.trails,
         waterLevel: recipe.terrain.WATER_LEVEL,
       })
+      // Nem em cima das montanhas (o caminho delas é outro).
+      chunk.trails = trailsOffMountains(chunk, chunk.trails, sampler)
       carveTrails(chunk, chunk.trails, recipe.trails)
+      addMountainPaths(chunk)
       addRoads(chunk)
       // As ruas das cidades no mesmo canal, depois de afundar as trilhas:
       // pintam o chão e afastam a vegetação, sem afundar.
@@ -346,6 +373,7 @@ export function createTerrainChunkSet({
 
     isLoaded: (chunkX, chunkZ) => chunks.has(chunkKey(chunkX, chunkZ)),
     isLoadedAt: (x, z) => Boolean(chunkAt(x, z)),
+    loadedChunkAt: (x, z) => chunkAt(x, z) ?? null,
     loadedChunks: () => [...chunks.values()],
 
     footprintsIn(minX, maxX, minZ, maxZ) {
@@ -392,6 +420,13 @@ export function createTerrainChunkSet({
       notify()
     },
     streamingStatus: () => status,
+
+    setLoadRadius(radius) {
+      if (radius === loadRadius) return
+      loadRadius = radius
+      notify()
+    },
+    loadRadius: () => loadRadius,
 
     /**
      * Troca a seed e a receita (ajuste em tempo real). Só com nada

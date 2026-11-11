@@ -6,10 +6,17 @@ import {
   ToonRimMaterial,
   applyToonLook,
   createOutline,
+  createSilhouette,
   isOutline,
   shouldOutline,
   toToonMaterial,
 } from './toonMaterial'
+import {
+  CHARACTER_STENCIL,
+  PLANT_STENCIL,
+  markAsPlant,
+  markAsScenery,
+} from './characterStencil'
 
 const { RENDER } = GAME_CONFIG
 
@@ -128,5 +135,57 @@ describe('applyToonLook', () => {
 
     undo()
     expect(disposed).toBe(true)
+  })
+})
+
+describe('silhueta atrás de planta (066)', () => {
+  const color = RENDER.SILHOUETTE.WILD_COLOR
+
+  it('com cor, cada mesh com contorno ganha a silhueta; o cleanup tira', () => {
+    const { root, meshes } = modelWithMeshes([
+      new THREE.MeshStandardMaterial(),
+      new THREE.MeshStandardMaterial({ transparent: true }),
+    ])
+    const undo = applyToonLook(meshes, { silhouetteColor: color })
+    const silhouettes = root.children.filter((c) => c.userData.isSilhouette)
+    expect(silhouettes).toHaveLength(1)
+    // conta como contorno para quem percorre o modelo (texturas, flash)
+    expect(silhouettes.every(isOutline)).toBe(true)
+    undo()
+    expect(root.children.filter((c) => c.userData.isSilhouette)).toHaveLength(0)
+  })
+
+  it('sem cor, nenhuma silhueta', () => {
+    const { root, meshes } = modelWithMeshes([new THREE.MeshStandardMaterial()])
+    const undo = applyToonLook(meshes)
+    expect(root.children.some((c) => c.userData.isSilhouette)).toBe(false)
+    undo()
+  })
+
+  it('só aparece atrás de algo (profundidade maior) e onde a planta está na frente', () => {
+    const { meshes } = modelWithMeshes([new THREE.MeshStandardMaterial()])
+    const silhouette = createSilhouette(meshes[0], color)
+    const { material } = silhouette
+    expect(material.depthFunc).toBe(THREE.GreaterDepth)
+    expect(material.depthWrite).toBe(false)
+    expect(material.stencilFunc).toBe(THREE.EqualStencilFunc)
+    expect(material.stencilRef).toBe(PLANT_STENCIL)
+    expect(material.opacity).toBe(RENDER.SILHOUETTE.OPACITY)
+    expect(material.color.getHexString()).toBe(
+      new THREE.Color(color).getHexString(),
+    )
+  })
+
+  it('no stencil: planta, cenário e personagem com valores diferentes', () => {
+    const plant = markAsPlant(new THREE.MeshBasicMaterial())
+    const scenery = markAsScenery(new THREE.MeshBasicMaterial())
+    const body = toToonMaterial(new THREE.MeshStandardMaterial())
+    const refs = [plant, scenery, body].map((m) => m.stencilRef)
+    expect(new Set(refs).size).toBe(3)
+    expect(plant.stencilRef).toBe(PLANT_STENCIL)
+    expect(body.stencilRef).toBe(CHARACTER_STENCIL)
+    for (const m of [plant, scenery, body]) {
+      expect(m.stencilZPass).toBe(THREE.ReplaceStencilOp)
+    }
   })
 })

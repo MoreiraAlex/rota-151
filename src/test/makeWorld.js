@@ -32,6 +32,7 @@ import {
   WildSpawnState,
   SaveClock,
   SoundSettings,
+  GraphicsSettings,
   OwnedBy,
   WorldClock,
   WorldItemsMemory,
@@ -91,6 +92,7 @@ export function spawnTrainer(
     ScanHistory,
     SaveClock,
     SoundSettings,
+    GraphicsSettings,
   )
 }
 

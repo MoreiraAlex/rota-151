@@ -252,12 +252,20 @@ export function despawnReason(
  * Os parâmetros do spawn: `GAME_CONFIG.WILD_SPAWN` + o que vem de fora dele
  * — a distância de visão é onde a névoa da tela fecha
  * (`loadedFogRange`), medida de quem a câmera segue: a câmera fica atrás
- * dele, então dali para lá já está tudo escondido.
+ * dele, então dali para lá já está tudo escondido. `loadRadius`: o raio
+ * carregado agora, em chunks (`terrain.loadRadius()`, a distância de visão
+ * do menu "Gráficos"); o raio longe do despawn acompanha ele na proporção
+ * do padrão, para ficar dentro do chão carregado.
  */
-export function spawnParams() {
+export function spawnParams(
+  loadRadius = GAME_CONFIG.GRAPHICS.VIEW_DISTANCE.DEFAULT,
+) {
+  const { WILD_SPAWN, GRAPHICS, TERRAIN } = GAME_CONFIG
   return {
-    ...GAME_CONFIG.WILD_SPAWN,
-    VIEW_DISTANCE: loadedFogRange(GAME_CONFIG.TERRAIN.CHUNK_SIZE).far,
+    ...WILD_SPAWN,
+    FAR_RADIUS:
+      (WILD_SPAWN.FAR_RADIUS * loadRadius) / GRAPHICS.VIEW_DISTANCE.DEFAULT,
+    VIEW_DISTANCE: loadedFogRange(TERRAIN.CHUNK_SIZE, loadRadius).far,
     HIDDEN_BIOMES: GAME_CONFIG.BIOMES.HIDDEN,
     WATER_LEVEL: GAME_CONFIG.TERRAIN.WATER_LEVEL,
   }

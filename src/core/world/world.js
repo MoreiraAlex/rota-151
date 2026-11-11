@@ -33,6 +33,7 @@ import {
   ScanHistory,
   SaveClock,
   SoundSettings,
+  GraphicsSettings,
   WorldClock,
   LocalWeather,
   WorldItemsMemory,
@@ -111,6 +112,9 @@ export const playerEntity = world.spawn(
   // Volumes do jogador (docs/features/065-sons-do-mundo.md), os padrão até
   // o save chegar.
   SoundSettings,
+  // Gráficos do jogador (docs/features/066-revisao-dos-biomas.md), os
+  // padrão até o save chegar.
+  GraphicsSettings,
   // Default vazio — só passa a ter uso se o treinador virar "o bot",
   // seguindo uma criatura sob controle do jogador (ver
   // creatureFollowSystem.js e docs/features/018-troca-de-controle-

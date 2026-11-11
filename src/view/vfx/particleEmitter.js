@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { cloneTexture } from '../textures/textureCache'
 import {
   consumeSpawns,
   frameAt,
@@ -21,11 +22,13 @@ const FADE_OUT_FRACTION = 0.15
  * `facing_camera_mode` do Bedrock). Nada aqui é estado do ECS nem do React,
  * Three puro, imperativo.
  *
- * Cada sprite tem a PRÓPRIA cópia da textura (`clone()` reusa a imagem, não
- * duplica na GPU) porque o quadro do flipbook é um `offset` da textura —
+ * Cada sprite tem a PRÓPRIA cópia da textura (`cloneTexture` reusa a imagem
+ * já enviada, não duplica nem reenvia na GPU) porque o quadro do flipbook é um `offset` da textura —
  * partículas em quadros diferentes ao mesmo tempo precisam de offsets
  * diferentes. Sprites de partículas que morreram voltam pra um pool por
- * emissor e são reaproveitados dentro do mesmo golpe.
+ * emissor e são reaproveitados dentro do mesmo golpe; quando o golpe acaba
+ * (`dispose`), voltam pro estoque do módulo (`sharedSprites`) e servem ao
+ * próximo efeito igual.
  *
  * `textures`: `{ [chave]: THREE.Texture }` (as chaves que os specs citam em
  * `texture`). `length`: distância da criatura até o impacto. `radius`:
@@ -82,6 +85,43 @@ const isQuad = (spec) => spec.facing === 'direction' || spec.facing === 'plane'
 
 // Geometria do quadro das linhas de velocidade — compartilhada por todas.
 const BEAM_GEOMETRY = new THREE.PlaneGeometry(1, 1)
+
+// Quantos sprites guardados, no máximo, por tipo de partícula.
+const SHARED_SPRITES_PER_KIND = 32
+
+/**
+ * Estoque de sprites de efeitos que já acabaram, por tipo de partícula
+ * (`spriteKind`): o próximo efeito igual pega daqui em vez de criar
+ * (docs/features/066-revisao-dos-biomas.md, desempenho). Descartar o
+ * material e a textura no fim de todo efeito fazia o three apagar o
+ * programa do shader e a imagem na placa de vídeo quando o último sumia —
+ * e o efeito seguinte compilava e subia tudo de novo (uma travada a cada
+ * golpe, poeira de pulo etc.). Guardado aqui, nada disso se repete; o
+ * limite por tipo segura a memória.
+ */
+const sharedSprites = new Map()
+
+// O tipo de um sprite: a partícula (`spec`, que define o recorte e a
+// mistura) e a imagem de onde a textura dele foi copiada.
+const spriteKind = (spec, texture) => `${spec.id}|${texture.uuid}`
+
+function takeSharedSprite(kind) {
+  return sharedSprites.get(kind)?.pop() ?? null
+}
+
+// Guarda no estoque (fora de qualquer grupo); cheio, descarta.
+function keepSharedSprite(kind, sprite) {
+  sprite.removeFromParent()
+  sprite.visible = false
+  if (!sharedSprites.has(kind)) sharedSprites.set(kind, [])
+  const stock = sharedSprites.get(kind)
+  if (stock.length < SHARED_SPRITES_PER_KIND) {
+    stock.push(sprite)
+    return
+  }
+  sprite.material.map.dispose()
+  sprite.material.dispose()
+}
 export function createParticleSystem({
   emitters,
   textures,
@@ -121,7 +161,15 @@ export function createParticleSystem({
       sprite.visible = true
       return sprite
     }
-    const texture = textures[spec.texture].clone()
+    const kind = spriteKind(spec, textures[spec.texture])
+    const shared = takeSharedSprite(kind)
+    if (shared) {
+      shared.visible = true
+      group.add(shared)
+      allSprites.push({ sprite: shared, kind })
+      return shared
+    }
+    const texture = cloneTexture(textures[spec.texture])
     // quadros lado a lado (padrão) ou empilhados na vertical (`vertical`);
     // `columns`/`column`: atlas vertical com mais de uma coluna, usa só uma
     // (o impacto de aço tem 2 colunas e usa a da direita). `rows`/`row`: o
@@ -144,7 +192,8 @@ export function createParticleSystem({
     texture.magFilter = THREE.NearestFilter
     texture.minFilter = THREE.NearestFilter
     texture.generateMipmaps = false
-    texture.needsUpdate = true
+    // Sem `needsUpdate`: filtro e mipmap entram na chave da textura no
+    // three — a primeira cópia com eles sobe a imagem, as outras reusam.
     const materialOptions = {
       map: texture,
       transparent: true,
@@ -164,7 +213,7 @@ export function createParticleSystem({
         )
       : new THREE.Sprite(new THREE.SpriteMaterial(materialOptions))
     group.add(sprite)
-    allSprites.push(sprite)
+    allSprites.push({ sprite, kind })
     return sprite
   }
 
@@ -378,12 +427,9 @@ export function createParticleSystem({
     get liveCount() {
       return live.length
     },
+    /** Tira os sprites do grupo e devolve ao estoque (`sharedSprites`). */
     dispose() {
-      for (const sprite of allSprites) {
-        group.remove(sprite)
-        sprite.material.map.dispose()
-        sprite.material.dispose()
-      }
+      for (const { sprite, kind } of allSprites) keepSharedSprite(kind, sprite)
       allSprites.length = 0
       live.length = 0
       pools.clear()

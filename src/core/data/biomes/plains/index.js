@@ -13,12 +13,24 @@ export const PLAINS = {
     continent: [0.36, 1],
     relief: [0, 0.8],
   },
+  // Ressaltos baixos e raros no campo, como os das rotas de Kanto: os
+  // platôs da floresta com degrau baixo, barranco seco e bastante rampa — a
+  // maior parte do morro continua subindo suave. O chão médio mais alto
+  // que antes dos degraus: o patamar de baixo não afunda até a água
+  // (docs/features/066-revisao-dos-biomas.md, core/terrain/terraces.js).
   relief: {
-    baseHeight: 3.5,
+    baseHeight: 5.5,
     hillHeight: 4,
     hillSize: 140,
     roughness: 0.2,
     flatness: 1.4,
+    terraces: {
+      step: 1.5,
+      cliff: 1,
+      tilt: 0.1,
+      ramps: 0.4,
+      rampSize: 40,
+    },
   },
   // Rios e lagos (docs/features/057-lagos-e-rios.md).
   water: { rivers: 1, lakes: 1 },
@@ -48,26 +60,45 @@ export const PLAINS = {
     detail: 0.6,
     colors: {
       base: 'lgpe-grass',
-      // Margem de areia e encosta de terra nos lagos e rios
-      // (docs/features/057-lagos-e-rios.md).
+      // Margem de areia nos lagos e rios (docs/features/057-lagos-e-
+      // rios.md); a encosta e o barranco dos ressaltos com a terra de
+      // trilha, como o barranco da floresta.
       shore: 'lgpe-sand',
-      slope: 'lgpe-soil',
+      slope: 'lgpe-trail-soil',
     },
   },
   // Trilhas de terra batida cruzando o campo (core/terrain/trails.js).
   trails: false,
   // Campo aberto das rotas de Kanto, com os modelos do Pokémon Let's Go
   // (`models`, docs/features/053-planicie-com-assets-do-lgpe.md):
-  // conjuntos de grama com o mato alto de encontro no miolo e chão ralo
-  // entre eles, árvores redondas em capões, moitas, tufos e flores em
-  // manchas, pedrinhas na grama e na trilha.
+  // moitas, tufos e flores em manchas, pedrinhas espalhadas. A
+  // grama e as árvores, como as da floresta (docs/features/066-revisao-
+  // dos-biomas.md): grama em fios em manchas; árvores com tronco à vista e
+  // copa alta, dos pacotes da Quaternius (com as folhas do Let's Go) —
+  // bosquinhos de NormalTree e, raras, grandes soltas no campo.
   vegetation: [
+    {
+      kind: 'ancient-tree',
+      density: 0.15,
+      scale: 1.1,
+      models: [
+        'megakit-commontree-1',
+        'megakit-commontree-2',
+        'megakit-commontree-5',
+      ],
+    },
     {
       kind: 'broadleaf-tree',
       density: 0.6,
-      patches: { amount: 0.18, size: 30 },
-      scale: 1.2,
-      models: ['round-tree', 'round-tree-b', 'round-tree-e', 'round-tree-f'],
+      patches: { amount: 0.15, size: 25 },
+      scale: 1,
+      models: [
+        'usn-normaltree-1',
+        'usn-normaltree-2',
+        'usn-normaltree-3',
+        'usn-normaltree-4',
+        'usn-normaltree-5',
+      ],
     },
     {
       kind: 'bush',
@@ -93,39 +124,45 @@ export const PLAINS = {
       scale: 1.2,
       models: ['rock-large', 'rock-grass'],
     },
-    // Pedrinhas soltas na terra batida das trilhas.
+    // Pedrinhas soltas pelo bioma inteiro, poucas (pedido do usuário,
+    // docs/features/066-revisao-dos-biomas.md).
     {
       kind: 'pebble',
-      density: 0.6,
-      place: 'trail',
+      density: 0.025,
       models: ['rock-soil', 'rock-soil-b'],
     },
-    // O mato alto do Let's Go, no miolo dos conjuntos de grama.
+    // O mato alto do Let's Go, no miolo dos conjuntos de grama (desligado:
+    // a grama em fios faz o papel dele, como na floresta).
     {
       kind: 'encounter-grass',
-      density: 1,
+      density: 0,
       models: ['tall-grass', 'tall-grass-2'],
     },
+    // Grama em conjuntos (core/vegetation/grassClusters.js), em fios
+    // (view/vegetation/bladeGrass.js), como na floresta: manchas de mato
+    // fechadas, de borda seca, como o mato das rotas dos jogos clássicos;
+    // entre elas, só o chão (docs/features/066-revisao-dos-biomas.md). A
+    // planície não tem clareiras: as manchas nascem em qualquer lugar.
     {
       kind: 'tall-grass',
       density: 0.75,
       clusters: {
         density: 1,
-        size: 60,
-        sizeVariation: 1,
-        roughness: 1.5,
-        edge: 0.005,
-        height: 1.5,
+        size: 14,
+        sizeVariation: 0.6,
+        roughness: 1,
+        edge: 0.02,
+        height: 1.4,
         holes: 0,
-        coverage: 0.4,
+        coverage: 0.3,
         grouping: 0.5,
-        variety: 0.35,
-        background: 0.07,
-        backgroundHeight: 0.5,
+        variety: 0.25,
+        background: 0,
+        backgroundHeight: 0.6,
         clearingPreference: 0,
       },
-      models: ['tall-grass', 'tall-grass-2'],
-      colors: { a: '#ffffff', b: '#fff2c0' },
+      models: ['blade-grass'],
+      colors: { a: '#ffffff', b: '#f2f5d8' },
     },
   ],
   // Pokébolas no chão (docs/features/055-itens-no-mundo.md).

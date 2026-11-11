@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { GAME_CONFIG } from '@/core/gameConfig'
 import {
   COLOR_WEIGHT_GROUPS,
   MAX_COLOR_LAYERS,
@@ -8,6 +9,7 @@ import {
   terrainColorLayerPath,
   terrainLayerPath,
 } from './terrainLayers'
+import { markAsScenery } from '@/view/materials/characterStencil'
 
 // Lado (px) de cada camada no array de texturas (o do JPEG empacotado).
 const LAYER_SIZE = 512
@@ -21,47 +23,10 @@ const NEUTRAL_TEXEL = [128, 128, 128, 255]
 const colorGroups = (line) =>
   Array.from({ length: COLOR_WEIGHT_GROUPS }, (_, i) => line(i)).join('\n')
 
-const VERTEX_HEADER = /* glsl */ `
-attribute vec4 groundLayers0;
-attribute vec4 groundLayers1;
-attribute float groundDetail;
-${colorGroups((i) => `attribute vec4 groundColors${i};`)}
-attribute float groundTextureShare;
-varying vec4 vGroundLayers0;
-varying vec4 vGroundLayers1;
-varying float vGroundDetail;
-${colorGroups((i) => `varying vec4 vGroundColors${i};`)}
-varying float vGroundTextureShare;
-varying vec3 vTerrainWorld;
-varying vec3 vTerrainNormal;
-`
-
-const FRAGMENT_HEADER = /* glsl */ `
-uniform sampler2DArray uGroundLayers;
-uniform sampler2DArray uColorLayers;
-uniform float uColorLayerSizes[${MAX_COLOR_LAYERS}];
-uniform float uTextureSize;
-uniform float uNormalStrength;
-uniform float uTextureDetail;
-uniform float uPatchStrength;
-uniform float uPatchSize;
-uniform float uGrainStrength;
-varying vec4 vGroundLayers0;
-varying vec4 vGroundLayers1;
-varying float vGroundDetail;
-${colorGroups((i) => `varying vec4 vGroundColors${i};`)}
-varying float vGroundTextureShare;
-varying vec3 vTerrainWorld;
-varying vec3 vTerrainNormal;
-
-// O peso da camada de cor \`layer\` no fragmento.
-float colorWeightOf(int layer) {
-  int group = layer / 4;
-  int slot = layer - group * 4;
-${colorGroups((i) => `  if (group == ${i}) return vGroundColors${i}[slot];`)}
-  return 0.0;
-}
-
+// Ruído de valor, nos dois estágios: as manchas grandes saem no vértice
+// (são bem maiores que o espaço entre vértices) e o granulado fino, no
+// pixel.
+const NOISE = /* glsl */ `
 float terrainHash(vec2 p) {
   p = fract(p * vec2(123.34, 456.21));
   p += dot(p, p + 45.32);
@@ -79,7 +44,10 @@ float terrainNoise(vec2 p) {
   float d = terrainHash(cell + vec2(1.0, 1.0));
   return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
 }
+`
 
+const VERTEX_HEADER = /* glsl */ `
+${NOISE}
 float terrainFbm(vec2 p) {
   float sum = 0.0;
   float weight = 0.5;
@@ -91,11 +59,82 @@ float terrainFbm(vec2 p) {
   return sum / 0.9375;
 }
 
+uniform float uPatchSize;
+varying float vGroundPatches;
+attribute vec4 groundLayers0;
+attribute vec4 groundLayers1;
+attribute float groundDetail;
+${colorGroups((i) => `attribute vec4 groundColors${i};`)}
+attribute float groundTextureShare;
+attribute vec4 groundSlope;
+attribute vec4 groundGrass;
+varying vec4 vGroundGrass;
+flat varying float vGroundSlopeLayer;
+varying vec2 vGroundSlope;
+varying vec4 vGroundLayers0;
+varying vec4 vGroundLayers1;
+varying float vGroundDetail;
+${colorGroups((i) => `varying vec4 vGroundColors${i};`)}
+varying float vGroundTextureShare;
+varying vec3 vTerrainWorld;
+varying vec3 vTerrainNormal;
+`
+
+const FRAGMENT_HEADER = /* glsl */ `
+uniform sampler2DArray uGroundLayers;
+uniform sampler2DArray uColorLayers;
+uniform float uColorLayerSizes[${MAX_COLOR_LAYERS}];
+// 1 nas camadas de grama (o tom do chão só pega nelas).
+uniform float uColorLayerGrass[${MAX_COLOR_LAYERS}];
+uniform float uTextureSize;
+uniform float uNormalStrength;
+uniform float uTextureDetail;
+uniform float uPatchStrength;
+uniform float uGrainStrength;
+uniform vec3 uGroundTint;
+uniform float uGroundTintAmount;
+uniform float uGroundBrightness;
+// A grama em fios no chão debaixo das manchas: a cor dela, o tom e quanto.
+uniform vec3 uGrassColor;
+uniform float uGrassGroundShade;
+uniform float uGrassGroundAmount;
+varying vec4 vGroundGrass;
+// A encosta por pixel: normal.y onde começa e onde fica cheia.
+uniform vec2 uSlopeRange;
+flat varying float vGroundSlopeLayer;
+varying vec2 vGroundSlope;
+varying vec4 vGroundLayers0;
+varying vec4 vGroundLayers1;
+varying float vGroundDetail;
+${colorGroups((i) => `varying vec4 vGroundColors${i};`)}
+varying float vGroundTextureShare;
+varying vec3 vTerrainWorld;
+varying vec3 vTerrainNormal;
+varying float vGroundPatches;
+
+// Menor peso de camada que ainda entra no desenho.
+const float MIN_LAYER_WEIGHT = 0.002;
+// Acima deste peso de cima (normal.y), o chão conta como plano: a textura
+// sai só de cima, numa leitura (a projeção dos três lados é para encosta).
+const float FLAT_GROUND = 0.98;
+${NOISE}
 // Projeção triplanar: a textura vem dos três eixos, pesada pela normal —
 // não estica nas encostas.
 vec3 triplanarWeights(vec3 n) {
   vec3 w = pow(abs(n), vec3(4.0));
   return w / (w.x + w.y + w.z);
+}
+
+// Uma camada de cor (docs/features/066-revisao-dos-biomas.md): de cima no
+// chão plano; nas encostas, projetada dos três lados e pesada pela normal
+// (de cima, a parede esticava a textura em listras).
+vec3 colorLayerAt(int layer, vec3 world, vec3 w) {
+  vec3 p = world / uColorLayerSizes[layer];
+  float index = float(layer);
+  if (w.y > FLAT_GROUND) return texture(uColorLayers, vec3(p.xz, index)).rgb;
+  return texture(uColorLayers, vec3(p.zy, index)).rgb * w.x
+    + texture(uColorLayers, vec3(p.xz, index)).rgb * w.y
+    + texture(uColorLayers, vec3(p.xy, index)).rgb * w.z;
 }
 
 // Normal da camada (G/B = x/y; z reconstruído).
@@ -105,8 +144,15 @@ vec3 layerNormal(vec4 texel) {
 }
 
 // Uma camada em projeção triplanar: claro e escuro (1 = brilho médio) em
-// .w e a normal ("whiteout", no espaço do mundo) em .xyz.
+// .w e a normal ("whiteout", no espaço do mundo) em .xyz. No chão plano,
+// só a leitura de cima.
 vec4 sampleLayer(float layer, vec3 p, vec3 n, vec3 w) {
+  if (w.y > FLAT_GROUND) {
+    vec4 top = texture(uGroundLayers, vec3(p.xz, layer));
+    vec3 topNormal = layerNormal(top);
+    topNormal = vec3(topNormal.xy + n.xz, abs(topNormal.z) * n.y);
+    return vec4(normalize(topNormal.xzy), top.r * 2.0);
+  }
   vec4 tx = texture(uGroundLayers, vec3(p.zy, layer));
   vec4 ty = texture(uGroundLayers, vec3(p.xz, layer));
   vec4 tz = texture(uGroundLayers, vec3(p.xy, layer));
@@ -120,7 +166,38 @@ vec4 sampleLayer(float layer, vec3 p, vec3 n, vec3 w) {
   vec3 normal = normalize(nx.zyx * w.x + ny.xzy * w.y + nz.xyz * w.z);
   return vec4(normal, detail);
 }
+
+// Soma uma camada de detalhe, se ela tiver peso.
+void addGroundLayer(float layer, float weight, vec3 p, vec3 n, vec3 w,
+    inout float detail, inout vec3 bump, inout float total) {
+  if (weight < MIN_LAYER_WEIGHT) return;
+  vec4 sampled = sampleLayer(layer, p, n, w);
+  detail += sampled.w * weight;
+  bump += sampled.xyz * weight;
+  total += weight;
+}
+
+// Soma uma camada de cor, se ela tiver peso.
+void addColorLayer(int layer, float weight, vec3 w,
+    inout vec3 color, inout float total, inout float grass) {
+  if (weight < MIN_LAYER_WEIGHT) return;
+  color += colorLayerAt(layer, vTerrainWorld, w) * weight;
+  total += weight;
+  grass += weight * uColorLayerGrass[layer];
+}
 `
+
+// As camadas vêm em grupos de quatro pesos (um vec4 por grupo): o grupo
+// sem peso nenhum é pulado inteiro; dentro dele, cada camada pelo
+// componente, sem procurar o peso por índice.
+const SLOTS = ['x', 'y', 'z', 'w']
+const layerGroups = (groups, varying, add) =>
+  Array.from(
+    { length: groups },
+    (_, group) => `if (dot(${varying}${group}, vec4(1.0)) > MIN_LAYER_WEIGHT) {
+${SLOTS.map((slot, i) => `  ${add(group * 4 + i, `${varying}${group}.${slot}`)}`).join('\n')}
+}`,
+  ).join('\n')
 
 const VERTEX_WORLD = /* glsl */ `
 #include <begin_vertex>
@@ -129,7 +206,11 @@ vGroundLayers1 = groundLayers1;
 vGroundDetail = groundDetail;
 ${colorGroups((i) => `vGroundColors${i} = groundColors${i};`)}
 vGroundTextureShare = groundTextureShare;
+vGroundSlopeLayer = groundSlope.x;
+vGroundSlope = groundSlope.yz;
+vGroundGrass = groundGrass;
 vTerrainWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;
+vGroundPatches = terrainFbm(vTerrainWorld.xz / uPatchSize);
 `
 
 const VERTEX_NORMAL = /* glsl */ `
@@ -148,43 +229,75 @@ vec3 terrainWeights = triplanarWeights(terrainNormal);
 float layerDetail = 0.0;
 vec3 layerBump = vec3(0.0);
 float layerTotal = 0.0;
-for (int layer = 0; layer < ${MAX_TERRAIN_LAYERS}; layer++) {
-  float weight = layer < 4 ? vGroundLayers0[layer] : vGroundLayers1[layer - 4];
-  if (weight < 0.002) continue;
-  vec4 sampled = sampleLayer(float(layer), terrainPoint, terrainNormal, terrainWeights);
-  layerDetail += sampled.w * weight;
-  layerBump += sampled.xyz * weight;
-  layerTotal += weight;
-}
+${layerGroups(
+  MAX_TERRAIN_LAYERS / 4,
+  'vGroundLayers',
+  (layer, weight) =>
+    `addGroundLayer(${layer}.0, ${weight}, terrainPoint, terrainNormal, terrainWeights, layerDetail, layerBump, layerTotal);`,
+)}
 
 // Cor por textura (biomas com \`ground.colors\`, docs/features/052-*.md):
 // a cor das camadas pelo peso de cada uma, no lugar da paleta, na parte
 // do vértice que é desses biomas.
+// A parte do ponto que é grama (para o tom do chão): nas camadas de cor,
+// o peso das de grama; na paleta (sem textura), tudo.
+float grassShare = 1.0;
 if (vGroundTextureShare > 0.001) {
   vec3 textured = vec3(0.0);
   float texturedTotal = 0.0;
-  for (int layer = 0; layer < ${MAX_COLOR_LAYERS}; layer++) {
-    float weight = colorWeightOf(layer);
-    if (weight < 0.002) continue;
-    vec2 colorUv = vTerrainWorld.xz / uColorLayerSizes[layer];
-    textured += texture(uColorLayers, vec3(colorUv, float(layer))).rgb * weight;
-    texturedTotal += weight;
-  }
+  float grassTotal = 0.0;
+${layerGroups(
+  COLOR_WEIGHT_GROUPS,
+  'vGroundColors',
+  (layer, weight) =>
+    `addColorLayer(${layer}, ${weight}, terrainWeights, textured, texturedTotal, grassTotal);`,
+)}
   if (texturedTotal > 0.0) {
-    diffuseColor.rgb = mix(diffuseColor.rgb, textured / texturedTotal, vGroundTextureShare);
+    vec3 groundColor = textured / texturedTotal;
+    float grassPart = grassTotal / texturedTotal;
+    // A encosta por pixel, pela inclinação ali (066): a troca segue a borda
+    // do barranco, sem as faixas em diagonal da mistura por vértice. O pico
+    // cobre a encosta.
+    float steep = 1.0 - smoothstep(uSlopeRange.y, uSlopeRange.x, terrainNormal.y);
+    float slopeAmount = steep * clamp(vGroundSlope.x, 0.0, 1.0)
+      * (1.0 - clamp(vGroundSlope.y, 0.0, 1.0));
+    if (slopeAmount > 0.001) {
+      vec3 slopeColor = colorLayerAt(int(vGroundSlopeLayer + 0.5), vTerrainWorld, terrainWeights);
+      groundColor = mix(groundColor, slopeColor, slopeAmount);
+      grassPart *= 1.0 - slopeAmount;
+    }
+    diffuseColor.rgb = mix(diffuseColor.rgb, groundColor, vGroundTextureShare);
+    grassShare = mix(1.0, grassPart, vGroundTextureShare);
   }
 }
 
-float patches = terrainFbm(vTerrainWorld.xz / uPatchSize);
 float grain = terrainNoise(vTerrainWorld.xz * 3.0);
 float shade = 1.0
-  + uPatchStrength * (patches - 0.5) * 2.0
+  + uPatchStrength * (vGroundPatches - 0.5) * 2.0
   + uGrainStrength * (grain - 0.5) * 2.0;
 if (layerTotal > 0.0) {
   float detail = layerDetail / layerTotal;
   shade *= mix(1.0, detail, uTextureDetail * vGroundDetail);
 }
 diffuseColor.rgb *= shade;
+// Tom e brilho do chão de grama (TERRAIN_LOOK.TINT*, BRIGHTNESS): puxa a
+// cor para o tom mantendo o claro e escuro e clareia ou escurece — só na
+// parte que é grama; trilha, margem e encosta ficam como estão.
+vec3 groundLuma = vec3(0.2126, 0.7152, 0.0722);
+vec3 groundHue = uGroundTint / max(dot(uGroundTint, groundLuma), 1e-3);
+vec3 groundTinted = mix(diffuseColor.rgb,
+  groundHue * dot(diffuseColor.rgb, groundLuma), uGroundTintAmount)
+  * uGroundBrightness;
+diffuseColor.rgb = mix(diffuseColor.rgb, groundTinted, grassShare);
+// Debaixo das manchas de grama em fios, a cor dela (docs/features/066-
+// revisao-dos-biomas.md): de longe, onde as lâminas sumiram, a mancha
+// continua; perto, elas brotam em cima da mesma cor. O claro e escuro do
+// chão fica por cima.
+float grassCover = clamp(vGroundGrass.a, 0.0, 1.0) * uGrassGroundAmount;
+if (grassCover > 0.001) {
+  vec3 grassGround = uGrassColor * vGroundGrass.rgb * uGrassGroundShade * shade;
+  diffuseColor.rgb = mix(diffuseColor.rgb, grassGround, grassCover);
+}
 `
 
 // Relevo de luz: o mapa de normal das camadas.
@@ -259,22 +372,38 @@ function copyLayer(texture, index, image) {
   texture.needsUpdate = true
 }
 
-/**
- * Material do relevo (docs/features/047-biomas.md): `MeshStandardMaterial`
- * com a cor da paleta por vértice e, por cima, manchas suaves, granulado e
- * o desenho das camadas de textura (claro e escuro + relevo de luz, em
- * projeção triplanar) pelo peso de cada camada no vértice
- * (`groundLayers0/1`, `groundDetail` — terrainGeometry.js). Nos biomas com
- * `ground.colors` (docs/features/052-assets-do-lgpe-e-floresta.md), a cor
- * vem das camadas de cor do Let's Go (`groundColors0/1`), na parte do
- * vértice que é deles (`groundTextureShare`). Os números são
- * de `GAME_CONFIG.TERRAIN_LOOK` (`applyTerrainLook`). Um material para todos
- * os chunks; quem cria chama `dispose()` (regra 5.3).
- */
 // Tamanho de cada camada de cor, compartilhado pelos materiais do relevo.
 const colorLayerSizes = new Float32Array(MAX_COLOR_LAYERS).fill(1)
+// As camadas de grama (o tom do chão, `TERRAIN_LOOK.TINT`, só pega nelas).
+const GRASS_LAYER = /grass|forest-floor/
+export const colorLayerGrass = Float32Array.from(
+  { length: MAX_COLOR_LAYERS },
+  (_, index) =>
+    GRASS_LAYER.test(TERRAIN_COLOR_LAYERS[index]?.[0] ?? '') ? 1 : 0,
+)
 
-export function createTerrainMaterial() {
+// A luz do chão (`TERRAIN_LOOK.LIGHTING`): o material do three de cada uma.
+const LIGHTING_MATERIALS = {
+  standard: THREE.MeshStandardMaterial,
+  lambert: THREE.MeshLambertMaterial,
+}
+
+/**
+ * Materiais do relevo (docs/features/047-biomas.md): a cor da paleta por
+ * vértice e, por cima, manchas suaves, granulado e o desenho das camadas de
+ * textura (claro e escuro + relevo de luz, em projeção triplanar) pelo peso
+ * de cada camada no vértice (`groundLayers0/1`, `groundDetail` —
+ * terrainGeometry.js). Nos biomas com `ground.colors`
+ * (docs/features/052-assets-do-lgpe-e-floresta.md), a cor vem das camadas
+ * de cor do Let's Go (`groundColors0/1`), na parte do vértice que é deles
+ * (`groundTextureShare`). Os números são de `GAME_CONFIG.TERRAIN_LOOK`
+ * (`applyTerrainLook`).
+ *
+ * Um material por luz (`forLighting`, criado na primeira vez que é pedido —
+ * docs/features/066-revisao-dos-biomas.md), todos com as mesmas texturas e
+ * números; quem cria chama `dispose()` (regra 5.3).
+ */
+export function createTerrainMaterials() {
   const layers = createLayerArray()
   const colorLayers = createColorArray()
   const uniforms = {
@@ -282,26 +411,40 @@ export function createTerrainMaterial() {
     uColorLayers: { value: colorLayers },
     // O mesmo array em todos os materiais (`setColorLayerSizes`).
     uColorLayerSizes: { value: colorLayerSizes },
+    uColorLayerGrass: { value: colorLayerGrass },
     uTextureSize: { value: 1 },
     uNormalStrength: { value: 0 },
     uTextureDetail: { value: 0 },
     uPatchStrength: { value: 0 },
     uPatchSize: { value: 1 },
     uGrainStrength: { value: 0 },
+    uGroundTint: { value: new THREE.Color(1, 1, 1) },
+    uGroundTintAmount: { value: 0 },
+    uGroundBrightness: { value: 1 },
+    uSlopeRange: { value: new THREE.Vector2(0.9, 0.75) },
+    uGrassColor: { value: new THREE.Color(1, 1, 1) },
+    uGrassGroundShade: { value: 1 },
+    uGrassGroundAmount: { value: 0 },
   }
 
-  const material = new THREE.MeshStandardMaterial({ vertexColors: true })
-  material.userData.terrainUniforms = uniforms
-  material.onBeforeCompile = (shader) => {
-    Object.assign(shader.uniforms, uniforms)
-    shader.vertexShader = (VERTEX_HEADER + shader.vertexShader)
-      .replace('#include <beginnormal_vertex>', VERTEX_NORMAL)
-      .replace('#include <begin_vertex>', VERTEX_WORLD)
-    shader.fragmentShader = (FRAGMENT_HEADER + shader.fragmentShader)
-      .replace('#include <color_fragment>', FRAGMENT_COLOR)
-      .replace('#include <normal_fragment_maps>', FRAGMENT_NORMAL)
+  const build = (lighting) => {
+    const Material = LIGHTING_MATERIALS[lighting]
+    // O chão apaga a marca do stencil (materials/characterStencil.js).
+    const material = markAsScenery(new Material({ vertexColors: true }))
+    material.userData.terrainUniforms = uniforms
+    material.onBeforeCompile = (shader) => {
+      Object.assign(shader.uniforms, uniforms)
+      shader.vertexShader = (VERTEX_HEADER + shader.vertexShader)
+        .replace('#include <beginnormal_vertex>', VERTEX_NORMAL)
+        .replace('#include <begin_vertex>', VERTEX_WORLD)
+      shader.fragmentShader = (FRAGMENT_HEADER + shader.fragmentShader)
+        .replace('#include <color_fragment>', FRAGMENT_COLOR)
+        .replace('#include <normal_fragment_maps>', FRAGMENT_NORMAL)
+    }
+    material.customProgramCacheKey = () => `terrain-ground-${lighting}`
+    return material
   }
-  material.customProgramCacheKey = () => 'terrain-ground'
+  const materials = new Map()
 
   const loader = new THREE.ImageLoader()
   TERRAIN_LAYERS.forEach((layer, index) =>
@@ -316,13 +459,20 @@ export function createTerrainMaterial() {
     ),
   )
 
-  const dispose = material.dispose.bind(material)
-  material.dispose = () => {
-    colorLayers.dispose()
-    layers.dispose()
-    dispose()
+  return {
+    uniforms,
+    /** O material da luz pedida (uma desconhecida cai na `standard`). */
+    forLighting(lighting) {
+      const key = lighting in LIGHTING_MATERIALS ? lighting : 'standard'
+      if (!materials.has(key)) materials.set(key, build(key))
+      return materials.get(key)
+    },
+    dispose() {
+      for (const material of materials.values()) material.dispose()
+      colorLayers.dispose()
+      layers.dispose()
+    },
   }
-  return material
 }
 
 /**
@@ -338,11 +488,11 @@ export function setColorLayerSizes(look) {
 }
 
 /**
- * Passa os números do desenho do chão (`GAME_CONFIG.TERRAIN_LOOK`) para o
- * material.
+ * Passa os números do desenho do chão (`GAME_CONFIG.TERRAIN_LOOK`) para os
+ * materiais do relevo (`createTerrainMaterials`).
  */
-export function applyTerrainLook(material, look) {
-  const uniforms = material.userData.terrainUniforms
+export function applyTerrainLook(terrain, look) {
+  const { uniforms } = terrain
   uniforms.uTextureSize.value = look.TEXTURE_SIZE
   setColorLayerSizes(look)
   uniforms.uNormalStrength.value = look.NORMAL_STRENGTH
@@ -350,4 +500,16 @@ export function applyTerrainLook(material, look) {
   uniforms.uPatchStrength.value = look.PATCH_STRENGTH
   uniforms.uPatchSize.value = look.PATCH_SIZE
   uniforms.uGrainStrength.value = look.GRAIN_STRENGTH
+  uniforms.uGroundTint.value.set(look.TINT ?? '#ffffff')
+  uniforms.uGroundTintAmount.value = look.TINT_AMOUNT ?? 0
+  uniforms.uGroundBrightness.value = look.BRIGHTNESS ?? 1
+  const { SLOPE_START, SLOPE_FULL } = GAME_CONFIG.TERRAIN_COLOR
+  uniforms.uSlopeRange.value.set(SLOPE_START, SLOPE_FULL)
+  // A grama em fios no chão (some junto com a grama escondida).
+  const { GRASS_BLADES, GRASS } = GAME_CONFIG
+  uniforms.uGrassColor.value.set(GRASS_BLADES.COLOR)
+  uniforms.uGrassGroundShade.value = GRASS_BLADES.GROUND_SHADE ?? 1
+  uniforms.uGrassGroundAmount.value = GRASS.VISIBLE
+    ? (GRASS_BLADES.GROUND_COVER ?? 0)
+    : 0
 }

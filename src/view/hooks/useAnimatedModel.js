@@ -1,16 +1,19 @@
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { useGLTF } from '@react-three/drei'
+import { useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { clone as cloneSkeleton } from 'three/examples/jsm/utils/SkeletonUtils.js'
 
-import { SummonedCreature, Mood } from '@/core/traits'
+import { SummonedCreature, Mood, WildCreature } from '@/core/traits'
 import { resolveEyeState } from '@/view/shared/eyeState'
+import { revealWhenReady } from '@/view/materials/revealWhenReady'
 import { resolveBones } from '@/core/animation/resolveBones'
 import {
   resolveFlightSound,
   resolveFootstepSound,
 } from '@/core/data/audio/footstepGroups'
 import { WATER_SOUNDS } from '@/core/data/audio/waterSounds'
+import { GRASS_SOUNDS } from '@/core/data/audio/grassSounds'
 import {
   resolveVoiceSound,
   DEFAULT_VOICE_MIN_INTERVAL,
@@ -43,7 +46,7 @@ import {
   DEFAULT_VOICE_VOLUME,
 } from '../audio/soundRanges'
 import { loadAudioBuffer } from '../audio/audioBufferCache'
-import { loadTexture } from '../textures/textureCache'
+import { cloneTexture, loadTexture } from '../textures/textureCache'
 import {
   placeAtEntity,
   registerView,
@@ -239,6 +242,12 @@ function setupAttackAudio(entity, groupRef, sounds, loopSounds) {
  * mesmo nível de `path`/`scale` — qualquer entidade que use este hook
  * (treinador incluso) ganha de graça se um dia configurar textura própria.
  *
+ * O modelo nasce **invisível** e só aparece com o desenho pronto
+ * (`revealWhenReady`, docs/features/066-revisao-dos-biomas.md): depois do
+ * material toon e das texturas da espécie, com os shaders compilados em
+ * paralelo e as texturas já na placa de vídeo — sem a travada (nem o
+ * modelo sem textura por alguns quadros) na primeira vez de cada espécie.
+ *
  * Retorna `{ groupRef, cloned }`: `groupRef` vai no `<group ref>` que o
  * `syncTransformSystem` move; `cloned` é a cena pra renderizar via
  * `<primitive object={cloned} .../>`.
@@ -285,7 +294,12 @@ function setupAttackAudio(entity, groupRef, sounds, loopSounds) {
 export function useAnimatedModel(entity, species) {
   const groupRef = useRef()
   const { scene, animations } = useGLTF(species.model.path)
-  const cloned = useMemo(() => cloneSkeleton(scene), [scene])
+  const cloned = useMemo(() => {
+    const model = cloneSkeleton(scene)
+    model.visible = false
+    return model
+  }, [scene])
+  const getThree = useThree((state) => state.get)
 
   useEffect(() => {
     const meshes = []
@@ -304,12 +318,43 @@ export function useAnimatedModel(entity, species) {
     // Material toon + contornos (`view/materials/toonMaterial.js`), criados
     // DEPOIS do traverse (adicionar filhos durante a iteração quebraria o
     // traverse); o cleanup tira os contornos e devolve o material original.
-    return applyToonLook(meshes)
-  }, [cloned])
+    // Silhueta atrás de planta (docs/features/066-*): a cor do lado.
+    // A do seu lado, sempre; a das selvagens, só com o nameplate à mostra
+    // e não à noite (`WILD_AT_NIGHT`).
+    const { SILHOUETTE } = GAME_CONFIG.RENDER
+    const isWild = Boolean(entity?.has?.(WildCreature))
+    return applyToonLook(meshes, {
+      silhouetteColor: isWild ? SILHOUETTE.WILD_COLOR : SILHOUETTE.ALLY_COLOR,
+      silhouetteOwner: entity,
+      silhouetteWild: isWild,
+      silhouetteHidesAtNight: isWild && !SILHOUETTE.WILD_AT_NIGHT,
+    })
+  }, [cloned, entity])
 
   useEffect(() => {
+    let cancelled = false
+    // Mostra o modelo com o desenho pronto (ver o cabeçalho): roda depois
+    // do efeito do toon (declarado antes) e das texturas da espécie.
+    const reveal = (textures = []) => {
+      if (cancelled) return
+      const { gl, camera, scene: target } = getThree()
+      revealWhenReady({
+        object: cloned,
+        renderer: gl,
+        camera,
+        scene: target,
+        textures,
+        isCancelled: () => cancelled,
+      })
+    }
+
     const texture = species.model.texture
-    if (!texture) return
+    if (!texture) {
+      reveal()
+      return () => {
+        cancelled = true
+      }
+    }
 
     // Duas formas de `species.model.texture`:
     // - string: UMA textura pra TODO mesh do modelo (`.glb` com um
@@ -329,7 +374,6 @@ export function useAnimatedModel(entity, species) {
       ? Object.entries(texture)
       : [['0', { path: texture }]]
 
-    let cancelled = false
     // Cópias de textura criadas por ESTA entidade (olho animado, abaixo) —
     // dona do `dispose()` no cleanup.
     const ownedTextures = []
@@ -358,7 +402,7 @@ export function useAnimatedModel(entity, species) {
           // piscadas quando duas criaturas da espécie tinham humores
           // diferentes). `clone()` reusa a imagem (não recarrega nem
           // duplica na GPU); só o recorte (`offset`/`repeat`) fica próprio.
-          const loaded = obj.eyeStates ? cached.clone() : cached
+          const loaded = obj.eyeStates ? cloneTexture(cached) : cached
           if (loaded !== cached) ownedTextures.push(loaded)
 
           // `colorSpace`/`wrapS`/`wrapT`/`flipY` (default `true`) já vêm
@@ -367,7 +411,10 @@ export function useAnimatedModel(entity, species) {
           // aqui quando a espécie parametrizar explicitamente (ex.: uma
           // textura que FOI extraída de dentro de um `.glb`, que segue a
           // convenção de UV oposta).
-          if (obj.flipY !== undefined) {
+          // O `flipY` muda o envio da imagem: só ele pede reenvio.
+          const isFlipChanged =
+            obj.flipY !== undefined && obj.flipY !== loaded.flipY
+          if (isFlipChanged) {
             loaded.flipY = obj.flipY
           }
 
@@ -412,70 +459,80 @@ export function useAnimatedModel(entity, species) {
             )
           }
 
-          // Sempre por ÚLTIMO — flag de reupload pro GPU, precisa vir
-          // DEPOIS de qualquer mutação acima (flipY/center/rotation/repeat/
-          // pan), senão uma alteração feita depois deste ponto correria o
-          // risco de não pegar o próximo frame já com o valor certo.
-          loaded.needsUpdate = true
+          // Reenvio da imagem à placa de vídeo só se o `flipY` mudou:
+          // recorte, centro e rotação entram como matriz a cada desenho,
+          // sem reenvio. Marcar sempre (como era) fazia CADA criatura que
+          // aparecia reenviar a textura da espécie inteira —
+          // compartilhada pelo cache — numa travada (docs/features/066-
+          // revisao-dos-biomas.md, desempenho).
+          if (isFlipChanged) loaded.needsUpdate = true
 
           return [Number(materialIndex), loaded, obj]
         }),
       ),
-    ).then((loadedByIndex) => {
-      if (cancelled) return
-      const textureByIndex = new Map(
-        loadedByIndex
-          .filter(([, loaded]) => loaded)
-          .map(([materialIndex, loaded, obj]) => [
-            materialIndex,
-            { loaded, obj },
-          ]),
-      )
-      if (textureByIndex.size === 0) return
+    )
+      .then((loadedByIndex) => {
+        if (cancelled) return
+        const textureByIndex = new Map(
+          loadedByIndex
+            .filter(([, loaded]) => loaded)
+            .map(([materialIndex, loaded, obj]) => [
+              materialIndex,
+              { loaded, obj },
+            ]),
+        )
+        if (textureByIndex.size === 0) {
+          reveal()
+          return
+        }
 
-      // Clona o material antes de mudar `.map` — `SkeletonUtils.clone` (acima)
-      // reusa material por referência entre instâncias do mesmo `.glb`; sem
-      // clonar, a textura vazaria pra qualquer outra entidade carregando o
-      // mesmo asset (mesmo motivo do tint em `CreatureView.jsx`).
-      for (const [child, materialIndex] of materialIndexByMesh) {
-        // Forma string (`isPerMaterial` falso): aplica a MESMA textura em
-        // todo mesh, ignorando o índice — mantém o comportamento de sempre.
-        const entry = isPerMaterial
-          ? textureByIndex.get(materialIndex)
-          : textureByIndex.get(0)
-        if (!entry) continue
-        child.material = child.material.clone()
-        child.material.map = entry.loaded
-        child.material.needsUpdate = true
-      }
+        // Clona o material antes de mudar `.map` — `SkeletonUtils.clone` (acima)
+        // reusa material por referência entre instâncias do mesmo `.glb`; sem
+        // clonar, a textura vazaria pra qualquer outra entidade carregando o
+        // mesmo asset (mesmo motivo do tint em `CreatureView.jsx`).
+        for (const [child, materialIndex] of materialIndexByMesh) {
+          // Forma string (`isPerMaterial` falso): aplica a MESMA textura em
+          // todo mesh, ignorando o índice — mantém o comportamento de sempre.
+          const entry = isPerMaterial
+            ? textureByIndex.get(materialIndex)
+            : textureByIndex.get(0)
+          if (!entry) continue
+          child.material = child.material.clone()
+          child.material.map = entry.loaded
+          child.material.needsUpdate = true
+        }
 
-      // Unidades de piscar — uma por textura carregada com `eyeStates`
-      // (normalmente só o olho, mas sem travar em 1). `loaded` é a MESMA
-      // referência atribuída como `.map` acima — a cópia própria desta
-      // entidade (ver `ownedTextures`), então mutar `.offset` nela no
-      // `eyeBlinkSystem.js` reflete só nesta criatura.
-      const eyeBlinkUnits = []
-      for (const { loaded, obj } of textureByIndex.values()) {
-        if (!obj.eyeStates) continue
-        const minInterval = obj.blink?.minInterval ?? DEFAULT_BLINK_MIN_INTERVAL
-        const maxInterval = obj.blink?.maxInterval ?? DEFAULT_BLINK_MAX_INTERVAL
-        eyeBlinkUnits.push({
-          texture: loaded,
-          repeat: { x: loaded.repeat.x, y: loaded.repeat.y },
-          states: obj.eyeStates,
-          blink: {
-            minInterval,
-            maxInterval,
-            closedDuration:
-              obj.blink?.closedDuration ?? DEFAULT_BLINK_CLOSED_DURATION,
-          },
-          phase: 'open',
-          timer: minInterval + Math.random() * (maxInterval - minInterval),
-          lastMood: entity.get(Mood)?.state ?? 'awake',
-        })
-      }
-      if (eyeBlinkUnits.length > 0) registerEyeBlink(entity, eyeBlinkUnits)
-    })
+        // Unidades de piscar — uma por textura carregada com `eyeStates`
+        // (normalmente só o olho, mas sem travar em 1). `loaded` é a MESMA
+        // referência atribuída como `.map` acima — a cópia própria desta
+        // entidade (ver `ownedTextures`), então mutar `.offset` nela no
+        // `eyeBlinkSystem.js` reflete só nesta criatura.
+        const eyeBlinkUnits = []
+        for (const { loaded, obj } of textureByIndex.values()) {
+          if (!obj.eyeStates) continue
+          const minInterval =
+            obj.blink?.minInterval ?? DEFAULT_BLINK_MIN_INTERVAL
+          const maxInterval =
+            obj.blink?.maxInterval ?? DEFAULT_BLINK_MAX_INTERVAL
+          eyeBlinkUnits.push({
+            texture: loaded,
+            repeat: { x: loaded.repeat.x, y: loaded.repeat.y },
+            states: obj.eyeStates,
+            blink: {
+              minInterval,
+              maxInterval,
+              closedDuration:
+                obj.blink?.closedDuration ?? DEFAULT_BLINK_CLOSED_DURATION,
+            },
+            phase: 'open',
+            timer: minInterval + Math.random() * (maxInterval - minInterval),
+            lastMood: entity.get(Mood)?.state ?? 'awake',
+          })
+        }
+        if (eyeBlinkUnits.length > 0) registerEyeBlink(entity, eyeBlinkUnits)
+        reveal([...textureByIndex.values()].map(({ loaded }) => loaded))
+      })
+      .catch(() => reveal())
 
     return () => {
       cancelled = true
@@ -610,6 +667,8 @@ export function useAnimatedModel(entity, species) {
     // O passo no raso é o mesmo para todos (docs/features/057-lagos-e-
     // rios.md).
     const sources = { buffers: footstep, waterBuffers: WATER_SOUNDS.step }
+    // Na grama, o passo da grama — só para quem pisa (docs/features/066-*).
+    if (footstep.grass) sources.grassBuffers = GRASS_SOUNDS.step
     // O voo livre com som próprio (`sounds.flightGroup`, docs/features/060-*).
     if (flight) sources.flightBuffers = flight
     for (const [target, sound] of Object.entries(sources)) {

@@ -34,6 +34,9 @@ const INITIAL_COLOR = new THREE.Color().setRGB(
  */
 export function FogView() {
   useTerrainChunks()
-  const { near, far } = loadedFogRange(TEST_LEVEL.terrain.chunkSize())
+  const { near, far } = loadedFogRange(
+    TEST_LEVEL.terrain.chunkSize(),
+    TEST_LEVEL.terrain.loadRadius(),
+  )
   return <fog attach="fog" args={[INITIAL_COLOR, near, far]} />
 }

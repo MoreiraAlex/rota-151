@@ -183,6 +183,47 @@ describe('createParticleSystem (Brasa)', () => {
     system.dispose()
     expect(system.group.children.length).toBe(0)
   })
+
+  it('o próximo efeito igual reaproveita os sprites (e os materiais) do que acabou', () => {
+    const textures = fakeTextures()
+    const first = build({ textures })
+    run(first, 0.3)
+    const materials = new Set(
+      first.group.children.map((sprite) => sprite.material),
+    )
+    let disposed = 0
+    for (const material of materials) {
+      material.addEventListener('dispose', () => (disposed += 1))
+    }
+    first.dispose()
+
+    const second = build({ textures })
+    run(second, 0.3)
+
+    expect(disposed).toBe(0)
+    const reused = second.group.children.filter((sprite) =>
+      materials.has(sprite.material),
+    )
+    expect(reused.length).toBeGreaterThan(0)
+    second.dispose()
+  })
+
+  it('com outra imagem, o efeito não pega os sprites guardados', () => {
+    const first = build()
+    run(first, 0.3)
+    const materials = new Set(
+      first.group.children.map((sprite) => sprite.material),
+    )
+    first.dispose()
+
+    const other = build()
+    run(other, 0.3)
+
+    expect(
+      other.group.children.some((sprite) => materials.has(sprite.material)),
+    ).toBe(false)
+    other.dispose()
+  })
 })
 
 describe('createParticleSystem (Lança-chamas)', () => {
