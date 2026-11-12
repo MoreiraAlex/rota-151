@@ -39,6 +39,7 @@ import {
   WorldItemChunks,
   TrainingObjectChunks,
   InteractionTarget,
+  InteriorTransition,
   LocalWeather,
 } from '@/core/traits'
 
@@ -122,6 +123,8 @@ export function makeWorld({
   world.add(WorldItemsMemory, WorldItemChunks, InteractionTarget)
   // Os bonecos de treino dos chunks carregados (067).
   world.add(TrainingObjectChunks)
+  // A porta dos prédios (068).
+  world.add(InteriorTransition)
   // Spawn das selvagens (docs/features/062-spawn-estilo-cobblemon.md).
   world.add(WildSpawnState)
 

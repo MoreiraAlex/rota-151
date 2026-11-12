@@ -8,7 +8,8 @@
  * Por faixa:
  * - `path`: o arquivo;
  * - `volume`: multiplica o canal de música;
- * - `loopStart` / `loopEnd` (s, só a da batalha, que repete): o trecho que
+ * - `loopStart` / `loopEnd` (s, só as que repetem — a da batalha e a dos
+ *   lugares, como o Pokécenter e a loja): o trecho que
  *   repete. A primeira vez toca do começo do arquivo; ao chegar no
  *   `loopEnd`, volta pro `loopStart`. Medidos comparando o áudio com ele
  *   mesmo.
@@ -44,6 +45,24 @@ export const MUSIC_TRACKS = {
     volume: 1,
     loopStart: 17,
     loopEnd: 74.3795,
+  },
+  // Dentro do Pokécenter (docs/features/068-interior-dos-predios.md), em
+  // loop enquanto o treinador está lá. PROVISÓRIA: Jubilife City (Night),
+  // do BDSP — o tema do Pokécenter não está no depósito
+  // (`scripts/audio/sons-do-pokecenter.sh`).
+  pokecenter: {
+    path: `${MUSIC_DIR}/pokecenter.ogg`,
+    volume: 1,
+    loopStart: 6,
+    loopEnd: 51.5475,
+  },
+  // Dentro da loja, do mesmo jeito. PROVISÓRIA: Jubilife City (Day), do
+  // BDSP — o tema da loja também não está no depósito.
+  'poke-mart': {
+    path: `${MUSIC_DIR}/poke-mart.ogg`,
+    volume: 1,
+    loopStart: 6,
+    loopEnd: 50.576375,
   },
 }
 

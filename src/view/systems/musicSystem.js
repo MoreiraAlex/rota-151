@@ -9,8 +9,11 @@ import {
 import { advanceBattleHold, isGroupInBattle } from '@/core/audio/battleMusic'
 import { resolveLocalTrainer } from '@/core/actions/owner'
 import { isDaytime } from '@/core/time/dayCycle'
+import { getInterior } from '@/core/data/interiors'
 import {
+  Indoors,
   InputControlled,
+  InteriorTransition,
   Party,
   Position,
   SoundSettings,
@@ -21,11 +24,16 @@ import {
   canPlayMusic,
   currentSong,
   fadeOutSong,
+  placeMusicPlaying,
   playSong,
   preloadBattleMusic,
+  preloadPlaceMusic,
   startBattleMusic,
+  startPlaceMusic,
   stopBattleMusic,
+  stopPlaceMusic,
   updateBattleMusic,
+  updatePlaceMusic,
   updateSong,
 } from '@/view/audio/musicPlayer'
 
@@ -63,8 +71,22 @@ const state = {
 export function musicSystem({ world, delta }) {
   updateSong(delta, MUSIC.FADE_OUT)
   updateBattleMusic(delta, MUSIC.FADE_OUT)
+  updatePlaceMusic(delta, MUSIC.FADE_OUT)
   if (!canPlayMusic()) return
   preloadBattleMusic(MUSIC.BATTLE_TRACK)
+
+  // Dentro de um prédio com música própria (docs/features/068-interior-dos-
+  // predios.md): ela no lugar de qualquer outra, em loop; ao sair, some e o
+  // silêncio de sempre começa.
+  const placeTrack = placeTrackOf(world)
+  if (placeTrack) {
+    fadeOutSong()
+    stopBattleMusic()
+    startPlaceMusic(placeTrack)
+    state.wasPlaying = true
+    return
+  }
+  stopPlaceMusic()
 
   const inBattle = isGroupInBattle(world, resolveLocalTrainer(world))
   state.battle = advanceBattleHold(
@@ -91,9 +113,10 @@ export function musicSystem({ world, delta }) {
   }
   state.frequency = frequency
 
-  // A de batalha sumindo conta como tocando: o silêncio começa quando ela
-  // acaba.
-  const playing = currentSong() !== null || battleMusicPlaying()
+  // A de batalha (ou a de um lugar) sumindo conta como tocando: o silêncio
+  // começa quando ela acaba.
+  const playing =
+    currentSong() !== null || battleMusicPlaying() || placeMusicPlaying()
   if (playing) {
     state.wasPlaying = true
     return
@@ -112,6 +135,18 @@ export function musicSystem({ world, delta }) {
   playSong(trackId)
   state.lastTrackId = trackId
   state.wasPlaying = true
+}
+
+// A música do prédio em que o treinador está, se ele tem uma. Abrindo a
+// porta de um, já carrega a dele (a tela escurecendo dá o tempo).
+function placeTrackOf(world) {
+  const transition = world.get(InteriorTransition)
+  if (transition?.action === 'enter') {
+    const entering = getInterior(transition.interiorId)
+    if (entering?.music) preloadPlaceMusic(entering.music)
+  }
+  const indoors = world.queryFirst(Party, Indoors)?.get(Indoors)
+  return (indoors && getInterior(indoors.interiorId)?.music) ?? null
 }
 
 function nextTrack(world) {

@@ -1,7 +1,11 @@
+import { decodeBc7Block } from './bc7.js'
+
 /**
  * Leitura do `.dds` dos mapas do Let's Go (só o primeiro nível de mipmap):
- * BC1 e BC3 (sRGB ou não, cabeçalho DX10) e o RGBA cru de 32 bits das
- * tabelas de toon. Devolve `{ width, height, data }` em RGBA 8 bits.
+ * BC1, BC3 e BC7 (sRGB ou não, cabeçalho DX10 — o BC7 aparece na loja por
+ * dentro, docs/features/068-interior-dos-predios.md) e o RGBA cru de 32
+ * bits das tabelas de toon. Devolve `{ width, height, data }` em RGBA 8
+ * bits.
  */
 
 const DXGI = {
@@ -93,7 +97,7 @@ export function decodeDds(buffer) {
     }
     return { width, height, data, format }
   }
-  if (format !== 'BC1' && format !== 'BC3') {
+  if (format !== 'BC1' && format !== 'BC3' && format !== 'BC7') {
     throw new Error(`formato não suportado: ${format}`)
   }
   const blockSize = format === 'BC1' ? 8 : 16
@@ -104,6 +108,7 @@ export function decodeDds(buffer) {
     for (let bx = 0; bx < blocksX; bx++) {
       const at = start + (by * blocksX + bx) * blockSize
       if (format === 'BC1') decodeColorBlock(buffer, at, block, true)
+      else if (format === 'BC7') decodeBc7Block(buffer, at, block)
       else {
         decodeColorBlock(buffer, at + 8, block, false)
         decodeAlphaBlock(buffer, at, block)

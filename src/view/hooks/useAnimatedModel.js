@@ -14,6 +14,7 @@ import {
 } from '@/core/data/audio/footstepGroups'
 import { WATER_SOUNDS } from '@/core/data/audio/waterSounds'
 import { GRASS_SOUNDS } from '@/core/data/audio/grassSounds'
+import { INTERIOR_SOUNDS } from '@/core/data/audio/interiorSounds'
 import {
   resolveVoiceSound,
   DEFAULT_VOICE_MIN_INTERVAL,
@@ -669,6 +670,9 @@ export function useAnimatedModel(entity, species) {
     const sources = { buffers: footstep, waterBuffers: WATER_SOUNDS.step }
     // Na grama, o passo da grama — só para quem pisa (docs/features/066-*).
     if (footstep.grass) sources.grassBuffers = GRASS_SOUNDS.step
+    // No piso de dentro dos prédios, o passo de lá — também só para quem
+    // pisa (docs/features/068-*).
+    if (footstep.grass) sources.indoorBuffers = INTERIOR_SOUNDS.step
     // O voo livre com som próprio (`sounds.flightGroup`, docs/features/060-*).
     if (flight) sources.flightBuffers = flight
     for (const [target, sound] of Object.entries(sources)) {

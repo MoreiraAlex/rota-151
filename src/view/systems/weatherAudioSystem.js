@@ -1,5 +1,5 @@
 import { GAME_CONFIG } from '@/core/gameConfig'
-import { LocalWeather } from '@/core/traits'
+import { Indoors, LocalWeather, Party } from '@/core/traits'
 import { getWeatherFxState } from '@/view/weather/weatherFxState'
 
 /**
@@ -14,9 +14,19 @@ export function weatherAudioSystem({ world }) {
   const { rain, wind } = getWeatherFxState().audio
   const weather = world.get(LocalWeather)
   const { RAIN_VOLUME, WIND_VOLUME } = GAME_CONFIG.WEATHER
+  // Dentro de um prédio, abafados (docs/features/068-interior-dos-
+  // predios.md).
+  const indoors = world.queryFirst(Party)?.has(Indoors)
+  const muffle = indoors ? GAME_CONFIG.INTERIOR.RAIN_VOLUME : 1
 
-  setLoopVolume(rain, Math.min(1, weather.rain + weather.storm) * RAIN_VOLUME)
-  setLoopVolume(wind, Math.min(1, weather.storm + weather.snow) * WIND_VOLUME)
+  setLoopVolume(
+    rain,
+    Math.min(1, weather.rain + weather.storm) * RAIN_VOLUME * muffle,
+  )
+  setLoopVolume(
+    wind,
+    Math.min(1, weather.storm + weather.snow) * WIND_VOLUME * muffle,
+  )
 }
 
 function setLoopVolume(audio, volume) {

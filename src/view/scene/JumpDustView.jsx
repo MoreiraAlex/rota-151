@@ -7,6 +7,7 @@ import { verticalClearance } from '@/core/physics/colliders'
 import {
   CharacterController,
   Grounded,
+  Indoors,
   Position,
   Velocity,
 } from '@/core/traits'
@@ -131,7 +132,8 @@ export function JumpDustView() {
     world.query(Position, Velocity, CharacterController).forEach((entity) => {
       const pos = entity.get(Position)
       const clearance = verticalClearance(entity.get(CharacterController))
-      const water = levelWaterDepthAt(pos.x, pos.z) > 0
+      // Dentro de um prédio, o chão é o da sala (068).
+      const water = !entity.has(Indoors) && levelWaterDepthAt(pos.x, pos.z) > 0
       const feetY = pos.y - clearance
       creatures.push({
         entity,

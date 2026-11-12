@@ -40,6 +40,7 @@ import {
   WorldItemChunks,
   TrainingObjectChunks,
   InteractionTarget,
+  InteriorTransition,
   WildSpawnState,
 } from '../traits'
 
@@ -55,6 +56,9 @@ world.add(WorldClock, LocalWeather)
 world.add(WorldItemsMemory, WorldItemChunks, InteractionTarget)
 // Os bonecos de treino dos chunks carregados (067).
 world.add(TrainingObjectChunks)
+// Passando pela porta de um prédio (docs/features/068-interior-dos-
+// predios.md): nada acontecendo.
+world.add(InteriorTransition)
 // Os temporizadores do spawn das selvagens e o registro do debug
 // (docs/features/062-spawn-estilo-cobblemon.md).
 world.add(WildSpawnState)

@@ -8,6 +8,7 @@ import {
   ActionState,
   CharacterController,
   Flying,
+  Indoors,
   Position,
   Rotation,
 } from '@/core/traits'
@@ -119,7 +120,9 @@ export function DashEffectsView() {
         : null
       const clearance = body ? verticalClearance(body) : 0
       const flying = entity.has(Flying)
-      const water = !flying && levelWaterDepthAt(pos.x, pos.z) > 0
+      // Dentro de um prédio, o chão é o da sala (068).
+      const water =
+        !flying && !entity.has(Indoors) && levelWaterDepthAt(pos.x, pos.z) > 0
       const feetY = pos.y - clearance
       dashers.push({
         key: entity,

@@ -1,0 +1,1651 @@
+{
+  "source": "Pokémon Let's Go Pikachu/Eevee — scripts/lgpe/interiors.json",
+  "props": {
+    "pokecenter-interior": {
+      "label": "Pokécenter por dentro",
+      "category": "interior",
+      "file": "props/pokecenter-interior.glb",
+      "size": [
+        28.669,
+        3.525,
+        22.07
+      ],
+      "materials": {
+        "bm_table01_03": {
+          "shader": "FieldObjectShader_Emission",
+          "maps": {
+            "HighlightMap": "table01_h_com_pc",
+            "Reflection_tex": "floorlight01_com_pc",
+            "Texture01": "bm_table01_02"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.4451944828033447,
+            0.4451944828033447,
+            0.4451944828033447
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null,
+          "blend": "alpha"
+        },
+        "bm_comlight01_01": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "bm_comlight01_01"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.4451944828033447,
+            0.4451944828033447,
+            0.4451944828033447
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null,
+          "blend": "add"
+        },
+        "bubble01_com_pc": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "bubble01_com_pc"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23454800248146057,
+            0.3613100051879883,
+            0.3915709853172302
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null,
+          "blend": "add"
+        },
+        "glass02_com_pc_add": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "glass02_com_pc"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23454800248146057,
+            0.3613100051879883,
+            0.3915709853172302
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null,
+          "blend": "add"
+        },
+        "glass02_com_pc_alp": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "glass02_com_pc"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23454800248146057,
+            0.3613100051879883,
+            0.3915709853172302
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null,
+          "blend": "alpha"
+        },
+        "floor04_com_pc1": {
+          "shader": "FieldObjectShader_Emission",
+          "maps": {
+            "HighlightMap": "floor02_h_com_pc",
+            "Reflection_tex": "floorlight01_com_pc",
+            "Texture01": "floor01_com_pc",
+            "Texture02": "floor04_com_pc"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.4451944828033447,
+            0.4451944828033447,
+            0.4451944828033447
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "floor04_com_pc": {
+          "shader": "FieldObjectShader_Emission",
+          "maps": {
+            "HighlightMap": "floor02_h_com_pc",
+            "Reflection_tex": "floorlight01_com_pc",
+            "Texture01": "floor02_com_pc",
+            "Texture02": "floor04_com_pc"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.4451944828033447,
+            0.4451944828033447,
+            0.4451944828033447
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "floor03_com_pc1": {
+          "shader": "FieldObjectShader_Emission",
+          "maps": {
+            "Reflection_tex": "floorlight01_com_pc",
+            "Texture01": "floor03_com_pc",
+            "Texture02": "floor04_com_pc",
+            "HighlightMap": "floor02_h_com_pc"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.4451944828033447,
+            0.4451944828033447,
+            0.4451944828033447
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "wall02_com_pc": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "wall02_com_pc"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23454800248146057,
+            0.3613100051879883,
+            0.3915709853172302
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "wall01_com_pc": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "wall01_com_pc"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.4451944828033447,
+            0.4451944828033447,
+            0.4451944828033447
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "glass01_com_fs": {
+          "shader": "FieldWindowShader",
+          "maps": {
+            "TextureMap01": "glass01_com_pc"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0,
+            0.5686269998550415,
+            0.6941180229187012
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "wall01_com_pc_shadow": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "wall01_com_pc"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.4479812979698181,
+            0.4479812979698181,
+            0.4479812979698181
+          ],
+          "rimColor": [
+            0.4779999852180481,
+            0.4779999852180481,
+            0.4779999852180481
+          ],
+          "rim": [
+            0.6050000190734863,
+            1,
+            0.414000004529953
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "pillar01_com_pc1": {
+          "shader": "FieldObjectShader_Emission",
+          "maps": {
+            "HighlightMap": "pillar01_h_com_pc",
+            "Reflection_tex": "floorlight01_com_pc",
+            "Texture01": "pillar01_com_pc"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.4451944828033447,
+            0.4451944828033447,
+            0.4451944828033447
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "bookshelf01_com_pc_shadow": {
+          "shader": "FieldObjectShader_room",
+          "maps": {
+            "Texture01": "bookshelf01_com_pc"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.4479812979698181,
+            0.4479812979698181,
+            0.4479812979698181
+          ],
+          "rimColor": [
+            0.07323913276195526,
+            0.07323913276195526,
+            0.07323913276195526
+          ],
+          "rim": [
+            0.6049379706382751,
+            1,
+            0.20000000298023224
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "bookshelf01_com_pc": {
+          "shader": "FieldObjectShader_room",
+          "maps": {
+            "Texture01": "bookshelf01_com_pc"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": null,
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "display01_com_pc": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "display01_com_pc"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23454800248146057,
+            0.3613100051879883,
+            0.3915709853172302
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "display01_com_pc_mat": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "display01_com_pc"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.4451944828033447,
+            0.4451944828033447,
+            0.4451944828033447
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "bm_table01_01": {
+          "shader": "FieldObjectShader_room",
+          "maps": {
+            "Texture01": "bm_table01_02"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.5225114822387695,
+            0.5225114822387695,
+            0.5225114822387695
+          ],
+          "rimColor": [
+            0.5,
+            0.5,
+            0.5
+          ],
+          "rim": [
+            0.6049379706382751,
+            1,
+            0.4000000059604645
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "counter02_com_pc": {
+          "shader": "FieldObjectShader_Emission",
+          "maps": {
+            "HighlightMap": "counter01_h_com_pc",
+            "Reflection_tex": "floorlight01_com_pc",
+            "Texture01": "counter01_com_pc",
+            "Texture02": "counter02_com_pc"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.4451944828033447,
+            0.4451944828033447,
+            0.4451944828033447
+          ],
+          "rimColor": [
+            1,
+            1,
+            1
+          ],
+          "rim": [
+            0.7962960004806519,
+            1,
+            1
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "sofa01_com_pc": {
+          "shader": "FieldObjectShader_room",
+          "maps": {
+            "Texture01": "sofa01_com_pc"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0,
+            0,
+            0
+          ],
+          "rimColor": [
+            0.07323913276195526,
+            0.07323913276195526,
+            0.07323913276195526
+          ],
+          "rim": [
+            0.800000011920929,
+            1,
+            0.27000001072883606
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "chair01_com_pc": {
+          "shader": "FieldObjectShader_room",
+          "maps": {
+            "Texture01": "chair01_com_pc"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.4479812979698181,
+            0.4479812979698181,
+            0.4479812979698181
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "carpet01_com_pc": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "carpet01_com_pc"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.4451944828033447,
+            0.4451944828033447,
+            0.4451944828033447
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "lamp01_com_pc": {
+          "shader": "FieldObjectShader_room",
+          "maps": {
+            "Texture01": "lamp01_com_pc"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.7285714149475098,
+            0.7285714149475098,
+            0.7285714149475098
+          ],
+          "rimColor": [
+            1.0000240802764893,
+            0.697926938533783,
+            0.4479812979698181
+          ],
+          "rim": [
+            0.4000000059604645,
+            1,
+            1
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "bm_flower03_02": {
+          "shader": "FieldObjectShader_room",
+          "maps": {
+            "Texture01": "bm_flower03_01"
+          },
+          "cutoff": 0.8500000238418579,
+          "doubleSided": true,
+          "shadowColor": null,
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "bm_flower03_01": {
+          "shader": "FieldObjectShader_room",
+          "maps": {
+            "Texture01": "bm_flower03_01"
+          },
+          "cutoff": null,
+          "doubleSided": true,
+          "shadowColor": null,
+          "rimColor": [
+            0.47699105739593506,
+            0.6038312911987305,
+            0.5128559470176697
+          ],
+          "rim": [
+            0.6049379706382751,
+            1,
+            0.0280825924128294
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "bm_combg01_01": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "bm_combg01_01"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23454800248146057,
+            0.3613100051879883,
+            0.3915709853172302
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "bm_plant01_02": {
+          "shader": "FieldObjectShader_room",
+          "maps": {
+            "Texture01": "bm_plant01_01"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.4479812979698181,
+            0.4479812979698181,
+            0.4479812979698181
+          ],
+          "rimColor": [
+            0.31855452060699463,
+            0.31855452060699463,
+            0.31855452060699463
+          ],
+          "rim": [
+            0.5,
+            0.800000011920929,
+            0.699999988079071
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "bm_plant01_01": {
+          "shader": "FieldObjectShader_room",
+          "maps": {
+            "Texture01": "bm_plant01_01"
+          },
+          "cutoff": 0.8500000238418579,
+          "doubleSided": true,
+          "shadowColor": null,
+          "rimColor": [
+            0.076583132147789,
+            0.21403686702251434,
+            0.07323913276195526
+          ],
+          "rim": [
+            0.6049379706382751,
+            1,
+            0.30000001192092896
+          ],
+          "lightColor": null,
+          "greenColor": null
+        }
+      }
+    },
+    "poke-mart-interior": {
+      "label": "Loja por dentro",
+      "category": "interior",
+      "file": "props/poke-mart-interior.glb",
+      "size": [
+        24.13,
+        3.3,
+        19.217
+      ],
+      "materials": {
+        "bm_book03_01": {
+          "shader": "FieldObjectShader_room",
+          "maps": {
+            "Texture01": "bm_book03_01"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.4479812979698181,
+            0.4479812979698181,
+            0.4479812979698181
+          ],
+          "rimColor": [
+            0.07323913276195526,
+            0.07323913276195526,
+            0.07323913276195526
+          ],
+          "rim": [
+            0.6049379706382751,
+            1,
+            0.20000000298023224
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "bm_pc02_01": {
+          "shader": "FieldObjectShader_room",
+          "maps": {
+            "Texture01": "bm_pc02_01"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.4479812979698181,
+            0.4479812979698181,
+            0.4479812979698181
+          ],
+          "rimColor": [
+            0.21403686702251434,
+            0.21403686702251434,
+            0.21403686702251434
+          ],
+          "rim": [
+            0.6049379706382751,
+            1,
+            0.20000000298023224
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "bm_machine05_01": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "bm_machine05_01"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23454800248146057,
+            0.3613100051879883,
+            0.3915709853172302
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "bm_clock02_02": {
+          "shader": "FieldObjectShader_room",
+          "maps": {
+            "Texture01": "bm_clock02_03"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": null,
+          "rimColor": [
+            0.47857099771499634,
+            0.47857099771499634,
+            0.47857099771499634
+          ],
+          "rim": [
+            0.6049379706382751,
+            1,
+            0.4135800004005432
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "bm_combg01_01": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "bm_combg01_01"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.450980007648468,
+            0.7176470160484314,
+            0.7764710187911987
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "bm_plant01_01": {
+          "shader": "FieldObjectShader_room",
+          "maps": {
+            "Texture01": "bm_plant01_01"
+          },
+          "cutoff": 0.8500000238418579,
+          "doubleSided": true,
+          "shadowColor": null,
+          "rimColor": [
+            0.076583132147789,
+            0.21403686702251434,
+            0.07323913276195526
+          ],
+          "rim": [
+            0.6049379706382751,
+            1,
+            0.30000001192092896
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "bm_plant01_02": {
+          "shader": "FieldObjectShader_room",
+          "maps": {
+            "Texture01": "bm_plant01_01"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.4479812979698181,
+            0.4479812979698181,
+            0.4479812979698181
+          ],
+          "rimColor": [
+            0.31855452060699463,
+            0.31855452060699463,
+            0.31855452060699463
+          ],
+          "rim": [
+            0.5,
+            0.800000011920929,
+            0.699999988079071
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "poster01_com_fs": {
+          "shader": "FieldObjectShader_room",
+          "maps": {
+            "Texture01": "poster01_com_fs"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": null,
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "objset01_com_fs_re": {
+          "shader": "FieldObjectShader_room",
+          "maps": {
+            "Texture01": "objset01_com_fs"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.4479812979698181,
+            0.4479812979698181,
+            0.4479812979698181
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "ball02_com_fs": {
+          "shader": "FieldObjectShader_room",
+          "maps": {
+            "Texture01": "ball02_com_fs"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.6920861005783081,
+            0.6920861005783081,
+            0.6920861005783081
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "objset01_com_fs_mat": {
+          "shader": "FieldObjectShader_room",
+          "maps": {
+            "Texture01": "objset01_com_fs"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.6038312911987305,
+            0.6038312911987305,
+            0.6038312911987305
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "ball01_com_fs": {
+          "shader": "FieldObjectShader_room",
+          "maps": {
+            "Texture01": "ball01_com_fs"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.6920861005783081,
+            0.6920861005783081,
+            0.6920861005783081
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "stationery03_com_fs": {
+          "shader": "FieldObjectShader_room",
+          "maps": {
+            "Texture01": "stationery03_com_fs"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.4451944828033447,
+            0.4451944828033447,
+            0.4451944828033447
+          ],
+          "rimColor": [
+            0.18520000576972961,
+            0.18520000576972961,
+            0.18520000576972961
+          ],
+          "rim": [
+            0.6049379706382751,
+            1,
+            0.4135800004005432
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "pamphlet01_com_fs": {
+          "shader": "FieldObjectShader_room",
+          "maps": {
+            "Texture01": "pamphlet01_com_fs"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.4451944828033447,
+            0.4451944828033447,
+            0.4451944828033447
+          ],
+          "rimColor": [
+            0.194618359208107,
+            0.194618359208107,
+            0.194618359208107
+          ],
+          "rim": [
+            0.6049379706382751,
+            1,
+            0.4135800004005432
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "ball01_com_fs_cast": {
+          "shader": "FieldObjectShader_room",
+          "maps": {
+            "Texture01": "ball01_com_fs"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.6038312911987305,
+            0.6038312911987305,
+            0.6038312911987305
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "ball02_com_fs_cast": {
+          "shader": "FieldObjectShader_room",
+          "maps": {
+            "Texture01": "ball02_com_fs"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.6038312911987305,
+            0.6038312911987305,
+            0.6038312911987305
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "objset02_com_fs_mat": {
+          "shader": "FieldObjectShader_room",
+          "maps": {
+            "Texture01": "objset02_com_fs"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.38484880328178406,
+            0.6441859006881714,
+            0.7571428418159485
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "objset02_com_fs": {
+          "shader": "FieldObjectShader_room",
+          "maps": {
+            "Texture01": "objset02_com_fs"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.4479812979698181,
+            0.4479812979698181,
+            0.4479812979698181
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "objset04_com_fs": {
+          "shader": "FieldObjectShader_room",
+          "maps": {
+            "Texture01": "objset04_com_fs"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.4479812979698181,
+            0.4479812979698181,
+            0.4479812979698181
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "counter01_com_fs": {
+          "shader": "FieldObjectShader_room",
+          "maps": {
+            "Texture01": "counter01_com_fs"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.4479812979698181,
+            0.4479812979698181,
+            0.4479812979698181
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "objset01_com_fs": {
+          "shader": "FieldObjectShader_room",
+          "maps": {
+            "Texture01": "objset01_com_fs"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.4479812979698181,
+            0.4479812979698181,
+            0.4479812979698181
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "objset03_com_fs_re": {
+          "shader": "FieldObjectShader_room",
+          "maps": {
+            "Texture01": "objset03_com_fs"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": null,
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "objset03_com_fs": {
+          "shader": "FieldObjectShader_room",
+          "maps": {
+            "Texture01": "objset03_com_fs"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.4479812979698181,
+            0.4479812979698181,
+            0.4479812979698181
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "objset04_com_fs_re": {
+          "shader": "FieldObjectShader_room",
+          "maps": {
+            "Texture01": "objset04_com_fs"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.6920861005783081,
+            0.6920861005783081,
+            0.6920861005783081
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "objset05_com_fs": {
+          "shader": "FieldObjectShader_room",
+          "maps": {
+            "Texture01": "objset05_com_fs"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.4479812979698181,
+            0.4479812979698181,
+            0.4479812979698181
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "objset06_com_fs": {
+          "shader": "FieldObjectShader_room",
+          "maps": {
+            "Texture01": "objset06_com_fs"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.44798099994659424,
+            0.44798099994659424,
+            0.44798099994659424
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "shelf01_com_fs": {
+          "shader": "FieldObjectShader_room",
+          "maps": {
+            "Texture01": "shelf01_com_fs"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.4479812979698181,
+            0.4479812979698181,
+            0.4479812979698181
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "floor01_com_fs": {
+          "shader": "FieldObjectShader_Emission",
+          "maps": {
+            "HighlightMap": "floor01_com_fs_h",
+            "Reflection_tex": "floorlight01_com_fs",
+            "Texture01": "floor01_com_fs"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.4479812979698181,
+            0.4479812979698181,
+            0.4479812979698181
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "wall01_com_fs": {
+          "shader": "FieldObjectShader_room",
+          "maps": {
+            "Texture01": "wall01_com_fs"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": null,
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "wall02_com_fs": {
+          "shader": "FieldObjectShader_room",
+          "maps": {
+            "Texture01": "wall02_com_fs"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": null,
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "wall03_com_fs": {
+          "shader": "FieldObjectShader_room",
+          "maps": {
+            "Texture01": "wall03_com_fs"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": null,
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "carpet01_com_fs": {
+          "shader": "FieldObjectShader_room",
+          "maps": {
+            "Texture01": "carpet01_com_fs"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.4479812979698181,
+            0.4479812979698181,
+            0.4479812979698181
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "glass01_com_fs": {
+          "shader": "FieldWindowShader",
+          "maps": {
+            "TextureMap01": "glass01_com_fs"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0,
+            0.5686269998550415,
+            0.6941180229187012
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "flame01_com_fs": {
+          "shader": "FieldObjectShader_room",
+          "maps": {
+            "Texture01": "flame01_com_fs"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.6920861005783081,
+            0.6920861005783081,
+            0.6920861005783081
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "glass01_com_fs1": {
+          "shader": "FieldObjectShader_room",
+          "maps": {
+            "Texture01": "glass01_com_fs"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.6920861005783081,
+            0.6920861005783081,
+            0.6920861005783081
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null,
+          "blend": "alpha"
+        },
+        "bm_comlight01_01": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "bm_comlight01_01"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.450980007648468,
+            0.7176470160484314,
+            0.7764710187911987
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null,
+          "blend": "add"
+        }
+      }
+    },
+    "pc-machine": {
+      "label": "Máquina de cura do Pokécenter",
+      "category": "interior",
+      "file": "props/pc-machine.glb",
+      "size": [
+        4.178,
+        2.897,
+        1.685
+      ],
+      "materials": {
+        "display01_com_pc": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "display01_pc"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23454800248146057,
+            0.3613100051879883,
+            0.3915709853172302
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "machine01_com_pc": {
+          "shader": "FieldObjectShader_room",
+          "maps": {
+            "Texture01": "machine01_com_pc"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.1328708678483963,
+            0.1328708678483963,
+            0.1328708678483963
+          ],
+          "rimColor": [
+            0.47857099771499634,
+            0.47857099771499634,
+            0.47857099771499634
+          ],
+          "rim": [
+            0.6000000238418579,
+            1,
+            0.4000000059604645
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "machine02_com_pc": {
+          "shader": "FieldObjectShader_room",
+          "maps": {
+            "Texture01": "machine02_com_pc"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.4479812979698181,
+            0.4479812979698181,
+            0.4479812979698181
+          ],
+          "rimColor": [
+            0.4779999852180481,
+            0.4779999852180481,
+            0.4779999852180481
+          ],
+          "rim": [
+            0.6000000238418579,
+            1,
+            0.4000000059604645
+          ],
+          "lightColor": null,
+          "greenColor": null
+        }
+      }
+    }
+  },
+  "ground": [],
+  "toonTables": [],
+  "textures": {
+    "table01_h_com_pc": {
+      "file": "textures/table01_h_com_pc.png",
+      "width": 128,
+      "height": 128,
+      "alpha": true
+    },
+    "floorlight01_com_pc": {
+      "file": "textures/floorlight01_com_pc.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "bm_table01_02": {
+      "file": "textures/bm_table01_02.png",
+      "width": 128,
+      "height": 128,
+      "alpha": false
+    },
+    "bm_comlight01_01": {
+      "file": "textures/bm_comlight01_01.png",
+      "width": 32,
+      "height": 32,
+      "alpha": false
+    },
+    "bubble01_com_pc": {
+      "file": "textures/bubble01_com_pc.png",
+      "width": 128,
+      "height": 256,
+      "alpha": true
+    },
+    "glass02_com_pc": {
+      "file": "textures/glass02_com_pc.png",
+      "width": 256,
+      "height": 256,
+      "alpha": true
+    },
+    "floor02_h_com_pc": {
+      "file": "textures/floor02_h_com_pc.png",
+      "width": 256,
+      "height": 256,
+      "alpha": true
+    },
+    "floor01_com_pc": {
+      "file": "textures/floor01_com_pc.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "floor04_com_pc": {
+      "file": "textures/floor04_com_pc.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "floor02_com_pc": {
+      "file": "textures/floor02_com_pc.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "floor03_com_pc": {
+      "file": "textures/floor03_com_pc.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "wall02_com_pc": {
+      "file": "textures/wall02_com_pc.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "wall01_com_pc": {
+      "file": "textures/wall01_com_pc.png",
+      "width": 512,
+      "height": 512,
+      "alpha": false
+    },
+    "glass01_com_pc": {
+      "file": "textures/glass01_com_pc.png",
+      "width": 128,
+      "height": 128,
+      "alpha": false
+    },
+    "pillar01_h_com_pc": {
+      "file": "textures/pillar01_h_com_pc.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "pillar01_com_pc": {
+      "file": "textures/pillar01_com_pc.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "bookshelf01_com_pc": {
+      "file": "textures/bookshelf01_com_pc.png",
+      "width": 512,
+      "height": 512,
+      "alpha": false
+    },
+    "display01_com_pc": {
+      "file": "textures/display01_com_pc.png",
+      "width": 512,
+      "height": 512,
+      "alpha": false
+    },
+    "counter01_h_com_pc": {
+      "file": "textures/counter01_h_com_pc.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "counter01_com_pc": {
+      "file": "textures/counter01_com_pc.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "counter02_com_pc": {
+      "file": "textures/counter02_com_pc.png",
+      "width": 128,
+      "height": 128,
+      "alpha": true
+    },
+    "sofa01_com_pc": {
+      "file": "textures/sofa01_com_pc.png",
+      "width": 512,
+      "height": 512,
+      "alpha": false
+    },
+    "chair01_com_pc": {
+      "file": "textures/chair01_com_pc.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "carpet01_com_pc": {
+      "file": "textures/carpet01_com_pc.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "lamp01_com_pc": {
+      "file": "textures/lamp01_com_pc.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "bm_flower03_01": {
+      "file": "textures/bm_flower03_01.png",
+      "width": 128,
+      "height": 128,
+      "alpha": true
+    },
+    "bm_combg01_01": {
+      "file": "textures/bm_combg01_01.png",
+      "width": 128,
+      "height": 128,
+      "alpha": false
+    },
+    "bm_plant01_01": {
+      "file": "textures/bm_plant01_01.png",
+      "width": 256,
+      "height": 256,
+      "alpha": true
+    },
+    "bm_book03_01": {
+      "file": "textures/bm_book03_01.png",
+      "width": 128,
+      "height": 128,
+      "alpha": false
+    },
+    "bm_pc02_01": {
+      "file": "textures/bm_pc02_01.png",
+      "width": 128,
+      "height": 128,
+      "alpha": false
+    },
+    "bm_machine05_01": {
+      "file": "textures/bm_machine05_01.png",
+      "width": 128,
+      "height": 128,
+      "alpha": false
+    },
+    "bm_clock02_03": {
+      "file": "textures/bm_clock02_03.png",
+      "width": 128,
+      "height": 128,
+      "alpha": false
+    },
+    "poster01_com_fs": {
+      "file": "textures/poster01_com_fs.png",
+      "width": 512,
+      "height": 512,
+      "alpha": false
+    },
+    "objset01_com_fs": {
+      "file": "textures/objset01_com_fs.png",
+      "width": 512,
+      "height": 256,
+      "alpha": false
+    },
+    "ball02_com_fs": {
+      "file": "textures/ball02_com_fs.png",
+      "width": 128,
+      "height": 256,
+      "alpha": false
+    },
+    "ball01_com_fs": {
+      "file": "textures/ball01_com_fs.png",
+      "width": 128,
+      "height": 256,
+      "alpha": false
+    },
+    "stationery03_com_fs": {
+      "file": "textures/stationery03_com_fs.png",
+      "width": 128,
+      "height": 128,
+      "alpha": false
+    },
+    "pamphlet01_com_fs": {
+      "file": "textures/pamphlet01_com_fs.png",
+      "width": 256,
+      "height": 128,
+      "alpha": false
+    },
+    "objset02_com_fs": {
+      "file": "textures/objset02_com_fs.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "objset04_com_fs": {
+      "file": "textures/objset04_com_fs.png",
+      "width": 512,
+      "height": 512,
+      "alpha": false
+    },
+    "counter01_com_fs": {
+      "file": "textures/counter01_com_fs.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "objset03_com_fs": {
+      "file": "textures/objset03_com_fs.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "objset05_com_fs": {
+      "file": "textures/objset05_com_fs.png",
+      "width": 512,
+      "height": 512,
+      "alpha": false
+    },
+    "objset06_com_fs": {
+      "file": "textures/objset06_com_fs.png",
+      "width": 256,
+      "height": 128,
+      "alpha": false
+    },
+    "shelf01_com_fs": {
+      "file": "textures/shelf01_com_fs.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "floor01_com_fs_h": {
+      "file": "textures/floor01_com_fs_h.png",
+      "width": 512,
+      "height": 512,
+      "alpha": false
+    },
+    "floorlight01_com_fs": {
+      "file": "textures/floorlight01_com_fs.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "floor01_com_fs": {
+      "file": "textures/floor01_com_fs.png",
+      "width": 512,
+      "height": 512,
+      "alpha": false
+    },
+    "wall01_com_fs": {
+      "file": "textures/wall01_com_fs.png",
+      "width": 512,
+      "height": 512,
+      "alpha": false
+    },
+    "wall02_com_fs": {
+      "file": "textures/wall02_com_fs.png",
+      "width": 512,
+      "height": 512,
+      "alpha": false
+    },
+    "wall03_com_fs": {
+      "file": "textures/wall03_com_fs.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "carpet01_com_fs": {
+      "file": "textures/carpet01_com_fs.png",
+      "width": 256,
+      "height": 128,
+      "alpha": false
+    },
+    "glass01_com_fs": {
+      "file": "textures/glass01_com_fs.png",
+      "width": 256,
+      "height": 256,
+      "alpha": true
+    },
+    "flame01_com_fs": {
+      "file": "textures/flame01_com_fs.png",
+      "width": 512,
+      "height": 256,
+      "alpha": false
+    },
+    "display01_pc": {
+      "file": "textures/display01_pc.png",
+      "width": 512,
+      "height": 512,
+      "alpha": false
+    },
+    "machine01_com_pc": {
+      "file": "textures/machine01_com_pc.png",
+      "width": 512,
+      "height": 512,
+      "alpha": false
+    },
+    "machine02_com_pc": {
+      "file": "textures/machine02_com_pc.png",
+      "width": 128,
+      "height": 128,
+      "alpha": false
+    }
+  }
+}

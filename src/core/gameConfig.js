@@ -224,6 +224,56 @@ export const GAME_CONFIG = {
     // casas.
     MIN_CITY_LOTS: 8,
   },
+  // Entrar nos prédios (docs/features/068-interior-dos-predios.md): a sala
+  // por dentro é um lugar à parte, bem acima da porta (os chunks em volta
+  // continuam os da cidade), e o mundo de fora some enquanto o treinador
+  // está nela.
+  INTERIOR: {
+    // Altura (m) da sala acima do chão da porta.
+    ALTITUDE: 300,
+    // Quanto (m) da porta o treinador alcança para entrar (da frente do
+    // prédio) e para sair (do meio do tapete de saída, na sala).
+    DOOR_REACH: 2.2,
+    EXIT_REACH: 2.2,
+    // Ao sair, onde o treinador para: quanto (m) à frente da porta.
+    EXIT_DISTANCE: 1.5,
+    // A tela escurecendo (s) e clareando de novo (s); no escuro o
+    // treinador troca de lugar.
+    FADE_OUT: 0.45,
+    FADE_IN: 0.6,
+    // A câmera lá dentro: de frente para a sala (como nos jogos da série),
+    // sem mostrar o vazio em volta dela.
+    CAMERA: {
+      // Quanto (rad) ela gira para cada lado da frente da sala e inclina
+      // para cima e para baixo da `PITCH` — 0 = travada.
+      YAW_RANGE: 0,
+      PITCH: 0.55,
+      PITCH_RANGE: 0,
+      // Distância (m): começa na `DISTANCE`, que é também a mais longe; o
+      // zoom só chega mais perto, até a `MIN_DISTANCE`.
+      DISTANCE: 9,
+      MIN_DISTANCE: 5,
+      // Quanto (0 a 1) a câmera acompanha o treinador a partir do meio da
+      // sala: 1 = segue ele inteiro; menos = a sala fica enquadrada e a
+      // borda dela não entra na tela num canto.
+      FOLLOW: 0.5,
+    },
+    // A luz da sala, no lugar da do céu: cor e força da luz ambiente e da
+    // luz de cima (com sombra), e de onde ela vem (do alto, um pouco da
+    // frente — vetor apontando para a luz).
+    LIGHT: {
+      AMBIENT: [1, 0.98, 0.95],
+      AMBIENT_INTENSITY: 1.35,
+      KEY: [1, 0.97, 0.92],
+      KEY_INTENSITY: 1.6,
+      SHADOW_INTENSITY: 0.45,
+      DIRECTION: [0.25, 1, 0.45],
+    },
+    // O fundo em volta da sala (o vazio do diorama).
+    BACKGROUND: '#05070a',
+    // A chuva de fora, abafada dentro (fração do volume dela).
+    RAIN_VOLUME: 0.25,
+  },
   // Onde ficam as cidades (core/town/citySites.js, docs/features/058-
   // ajuste-dos-biomas.md): uma por célula de uma grade, a âncora da área em
   // volta. O porte e o raio de cada uma vêm do `town.sizes` do bioma. Faz

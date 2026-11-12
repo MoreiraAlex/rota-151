@@ -6,6 +6,7 @@ import { GAME_CONFIG } from '../gameConfig'
 import { verticalClearance } from '../physics/capsule'
 import { shoreNear, wadeLimit } from '../terrain/water'
 import { levelWaterDepthAt } from '../actions/water'
+import { indoorsSaveOf, voltarParaDentro } from '../actions/interior'
 import {
   CharacterController,
   HeldItem,
@@ -104,6 +105,9 @@ export function serializeTrainer(trainer) {
   const { x, y, z } = trainer.get(Position)
   return {
     position: { x, y, z, yaw: trainer.get(Rotation).y },
+    // Dentro de um prédio, a sala e a porta (docs/features/068-interior-
+    // dos-predios.md).
+    indoors: indoorsSaveOf(trainer),
     heldItemId: trainer.get(HeldItem)?.itemId ?? null,
     settings: {
       volume: pickVolumes(trainer.get(SoundSettings)),
@@ -130,13 +134,18 @@ export function serializeTrainer(trainer) {
  * relevo mudou e a posição ficou dentro dele (save do chão plano, antes da
  * docs/features/045-terreno-de-um-chunk.md), sobe para a superfície; se
  * ficou em água funda (docs/features/057-lagos-e-rios.md), vai para a
- * margem.
+ * margem. Salvo dentro de um prédio, volta para dentro da sala
+ * (`voltarParaDentro`, docs/features/068-interior-dos-predios.md).
  */
 export function restoreTrainer(trainer, saved) {
-  if (saved.position) {
-    const { yaw } = saved.position
+  // Salvo dentro de um prédio (docs/features/068-interior-dos-predios.md):
+  // volta para a sala (a posição é a de dentro dela, longe do relevo).
+  const isInside = voltarParaDentro(trainer, saved.indoors, saved.position)
+  if (saved.position && !isInside) {
     trainer.set(Position, liftAboveGround(trainer, saved.position))
-    trainer.set(Rotation, { ...trainer.get(Rotation), y: yaw })
+  }
+  if (saved.position) {
+    trainer.set(Rotation, { ...trainer.get(Rotation), y: saved.position.yaw })
   }
 
   trainer.set(SoundSettings, {

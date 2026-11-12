@@ -32,6 +32,9 @@ export function registerFootstepAudio(
     // Passo na grama (`GRASS_SOUNDS.step`, docs/features/066-*.md): vazio
     // = o passo normal também na grama (grupos sem `grass`).
     grassBuffers: { walk: [], run: [] },
+    // Passo no piso de dentro dos prédios (`INTERIOR_SOUNDS.step`,
+    // docs/features/068-*.md): vazio = o passo normal lá dentro.
+    indoorBuffers: { walk: [], run: [] },
     // Som do voo livre (`sounds.flightGroup`, docs/features/060-*.md):
     // vazio = toca o passo normal (`buffers`).
     flightBuffers: { walk: [], run: [] },

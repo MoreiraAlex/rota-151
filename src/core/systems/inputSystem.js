@@ -1,5 +1,12 @@
 import { getItem } from '../data/items'
-import { InputState, InputControlled, HeldItem } from '../traits'
+import {
+  InputState,
+  InputControlled,
+  HeldItem,
+  Indoors,
+  InteriorTransition,
+  Party,
+} from '../traits'
 
 // Flags de AÇÃO bloqueadas no modo Scan — pedido do usuário: "durante o
 // modo Scan, o jogador deve poder somente andar... não quero criar
@@ -24,6 +31,17 @@ const SCAN_BLOCKED_FLAGS = [
   'interact', // F — pegar item / colher fruta
   'fly', // V — decolar / pousar
 ]
+
+// O que vale dentro de um prédio (docs/features/068-interior-dos-
+// predios.md); os valores que não são liga/desliga (a câmera) também.
+const INDOOR_ALLOWED_FLAGS = new Set([
+  'forward',
+  'back',
+  'left',
+  'right',
+  'run',
+  'interact',
+])
 
 /**
  * Converte o snapshot de input bruto (context.input) em um vetor de intenção
@@ -59,6 +77,25 @@ const SCAN_BLOCKED_FLAGS = [
 export function inputSystem(context) {
   const { world } = context
   const input = context.input ?? {}
+  // Passando por uma porta (docs/features/068-interior-dos-predios.md): o
+  // treinador fica parado e nenhuma ação sai até a tela clarear — só a
+  // câmera (os valores que não são liga/desliga) continua.
+  if (world.get(InteriorTransition)?.phase) {
+    for (const [flag, value] of Object.entries(input)) {
+      if (typeof value === 'boolean') input[flag] = false
+    }
+  }
+  // Dentro de um prédio, só andar, correr e o F (que lá só sai pela porta,
+  // `interactionSystem`): nada de pulo, esquiva, item, Pokébola, Pokémon,
+  // golpe nem mira — a sala é só para curar o time. Os menus abrem fora
+  // daqui e continuam.
+  if (world.queryFirst(Party)?.has(Indoors)) {
+    for (const [flag, value] of Object.entries(input)) {
+      if (typeof value === 'boolean' && !INDOOR_ALLOWED_FLAGS.has(flag)) {
+        input[flag] = false
+      }
+    }
+  }
 
   let x = (input.right ? 1 : 0) - (input.left ? 1 : 0)
   let z = (input.back ? 1 : 0) - (input.forward ? 1 : 0)

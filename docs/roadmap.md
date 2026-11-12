@@ -2,7 +2,7 @@
 
 ---
 
-# ✅ Já feito (0.0.1 – 0.0.67)
+# ✅ Já feito (0.0.1 – 0.0.68)
 
 O que já foi entregue, por tema. Detalhes de cada uma em `docs/features/`.
 
@@ -64,6 +64,7 @@ O que já foi entregue, por tema. Detalhes de cada uma em `docs/features/`.
 - [x] **060 — Ajustes por espécie**
 - [x] **062 — Spawn estilo Cobblemon**
 - [x] **066 — Revisão dos biomas**
+- [x] **068 — Interior dos prédios**
 
 ### Combate
 - [x] **025 — Ataque comum de criatura**
@@ -135,8 +136,6 @@ deserto, vulcânico, tundra e montanha) ficam escondidos (`BIOMES.HIDDEN`) e
 só aparecem pelo F2. A montanha foi adiada: na beta não teria espécie
 exclusiva (o Spearow já mora na savana). Os 3 iniciais não nascem no mundo:
 vêm só no kit inicial (073).
-
-- [ ] **068 — Ambiente interno nas estruturas** — entrar nas estruturas e no ambiente interno delas *(detalhar quando chegar)*.
 
 > **Renumeração (2026-11-09):** a revisão dos biomas (066) e os objetos de
 > treino (067) entraram antes do ambiente interno, que virou 068. Da antiga
@@ -225,6 +224,8 @@ item entra aqui quando for identificado e vira feature quando chegar a vez.
 - Refinar os biomas escondidos (oceano, praia, selva, pântano, deserto, vulcânico, tundra e montanha — vegetação e ajuste visual) quando as espécies deles entrarem. A montanha chegou a ser a 055, antes da renumeração (achar no LGPE pedra, penhasco, pinheiros e neve e trocar a vegetação e o chão dela); volta quando entrarem Geodude, Onix, Machop etc.
 - Cavernas (era a 061): camada subterrânea gerada pela seed (túneis e salões com malha, colisor e grade de navegação próprios, por chunk), sem mexer na superfície; boca numa encosta de montanha. Save e spawn passam a saber em que camada a entidade está. Volta junto da montanha, com as espécies de caverna (Zubat, Geodude, Onix etc.)
 - Cidades (056): loja funcionando, um ginásio próprio por tema e mais temas de Kanto (Viridian, Celadon, Saffron, Fuchsia, Cinnabar — os modelos já foram levantados na 056).
+- Ginásio por dentro (adiado da 068): a sala do ginásio, como as do Pokécenter e da loja. O pacote do Let's Go tem uma por cidade de Kanto que tem ginásio (`t002gym` Viridian, `t003gym` Pewter, `t004gym` Cerulean, `t006gym` Vermilion, `t007gym` Celadon, `t008gym` Fuchsia, `t009gym` Cinnabar, `t011gym` Saffron) — uma por tema; Lavender não tem e pega a de outra cidade. Achados do teste: o piso da sala de Pewter não tem nó com nome (achar pelo material); a armação do teto junta pedras, arquibancadas e palco num bloco só na colisão (deixar a peça pendurada de fora); as pedras da arena (`FieldRockShader02`) têm a cor em `Rock_tex`, não em `Texture01`; a de Cerulean tem água; as de Celadon e Saffron são pesadas (~12–13 MB); Viridian e Cinnabar têm peças de mecanismo à parte; não há tema de ginásio no depósito de músicas.
+- Casas e prédios especiais por dentro (adiados da 068): as salas das casas (uma por tema no Let's Go — `t001r01`/`r02`, `t003r02`/`r03`, `t004r01–r06`, `t005r01–r04`, `t006r01`…) e dos prédios especiais (museu de Pewter com 2 andares, fã-clube de Vermilion, laboratório de Pallet), do mesmo jeito do Pokécenter e da loja. Falta decidir o segundo andar (casas e museu).
 - PC/caixa de Pokémon
 - Evolução
 - Nado

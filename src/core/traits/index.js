@@ -127,3 +127,4 @@ export {
   GroundItem,
   InteractionTarget,
 } from './components/worldItems'
+export { InteriorTransition, Indoors, CameraSnap } from './components/interior'

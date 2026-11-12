@@ -5,10 +5,10 @@ import { destroyCharacterBody } from '../physics/colliders'
 import { findOwnedCreature, hasOwnedBallInFlight } from '../actions/owner'
 import { derrubarComida } from '../actions/eating'
 import { devolverControleAoDono } from '../actions/control'
-import { guardarCondicoes } from '../actions/conditions'
-import { trainingRecallWarned } from '../events'
+import { summonBlockedIndoors, trainingRecallWarned } from '../events'
 import {
   findPartyPokemon,
+  guardarForaDeCampo,
   isPokemonFainted,
   resolvePokemonBallId,
   resolvePokemonOf,
@@ -17,6 +17,7 @@ import {
 import {
   ActionState,
   Fainted,
+  Indoors,
   InputControlled,
   OwnedBy,
   Party,
@@ -25,8 +26,6 @@ import {
   RecallBeam,
   RecallPulse,
   Rotation,
-  StoredFaint,
-  StoredVitals,
   SummonBall,
   SummonRequest,
   RecallConfirm,
@@ -35,7 +34,6 @@ import {
   StrayRecall,
   SummonedFrom,
   Velocity,
-  Vitals,
 } from '../traits'
 
 // Mapeia o pulso de input (`secondaryN`, ver docs/features/011-slots-de-
@@ -183,29 +181,6 @@ function beginSummonToward(action, pos, rot, slot, aimPoint) {
 }
 
 /**
- * Guarda no registro do Pokémon (`SummonedFrom`) como a criatura estava ao
- * ser recolhida: a vida (`StoredVitals`), as condições (`StoredConditions`)
- * e, se desmaiada, o que falta pra reanimar (`StoredFaint`) — a entidade
- * some, o registro continua.
- */
-function storeOutOfField(creature) {
-  const pokemon = resolvePokemonOf(creature)
-  if (!pokemon) return
-
-  const vitals = creature.get(Vitals)
-  if (vitals) pokemon.set(StoredVitals, { vitals: { ...vitals } })
-  // As condições continuam correndo dentro da bola (docs/features/043-
-  // captura.md, `storedConditionSystem`).
-  guardarCondicoes(creature, pokemon)
-
-  const fainted = creature.get(Fainted)
-  if (!fainted) return
-  const timeLeft = Math.max(0, fainted.timeLeft)
-  if (pokemon.has(StoredFaint)) pokemon.set(StoredFaint, { timeLeft })
-  else pokemon.add(StoredFaint({ timeLeft }))
-}
-
-/**
  * Efeito de `'recall'`, no instante `effectAt` — desfaz o corpo físico e
  * destrói a entidade. Spawna um `RecallBeam` (ver docs/features/024-
  * esfera-de-invocar.md — "o feixe de luz vermelha puxa a criatura de
@@ -225,7 +200,7 @@ function storeOutOfField(creature) {
  * chega nela.
  *
  * A vida/energia dela e, se desmaiada, o que falta pra reanimar vão pro
- * registro do Pokémon (`storeOutOfField`) — a próxima invocação sai do
+ * registro do Pokémon (`guardarForaDeCampo`) — a próxima invocação sai do
  * jeito que entrou (regenerando fora de campo enquanto isso,
  * `vitalsRegenSystem.js`), e desmaiado não pode ser invocado até reanimar
  * (`faintSystem.js`).
@@ -254,7 +229,7 @@ function applyRecall(world, trainer, pos, rot, slot) {
 
   // Recolhida comendo: a fruta cai no chão (docs/features/042-itens-da-beta.md).
   derrubarComida(world, creature)
-  storeOutOfField(creature)
+  guardarForaDeCampo(creature)
   // Recolhida pilotada (ficou longe do treinador, 064, ou saiu do time pelo
   // inventário): o controle volta para o treinador.
   devolverControleAoDono(creature)
@@ -509,6 +484,10 @@ export function partySummonSystem(context) {
           if (confirmTrainingRecall(world, events, entity, slot)) {
             beginRecall(world, entity, action, pos, rot, slot, RECALL.duration)
           }
+        } else if (command === 'summon' && entity.has(Indoors)) {
+          // Dentro de um prédio o time fica na bola (docs/features/068-
+          // interior-dos-predios.md).
+          events?.emit(summonBlockedIndoors({ trainer: entity }))
         } else if (command === 'summon') {
           beginSummon(world, action, pos, rot, body, slot)
         }

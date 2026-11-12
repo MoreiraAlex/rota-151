@@ -1,0 +1,29 @@
+[
+  {
+    "id": "pokecenter-interior",
+    "label": "Pokécenter por dentro",
+    "category": "interior",
+    "map": "t003pc01/t003pc01_00.gfbmdl",
+    "folder": "t003pc01",
+    "node": "t002pc01_00",
+    "all": true,
+    "whole": true
+  },
+  {
+    "id": "poke-mart-interior",
+    "label": "Loja por dentro",
+    "category": "interior",
+    "map": "t003fs01/t003fs01_00.gfbmdl",
+    "folder": "t003fs01",
+    "node": "t003fs01_00",
+    "all": true,
+    "whole": true
+  },
+  {
+    "id": "pc-machine",
+    "label": "Máquina de cura do Pokécenter",
+    "category": "interior",
+    "file": "pc_machine",
+    "skip": "^(model/|com_pc_display_02$|$)"
+  }
+]

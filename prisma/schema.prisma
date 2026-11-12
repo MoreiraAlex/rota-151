@@ -91,6 +91,9 @@ model Trainer {
   wildCreatures Json?
   // Ajustes do jogador, como os volumes (docs/features/065-sons-do-mundo.md).
   settings      Json?
+  // Dentro de um prédio: a sala e a porta (docs/features/068-interior-dos-
+  // predios.md). Fora, vazio.
+  indoors       Json?
   inventory     Json
   pokedex       Json
   pokemon       Pokemon[]

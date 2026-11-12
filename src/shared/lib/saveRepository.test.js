@@ -89,4 +89,20 @@ describe('saveRepository', () => {
     })
     expect(save.trainer.worldTime).toBe(2.25)
   })
+
+  it('dentro de um prédio vai e volta pela coluna (docs/features/068-*.md)', () => {
+    const indoors = {
+      interiorId: 'sala',
+      door: { x: 1, y: 2, z: 3, yaw: 0.5, scale: 1.5 },
+    }
+    const save = rowsToSave({
+      saveVersion: 8,
+      heldItemId: null,
+      indoors,
+      inventory: { counts: {} },
+      pokedex: { speciesIds: [] },
+      pokemon: [],
+    })
+    expect(save.trainer.indoors).toEqual(indoors)
+  })
 })

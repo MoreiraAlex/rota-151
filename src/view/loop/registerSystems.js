@@ -12,6 +12,7 @@ import { chunkObjectCleanupSystem } from '@/core/systems/chunkObjectCleanupSyste
 import { worldItemsStreamingSystem } from '@/core/systems/worldItemsStreamingSystem'
 import { worldItemRefillSystem } from '@/core/systems/worldItemRefillSystem'
 import { interactionSystem } from '@/core/systems/interactionSystem'
+import { interiorSystem } from '@/core/systems/interiorSystem'
 import { cameraControlSystem } from '@/core/systems/cameraControlSystem'
 import { vitalsRegenSystem } from '@/core/systems/vitalsRegenSystem'
 import { movementSystem } from '@/core/systems/movementSystem'
@@ -73,6 +74,7 @@ import { hitStopSystem } from '@/view/systems/hitStopSystem'
 import { heldItemViewSystem } from '@/view/systems/heldItemViewSystem'
 import { eatingFoodViewSystem } from '@/view/systems/eatingFoodViewSystem'
 import { levelNoticeAudioSystem } from '@/view/systems/levelNoticeAudioSystem'
+import { interiorAudioSystem } from '@/view/systems/interiorAudioSystem'
 import { noticeSystem } from '@/view/systems/noticeSystem'
 import { trainingFieldHintSystem } from '@/view/systems/trainingFieldHintSystem'
 import { trainingDummyWobbleSystem } from '@/view/systems/trainingDummyWobbleSystem'
@@ -232,6 +234,8 @@ export function registerGameSystems() {
   registerSystem(GAME_PHASES.SIMULATION, worldItemsStreamingSystem)
   registerSystem(GAME_PHASES.SIMULATION, worldItemRefillSystem)
   registerSystem(GAME_PHASES.SIMULATION, interactionSystem)
+  // A porta dos prédios: escurece, troca de lugar e clareia (068).
+  registerSystem(GAME_PHASES.SIMULATION, interiorSystem)
   registerSystem(GAME_PHASES.SIMULATION, cameraControlSystem)
   // Mira da Pokébola (043): com a órbita deste tick, antes do movimento
   // (que vira o corpo pra mira) e do arremesso (que usa a mira).
@@ -378,6 +382,8 @@ export function registerGameSystems() {
   registerSystem(GAME_PHASES.PRESENTATION, worldItemFeedbackSystem)
   // Sons de aviso de nível e de golpe novo (067).
   registerSystem(GAME_PHASES.PRESENTATION, levelNoticeAudioSystem)
+  // A porta automática dos prédios (068).
+  registerSystem(GAME_PHASES.PRESENTATION, interiorAudioSystem)
   // Avisos no canto da tela: nível e golpe novo (067).
   registerSystem(GAME_PHASES.PRESENTATION, noticeSystem)
   // A dica do campo de treino, na primeira vez perto de um boneco (067).

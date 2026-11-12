@@ -44,6 +44,8 @@ import { NameplatesView } from './NameplateView'
 import { PartyMarkersView } from './PartyMarkerView'
 import { DamageNumbersView } from './DamageNumbersView'
 import { withSeeThrough } from '@/view/materials/seeThrough'
+import { InteriorView } from '@/view/interior/InteriorView'
+import { useIndoors } from '@/view/hooks/useIndoors'
 
 function obstacleRotation(rotation) {
   if (!rotation) return [0, 0, 0]
@@ -100,6 +102,16 @@ function TestLevelView() {
 }
 
 /**
+ * O que só existe do lado de fora (docs/features/068-interior-dos-
+ * predios.md): com o treinador dentro de um prédio, some da tela (e da
+ * sombra) — a sala fica num lugar à parte, sem nada em volta.
+ */
+function OutdoorOnly({ children }) {
+  const indoors = useIndoors()
+  return <group visible={!indoors}>{children}</group>
+}
+
+/**
  * `children` é um slot pra conteúdo opcional composto por quem monta a cena
  * (a página, em app/) — é assim que ferramentas de debug (tools/) entram na
  * mesma árvore sem a view/ precisar importar de tools/ (a direção de
@@ -119,16 +131,22 @@ export function GameScene({ children }) {
 
       {/* Céu, sol, lua e luz pela hora e pelo clima; chuva e neve (048). */}
       <DayNightView />
-      {/* Serras do fundo na névoa fechada (058). */}
-      {GAME_CONFIG.BACKDROP.ENABLED && <BackdropView />}
-      <WeatherView />
+      <OutdoorOnly>
+        {/* Serras do fundo na névoa fechada (058). */}
+        {GAME_CONFIG.BACKDROP.ENABLED && <BackdropView />}
+        <WeatherView />
+      </OutdoorOnly>
 
       <AmbientAudio />
       <WeatherAudio />
       <MusicAudio />
       <WaterAmbientView />
 
-      <TestLevelView />
+      <OutdoorOnly>
+        <TestLevelView />
+      </OutdoorOnly>
+      {/* A sala por dentro do prédio em que o treinador está (068). */}
+      <InteriorView />
 
       <PlayerView />
       <ProjectilesView />
@@ -142,12 +160,16 @@ export function GameScene({ children }) {
       <PokeballVfxView />
       <GroundBallsView />
       <SummonFlashesView />
-      <WaterSplashesView />
-      <FootRipplesView />
+      <OutdoorOnly>
+        <WaterSplashesView />
+        <FootRipplesView />
+      </OutdoorOnly>
       <RecallBeamsView />
       <DroppedFoodsView />
-      {/* Itens no chão, arbustos com item e frutas nas árvores (055). */}
-      <WorldItemsView />
+      <OutdoorOnly>
+        {/* Itens no chão, arbustos com item e frutas nas árvores (055). */}
+        <WorldItemsView />
+      </OutdoorOnly>
       <EatingFoodsView />
       <EatingVfxView />
       <AttackEffectsView />
@@ -159,7 +181,9 @@ export function GameScene({ children }) {
       <JumpDustView />
       <ActionTimerRingView />
       <CreaturesView />
-      <WildCreaturesView />
+      <OutdoorOnly>
+        <WildCreaturesView />
+      </OutdoorOnly>
       {/* O anel azul embaixo das suas criaturas (064). */}
       <PartyMarkersView />
       <NameplatesView />

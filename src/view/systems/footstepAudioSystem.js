@@ -2,7 +2,7 @@ import { levelGroundSurfaceAt } from '@/core/actions/groundSurface'
 import { levelWaterDepthAt } from '@/core/actions/water'
 import { WATER_SOUNDS } from '@/core/data/audio/waterSounds'
 import { GAME_CONFIG } from '@/core/gameConfig'
-import { AnimationState, Position } from '@/core/traits'
+import { AnimationState, Indoors, Position } from '@/core/traits'
 import { addFootRipple } from '@/view/water/footRipples'
 import { getAnimatedBonesEntry } from '@/view/registry/animationRegistry'
 import { getFootstepAudioEntries } from '@/view/registry/footstepAudioRegistry'
@@ -93,8 +93,14 @@ export function footstepAudioSystem() {
     entry.previousBeat = beat
 
     const position = entity.get(Position)
+    // Dentro de um prédio (docs/features/068-interior-dos-predios.md), o
+    // chão é o da sala: nem água nem grama (o mapa lá embaixo não conta).
+    const indoors = entity.has(Indoors)
     const inWater =
-      !flying && position && levelWaterDepthAt(position.x, position.z) > 0
+      !flying &&
+      !indoors &&
+      position &&
+      levelWaterDepthAt(position.x, position.z) > 0
     if (inWater) {
       addFootRipple(
         position.x,
@@ -110,16 +116,22 @@ export function footstepAudioSystem() {
     const onGrass =
       !inWater &&
       !flying &&
+      !indoors &&
       position &&
       entry.grassBuffers[stateId].length > 0 &&
       levelGroundSurfaceAt(position.x, position.z) === 'grass'
+    // Dentro, o passo do piso de lá (quem tem: `indoorBuffers` carregados).
+    const onIndoorFloor =
+      indoors && !flying && entry.indoorBuffers[stateId].length > 0
     const source = inWater
       ? entry.waterBuffers
       : flightSound
         ? entry.flightBuffers
         : onGrass
           ? entry.grassBuffers
-          : entry.buffers
+          : onIndoorFloor
+            ? entry.indoorBuffers
+            : entry.buffers
     const buffers = source[stateId]
     if (!buffers || buffers.length === 0) continue
 

@@ -17,6 +17,8 @@ export function rowsToSave(trainer) {
       worldTime: trainer.worldTime,
       // Linha de antes da 065 não tem: a migração põe os padrão.
       settings: trainer.settings ?? undefined,
+      // Dentro de um prédio (068); fora, ou linha de antes, vazio.
+      indoors: trainer.indoors ?? undefined,
       inventory: trainer.inventory,
       pokedex: trainer.pokedex,
     },
@@ -84,6 +86,7 @@ export async function writeSaveRows(prisma, userId, save) {
     heldItemId: save.trainer.heldItemId,
     worldTime: save.trainer.worldTime ?? null,
     settings: save.trainer.settings,
+    indoors: save.trainer.indoors ?? Prisma.DbNull,
     inventory: save.trainer.inventory,
     pokedex: save.trainer.pokedex,
     worldItems: save.worldItems,

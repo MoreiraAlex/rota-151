@@ -12,8 +12,10 @@ import {
 import { randomBetween } from '@/core/audio/music'
 import { sunDirection } from '@/core/time/dayCycle'
 import {
+  Indoors,
   InputControlled,
   LocalWeather,
+  Party,
   Position,
   WorldClock,
 } from '@/core/traits'
@@ -62,16 +64,21 @@ export function ambientBedSystem({ world, delta }) {
   const weather = world.has(LocalWeather) ? world.get(LocalWeather) : null
   const rain = weather ? Math.min(1, weather.rain + weather.storm) : 0
 
+  // Dentro de um prédio (docs/features/068-interior-dos-predios.md), o
+  // ambiente de fora some aos poucos e nada avulso toca.
+  const indoors = world.queryFirst(Party)?.has(Indoors)
   updateBeds(
     state,
-    ambientBedLevels(state.weights, {
-      daylight,
-      rain,
-      rainDucking: AMBIENCE.RAIN_DUCKING,
-    }),
+    indoors
+      ? {}
+      : ambientBedLevels(state.weights, {
+          daylight,
+          rain,
+          rainDucking: AMBIENCE.RAIN_DUCKING,
+        }),
     delta,
   )
-  updateOneShots(state, pos, daylight, delta)
+  if (!indoors) updateOneShots(state, pos, daylight, delta)
 }
 
 // `{ biomeId: peso }` em `(x, z)`, pela receita do relevo em uso.

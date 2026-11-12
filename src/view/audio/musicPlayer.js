@@ -79,65 +79,96 @@ export function updateSong(delta, fadeOut) {
   if (song.level <= 0) finishSong(song)
 }
 
-let battle = null
-
-function getBattle(trackId) {
-  if (battle) return battle
-  const track = MUSIC_TRACKS[trackId]
-  const audio = routeToChannel(new THREE.Audio(getAudioListener()), 'music')
-  audio.setLoop(true)
-  audio.setLoopStart(track.loopStart)
-  audio.setLoopEnd(track.loopEnd)
-  battle = { audio, trackId, buffer: null, level: 0, target: 0 }
-  const current = battle
-  loadAudioBuffer(track.path).then((buffer) => {
-    current.buffer = buffer
-  })
-  return battle
-}
-
-/** Começa a carregar a música de batalha `trackId` (pra entrar na hora). */
-export function preloadBattleMusic(trackId) {
-  getBattle(trackId)
-}
-
-/** Se a música de batalha está tocando (inclusive sumindo). */
-export function battleMusicPlaying() {
-  return !!battle?.audio.isPlaying
-}
-
 /**
- * Põe a música de batalha `trackId` pra tocar: do começo se estava parada,
- * ou subindo de volta se estava sumindo. Devolve se está tocando.
+ * Uma música que repete (`loopStart`/`loopEnd` da faixa) enquanto dura uma
+ * situação: a da batalha (docs/features/065-sons-do-mundo.md, Parte 3) e a
+ * de um lugar, como o Pokécenter por dentro (docs/features/068-interior-
+ * dos-predios.md). Inteira na memória (o trecho que repete precisa do
+ * buffer), sobe e some aos poucos (`target`/`level`). Pedida com outra
+ * faixa, a de antes para na hora e a nova começa.
  */
-export function startBattleMusic(trackId) {
-  const current = getBattle(trackId)
-  current.target = 1
-  if (current.audio.isPlaying) return true
-  if (!current.buffer) return false
-  current.audio.setBuffer(current.buffer)
-  current.level = 1
-  current.audio.setVolume(MUSIC_TRACKS[current.trackId].volume)
-  current.audio.play()
-  return true
+function createLoopedMusic() {
+  let slot = null
+
+  function slotFor(trackId) {
+    if (slot?.trackId === trackId) return slot
+    if (slot?.audio.isPlaying) slot.audio.stop()
+    slot?.audio.disconnect()
+    const track = MUSIC_TRACKS[trackId]
+    const audio = routeToChannel(new THREE.Audio(getAudioListener()), 'music')
+    audio.setLoop(true)
+    audio.setLoopStart(track.loopStart)
+    audio.setLoopEnd(track.loopEnd)
+    slot = { audio, trackId, buffer: null, level: 0, target: 0 }
+    const current = slot
+    loadAudioBuffer(track.path).then((buffer) => {
+      current.buffer = buffer
+    })
+    return slot
+  }
+
+  return {
+    preload(trackId) {
+      slotFor(trackId)
+    },
+    isPlaying: () => !!slot?.audio.isPlaying,
+    // Do começo se estava parada, ou subindo de volta se estava sumindo.
+    // Devolve se está tocando.
+    start(trackId) {
+      const current = slotFor(trackId)
+      current.target = 1
+      if (current.audio.isPlaying) return true
+      if (!current.buffer) return false
+      current.audio.setBuffer(current.buffer)
+      current.level = 1
+      current.audio.setVolume(MUSIC_TRACKS[current.trackId].volume)
+      current.audio.play()
+      return true
+    },
+    stop() {
+      if (slot) slot.target = 0
+    },
+    update(delta, fadeOut) {
+      if (!slot?.audio.isPlaying) return
+      const step = delta / fadeOut
+      slot.level =
+        slot.target > slot.level
+          ? Math.min(slot.target, slot.level + step)
+          : Math.max(slot.target, slot.level - step)
+      slot.audio.setVolume(slot.level * MUSIC_TRACKS[slot.trackId].volume)
+      if (slot.level <= 0) slot.audio.stop()
+    },
+    dispose() {
+      if (slot?.audio.isPlaying) slot.audio.stop()
+      slot = null
+    },
+  }
 }
 
+const battle = createLoopedMusic()
+const place = createLoopedMusic()
+
+/** Carrega a música de batalha `trackId` antes da primeira luta. */
+export const preloadBattleMusic = battle.preload
+/** Se a música de batalha está tocando (inclusive sumindo). */
+export const battleMusicPlaying = battle.isPlaying
+/** Põe a música de batalha `trackId` pra tocar (ou subir de volta). */
+export const startBattleMusic = battle.start
 /** Faz a música de batalha sumir aos poucos e parar. */
-export function stopBattleMusic() {
-  if (battle) battle.target = 0
-}
-
+export const stopBattleMusic = battle.stop
 /** Um frame: anda o sumiço (ou a volta) da música de batalha. */
-export function updateBattleMusic(delta, fadeOut) {
-  if (!battle?.audio.isPlaying) return
-  const step = delta / fadeOut
-  battle.level =
-    battle.target > battle.level
-      ? Math.min(battle.target, battle.level + step)
-      : Math.max(battle.target, battle.level - step)
-  battle.audio.setVolume(battle.level * MUSIC_TRACKS[battle.trackId].volume)
-  if (battle.level <= 0) battle.audio.stop()
-}
+export const updateBattleMusic = battle.update
+
+/** Carrega a música do lugar `trackId` (068). */
+export const preloadPlaceMusic = place.preload
+/** Se a música de um lugar está tocando (inclusive sumindo). */
+export const placeMusicPlaying = place.isPlaying
+/** Põe a música do lugar `trackId` pra tocar (ou subir de volta). */
+export const startPlaceMusic = place.start
+/** Faz a música do lugar sumir aos poucos e parar. */
+export const stopPlaceMusic = place.stop
+/** Um frame: anda o sumiço (ou a volta) da música do lugar. */
+export const updatePlaceMusic = place.update
 
 /** Para tudo (a cena saiu). */
 export function disposeMusic() {
@@ -146,8 +177,6 @@ export function disposeMusic() {
     song.audio.disconnect()
     song = null
   }
-  if (battle) {
-    if (battle.audio.isPlaying) battle.audio.stop()
-    battle = null
-  }
+  battle.dispose()
+  place.dispose()
 }

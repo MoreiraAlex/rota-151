@@ -49,6 +49,14 @@ import { clusterObjects, piecesOf, sizeSignature } from './splitObjects.js'
  * de toon) e `--prefix <texto>` antes do nome de cada textura — um pacote
  * para o laboratório de biomas (docs/features/066-revisao-dos-biomas.md,
  * `scripts/lab/README.md`), ex.: a folhosa do cenário de batalha.
+ *
+ * As salas por dentro dos prédios (docs/features/068-interior-dos-
+ * predios.md) saem assim, com `all: true` e `whole: true` no `--extra`
+ * (`scripts/lgpe/interiors.json`, o mapa inteiro da sala) e `--out` em
+ * `public/assets/interiors/lgpe` — a colisão delas vem depois, de
+ * `scripts/lgpe/interior-colliders.js`. Um objeto solto da `buildmodel/`
+ * que vai na sala (a máquina de cura) entra no mesmo `--extra` com `file`
+ * (e `skip`, as partes de efeito que ficam de fora).
  */
 
 const { values: args } = parseArgs({
@@ -632,6 +640,12 @@ function materialEntry(model, material, folder) {
         : null,
     lightColor: colors.LightColor ?? null,
     greenColor: colors.GreenColor ?? null,
+    // Misturado com o fundo (vidro, brilho no chão — nas salas por dentro,
+    // docs/features/068-interior-dos-predios.md): `'add'` com o alfa
+    // pré-multiplicado (soma luz), `'alpha'` sem. Opaco: sem o campo.
+    ...(material.blendMode !== 0 && {
+      blend: commonValues.PreMultiplieMode === 1 ? 'add' : 'alpha',
+    }),
   }
 }
 
@@ -840,11 +854,17 @@ function nthBuildingOf(objectBoxes, n) {
   return buildings[n].index
 }
 
-// O nó (ou, com `whole` ou `object`, o nó e os filhos dele).
+// O nó (ou, com `whole` ou `object`, o nó e os filhos dele). Com `all`, o
+// mapa inteiro: as salas por dentro dos prédios (docs/features/068-
+// interior-dos-predios.md), que são um mapa só.
 const isNodeOf = (spec, path) =>
+  spec.all ||
   path === spec.node ||
   ((spec.whole || spec.object != null) && path.startsWith(`${spec.node}/`))
-for (const spec of [...(onlyExtra ? [] : MAP_PROPS), ...extraProps]) {
+// Os do `--extra` com `file` são soltos (da `buildmodel/`), não de mapa.
+const extraMapProps = extraProps.filter((spec) => !spec.file)
+const extraLooseProps = extraProps.filter((spec) => spec.file)
+for (const spec of [...(onlyExtra ? [] : MAP_PROPS), ...extraMapProps]) {
   const map = mapOf(spec.map)
   const meshes = map.groups
     .filter(({ boneIndex }) => isNodeOf(spec, bonePath(map, boneIndex)))
@@ -916,14 +936,25 @@ for (const spec of [...(onlyExtra ? [] : MAP_PROPS), ...extraProps]) {
 }
 
 // Soltos: o modelo inteiro.
-for (const spec of onlyExtra ? [] : LOOSE_PROPS) {
+// Com `skip` (expressão sobre o caminho do nó), sem as partes que batem —
+// os efeitos de animação de um modelo (a máquina de cura do Pokécenter,
+// docs/features/068-interior-dos-predios.md).
+for (const spec of [...(onlyExtra ? [] : LOOSE_PROPS), ...extraLooseProps]) {
   const model = parseGfbmdl(
     readFileSync(join(args.field, 'buildmodel', `${spec.file}.gfbmdl`)),
   )
-  const meshes = model.meshes.map((mesh, meshIndex) => ({
-    meshIndex,
-    decoded: decodeVertices(mesh),
-  }))
+  const skip = spec.skip ? new RegExp(spec.skip) : null
+  const meshes = skip
+    ? model.groups
+        .filter(({ boneIndex }) => !skip.test(bonePath(model, boneIndex)))
+        .map(({ meshIndex }) => ({
+          meshIndex,
+          decoded: decodeVertices(model.meshes[meshIndex]),
+        }))
+    : model.meshes.map((mesh, meshIndex) => ({
+        meshIndex,
+        decoded: decodeVertices(mesh),
+      }))
   saveProp(
     spec,
     model,

@@ -119,6 +119,83 @@ function addSolidColliders(chunk, body) {
   }
 }
 
+/**
+ * A colisão da sala por dentro de um prédio (docs/features/068-interior-
+ * dos-predios.md), num corpo fixo próprio posto em `place` (`{ x, y, z,
+ * scale }`, a origem e a escala da sala — a forma de `Indoors`):
+ *
+ * - o **piso**: uma laje com o topo na altura dele e, por cima, dois
+ *   triângulos — malha de triângulos é chão para a câmera (`castRay` com
+ *   `groundOnly`, `resolveCameraCollision`), que não entra embaixo dele;
+ * - as **paredes** e os **móveis**: caixas (`colliders.walls`/`solids`).
+ *
+ * `colliders` é o da sala (`interiorCollidersOf`), no espaço do modelo.
+ * Devolve o handle do corpo (para `destroyInteriorColliders`), ou `-1`
+ * sem física.
+ */
+export function createInteriorColliders(colliders, place) {
+  const RAPIER = getRapier()
+  const world = getRapierWorld()
+  if (!RAPIER || !world) return -1
+  const { scale } = place
+  const body = world.createRigidBody(
+    RAPIER.RigidBodyDesc.fixed().setTranslation(place.x, place.y, place.z),
+  )
+  const addBox = ([minX, minY, minZ, maxX, maxY, maxZ]) => {
+    const half = [(maxX - minX) / 2, (maxY - minY) / 2, (maxZ - minZ) / 2]
+    world.createCollider(
+      RAPIER.ColliderDesc.cuboid(
+        ...half.map((value) => value * scale),
+      ).setTranslation(
+        ((minX + maxX) / 2) * scale,
+        ((minY + maxY) / 2) * scale,
+        ((minZ + maxZ) / 2) * scale,
+      ),
+      body,
+    )
+  }
+
+  const { floor } = colliders
+  const slab = Math.max(floor.maxX - floor.minX, floor.maxZ - floor.minZ)
+  addBox([
+    floor.minX,
+    floor.y - slab,
+    floor.minZ,
+    floor.maxX,
+    floor.y,
+    floor.maxZ,
+  ])
+  const corners = [
+    [floor.minX, floor.minZ],
+    [floor.maxX, floor.minZ],
+    [floor.maxX, floor.maxZ],
+    [floor.minX, floor.maxZ],
+  ]
+  world.createCollider(
+    RAPIER.ColliderDesc.trimesh(
+      Float32Array.from(
+        corners.flatMap(([x, z]) => [x * scale, floor.y * scale, z * scale]),
+      ),
+      Uint32Array.of(0, 2, 1, 0, 3, 2),
+    ),
+    body,
+  )
+  for (const box of colliders.walls) addBox(box)
+  for (const box of colliders.solids) addBox(box)
+  return body.handle
+}
+
+/** Se o corpo `bodyHandle` existe no mundo da física de agora. */
+export function hasRigidBody(bodyHandle) {
+  if (bodyHandle == null || bodyHandle < 0) return false
+  return Boolean(getRapierWorld()?.getRigidBody(bodyHandle))
+}
+
+/** Desfaz `createInteriorColliders`. Handle que já não existe: nada. */
+export function destroyInteriorColliders(bodyHandle) {
+  destroyTerrainChunkCollider(bodyHandle)
+}
+
 /** Desfaz `createTerrainChunkCollider`. Handle que já não existe: nada. */
 export function destroyTerrainChunkCollider(bodyHandle) {
   const world = getRapierWorld()

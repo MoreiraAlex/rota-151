@@ -6,10 +6,12 @@ import { cloneMovesState, createMovesState } from '../data/species/moves'
 import { GAME_CONFIG } from '../gameConfig'
 import { gameplayRng } from '../rng'
 import { normalizePosture } from '../party/posture'
+import { guardarCondicoes } from './conditions'
 import {
   BallOnGround,
   CreatureLevel,
   CreatureMoves,
+  Fainted,
   IndividualValues,
   InventoryCell,
   OwnedBy,
@@ -20,6 +22,7 @@ import {
   StoredVitals,
   SummonedCreature,
   SummonedFrom,
+  Vitals,
 } from '../traits'
 import {
   findFreeCell,
@@ -212,6 +215,30 @@ export function resolvePokemonOf(entity) {
   if (!entity?.isAlive?.()) return null
   const pokemon = entity.targetFor(SummonedFrom)
   return pokemon?.isAlive() ? pokemon : null
+}
+
+/**
+ * Guarda no registro do Pokémon (`SummonedFrom`) como a criatura estava ao
+ * sair de campo: a vida (`StoredVitals`), as condições (`StoredConditions`)
+ * e, se desmaiada, o que falta pra reanimar (`StoredFaint`) — a entidade
+ * some, o registro continua. Quem recolhe (`partySummonSystem`) e quem
+ * guarda o time na hora (entrando num prédio, `core/actions/interior.js`).
+ */
+export function guardarForaDeCampo(creature) {
+  const pokemon = resolvePokemonOf(creature)
+  if (!pokemon) return
+
+  const vitals = creature.get(Vitals)
+  if (vitals) pokemon.set(StoredVitals, { vitals: { ...vitals } })
+  // As condições continuam correndo dentro da bola (docs/features/043-
+  // captura.md, `storedConditionSystem`).
+  guardarCondicoes(creature, pokemon)
+
+  const fainted = creature.get(Fainted)
+  if (!fainted) return
+  const timeLeft = Math.max(0, fainted.timeLeft)
+  if (pokemon.has(StoredFaint)) pokemon.set(StoredFaint, { timeLeft })
+  else pokemon.add(StoredFaint({ timeLeft }))
 }
 
 /** A criatura em campo do `pokemon`, ou `null` se ele está na bola. */

@@ -9,8 +9,12 @@ import {
   resolveCameraCollision,
 } from '@/core/camera/orbitCamera'
 import { resolveCaptureAimFraming } from '@/core/aim'
+import { getInterior } from '@/core/data/interiors'
+import { interiorCameraFocus } from '@/core/interior/interiorPlacement'
 import {
+  CameraSnap,
   CaptureAim,
+  Indoors,
   Position,
   OrbitCamera,
   CameraTarget,
@@ -149,7 +153,27 @@ export function cameraFollowSystem(context) {
   const rig = world.queryFirst(OrbitCamera)
   if (!target || !rig) return
 
-  const pos = resolveRenderPosition(target)
+  // Logo depois de passar por uma porta (`CameraSnap`, docs/features/068-
+  // interior-dos-predios.md), a câmera vai direto para o lugar dela — pela
+  // posição crua: a interpolada deste quadro ainda fica no meio do caminho
+  // entre a porta e a sala.
+  const snap = rig.has(CameraSnap)
+  if (snap) rig.remove(CameraSnap)
+  const shown = snap
+    ? { ...target.get(Position) }
+    : resolveRenderPosition(target)
+  // Dentro de um prédio (068), a câmera olha para um ponto entre o meio da
+  // sala e o treinador (`INTERIOR.CAMERA.FOLLOW`): a sala fica enquadrada.
+  const indoors = target.has(Indoors) ? target.get(Indoors) : null
+  const interior = indoors ? getInterior(indoors.interiorId) : null
+  const pos = interior
+    ? interiorCameraFocus(
+        interior,
+        indoors,
+        shown,
+        GAME_CONFIG.INTERIOR.CAMERA.FOLLOW,
+      )
+    : shown
   const orbit = rig.get(OrbitCamera)
   const {
     SMOOTHING, // só o branch de terceira pessoa (abaixo) lê isto — o modo Scan não suaviza posição
@@ -239,7 +263,7 @@ export function cameraFollowSystem(context) {
     framedShoulder,
   )
 
-  const t = Math.min(1, SMOOTHING * delta)
+  const t = snap ? 1 : Math.min(1, SMOOTHING * delta)
   camera.position.x += (desired.x - camera.position.x) * t
   camera.position.y += (desired.y - camera.position.y) * t
   camera.position.z += (desired.z - camera.position.z) * t

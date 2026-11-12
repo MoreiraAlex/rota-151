@@ -281,10 +281,32 @@ export function WorldPage({ data, version }) {
           </WikiLink>
           ).
         </p>
+        <p>
+          <strong>Entrar nos prédios</strong>: dá para entrar no{' '}
+          <strong>Pokécenter</strong> e na <strong>loja</strong>. Chegando perto
+          da porta aparece o aviso para entrar; a tela escurece e você aparece
+          lá dentro. Para sair, volte ao tapete de luz da entrada.
+        </p>
         <ul>
           <li>
-            Os prédios são sólidos: dá pra contornar, mas ainda não dá pra
-            entrar.
+            Lá dentro o seu time fica na Pokébola: não dá para soltar ninguém.
+            Dá só para andar e correr.
+          </li>
+          <li>
+            Nada de fora alcança você lá dentro: as criaturas selvagens ficam na
+            rua.
+          </li>
+          <li>
+            O jogo salva lá dentro também: voltando ao jogo, você continua na
+            sala.
+          </li>
+          <li>
+            Por enquanto as salas são só para conhecer: ninguém atende no
+            balcão, o Pokécenter ainda não cura e a loja ainda não vende.
+          </li>
+          <li>
+            Os outros prédios (o ginásio, as casas e o prédio especial) são
+            sólidos: dá para contornar, mas não dá para entrar.
           </li>
           <li>
             Na cidade não aparecem itens no chão, e as plantas do jardim não dão
@@ -486,6 +508,11 @@ export function WorldPage({ data, version }) {
           o nada não começa uma batalha.
         </p>
         <p>
+          <strong>Dentro dos prédios</strong>: no Pokécenter e na loja toca a
+          música do lugar, sem parar, enquanto você está lá. Os sons de fora
+          somem, e a chuva e o vento chegam abafados.
+        </p>
+        <p>
           <strong>Ambiente</strong>: no silêncio entre as músicas, o mundo tem o
           próprio som.
         </p>
@@ -528,10 +555,10 @@ export function WorldPage({ data, version }) {
 
       <Notice tone="soon">
         <p>
-          Ainda vão chegar ao mundo: nadar, entrar nos prédios das cidades e o
-          Pokécenter curando o time. Os Pokémon de cada bioma, horário e clima
-          também chegam depois. A montanha e as cavernas ficam para depois desta
-          versão.
+          Ainda vão chegar ao mundo: nadar, o Pokécenter curando o time e a loja
+          vendendo. Os Pokémon de cada bioma, horário e clima também chegam
+          depois. A montanha, as cavernas e entrar no ginásio e nas casas ficam
+          para depois desta versão.
         </p>
       </Notice>
     </>

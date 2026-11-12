@@ -4,6 +4,7 @@ import { GAME_CONFIG } from '@/core/gameConfig'
 import { lightingAt } from '@/core/time/dayCycle'
 import { useTerrainChunks } from '@/view/hooks/useTerrainChunks'
 import { loadedFogRange } from '@/core/terrain/fogRange'
+import { useIndoors } from '@/view/hooks/useIndoors'
 
 // Névoa pela DISTÂNCIA até a câmera, não pela profundidade (o padrão do
 // Three, `-mvPosition.z`): pela profundidade, o que fica de lado na tela
@@ -34,9 +35,18 @@ const INITIAL_COLOR = new THREE.Color().setRGB(
  */
 export function FogView() {
   useTerrainChunks()
-  const { near, far } = loadedFogRange(
-    TEST_LEVEL.terrain.chunkSize(),
-    TEST_LEVEL.terrain.loadRadius(),
-  )
+  // Dentro de um prédio (docs/features/068-interior-dos-predios.md), a sala
+  // inteira aparece: a névoa vai para longe (sem tirá-la, o que recompilaria
+  // todos os materiais).
+  const indoors = useIndoors()
+  const { near, far } = indoors
+    ? INDOOR_FOG
+    : loadedFogRange(
+        TEST_LEVEL.terrain.chunkSize(),
+        TEST_LEVEL.terrain.loadRadius(),
+      )
   return <fog attach="fog" args={[INITIAL_COLOR, near, far]} />
 }
+
+// Longe de tudo o que se vê numa sala.
+const INDOOR_FOG = { near: 1e4, far: 2e4 }

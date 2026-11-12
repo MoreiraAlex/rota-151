@@ -11,6 +11,7 @@ import { dayPhaseOf, lightingAt } from '@/core/time/dayCycle'
 import { updateSilhouettes } from '@/view/materials/silhouetteVisibility'
 import {
   GraphicsSettings,
+  Indoors,
   InputControlled,
   LocalWeather,
   Position,
@@ -162,6 +163,29 @@ function fitShadowCamera(shadowCamera, area, distance) {
 }
 // Cor do horizonte (rascunho reaproveitado a cada quadro).
 const horizon = new THREE.Color()
+const interiorBackground = new THREE.Color()
+// Dentro de um prédio, a luz é a da sala, sem o ajuste das horas.
+const NO_ADJUST = { AMBIENT: 1, SUN: 1, SHADOW: 1 }
+
+/**
+ * A luz da sala por dentro de um prédio (docs/features/068-interior-dos-
+ * predios.md), no lugar da do céu: as cores e forças de
+ * `INTERIOR.LIGHT`, na forma que `resolveSkyLook` devolve (só o que a luz
+ * usa).
+ */
+function interiorLook() {
+  const { LIGHT } = GAME_CONFIG.INTERIOR
+  const [x, y, z] = LIGHT.DIRECTION
+  const length = Math.hypot(x, y, z) || 1
+  return {
+    ambient: LIGHT.AMBIENT,
+    ambientIntensity: LIGHT.AMBIENT_INTENSITY,
+    light: LIGHT.KEY,
+    lightIntensity: LIGHT.KEY_INTENSITY,
+    shadowIntensity: LIGHT.SHADOW_INTENSITY,
+    lightDirection: { x: x / length, y: y / length, z: z / length },
+  }
+}
 
 function createSkyMaterial() {
   const { DAY_CYCLE } = GAME_CONFIG
@@ -268,39 +292,54 @@ export function DayNightView() {
     // A silhueta atrás das plantas: só com o nameplate à mostra e, a das
     // selvagens, não à noite (066).
     updateSilhouettes(dayPhaseOf(clock.time) === 'night')
-    const look = resolveSkyLook(lightingAt(clock.time), weather, flashLevel())
+    // Dentro de um prédio (docs/features/068-interior-dos-predios.md): sem
+    // céu, fundo escuro e a luz da sala.
+    const indoors = playerEntity.has(Indoors)
+    if (skyRef.current) skyRef.current.visible = !indoors
+    if (indoors) {
+      interiorBackground.set(GAME_CONFIG.INTERIOR.BACKGROUND)
+      scene.background = interiorBackground
+      scene.fog?.color.copy(interiorBackground)
+    } else if (scene.background === interiorBackground) {
+      scene.background = null
+    }
+    const look = indoors
+      ? interiorLook()
+      : resolveSkyLook(lightingAt(clock.time), weather, flashLevel())
 
-    const uniforms = material.uniforms
-    uniforms.uTop.value.setRGB(...look.skyTop, THREE.NoColorSpace)
-    uniforms.uHorizon.value.setRGB(...look.horizon, THREE.NoColorSpace)
-    toVector(look.sun, uniforms.uSunDirection.value)
-    toVector(look.moon, uniforms.uMoonDirection.value)
-    uniforms.uStars.value = look.stars
-    uniforms.uCelestial.value = look.celestial
-    const drift = (delta * CLOUDS.SPEED) / CLOUDS.SIZE
-    const offset = uniforms.uCloudOffset.value
-    offset.set(
-      (offset.x + Math.cos(CLOUDS.DIRECTION) * drift) % CLOUD_OFFSET_WRAP,
-      (offset.y + Math.sin(CLOUDS.DIRECTION) * drift) % CLOUD_OFFSET_WRAP,
-    )
-    uniforms.uCloudScale.value = CLOUD_BASE_SCALE / CLOUDS.SIZE
-    uniforms.uCloudCover.value = look.cloudCover
-    uniforms.uCloudSoftness.value = CLOUDS.SOFTNESS
-    uniforms.uCloudOpacity.value = CLOUDS.OPACITY
-    uniforms.uCloudLit.value.setRGB(...look.cloudLit, THREE.NoColorSpace)
-    uniforms.uCloudShade.value.setRGB(...look.cloudShade, THREE.NoColorSpace)
-    skyRef.current?.position.copy(camera.position)
+    if (!indoors) {
+      const uniforms = material.uniforms
+      uniforms.uTop.value.setRGB(...look.skyTop, THREE.NoColorSpace)
+      uniforms.uHorizon.value.setRGB(...look.horizon, THREE.NoColorSpace)
+      toVector(look.sun, uniforms.uSunDirection.value)
+      toVector(look.moon, uniforms.uMoonDirection.value)
+      uniforms.uStars.value = look.stars
+      uniforms.uCelestial.value = look.celestial
+      const drift = (delta * CLOUDS.SPEED) / CLOUDS.SIZE
+      const offset = uniforms.uCloudOffset.value
+      offset.set(
+        (offset.x + Math.cos(CLOUDS.DIRECTION) * drift) % CLOUD_OFFSET_WRAP,
+        (offset.y + Math.sin(CLOUDS.DIRECTION) * drift) % CLOUD_OFFSET_WRAP,
+      )
+      uniforms.uCloudScale.value = CLOUD_BASE_SCALE / CLOUDS.SIZE
+      uniforms.uCloudCover.value = look.cloudCover
+      uniforms.uCloudSoftness.value = CLOUDS.SOFTNESS
+      uniforms.uCloudOpacity.value = CLOUDS.OPACITY
+      uniforms.uCloudLit.value.setRGB(...look.cloudLit, THREE.NoColorSpace)
+      uniforms.uCloudShade.value.setRGB(...look.cloudShade, THREE.NoColorSpace)
+      skyRef.current?.position.copy(camera.position)
 
-    // A névoa na cor do horizonte — ou, com as serras do fundo, na da serra
-    // da frente (docs/features/058-ajuste-dos-biomas.md).
-    if (scene.fog) {
-      horizon.setRGB(...look.horizon, THREE.SRGBColorSpace)
-      fogColorOf(horizon, scene.fog.color)
+      // A névoa na cor do horizonte — ou, com as serras do fundo, na da
+      // serra da frente (docs/features/058-ajuste-dos-biomas.md).
+      if (scene.fog) {
+        horizon.setRGB(...look.horizon, THREE.SRGBColorSpace)
+        fogColorOf(horizon, scene.fog.color)
+      }
     }
 
     // O ajuste por cima das horas marcadas (`DAY_CYCLE.ADJUST`,
-    // docs/features/066-revisao-dos-biomas.md).
-    const { ADJUST } = DAY_CYCLE
+    // docs/features/066-revisao-dos-biomas.md) — dentro de um prédio, nenhum.
+    const ADJUST = indoors ? NO_ADJUST : DAY_CYCLE.ADJUST
     const ambient = ambientRef.current
     if (ambient) {
       ambient.color.setRGB(...look.ambient, THREE.SRGBColorSpace)

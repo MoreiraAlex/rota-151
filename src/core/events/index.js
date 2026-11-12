@@ -28,6 +28,7 @@ export const EVENT_TYPES = {
   WILD_DESPAWNED: 'wildDespawned',
   PARTY_STRAYED: 'partyStrayed',
   TRAINING_RECALL_WARNED: 'trainingRecallWarned',
+  SUMMON_BLOCKED_INDOORS: 'summonBlockedIndoors',
 }
 
 /**
@@ -668,4 +669,18 @@ export function partyStrayed({ speciesId, reason }) {
  */
 export function trainingRecallWarned({ trainer, creature }) {
   return { type: EVENT_TYPES.TRAINING_RECALL_WARNED, trainer, creature }
+}
+
+/**
+ * O jogador tentou soltar um Pokémon dentro de um prédio (docs/features/
+ * 068-interior-dos-predios.md): lá dentro o time fica na bola.
+ *
+ * - Quem emite: `core/systems/partySummonSystem.js`.
+ * - Quem consome: `view/systems/noticeSystem.js` (o aviso na tela). Sem
+ *   consumidor, some.
+ *
+ * @returns {{ type: 'summonBlockedIndoors', trainer: import('koota').Entity }}
+ */
+export function summonBlockedIndoors({ trainer }) {
+  return { type: EVENT_TYPES.SUMMON_BLOCKED_INDOORS, trainer }
 }

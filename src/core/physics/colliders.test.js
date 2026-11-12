@@ -1,9 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { disposePhysics, initPhysics, stepPhysics } from './physicsWorld'
+import {
+  disposePhysics,
+  initPhysics,
+  stepPhysics,
+  getRapierWorld,
+} from './physicsWorld'
 import {
   characterClearance,
   createCharacterBody,
+  createInteriorColliders,
   createTerrainChunkCollider,
+  destroyInteriorColliders,
   debugRenderWithoutTerrain,
   destroyTerrainChunkCollider,
   resolveFreeTurn,
@@ -21,6 +28,7 @@ import {
   trunkOf,
 } from '../vegetation/solidPlacement'
 import { lgpeColliderOf } from '../vegetation/solidModels'
+import { interiorCollidersOf, listInteriors } from '../data/interiors'
 
 const OFFSET = GAME_CONFIG.PHYSICS.CHARACTER.CONTROLLER_OFFSET
 // Bulbasaur: deitada ao longo da frente (+Z local), 1 m de ponta a ponta.
@@ -303,5 +311,55 @@ describe('debugRenderWithoutTerrain', () => {
 
     createCharacterBody({ x: 0, y: 30, z: 0 }, { radius: 0.3, halfHeight: 0.5 })
     expect(debugRenderWithoutTerrain().vertices.length).toBeGreaterThan(0)
+  })
+})
+
+// A colisão da sala por dentro de um prédio (docs/features/068-interior-
+// dos-predios.md), posta num lugar qualquer do mundo, numa escala qualquer.
+describe('createInteriorColliders', () => {
+  beforeEach(async () => {
+    await initPhysics()
+  })
+  afterEach(() => {
+    disposePhysics()
+  })
+
+  const place = { x: 40, y: 300, z: -25, scale: 1.5 }
+  const down = { x: 0, y: -1, z: 0 }
+
+  it('o piso é chão para a câmera (malha de triângulos), na altura dele', () => {
+    for (const interior of listInteriors()) {
+      const colliders = interiorCollidersOf(interior)
+      const handle = createInteriorColliders(colliders, place)
+      stepPhysics()
+      const { exit, floor } = colliders
+      const from = {
+        x: place.x + exit.x * place.scale,
+        y: place.y + floor.y * place.scale + 1,
+        z: place.z + exit.z * place.scale,
+      }
+      const hit = castRay(from, down, 5, { groundOnly: true })
+      expect(hit?.point.y).toBeCloseTo(place.y + floor.y * place.scale, 4)
+      destroyInteriorColliders(handle)
+    }
+  })
+
+  it('paredes e móveis colidem; ao sair, a sala inteira some', () => {
+    for (const interior of listInteriors()) {
+      const colliders = interiorCollidersOf(interior)
+      const handle = createInteriorColliders(colliders, place)
+      stepPhysics()
+      const [box] = colliders.solids
+      const from = {
+        x: place.x + ((box[0] + box[3]) / 2) * place.scale,
+        y: place.y + box[4] * place.scale + 1,
+        z: place.z + ((box[2] + box[5]) / 2) * place.scale,
+      }
+      const hit = castRay(from, down, 5)
+      expect(hit?.point.y).toBeCloseTo(place.y + box[4] * place.scale, 4)
+
+      destroyInteriorColliders(handle)
+      expect(getRapierWorld().getRigidBody(handle)).toBeFalsy()
+    }
   })
 })

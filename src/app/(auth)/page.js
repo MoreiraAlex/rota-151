@@ -66,6 +66,7 @@ import { CaptureAimHud } from '@/tools/hud/CaptureAimHud'
 import { InteractionHud } from '@/tools/hud/InteractionHud'
 import { StrayWarningHud } from '@/tools/hud/StrayWarningHud'
 import { NoticeHud } from '@/tools/hud/NoticeHud'
+import { InteriorFadeHud } from '@/tools/hud/InteriorFadeHud'
 
 /**
  * HUD de jogo (normal ou visor da Pokédex) — extraído do corpo de
@@ -136,6 +137,8 @@ function GameHud({ onScanned, onMenuOpenRequested, onTrainerControlChange }) {
       <InteractionHud />
       <StrayWarningHud />
       <NoticeHud />
+      {/* A tela escurecendo ao passar pela porta de um prédio (068). */}
+      <InteriorFadeHud />
     </>
   )
 }

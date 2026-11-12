@@ -74,6 +74,22 @@ export const trainerSaveSchema = z.object({
     .object({ x: z.number(), y: z.number(), z: z.number(), yaw: z.number() })
     .nullable()
     .optional(),
+  // Dentro de um prédio (docs/features/068-interior-dos-predios.md): a sala
+  // e a porta por onde entrou (`Indoors`) — a posição é a de dentro dela.
+  // Opcional: fora, ou saves de antes, sem.
+  indoors: z
+    .object({
+      interiorId: z.string(),
+      door: z.object({
+        x: z.number(),
+        y: z.number(),
+        z: z.number(),
+        yaw: z.number(),
+        scale: z.number().positive(),
+      }),
+    })
+    .nullable()
+    .optional(),
   heldItemId: z.string().nullable(),
   // Horário do mundo em dias de jogo (docs/features/048-dia-noite-e-
   // clima.md). Opcional: saves de antes dele começam no horário inicial.

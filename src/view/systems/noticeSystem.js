@@ -34,6 +34,14 @@ export function resolveNotice(event) {
       color: MOVE_NOTICE_COLOR,
     }
   }
+  if (event.type === EVENT_TYPES.SUMMON_BLOCKED_INDOORS) {
+    return {
+      kind: 'warn',
+      title: 'Aqui dentro o time fica na Pokébola',
+      detail: 'Saia do prédio para soltar um Pokémon.',
+      color: STRAYED_COLOR,
+    }
+  }
   if (event.type === EVENT_TYPES.TRAINING_RECALL_WARNED) {
     return {
       kind: 'warn',
