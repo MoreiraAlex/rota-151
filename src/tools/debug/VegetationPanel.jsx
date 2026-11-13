@@ -3,10 +3,15 @@
 import { useEffect, useState } from 'react'
 import GUI from 'lil-gui'
 import { regenerarTerreno } from '@/core/actions/terrain'
+import { cityArrivalPoint, irPara } from '@/core/actions/travel'
+import { irParaMapaDaCidade, sairDoMapaDaCidade } from '@/core/actions/townMap'
+import { townMapScale } from '@/core/townMap/townMapPlacement'
 import { listBiomes } from '@/core/data/biomes'
+import { TEST_LEVEL } from '@/core/data/testLevel'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import { WEATHER_TYPES } from '@/core/weather/weatherMap'
-import { world } from '@/core/world/world'
+import { playerEntity, world } from '@/core/world/world'
+import { Position } from '@/core/traits'
 import { notifyRenderSettingsChanged } from '@/view/scene/renderSettings'
 import { TERRAIN_COLOR_LAYERS } from '@/view/terrain/terrainLayers'
 import { setColorLayerSizes } from '@/view/terrain/terrainMaterial'
@@ -54,7 +59,8 @@ const SOLID_CONTROLS = {
 // A planta das cidades (`town` do bioma, core/town/townPlan.js): muda com
 // o terreno refeito. O quarteirão tem que dividir o bloco de sólidos.
 const TOWN_CONTROLS = {
-  scale: { label: 'Tamanho dos modelos', range: [0.5, 3, 0.05] },
+  scale: { label: 'Tamanho dos prédios', range: [0.5, 3, 0.05] },
+  propScale: { label: 'Tamanho dos objetos de rua', range: [0.5, 3, 0.05] },
   streetWidth: { label: 'Largura da rua (m)', range: [2, 12, 0.5] },
   lotsPerSide: { label: 'Lotes por lado', range: [1, 3, 1] },
   setback: { label: 'Recuo da rua (m)', range: [0, 6, 0.1] },
@@ -64,6 +70,39 @@ const TOWN_CONTROLS = {
     label: 'Pokécenter, loja e ginásio: entre os N lotes do meio',
     range: [3, 20, 1],
   },
+}
+// Os detalhes da cidade (`town.details`, docs/features/069-revisao-do-
+// bioma-cidade.md) — refazem o terreno ao soltar.
+const TOWN_DETAIL_CONTROLS = {
+  mailbox: { label: 'Caixa de correio (chance)', range: [0, 1, 0.01] },
+  planter: { label: 'Floreira (chance)', range: [0, 1, 0.01] },
+  pot: { label: 'Vaso (chance)', range: [0, 1, 0.01] },
+  path: { label: 'Caminho de pedras (chance)', range: [0, 1, 0.01] },
+  pathStep: { label: 'Passo das pedras (m)', range: [0.4, 3, 0.05] },
+  stoneScale: { label: 'Tamanho das pedras', range: [0.1, 1.5, 0.05] },
+  hydrants: { label: 'Hidrante por esquina (chance)', range: [0, 1, 0.01] },
+  streetTrees: { label: 'Árvore de rua (chance)', range: [0, 1, 0.01] },
+  treeInset: {
+    label: 'Árvore de rua: distância da rua (m)',
+    range: [0, 6, 0.1],
+  },
+}
+// A praça (`town.plaza`) — refaz o terreno ao soltar.
+const PLAZA_CONTROLS = {
+  fountainSink: { label: 'Fonte: quanto afunda (m)', range: [0, 1, 0.01] },
+  fountainScale: { label: 'Tamanho da fonte', range: [0.3, 2, 0.05] },
+  benchRing: { label: 'Bancos: distância do meio (m)', range: [2, 9, 0.1] },
+  bedOffset: { label: 'Canteiros: distância do meio (m)', range: [2, 9, 0.1] },
+  bedScale: { label: 'Tamanho dos canteiros', range: [0.2, 1.5, 0.05] },
+  groundInset: { label: 'Calçamento: recuo da divisa (m)', range: [0, 3, 0.1] },
+  groundEdge: { label: 'Calçamento: borda (m)', range: [0, 4, 0.1] },
+}
+// A água da fonte (`town.plaza.water`) — refaz o terreno ao soltar.
+const FOUNTAIN_WATER_CONTROLS = {
+  depth: { label: 'Profundidade (m)', range: [0, 0.3, 0.005] },
+  colorDepth: { label: 'Cor: profundidade no meio', range: [0, 2, 0.01] },
+  edgeDepth: { label: 'Cor: profundidade na beira', range: [0, 0.5, 0.005] },
+  radius: { label: 'Raio (no modelo)', range: [0.5, 2, 0.01] },
 }
 // O campo de treino da cidade (`town.trainingField`, docs/features/067-
 // campo-de-treino-e-avisos-de-nivel.md) — refaz o terreno ao soltar.
@@ -179,6 +218,100 @@ const COLOR_LABELS = {
 }
 
 const regenerate = () => regenerarTerreno(world)
+
+// Quantas cidades (as mais perto do treinador) o "Ir para a cidade" lista.
+const TRAVEL_CITY_COUNT = 12
+// Rosa dos ventos (leste = +x, norte = +z, como as estradas).
+const COMPASS = ['L', 'NE', 'N', 'NO', 'O', 'SO', 'S', 'SE']
+
+// As cidades mais perto do treinador: o rótulo de cada uma no seletor
+// (porte, tema, distância e direção) → a cidade.
+function nearbyCities() {
+  const { terrain } = TEST_LEVEL
+  const { x, z } = playerEntity.get(Position) ?? { x: 0, z: 0 }
+  const nearest = terrain.nearestCities?.(x, z, TRAVEL_CITY_COUNT) ?? []
+  const byLabel = new Map()
+  for (const { city, distance } of nearest) {
+    const angle = Math.atan2(city.z - z, city.x - x)
+    const sector = Math.round(angle / (Math.PI / 4))
+    const direction = COMPASS[(sector + COMPASS.length) % COMPASS.length]
+    // A cidade fixa (Viridian, 069) é a do mapa ou a montada à mão: nem
+    // porte nem tema.
+    const name = city.fixedTown
+      ? city.fixedTown.name
+      : `${city.size.name} · ${terrain.cityThemeAt?.(city.x, city.z)?.name ?? '?'}`
+    const label = `${name} · ${Math.round(distance)} m ${direction}`
+    byLabel.set(label, city)
+  }
+  return byLabel
+}
+
+/**
+ * "Ir para a cidade" (docs/features/069-revisao-do-bioma-cidade.md): as
+ * cidades mais perto do treinador num seletor e o botão que leva ele para
+ * a rua do meio da escolhida (`irPara`) — para avaliar as cidades sem
+ * correr até elas. "Atualizar lista" refaz a lista a partir de onde ele
+ * está agora.
+ */
+function addTravelControls(folder, town) {
+  const travel = folder.addFolder('Ir para a cidade')
+  const state = { city: '' }
+  let cities = new Map()
+  let selector = null
+  const refresh = () => {
+    cities = nearbyCities()
+    state.city = [...cities.keys()][0] ?? ''
+    selector?.destroy()
+    selector = travel.add(state, 'city', [...cities.keys()]).name('Cidade')
+    // O seletor em cima dos botões (o lil-gui põe o novo no fim).
+    travel.$children.prepend(selector.domElement)
+  }
+  const go = () => {
+    const city = cities.get(state.city)
+    if (!city) return
+    const point = cityArrivalPoint(city, town)
+    irPara(world, playerEntity, point.x, point.z)
+  }
+  travel.add({ go }, 'go').name('Ir')
+  travel.add({ refresh }, 'refresh').name('Atualizar lista')
+  refresh()
+}
+
+/**
+ * "Pallet" (docs/features/069-revisao-do-bioma-cidade.md): a cidade
+ * tutorial, copiada inteira do Let's Go — por enquanto só pelo F2. "Ir"
+ * leva o treinador para a frente da casa dele, "Sair" o devolve para onde
+ * estava; "Tamanho" é o do mapa (`TOWN_MAP.SCALE`, começa no dos prédios
+ * da cidade) e vale na próxima ida.
+ */
+function addPalletControls(folder) {
+  const pallet = folder.addFolder('Pallet')
+  const config = GAME_CONFIG.TOWN_MAP
+  config.SCALE = townMapScale()
+  pallet
+    .add({ go: () => irParaMapaDaCidade(world, playerEntity, 'pallet') }, 'go')
+    .name('Ir para Pallet')
+  pallet
+    .add({ leave: () => sairDoMapaDaCidade(world, playerEntity) }, 'leave')
+    .name('Sair de Pallet')
+  pallet.add(config, 'SCALE', 0.5, 3, 0.05).name('Tamanho (na próxima ida)')
+}
+
+/**
+ * "Viridian" (docs/features/069-revisao-do-bioma-cidade.md): a primeira
+ * cidade, fixa no mundo, onde o treinador nasce. "Tamanho" é o da cidade
+ * (`CITIES.FIRST_TOWN.SCALE`, começa no dos prédios da cidade) — faz
+ * parte do relevo: refaz o mundo ao soltar.
+ */
+function addViridianControls(folder, town) {
+  const viridian = folder.addFolder('Viridian')
+  const config = GAME_CONFIG.CITIES.FIRST_TOWN
+  config.SCALE ??= town.scale
+  viridian
+    .add(config, 'SCALE', 0.5, 3, 0.05)
+    .name('Tamanho (refaz o mundo)')
+    .onFinishChange(regenerate)
+}
 
 // O tamanho (m) da textura da rua de um tema de cidade: o próprio da
 // camada que ela usa (`TERRAIN_LOOK.COLOR_LAYER_SIZES`) ou o de todas.
@@ -648,6 +781,12 @@ export function VegetationPanel() {
     // Cidade (docs/features/056-bioma-cidade.md): a planta e onde ficam as
     // cidades (058) vêm do terreno (refaz ao soltar).
     const cityFolder = folderOf.buildings
+    const cityTown = listBiomes().find(({ town }) => town)?.town
+    if (cityTown) addTravelControls(cityFolder, cityTown)
+    if (cityTown) addPalletControls(cityFolder)
+    if (cityTown && GAME_CONFIG.CITIES.FIRST_TOWN.LAYOUT) {
+      addViridianControls(cityFolder, cityTown)
+    }
     addControls(cityFolder, GAME_CONFIG.CITIES, CITIES_CONTROLS, regenerate)
     addControls(
       cityFolder.addFolder('Estradas'),
@@ -662,6 +801,27 @@ export function VegetationPanel() {
         .add(biome.town, 'blockSize', quarterSizesOf(GAME_CONFIG.TERRAIN))
         .name('Quarteirão (m)')
         .onFinishChange(regenerate)
+      // Os detalhes e a praça (069).
+      if (biome.town.details) {
+        addControls(
+          folder.addFolder('Detalhes'),
+          biome.town.details,
+          TOWN_DETAIL_CONTROLS,
+          regenerate,
+        )
+      }
+      if (biome.town.plaza) {
+        const plazaFolder = folder.addFolder('Praça')
+        addControls(plazaFolder, biome.town.plaza, PLAZA_CONTROLS, regenerate)
+        if (biome.town.plaza.water) {
+          addControls(
+            plazaFolder.addFolder('Água da fonte'),
+            biome.town.plaza.water,
+            FOUNTAIN_WATER_CONTROLS,
+            regenerate,
+          )
+        }
+      }
       // O campo de treino (067): a grade de bonecos e o balanço deles.
       if (biome.town.trainingField) {
         const fieldFolder = folder.addFolder('Campo de treino')
@@ -720,6 +880,22 @@ export function VegetationPanel() {
     lgpeFolder.add(LGPE, 'RIM_STRENGTH', 0, 2, 0.01).name('Luz de borda')
     lgpeFolder.add(LGPE, 'VERTEX_COLOR', 0, 1, 0.01).name('Sombreado pintado')
     lgpeFolder.add(LGPE, 'CUTOFF', 0.2, 1.5, 0.01).name('Corte das folhas')
+    lgpeFolder.addColor(LGPE.LAMP_GLOW, 'COLOR').name('Luz dos postes (cor)')
+    lgpeFolder
+      .add(LGPE.LAMP_GLOW, 'STRENGTH', 0, 4, 0.05)
+      .name('Luz dos postes (força)')
+    lgpeFolder
+      .addColor(LGPE.LAMP_LIGHT, 'COLOR')
+      .name('Luz no chão dos postes (cor)')
+    lgpeFolder
+      .add(LGPE.LAMP_LIGHT, 'INTENSITY', 0, 60, 0.5)
+      .name('Luz no chão dos postes (força)')
+    lgpeFolder
+      .add(LGPE.LAMP_LIGHT, 'DISTANCE', 1, 30, 0.5)
+      .name('Luz no chão dos postes (alcance)')
+    lgpeFolder
+      .add(LGPE.LAMP_LIGHT, 'DECAY', 0, 3, 0.05)
+      .name('Luz no chão dos postes (queda)')
     lgpeFolder
       .add(ENCOUNTER_GRASS, 'PER_M2', 0, 3, 0.05)
       .name('Mato alto por m²')

@@ -3,15 +3,20 @@ import { getBiome } from '../data/biomes'
 import { GAME_CONFIG } from '../gameConfig'
 import { createWaterBodies } from '../terrain/waterBodies'
 import { createCitySites } from './citySites'
+import { createFixedTown, isInsideFixedTown } from './fixedTown'
 import { createRoads } from './roads'
 
+// As cidades procedurais ligadas (o jogo, nesta beta, só tem a primeira:
+// `CITIES.ONLY_FIRST`, docs/features/069-revisao-do-bioma-cidade.md).
 const PARAMS = GAME_CONFIG.ROADS
+const CITY_PARAMS = { ...GAME_CONFIG.CITIES, ONLY_FIRST: false }
 const SEED = 151
 
 function roadsFor(seed) {
   const cities = createCitySites(seed, {
     town: getBiome('city').town,
     waterBodies: createWaterBodies(seed),
+    params: CITY_PARAMS,
   })
   return { cities, roads: createRoads(seed, { cities }) }
 }
@@ -153,6 +158,58 @@ describe('createRoads', () => {
       for (let z = -2; z <= 2; z++) {
         const city = cities.cityAt(x, z)
         expect(roads.strengthAt(city.x, city.z)).toBe(0)
+      }
+    }
+  })
+})
+
+// A primeira cidade fixa (docs/features/069-revisao-do-bioma-cidade.md —
+// Viridian): a estrada sai pela saída do mapa e não entra nele.
+const FIXED_TOWN = createFixedTown({
+  params: GAME_CONFIG.CITIES.FIRST_TOWN,
+  townBiome: getBiome('city'),
+  waterLevel: GAME_CONFIG.TERRAIN.WATER_LEVEL,
+})
+
+describe.runIf(FIXED_TOWN)('estradas da cidade fixa', () => {
+  const cities = createCitySites(SEED, {
+    town: getBiome('city').town,
+    waterBodies: createWaterBodies(SEED),
+    params: CITY_PARAMS,
+    fixedTown: FIXED_TOWN,
+  })
+  const roads = createRoads(SEED, { cities })
+  // As células ligadas à primeira (as dela e as que chegam nela).
+  const linked = [
+    ...roads.linksOf(0, 0),
+    ...[
+      [-1, 0],
+      [0, -1],
+    ].filter((cell) =>
+      roads.linksOf(...cell).some(([x, z]) => x === 0 && z === 0),
+    ),
+  ]
+
+  it('cada estrada da primeira cidade passa por uma saída do mapa', () => {
+    expect(linked.length).toBeGreaterThan(0)
+    for (const cell of linked) {
+      const other = cities.cityAt(...cell)
+      const reaches = FIXED_TOWN.gates.some(
+        (gate) => roads.distanceAt(gate.x, gate.z) < 1e-6,
+      )
+      expect(reaches).toBe(true)
+      expect(roads.distanceAt(other.x, other.z)).toBeCloseTo(0, 6)
+    }
+  })
+
+  it('dentro do mapa não há estrada', () => {
+    const [minX, minZ, maxX, maxZ] = FIXED_TOWN.rect
+    for (let i = 0; i <= 20; i++) {
+      for (let j = 0; j <= 20; j++) {
+        const x = minX + ((maxX - minX) * i) / 20
+        const z = minZ + ((maxZ - minZ) * j) / 20
+        if (!isInsideFixedTown(FIXED_TOWN, x, z)) continue
+        expect(roads.strengthAt(x, z)).toBe(0)
       }
     }
   })

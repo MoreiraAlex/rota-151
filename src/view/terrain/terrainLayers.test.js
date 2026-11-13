@@ -2,10 +2,14 @@ import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { listBiomes } from '@/core/data/biomes'
+import { GAME_CONFIG } from '@/core/gameConfig'
+import { listCityLayouts } from '@/core/data/cityLayouts'
 import {
   MAX_COLOR_LAYERS,
   TERRAIN_COLOR_LAYERS,
   TERRAIN_LAYERS,
+  CURB_MASKS,
+  curbMaskPath,
   terrainColorLayerPath,
   terrainLayerPath,
 } from './terrainLayers'
@@ -28,6 +32,13 @@ describe('camadas do chão', () => {
       if (layer) expect(TERRAIN_LAYERS).toContain(layer)
     }
   })
+
+  it.each(Object.values(CURB_MASKS))(
+    'máscara da beira da rua %s empacotada em public/',
+    (name) => {
+      expect(existsSync(join('public', curbMaskPath(name)))).toBe(true)
+    },
+  )
 
   it('nomes sem repetição', () => {
     expect(new Set(TERRAIN_LAYERS).size).toBe(TERRAIN_LAYERS.length)
@@ -58,4 +69,28 @@ describe('camadas do chão', () => {
       }
     },
   )
+
+  it.each(listCityLayouts().filter(({ paint }) => paint))(
+    '$name (cidade montada à mão): as camadas do desenho existem',
+    ({ paint }) => {
+      const names = TERRAIN_COLOR_LAYERS.map(([layer]) => layer)
+      const layers = [
+        ...Object.values(paint.ground),
+        paint.steps,
+        paint.curb,
+        ...(paint.mountain ?? []),
+      ].filter(Boolean)
+      for (const layer of layers) expect(names).toContain(layer)
+    },
+  )
+
+  it('as camadas de baixo das transparentes existem', () => {
+    const names = TERRAIN_COLOR_LAYERS.map(([layer]) => layer)
+    const under = GAME_CONFIG.TERRAIN_LOOK.COLOR_LAYER_UNDER ?? {}
+    for (const [layer, below] of Object.entries(under)) {
+      expect(names).toContain(layer)
+      expect(names).toContain(below)
+      expect(below).not.toBe(layer)
+    }
+  })
 })

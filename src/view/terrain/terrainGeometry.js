@@ -3,6 +3,7 @@ import { getBiome, listBiomes } from '@/core/data/biomes'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import { heightIndex } from '@/core/terrain/terrainChunk'
 import { paintsTrails } from '@/core/terrain/trails'
+import { CURB_REACH } from '@/core/town/fixedTown'
 import { clearingNoiseAt, opennessOf } from '@/core/vegetation/clearings'
 import {
   createKindDensity,
@@ -16,6 +17,7 @@ import {
   COLOR_WEIGHT_GROUPS,
   MAX_COLOR_LAYERS,
   MAX_TERRAIN_LAYERS,
+  packCurbLayers,
   terrainColorLayerIndex,
   terrainLayerIndex,
 } from './terrainLayers'
@@ -288,6 +290,30 @@ export function slopeInfoOf(biomes, weights, heightAboveWater) {
 }
 
 /**
+ * O desenho do chão da cidade montada à mão (`chunk.townPaint`,
+ * docs/features/069-revisao-do-bioma-cidade.md) por cima do dos biomas no
+ * vértice `i` (o `index` na ordem das alturas): as camadas de cor dela
+ * tomam o lugar das do bioma pela força da área, e a encosta ali é a rocha
+ * dela (`slope`, a forma de `slopeInfoOf`). Devolve a força (0 fora).
+ */
+function applyTownPaint(paint, index, colorWeights, slope, i) {
+  const area = paint?.area[index] ?? 0
+  if (area <= 0) return 0
+  for (let k = 0; k < colorWeights.length; k++) colorWeights[k] *= 1 - area
+  const { layers, weights } = paint
+  for (let k = 0; k < layers.length; k++) {
+    const layer = terrainColorLayerIndex(layers[k])
+    if (layer < 0) continue
+    colorWeights[layer] += area * weights[index * layers.length + k]
+  }
+  const cliff = terrainColorLayerIndex(
+    paint.cliffLayers[paint.cliff[index]] ?? '',
+  )
+  if (cliff >= 0) slope.set([cliff, 1, 0], i * 4)
+  return area
+}
+
+/**
  * Atributos do desenho do chão por vértice (terrainMaterial.js): o peso de
  * cada camada (`groundLayers0`/`groundLayers1`, quatro em cada) e a força
  * do desenho (`groundDetail`, o `ground.detail` dos biomas pelo peso).
@@ -367,6 +393,14 @@ function groundAttributes(chunk, side, vertex, positions, normals, waterLevel) {
         vertexWeights[biome] = biomeWeights[first + biome] / total
       }
       slope.set(slopeInfoOf(biomes, vertexWeights, heightAboveWater), i * 4)
+      const painted = applyTownPaint(
+        chunk.townPaint,
+        heightIndex(resolution, ix, iz),
+        colorWeights,
+        slope,
+        i,
+      )
+      textureShare[i] += (1 - textureShare[i]) * painted
       const trail = trailShareAt(chunk, biomes, heightIndex(resolution, ix, iz))
       if (trail) {
         // A trilha troca o desenho do chão pela textura dela — só nos
@@ -398,6 +432,35 @@ function groundAttributes(chunk, side, vertex, positions, normals, waterLevel) {
     textureShare,
     slope,
   }
+}
+
+/**
+ * A beira da rua da cidade montada à mão por vértice (`chunk.townPaint.
+ * curb`, docs/features/069-revisao-do-bioma-cidade.md), desenhada por
+ * pixel (terrainMaterial.js), quatro números por vértice: a distância até
+ * a beira em larguras da faixa, a coordenada da máscara ao longo dela, a
+ * força da cidade ali e as camadas de cor da rua e da borda de terra num
+ * número só (`packCurbLayers`; as mesmas no chunk inteiro, `-1` sem rua
+ * com guia).
+ */
+export function townCurbAttributes(chunk, side, vertex) {
+  const curb = new Float32Array(side * side * 4)
+  const paint = chunk.townPaint
+  const town = paint?.curb
+  const road = town ? terrainColorLayerIndex(town.road) : -1
+  const soil = town ? terrainColorLayerIndex(town.soil) : -1
+  const layers = packCurbLayers(road, soil)
+  for (let ix = 0; ix < side; ix++) {
+    for (let iz = 0; iz < side; iz++) {
+      const i = vertex(ix, iz)
+      const index = heightIndex(chunk.resolution, ix, iz)
+      curb[i * 4] = town ? town.distance[index] : CURB_REACH
+      curb[i * 4 + 1] = town ? town.along[index] : 0
+      curb[i * 4 + 2] = town && road >= 0 ? paint.area[index] : 0
+      curb[i * 4 + 3] = layers
+    }
+  }
+  return curb
 }
 
 // A grama do bioma que é em fios (só ela pinta o chão debaixo, `groundGrass`).
@@ -612,6 +675,10 @@ export function buildTerrainChunkGeometry(chunk, waterLevel) {
   geometry.setAttribute(
     'groundSlope',
     new THREE.BufferAttribute(ground.slope, 4),
+  )
+  geometry.setAttribute(
+    'groundCurb',
+    new THREE.BufferAttribute(townCurbAttributes(chunk, side, vertex), 4),
   )
   geometry.setAttribute(
     'groundGrass',

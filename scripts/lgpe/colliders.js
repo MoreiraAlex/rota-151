@@ -16,6 +16,17 @@ import { readGlbPositions } from './glb.js'
  *   do modelo inteiro, sem as peças achatadas (`FLAT`, o piso da entrada
  *   — senão o casco vira rampa até a parede), e a caixa dele no chão
  *   (`box`: a pegada retangular).
+ * - **Anel** (`RINGS`, docs/features/069-revisao-do-bioma-cidade.md): o
+ *   objeto oco (a fonte da praça) colide só na borda — `ring: { inner,
+ *   outer, height }` (m, no tamanho do modelo), que o core monta em caixas
+ *   em volta (`core/physics/colliders.js`); dentro dela, nada (dá para
+ *   entrar na água). O casco (`points`) e a caixa no chão (`box`, a
+ *   pegada) seguem iguais.
+ * - **Moldura** (`FRAMES`, a mesma feature): o objeto oco retangular (o
+ *   canteiro de tronco) colide só na moldura — `frame: { inner: [minX,
+ *   minZ, maxX, maxZ], height }` (m, no tamanho do modelo), o vão de
+ *   dentro; a moldura vai dele até a caixa no chão (`box`). Dentro, nada
+ *   (dá para entrar no canteiro).
  * - **Árvore**: só o tronco — os vértices abaixo da copa (a copa começa no
  *   vértice mais baixo longe do eixo, `CROWN_REACH`, acima das raízes) —,
  *   com a ponta dele
@@ -55,6 +66,14 @@ const TRUNK_TOP = 0.5
 // Direções em que o casco é amostrado.
 const DIRECTIONS = 96
 const DECIMALS = 3
+// Os objetos ocos que colidem só na borda: o raio de dentro e o de fora
+// da borda e a altura dela (m, no tamanho do modelo — medidos na malha).
+const RINGS = { fountain: { inner: 1.36, outer: 1.7, height: 0.65 } }
+// Os objetos ocos retangulares que colidem só na moldura: o vão de dentro
+// e a altura dela (m, no tamanho do modelo — medidos na malha).
+const FRAMES = {
+  'log-flower-bed': { inner: [-2.016, -1.324, 2.026, 1.27], height: 0.36 },
+}
 
 const SOLID_CATEGORIES = new Set(['tree', 'rock', 'building', 'street'])
 // Os da cidade: casco inteiro e caixa no chão.
@@ -147,8 +166,13 @@ function boxColliderOf(primitives) {
   }
 }
 
-function colliderOf(prop, primitives) {
-  if (BOX_CATEGORIES.has(prop.category)) return boxColliderOf(primitives)
+function colliderOf(id, prop, primitives) {
+  if (BOX_CATEGORIES.has(prop.category)) {
+    const collider = boxColliderOf(primitives)
+    if (RINGS[id]) return { ...collider, ring: RINGS[id] }
+    if (FRAMES[id]) return { ...collider, frame: FRAMES[id] }
+    return collider
+  }
   const points = pointsOf(primitives)
   const top = Math.max(...points.map(([, y]) => y))
   const solid = prop.category === 'tree' ? trunkPoints(points, top) : points
@@ -175,7 +199,7 @@ for (const dir of dirs) {
   for (const [id, prop] of Object.entries(manifest.props)) {
     if (!SOLID_CATEGORIES.has(prop.category)) continue
     const primitives = readGlbPositions(readFileSync(join(dir, prop.file)))
-    colliders[id] = colliderOf(prop, primitives)
+    colliders[id] = colliderOf(id, prop, primitives)
     console.log(
       `${id.padEnd(24)} ${colliders[id].points.length / 3} pontos, alcance ${colliders[id].reach} m`,
     )

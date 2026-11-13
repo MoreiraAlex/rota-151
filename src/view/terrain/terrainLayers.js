@@ -41,10 +41,11 @@ export const TERRAIN_COLOR_LAYERS = [
   // Calçamento das ruas das cidades (docs/features/056-bioma-cidade.md),
   // no lugar da terra úmida, que nenhum bioma usava.
   ['lgpe-street', 'roadtile01_area02'],
-  ['lgpe-rock', 'rock01_forest'],
   ['lgpe-path-stone', 'roadstone01_com'],
-  // Das rotas de campo (docs/features/053-planicie-com-assets-do-lgpe.md).
-  ['lgpe-route-grass', 'grass01_area02'],
+  // As manchas de terra das cidades (docs/features/069-revisao-do-bioma-
+  // cidade.md): os remendos em volta das pedras de pisar de Viridian. Entrou
+  // no lugar da grama das rotas de campo, que nenhum bioma usava.
+  ['lgpe-patch-soil', 'soil12_com'],
   ['lgpe-trail-soil', 'soil09_com'],
   ['lgpe-sand', 'sand01_com'],
   // Penhasco de terra das rotas secas (docs/features/054-savana-lgpe-e-
@@ -60,6 +61,14 @@ export const TERRAIN_COLOR_LAYERS = [
   // As ruas dos temas de Vermilion e Lavender.
   ['lgpe-vermilion-tile', 'tile02_01_area09'],
   ['lgpe-lavender-asphalt', 'asphalt01_area08'],
+  // A rocha dos degraus das cidades e a do paredão de Viridian, embaixo
+  // (com grama) e em cima (com terra): os barrancos da cidade montada à mão
+  // (docs/features/069-revisao-do-bioma-cidade.md). Entraram no lugar da
+  // rocha da floresta, que nenhum bioma usava (o limite é
+  // `MAX_COLOR_LAYERS`).
+  ['lgpe-town-cliff', 'cliff01_com'],
+  ['lgpe-wall-rock', 'cliff03_com'],
+  ['lgpe-wall-soil', 'cliff04_com'],
 ]
 
 // Os pesos das camadas de cor vão para o shader em vec4 por vértice
@@ -72,3 +81,33 @@ export const terrainColorLayerPath = (layer) =>
 
 export const terrainColorLayerIndex = (layer) =>
   TERRAIN_COLOR_LAYERS.findIndex(([name]) => name === layer)
+
+/**
+ * As máscaras da beira da rua da cidade montada à mão (docs/features/069-
+ * revisao-do-bioma-cidade.md): as do original, lidas por pixel pela
+ * distância até a beira — a do lote (a borda de terra e a franja da grama)
+ * e a da rua (o fio de terra e a guia). Arquivos em
+ * public/assets/vegetation/lgpe/textures/.
+ */
+export const CURB_MASKS = {
+  lot: 'glassmask01_com',
+  road: 'asphaltmask01_area02',
+}
+
+export const curbMaskPath = (name) =>
+  `/assets/vegetation/lgpe/textures/${name}.png`
+
+// As camadas da rua e da borda de terra vão para o shader num número só
+// (a camada + 1 de cada, nesta base; cabe qualquer índice de camada de
+// cor): o limite de atributos por vértice não deixa mais um.
+export const CURB_LAYER_BASE = 32
+
+/** As camadas da rua e da borda de terra num número só (`-1` = nenhuma). */
+export const packCurbLayers = (road, soil) =>
+  road + 1 + (soil + 1) * CURB_LAYER_BASE
+
+/** O inverso de `packCurbLayers`: `[rua, terra]`. */
+export function unpackCurbLayers(packed) {
+  const code = Math.round(packed)
+  return [(code % CURB_LAYER_BASE) - 1, Math.floor(code / CURB_LAYER_BASE) - 1]
+}

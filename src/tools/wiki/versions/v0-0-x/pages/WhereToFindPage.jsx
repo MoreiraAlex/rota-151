@@ -198,12 +198,12 @@ export function WhereToFindPage({ data, version }) {
 
       <Section id="nivel" title="Nível das selvagens">
         <p>
-          O nível depende de onde a selvagem aparece. Cada cidade tem um nível:
-          a primeira, onde a aventura começa, é a de nível{' '}
-          {wildSpawn.firstCityLevel}, a mais baixa; as outras ficam entre esse e
-          o teto da versão. Perto de uma cidade, as selvagens ficam perto do
-          nível dela (até {wildSpawn.levelSpread} para mais ou para menos); no
-          caminho entre duas cidades, o nível muda aos poucos.
+          O nível depende de onde a selvagem aparece. Em volta de Viridian, onde
+          a aventura começa, elas ficam perto do nível{' '}
+          {wildSpawn.firstCityLevel}, o mais baixo. Quanto mais longe da cidade,
+          mais fortes: o nível sobe aos poucos até o teto da versão, que chega a
+          uns {wildSpawn.levelCapDistance} metros da borda dela. Cada selvagem
+          ainda varia até {wildSpawn.levelSpread} para mais ou para menos.
         </p>
         <p>
           Nenhuma selvagem passa do nível {wildSpawn.levelCap}, o teto desta

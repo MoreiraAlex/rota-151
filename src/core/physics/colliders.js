@@ -59,6 +59,90 @@ function lgpeHullOf(solid) {
     ?.setRotation(quaternionFromAxisAngle('y', solid.yaw))
 }
 
+// Quantas caixas fazem a volta de um anel (`ringBoxesOf`).
+const RING_SEGMENTS = 16
+
+/**
+ * As caixas da borda de um objeto oco (`ring` do colisor do LGPE — a fonte
+ * da praça, docs/features/069-revisao-do-bioma-cidade.md) posto em
+ * `solid`: `RING_SEGMENTS` caixas em volta, da borda de dentro à de fora,
+ * do chão até a altura dela (tudo no tamanho do objeto). Cada uma um pouco
+ * mais larga que o pedaço dela, para não sobrar fresta entre elas. Dentro
+ * do anel, nada.
+ *
+ * @returns {{ halfExtents: number[], x: number, y: number, z: number,
+ *   yaw: number }[]}
+ */
+export function ringBoxesOf(ring, solid) {
+  const { scale } = solid
+  const inner = ring.inner * scale
+  const outer = ring.outer * scale
+  const middle = (inner + outer) / 2
+  const halfHeight = (ring.height * scale) / 2
+  const halfAlong = outer * Math.tan(Math.PI / RING_SEGMENTS)
+  return Array.from({ length: RING_SEGMENTS }, (_, k) => {
+    const angle = (k / RING_SEGMENTS) * Math.PI * 2
+    return {
+      halfExtents: [halfAlong, halfHeight, (outer - inner) / 2],
+      x: solid.x + Math.cos(angle) * middle,
+      y: solid.y + halfHeight,
+      z: solid.z + Math.sin(angle) * middle,
+      // O +Z da caixa para fora (do meio para a borda).
+      yaw: Math.PI / 2 - angle,
+    }
+  })
+}
+
+/**
+ * As caixas da moldura de um objeto oco retangular (`frame` do colisor do
+ * LGPE — o canteiro de tronco, docs/features/069-revisao-do-bioma-
+ * cidade.md) posto em `solid`: quatro caixas, do vão de dentro
+ * (`frame.inner`) até a caixa no chão do modelo (`box`), do chão até a
+ * altura dela, giradas com o objeto. Os lados leste e oeste cobrem os
+ * cantos. Dentro do vão, nada.
+ *
+ * @returns {{ halfExtents: number[], x: number, y: number, z: number,
+ *   yaw: number }[]}
+ */
+export function frameBoxesOf(frame, box, solid) {
+  const [minX, minZ, maxX, maxZ] = box
+  const [innerMinX, innerMinZ, innerMaxX, innerMaxZ] = frame.inner
+  const sides = [
+    [minX, minZ, innerMinX, maxZ],
+    [innerMaxX, minZ, maxX, maxZ],
+    [innerMinX, minZ, innerMaxX, innerMinZ],
+    [innerMinX, innerMaxZ, innerMaxX, maxZ],
+  ]
+  const { scale, yaw = 0 } = solid
+  const cos = Math.cos(yaw)
+  const sin = Math.sin(yaw)
+  const halfHeight = (frame.height * scale) / 2
+  return sides.map(([x0, z0, x1, z1]) => {
+    const localX = ((x0 + x1) / 2) * scale
+    const localZ = ((z0 + z1) / 2) * scale
+    return {
+      halfExtents: [
+        ((x1 - x0) / 2) * scale,
+        halfHeight,
+        ((z1 - z0) / 2) * scale,
+      ],
+      // O giro em Y do three (o mesmo do `setInstance` da view).
+      x: solid.x + localX * cos + localZ * sin,
+      y: solid.y + halfHeight,
+      z: solid.z - localX * sin + localZ * cos,
+      yaw,
+    }
+  })
+}
+
+/** As caixas da borda de um objeto oco (anel ou moldura), ou `null`. */
+function hollowBoxesOf(solid) {
+  const collider = lgpeColliderOf(solid)
+  if (collider?.ring) return ringBoxesOf(collider.ring, solid)
+  if (collider?.frame) return frameBoxesOf(collider.frame, collider.box, solid)
+  return null
+}
+
 /**
  * Objetos sólidos do chunk (`chunk.solids`, docs/features/049-vegetacao-e-
  * floresta.md), no corpo do relevo — nascem e saem com ele. Com modelo do
@@ -70,7 +154,9 @@ function lgpeHullOf(solid) {
  * - pedra: cilindro afundado um pouco no chão.
  *
  * Os prédios e objetos de rua das cidades (docs/features/056-bioma-
- * cidade.md) sempre têm modelo do LGPE: o casco dele, na base.
+ * cidade.md) sempre têm modelo do LGPE: o casco dele, na base — menos o
+ * oco (a fonte e o canteiro de tronco, 069), que colide só na borda
+ * (`ringBoxesOf`, `frameBoxesOf`).
  */
 function addSolidColliders(chunk, body) {
   if (!chunk.solids) return
@@ -100,6 +186,16 @@ function addSolidColliders(chunk, body) {
     )
   }
   for (const building of chunk.solids.buildings ?? []) {
+    // Oco (a fonte, o canteiro): só a borda.
+    const hollow = hollowBoxesOf(building)
+    if (hollow) {
+      for (const box of hollow) {
+        const desc = RAPIER.ColliderDesc.cuboid(...box.halfExtents)
+        desc.setRotation(quaternionFromAxisAngle('y', box.yaw))
+        add(desc, box.x, box.y, box.z)
+      }
+      continue
+    }
     const hull = lgpeHullOf(building)
     if (hull) add(hull, building.x, building.y, building.z)
   }
@@ -183,6 +279,67 @@ export function createInteriorColliders(colliders, place) {
   for (const box of colliders.walls) addBox(box)
   for (const box of colliders.solids) addBox(box)
   return body.handle
+}
+
+/**
+ * A colisão do mapa de uma cidade copiada inteira do Let's Go
+ * (docs/features/069-revisao-do-bioma-cidade.md — Pallet), num corpo fixo
+ * próprio posto em `place` (`{ x, y, z, scale }`, a forma de `OnTownMap`):
+ *
+ * - o **chão**: a grade de alturas do mapa num heightfield, como o relevo
+ *   dos chunks (é chão para a câmera); por coluna, `iz + ix × nz` — as
+ *   linhas do Rapier vão ao longo de Z;
+ * - os **prédios**, cercas, placas, troncos e as paredes da borda: caixas.
+ *
+ * `colliders` é o do mapa (`townMapCollidersOf`), no espaço do modelo.
+ * Devolve o handle do corpo (para `destroyTownMapColliders`), ou `-1` sem
+ * física.
+ */
+export function createTownMapColliders(colliders, place) {
+  const RAPIER = getRapier()
+  const world = getRapierWorld()
+  if (!RAPIER || !world) return -1
+  const { scale } = place
+  const body = world.createRigidBody(
+    RAPIER.RigidBodyDesc.fixed().setTranslation(place.x, place.y, place.z),
+  )
+  const { ground } = colliders
+  const sizeX = (ground.nx - 1) * ground.step
+  const sizeZ = (ground.nz - 1) * ground.step
+  world.createCollider(
+    RAPIER.ColliderDesc.heightfield(
+      ground.nz - 1,
+      ground.nx - 1,
+      Float32Array.from(ground.heights),
+      { x: sizeX * scale, y: scale, z: sizeZ * scale },
+    ).setTranslation(
+      (ground.minX + sizeX / 2) * scale,
+      0,
+      (ground.minZ + sizeZ / 2) * scale,
+    ),
+    body,
+  )
+  for (const { box } of colliders.boxes) {
+    const [minX, minY, minZ, maxX, maxY, maxZ] = box
+    world.createCollider(
+      RAPIER.ColliderDesc.cuboid(
+        ((maxX - minX) / 2) * scale,
+        ((maxY - minY) / 2) * scale,
+        ((maxZ - minZ) / 2) * scale,
+      ).setTranslation(
+        ((minX + maxX) / 2) * scale,
+        ((minY + maxY) / 2) * scale,
+        ((minZ + maxZ) / 2) * scale,
+      ),
+      body,
+    )
+  }
+  return body.handle
+}
+
+/** Desfaz `createTownMapColliders`. Handle que já não existe: nada. */
+export function destroyTownMapColliders(bodyHandle) {
+  destroyTerrainChunkCollider(bodyHandle)
 }
 
 /** Se o corpo `bodyHandle` existe no mundo da física de agora. */

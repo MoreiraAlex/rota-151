@@ -673,14 +673,18 @@ export function trainingRecallWarned({ trainer, creature }) {
 
 /**
  * O jogador tentou soltar um Pokémon dentro de um prédio (docs/features/
- * 068-interior-dos-predios.md): lá dentro o time fica na bola.
+ * 068-interior-dos-predios.md): lá dentro o time fica na bola. Também no
+ * mapa de uma cidade copiada (docs/features/069-revisao-do-bioma-
+ * cidade.md — Pallet), por enquanto: `townMap` diz o nome dela (`null`:
+ * num prédio).
  *
  * - Quem emite: `core/systems/partySummonSystem.js`.
  * - Quem consome: `view/systems/noticeSystem.js` (o aviso na tela). Sem
  *   consumidor, some.
  *
- * @returns {{ type: 'summonBlockedIndoors', trainer: import('koota').Entity }}
+ * @returns {{ type: 'summonBlockedIndoors', trainer: import('koota').Entity,
+ *   townMap: string | null }}
  */
-export function summonBlockedIndoors({ trainer }) {
-  return { type: EVENT_TYPES.SUMMON_BLOCKED_INDOORS, trainer }
+export function summonBlockedIndoors({ trainer, townMap = null }) {
+  return { type: EVENT_TYPES.SUMMON_BLOCKED_INDOORS, trainer, townMap }
 }

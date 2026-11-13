@@ -1,0 +1,195 @@
+{
+  "map": "area02/town002_00.gfbmdl",
+  "origin": [26.95, 2, -61.7501],
+  "x0": -30,
+  "z0": -20,
+  "fence": {
+    "node": "fence_01_002_00",
+    "kit": "viridian-fence"
+  },
+  "groups": [
+    {
+      "node": "town002_00_tree/town002_00_tree08",
+      "objects": {
+        "margin": 0.3,
+        "models": [
+          "viridian-hedge",
+          "viridian-hedge-2",
+          "viridian-hedge-4"
+        ]
+      },
+      "kind": "street-prop"
+    },
+    {
+      "node": "town002_00_tree/town002_00_tree05",
+      "core": {
+        "size": [
+          1.64,
+          1.64,
+          1.29
+        ],
+        "material": "tree07_01"
+      },
+      "model": "viridian-bush",
+      "kind": "street-prop",
+      "rest": "center"
+    },
+    {
+      "node": "town002_00_tree/tree33/tree001",
+      "core": {
+        "size": [
+          1.09,
+          1.07,
+          1.93
+        ],
+        "material": "area02_tree2_tree_miki"
+      },
+      "spots": true
+    },
+    {
+      "node": "town002_00_tree/tree33/tree002",
+      "core": {
+        "size": [
+          1.09,
+          1.07,
+          1.93
+        ],
+        "material": "area02_tree2_tree_miki"
+      },
+      "spots": true
+    },
+    {
+      "node": "town002_00_tree/tree33/tree003",
+      "core": {
+        "size": [
+          1.8,
+          1.84,
+          3.19
+        ],
+        "material": "area02_tree2_tree_miki"
+      },
+      "spots": true,
+      "spotScale": 1.65
+    },
+    {
+      "node": "town002_00_tree/tree33/tree004",
+      "core": {
+        "size": [
+          0.3,
+          0.2,
+          2.83
+        ],
+        "material": "area02_tree2_tree_miki",
+        "merge": 0.5
+      },
+      "spots": true
+    },
+    {
+      "node": "town002_00_tree/tree33/tree005",
+      "core": {
+        "size": [
+          0.3,
+          0.2,
+          2.83
+        ],
+        "material": "area02_tree2_tree_miki",
+        "merge": 0.5
+      },
+      "spots": true
+    },
+    {
+      "node": "town002_00_tree/tree33/tree007",
+      "core": {
+        "size": [
+          0.34,
+          0.39,
+          1.36
+        ],
+        "material": "area02_tree2_tree_miki"
+      },
+      "spots": true,
+      "spotScale": 0.5
+    },
+    {
+      "node": "lamp_town002",
+      "objects": {
+        "margin": 0.3,
+        "models": [
+          "viridian-lamp"
+        ]
+      },
+      "kind": "street-prop"
+    },
+    {
+      "node": "obj002_01",
+      "objects": {
+        "margin": 0.3,
+        "models": [
+          "viridian-bench"
+        ]
+      },
+      "kind": "street-prop"
+    },
+    {
+      "node": "kadan02_002_00",
+      "objects": {
+        "margin": 0.3,
+        "models": [
+          "log-flower-bed"
+        ]
+      },
+      "kind": "street-prop"
+    },
+    {
+      "node": "plant002_00",
+      "objects": {
+        "margin": 0.01,
+        "models": [
+          "viridian-pot",
+          "viridian-pot-long"
+        ]
+      },
+      "kind": "street-prop"
+    },
+    {
+      "node": "signbord/signboard_town",
+      "objects": {
+        "margin": 0.3,
+        "models": [
+          "viridian-sign-town"
+        ]
+      },
+      "kind": "street-prop"
+    },
+    {
+      "node": "signbord/bm_signboard04_bm_signboard04",
+      "objects": {
+        "margin": 0.3,
+        "models": [
+          "viridian-sign-gym"
+        ]
+      },
+      "kind": "street-prop"
+    },
+    {
+      "node": "signbord/bm_signboard05",
+      "objects": {
+        "margin": 0.3,
+        "models": [
+          "viridian-sign"
+        ]
+      },
+      "kind": "street-prop"
+    },
+    {
+      "node": "signbord/bm_signboard02",
+      "objects": {
+        "margin": 0.3,
+        "models": [
+          "viridian-sign-glass"
+        ]
+      },
+      "kind": "street-prop"
+    }
+  ]
+}

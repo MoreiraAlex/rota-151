@@ -52,6 +52,7 @@ import {
   resolveLabReferenceDistance,
   resolveLabRelief,
   resolveTargetZForGap,
+  tirarCidadeFixa,
 } from './skillLabWorld'
 import { world } from '@/core/world/world'
 import { RELIEF_KINDS } from './labRelief'
@@ -326,6 +327,8 @@ export function SkillLab() {
 
   // Os dados voltam ao que veio dos arquivos ao sair da página.
   useEffect(() => () => restoreSkillData(snapshot), [snapshot])
+  // A área do lab sem a cidade fixa (a água dela); volta ao sair.
+  useEffect(() => tirarCidadeFixa(), [])
 
   useEffect(() => {
     getAudioListener().setMasterVolume(soundOn ? 1 : 0)

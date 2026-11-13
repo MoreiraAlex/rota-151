@@ -34,7 +34,7 @@ export const GAME_CONFIG = {
   // (docs/features/047-biomas.md).
   TERRAIN: {
     // Identifica a receita do relevo; subir quando a geração mudar.
-    GENERATION_VERSION: 22,
+    GENERATION_VERSION: 28,
     // Altura (m) da superfície da água: o que fica abaixo vira lago na 057.
     // O relevo dos biomas é medido a partir dela (`relief.baseHeight`).
     WATER_LEVEL: -2,
@@ -134,6 +134,19 @@ export const GAME_CONFIG = {
       'lgpe-cerulean-tile': 3,
       'lgpe-vermilion-tile': 3,
       'lgpe-lavender-asphalt': 3,
+      // O chão de Viridian montada à mão (docs/features/069-revisao-do-
+      // bioma-cidade.md): o tamanho de uma repetição no mapa original vezes
+      // a escala da cidade — o asfalto e as rochas dos barrancos.
+      'lgpe-asphalt': 5,
+      'lgpe-town-cliff': 2.5,
+      'lgpe-wall-rock': 3,
+      'lgpe-wall-soil': 3,
+    },
+    // A camada que aparece onde a de cima é transparente (a textura com
+    // alfa): as pedras de pisar de Viridian sobre a terra batida, como no
+    // original (lá elas são quadrados por cima do chão).
+    COLOR_LAYER_UNDER: {
+      'lgpe-path-stone': 'lgpe-soil',
     },
     // Força do relevo de luz do mapa de normal (0 = liso).
     NORMAL_STRENGTH: 0.8,
@@ -216,6 +229,19 @@ export const GAME_CONFIG = {
     LAMP_INSET: 1,
     // Banco: quanto (m) fica à frente e ao lado da porta do prédio.
     DOOR_GAP: 0.8,
+    // O quintal das casas (docs/features/069-revisao-do-bioma-cidade.md):
+    // meia largura (m) do corredor livre da porta até a rua (onde vão as
+    // pedras do caminho), a folga (m) entre as coisas do quintal e a parede
+    // ou a cerca, e o passo (m) com que uma coisa que não coube escorrega
+    // para fora.
+    DOOR_CLEAR: 1,
+    YARD_GAP: 0.3,
+    YARD_SLIDE: 0.25,
+    // Hidrante: quanto (m) fica do poste da esquina, ao longo da rua.
+    HYDRANT_GAP: 3,
+    // O maior raio (m) da água de uma fonte da praça: até onde a consulta
+    // da água (`core/actions/water.js`) procura fonte nos chunks vizinhos.
+    FOUNTAIN_REACH: 4,
     // Teto de quarteirões de uma cidade na busca (core/town/cityIndex.js):
     // só uma trava contra cidade sem fim (um mundo só de cidade).
     MAX_CITY_BLOCKS: 2000,
@@ -274,12 +300,27 @@ export const GAME_CONFIG = {
     // A chuva de fora, abafada dentro (fração do volume dela).
     RAIN_VOLUME: 0.25,
   },
+  // As cidades copiadas inteiras do Let's Go (docs/features/069-revisao-do-
+  // bioma-cidade.md — Pallet, a cidade tutorial): um lugar à parte ao ar
+  // livre, bem acima de onde o treinador estava (os chunks em volta
+  // continuam os de lá, escondidos), com o céu, o clima e a câmera livre.
+  TOWN_MAP: {
+    // Altura (m) do chão do mapa acima do relevo do ponto de partida.
+    ALTITUDE: 600,
+    // Tamanho do mapa (vezes o original). `null`: o dos prédios da cidade
+    // (`town.scale` do bioma cidade) — as salas dele saem no mesmo.
+    SCALE: null,
+  },
   // Onde ficam as cidades (core/town/citySites.js, docs/features/058-
   // ajuste-dos-biomas.md): uma por célula de uma grade, a âncora da área em
   // volta. O porte e o raio de cada uma vêm do `town.sizes` do bioma. Faz
   // parte da receita do relevo: mudar qualquer número muda o mundo da seed
   // — subir `TERRAIN.GENERATION_VERSION` junto.
   CITIES: {
+    // Só a primeira cidade no mundo (docs/features/069-revisao-do-bioma-
+    // cidade.md): nesta beta, Viridian é a cidade inicial e Pallet a do
+    // tutorial (o lugar à parte); as cidades procedurais voltam com `false`.
+    ONLY_FIRST: true,
     // Lado (m) da célula: a distância típica entre duas cidades vizinhas.
     SPACING: 1600,
     // Quanto (fração da célula) o centro da cidade pode sair do centro da
@@ -294,14 +335,61 @@ export const GAME_CONFIG = {
     // Largura (m) da borda da cidade no mapa de biomas: de lá para fora,
     // o bioma de volta entra aos poucos.
     EDGE: 24,
-    // Porte da primeira cidade (a da origem, onde o treinador nasce).
+    // Porte da primeira cidade (a da origem, onde o treinador nasce) —
+    // sem `FIRST_TOWN.LAYOUT`.
     FIRST_SIZE: 'village',
+    // A primeira cidade, fixa no mundo (core/town/fixedTown.js,
+    // docs/features/069-revisao-do-bioma-cidade.md — Viridian): `LAYOUT`,
+    // a cidade montada à mão (`core/data/cityLayouts/`, core/town/
+    // cityLayout.js; `null` = a procedural, do porte `FIRST_SIZE`), com o
+    // chão do layout nos nossos platôs e na nossa montanha (`GROUND`, forma
+    // de `CityLayoutGround`); `SCALE`, o tamanho (`null`: o dos prédios da
+    // cidade, `town.scale`); `BLEND`, a largura (m) em que o relevo de fora
+    // vai da borda dela até o da seed.
+    FIRST_TOWN: {
+      LAYOUT: 'viridian',
+      SCALE: null,
+      BLEND: 20,
+      // Os tipos de vegetação do bioma que nascem na montada à mão, só no
+      // gramado dela (fora das ruas e do lago): a grama em fios e as flores
+      // do mundo. O resto (árvores, moitas, tufos, pedras) não nasce nela —
+      // as árvores dela são as do layout.
+      GROWS: ['tall-grass', 'flower'],
+      GROUND: {
+        // Os degraus: na forma do `relief.terraces` dos biomas (escolhidos
+        // no laboratório da cidade).
+        terraces: { step: 1.75, cliff: 0.25, tilt: 0 },
+        // O paredão: como o `relief.mountains` da floresta.
+        mountain: { height: 8, rise: 1, step: 4, cliff: 0.95, tilt: 0.1 },
+        // O lago: o fundo e a superfície da água abaixo do chão (as do
+        // original vezes a escala da cidade).
+        lakeDepth: 2.4,
+        lakeWater: 1.55,
+        rampEdge: 1,
+        // A ondulação leve do chão (docs/roadmap.md, 090), à parte da
+        // inclinação dos degraus.
+        swell: 0.1,
+        // O borrão dos níveis antes do degrau (core/town/cityLayout.js):
+        // até onde (células do layout) cada uma mistura as vizinhas — o
+        // barranco mais largo e de borda arredondada, não a reta do
+        // original — e a folga (células) em volta dos objetos em que o
+        // chão fica no nível da célula.
+        soften: { radius: 2, keep: 1 },
+        // A beira da rua (a borda de terra e a guia): a largura da faixa de
+        // cada lado e as repetições da máscara ao longo dela (m do layout,
+        // as do original).
+        curb: { width: 0.5, along: 0.24 },
+      },
+    },
   },
   // Estradas entre as cidades (core/town/roads.js, docs/features/058-
   // ajuste-dos-biomas.md). Faz parte da receita do relevo (o vau muda o
   // leito da água): mudar qualquer número muda o mundo da seed — subir
   // `TERRAIN.GENERATION_VERSION` junto.
   ROADS: {
+    // Liga as estradas (desligadas nesta beta: sem as cidades procedurais
+    // não há o que ligar).
+    ENABLED: false,
     // Chance (0 a 1) de uma cidade ligar às duas vizinhas (leste e norte),
     // não só a uma: maior = mais voltas e atalhos.
     EXTRA: 0.15,
@@ -1201,13 +1289,15 @@ export const GAME_CONFIG = {
       uncommon: 0.13,
       rare: 0.02,
     },
-    // Nível pelas cidades (`core/wildSpawn/wildLevel.js`): o da primeira
-    // cidade (onde o treinador nasce) é o mais baixo; as outras sorteiam
-    // entre ele e o teto da versão (`EXPERIENCE.LEVEL_CAP`), que também
-    // limita cada indivíduo. `SPREAD`: a variação de cada indivíduo para
-    // cada lado.
+    // Nível pela distância da cidade inicial (`core/wildSpawn/
+    // wildLevel.js`, docs/features/069-revisao-do-bioma-cidade.md): na
+    // borda dela, `FIRST_CITY`; de lá para fora sobe aos poucos até o teto
+    // da versão (`EXPERIENCE.LEVEL_CAP`), que alcança a `CAP_DISTANCE` m
+    // da borda e que também limita cada indivíduo. `SPREAD`: a variação de
+    // cada indivíduo para cada lado.
     LEVEL: {
       FIRST_CITY: 3,
+      CAP_DISTANCE: 1200,
       SPREAD: 2,
     },
     // Quantos spawns e despawns recentes o debug (F2) lista.
@@ -1881,7 +1971,7 @@ export const GAME_CONFIG = {
       SOLID: { HIDE: 0.3, FADE: 0.5 },
     },
     SEE_THROUGH: {
-      ENABLED: true,
+      ENABLED: false,
       RADIUS: 1.2,
       EDGE: 0.6,
       OPACITY: 0.5,
@@ -2461,6 +2551,29 @@ export const GAME_CONFIG = {
     // biomas.md) com as folhas de uma árvore do LGPE (id do prop no
     // manifesto; `null` = as folhas delas): ao carregar a vegetação.
     PACK_LEAVES: 'round-tree',
+    // A luz dos postes à noite (docs/features/069-revisao-do-bioma-
+    // cidade.md): os materiais marcados no manifesto (`glow`, o vidro)
+    // acendem junto com a noite (as estrelas do ciclo,
+    // `DAY_CYCLE.KEYFRAMES`), na cor deles vezes `COLOR` e `STRENGTH`,
+    // sem depender da luz da cena.
+    LAMP_GLOW: { COLOR: '#ffe0a0', STRENGTH: 1.6 },
+    // A luz de verdade dos postes à noite (a mesma feature): `COUNT` luzes
+    // pontuais, sem sombra, nos postes mais perto de quem o jogador
+    // controla (refeito a cada `REFRESH` s), no vidro de cada um — o
+    // bastante para todos os postes de Viridian. Acendem com a noite, como
+    // o vidro. Cada luz fica no poste dela enquanto ele segue entre os mais
+    // perto; a que muda de poste apaga e acende em `FADE` s. O número de
+    // luzes fica fixo (mudar recompila os materiais da cena); `INTENSITY`,
+    // `DISTANCE` (m) e `DECAY` são os da `THREE.PointLight`.
+    LAMP_LIGHT: {
+      COUNT: 8,
+      COLOR: '#ffd9a0',
+      INTENSITY: 12,
+      DISTANCE: 9,
+      DECAY: 1.5,
+      REFRESH: 0.5,
+      FADE: 0.6,
+    },
   },
 
   // Mato alto do LGPE (`encounter-grass`, o "mato de encontro"): pontos

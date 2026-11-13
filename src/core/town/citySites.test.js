@@ -3,8 +3,11 @@ import { getBiome } from '../data/biomes'
 import { GAME_CONFIG } from '../gameConfig'
 import { createWaterBodies } from '../terrain/waterBodies'
 import { createCitySites } from './citySites'
+import { createFixedTown } from './fixedTown'
 
-const PARAMS = GAME_CONFIG.CITIES
+// As cidades procedurais ligadas (o jogo, nesta beta, só tem a primeira:
+// `CITIES.ONLY_FIRST`, docs/features/069-revisao-do-bioma-cidade.md).
+const PARAMS = { ...GAME_CONFIG.CITIES, ONLY_FIRST: false }
 const { town } = getBiome('city')
 const SEED = 151
 
@@ -116,5 +119,53 @@ describe('createCitySites', () => {
       expect(second.distance).toBeCloseTo(distances[1], 9)
       expect(first.city).toBe(sites.nearestCity(x, z).city)
     }
+  })
+})
+
+// A primeira cidade fixa (docs/features/069-revisao-do-bioma-cidade.md —
+// Viridian): o disco dela cobre o mapa todo.
+describe('createCitySites com a cidade fixa', () => {
+  const fixedTown = createFixedTown({
+    params: PARAMS.FIRST_TOWN,
+    townBiome: getBiome('city'),
+    waterLevel: GAME_CONFIG.TERRAIN.WATER_LEVEL,
+  })
+
+  it.runIf(fixedTown)(
+    'a primeira é a fixa, na origem, com o raio do mapa',
+    () => {
+      const sites = createCitySites(SEED, {
+        town,
+        waterBodies: createWaterBodies(SEED),
+        params: PARAMS,
+        fixedTown,
+      })
+      const first = sites.cityAt(0, 0)
+      expect([first.x, first.z]).toEqual([0, 0])
+      expect(first.fixed).toBe(true)
+      expect(first.radius).toBe(fixedTown.radius)
+      expect(sites.cityAt(1, 0).fixed).toBeUndefined()
+    },
+  )
+
+  it('só com a primeira (ONLY_FIRST): a mais próxima de qualquer ponto é ela', () => {
+    const sites = sitesFor(SEED, { ...PARAMS, ONLY_FIRST: true })
+    const first = sites.cityAt(0, 0)
+    for (const [x, z] of [
+      [0, 0],
+      [PARAMS.SPACING * 2.3, -PARAMS.SPACING * 4.1],
+      [-PARAMS.SPACING * 7, PARAMS.SPACING],
+    ]) {
+      const { city, distance } = sites.nearestCity(x, z)
+      expect(city).toBe(first)
+      expect(distance).toBeCloseTo(Math.hypot(x - first.x, z - first.z), 9)
+      const nearest = sites.nearestCities(x, z, 2)
+      expect(nearest).toHaveLength(1)
+      expect(nearest[0].city).toBe(first)
+    }
+  })
+
+  it('o jogo, nesta beta, só tem a primeira cidade', () => {
+    expect(GAME_CONFIG.CITIES.ONLY_FIRST).toBe(true)
   })
 })

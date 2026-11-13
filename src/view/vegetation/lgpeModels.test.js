@@ -2,6 +2,9 @@ import { readFileSync } from 'node:fs'
 import * as THREE from 'three'
 import { describe, expect, it } from 'vitest'
 import { listBiomes } from '@/core/data/biomes'
+import { listCityLayouts } from '@/core/data/cityLayouts'
+import LGPE_COLLIDERS from '@/core/data/lgpeColliders.json'
+import { DECOR_KIND } from '@/core/town/townPlan'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import {
   LGPE_KIND_CATEGORIES,
@@ -12,6 +15,7 @@ import {
   mergeLgpeManifests,
   missingPropFields,
   prepareLgpeTexture,
+  usedLgpeIds,
   withBorrowedLeaves,
   withHeightRamp,
 } from './lgpeModels'
@@ -153,6 +157,38 @@ describe('cidades', () => {
           .filter(Boolean)
           .map(({ model }) => model)
         for (const id of models) expect(manifest.props[id]).toBeDefined()
+      }
+    }
+  })
+})
+
+describe('cidades montadas à mão (069)', () => {
+  const props = listCityLayouts().flatMap(({ props = [] }) => props)
+
+  it('todo objeto dos layouts existe no manifesto e é carregado pela view', () => {
+    const used = usedLgpeIds()
+    for (const { model } of props) {
+      expect(manifest.props[model]).toBeDefined()
+      expect(used).toContain(model)
+    }
+  })
+
+  it('todo objeto dos layouts que colide tem casco e pegada (caixa no chão ou alcance do tronco)', () => {
+    for (const { kind, model } of props) {
+      if (!kind || kind === DECOR_KIND) continue
+      const collider = LGPE_COLLIDERS[model]
+      expect(collider?.points.length).toBeGreaterThan(0)
+      if (collider.box) expect(collider.box).toHaveLength(4)
+      else expect(collider.reach).toBeGreaterThan(0)
+    }
+  })
+
+  it('o que acende à noite (`glow`) é só de objeto de rua e tem cor', () => {
+    for (const prop of Object.values(manifest.props)) {
+      for (const entry of Object.values(prop.materials)) {
+        if (!entry.glow) continue
+        expect(prop.category).toBe('street')
+        expect(entry.maps.Texture01 ?? entry.maps.TextureMap01).toBeDefined()
       }
     }
   })

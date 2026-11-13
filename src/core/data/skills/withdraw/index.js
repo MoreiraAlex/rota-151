@@ -3,7 +3,7 @@
  * estágio, como na série. Mesmo formato do `../growth` (`group: 'self'`), ver
  * `../_template/index.js` pro que cada campo significa. Entrou na 059 com
  * valores padrão: VFX e som do "atributo subiu" do Growth, sem carga; o
- * refino fica pra 096.
+ * refino fica pra 097.
  */
 export const WITHDRAW_SKILL = {
   id: 'withdraw',

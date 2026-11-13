@@ -57,6 +57,20 @@ import { clusterObjects, piecesOf, sizeSignature } from './splitObjects.js'
  * `scripts/lgpe/interior-colliders.js`. Um objeto solto da `buildmodel/`
  * que vai na sala (a máquina de cura) entra no mesmo `--extra` com `file`
  * (e `skip`, as partes de efeito que ficam de fora).
+ *
+ * Um pedaço de um nó inteiro sai com `crop` (a janela, m do original: só
+ * os triângulos com o meio nela), e um objeto de um nó fundido, com
+ * `objectAt` (o objeto que cobre o ponto, m do original; `objectMargin`,
+ * a folga em cm do grupo de peças) — o kit das cercas, cercas-vivas e
+ * moitas de Viridian montada à mão
+ * (docs/features/069-revisao-do-bioma-cidade.md).
+ *
+ * As cidades copiadas inteiras (docs/features/069-revisao-do-bioma-
+ * cidade.md, Pallet) saem do mesmo jeito (`scripts/lgpe/town-maps.json`,
+ * `--out public/assets/town-maps/lgpe`), com `doors` (uma porta da
+ * `buildmodel/` por vão escuro) e `skipShaders` (os efeitos do mapa); o
+ * manifesto guarda a `origin` do modelo e a colisão vem de
+ * `scripts/lgpe/town-map-colliders.js`.
  */
 
 const { values: args } = parseArgs({
@@ -98,6 +112,41 @@ const PEWTER = { map: 'area03/town003_00.gfbmdl', folder: 'area03' }
 const CERULEAN = { map: 'area04/town004_00.gfbmdl', folder: 'area04' }
 const VERMILION = { map: 'area09/town006_00.gfbmdl', folder: 'area09' }
 const LAVENDER = { map: 'area08/town005_00.gfbmdl', folder: 'area08' }
+// Os detalhes das cidades (docs/features/069-revisao-do-bioma-cidade.md):
+// caixa de correio, hidrante, floreira, vaso, pedras de caminho, fonte e
+// canteiro, tirados de outras cidades de Kanto.
+const VIRIDIAN = { map: 'area02/town002_00.gfbmdl', folder: 'area02' }
+const CELADON = { map: 'area06/town007_00.gfbmdl', folder: 'area06' }
+const SAFFRON = { map: 'area07/town011_00.gfbmdl', folder: 'area07' }
+// Os nós com os vãos escuros das portas de Pallet e de Viridian (fora dos
+// prédios).
+const PALLET_DOORWAYS = 'inndoor'
+const VIRIDIAN_DOORWAYS = 'town002_00_doorway'
+// O kit da cerca de Viridian: a janela (m do original) de um trilho de
+// cada comprimento, do poste do começo até antes do poste do fim, e a do
+// poste da ponta de um trecho.
+const VIRIDIAN_FENCE_KIT = [
+  ['viridian-fence-3', 'Cerca 3 m (Viridian)', [5.94, -75.8, 8.93, -75.2]],
+  ['viridian-fence-2', 'Cerca 2 m (Viridian)', [13.94, -77.8, 15.93, -77.2]],
+  ['viridian-fence-1', 'Cerca 1 m (Viridian)', [14.94, -75.8, 15.93, -75.2]],
+  [
+    'viridian-fence-2-4',
+    'Cerca 2,4 m (Viridian)',
+    [35.29, -62.55, 37.68, -61.95],
+  ],
+  [
+    'viridian-fence-post',
+    'Poste da cerca (Viridian)',
+    [37.65, -65.2, 37.85, -64.8],
+  ],
+].map(([id, label, crop]) => ({ id, label, crop }))
+// As cercas-vivas de Viridian: um ponto (m do original) dentro de cada
+// formato.
+const VIRIDIAN_HEDGE_KIT = [
+  ['viridian-hedge', 'Cerca-viva (Viridian)', [16.5, -71.5]],
+  ['viridian-hedge-2', 'Cerca-viva dupla (Viridian)', [20.5, -74.5]],
+  ['viridian-hedge-4', 'Cerca-viva comprida (Viridian)', [23, -69.5]],
+].map(([id, label, at]) => ({ id, label, at }))
 // Um objeto de um nó fundido (`object`, docs/features/056-bioma-cidade.md):
 // os grandes (prédios), da esquerda para a direita e de trás para a frente.
 const BUILDING_MIN_WIDTH = 200
@@ -304,6 +353,11 @@ const MAP_PROPS = [
     category: 'building',
     ...PALLET,
     node: 'masaratown_house_labo',
+    // O vão escuro fica no nó das portas de Pallet (`inndoor`), fora do
+    // prédio, como em Viridian (docs/features/069-revisao-do-bioma-
+    // cidade.md: o laboratório em Viridian).
+    doorways: PALLET_DOORWAYS,
+    door: { model: 'town001_door02' },
     whole: true,
   },
   {
@@ -415,6 +469,189 @@ const MAP_PROPS = [
     category: 'street',
     ...PEWTER,
     node: 'lamp01',
+    // O vidro acende à noite (docs/features/069-revisao-do-bioma-cidade.md).
+    glow: ['lamp_glass01_area03_2'],
+  },
+  // Os detalhes das cidades (docs/features/069-revisao-do-bioma-cidade.md).
+  {
+    id: 'mailbox',
+    label: 'Caixa de correio (Saffron)',
+    category: 'street',
+    ...SAFFRON,
+    node: 'posts/minka_post',
+  },
+  {
+    id: 'hydrant',
+    label: 'Hidrante (Saffron)',
+    category: 'street',
+    ...SAFFRON,
+    node: 'firehiderants',
+  },
+  {
+    id: 'planter',
+    label: 'Floreira (Saffron)',
+    category: 'street',
+    ...SAFFRON,
+    node: 'flower_bed',
+  },
+  {
+    id: 'potted-plant',
+    label: 'Vaso (Celadon)',
+    category: 'street',
+    ...CELADON,
+    node: 'gardening02',
+  },
+  // Sem o piso da bacia (`dropFloor`, m da base): o chão da praça é o
+  // fundo dela.
+  {
+    id: 'fountain',
+    label: 'Fonte (Celadon)',
+    category: 'street',
+    ...CELADON,
+    node: 'fountain01',
+    dropFloor: 0.05,
+  },
+  {
+    id: 'log-flower-bed',
+    label: 'Canteiro de tronco (Viridian)',
+    category: 'street',
+    ...VIRIDIAN,
+    node: 'kadan02_002_00',
+    whole: true,
+  },
+  // A casa de Viridian, a cidade montada à mão (docs/features/069-revisao-
+  // do-bioma-cidade.md): as duas do mapa são iguais (uma só, posta duas
+  // vezes). O vão escuro da porta fica num nó à parte (`doorways`, o
+  // pedaço dele debaixo da casa), e o manifesto guarda a `origin` (o
+  // layout põe a casa no lugar do original). O Pokécenter, a loja e o
+  // ginásio de Viridian são os mesmos de Pewter (`pokecenter`,
+  // `poke-mart`, `gym`).
+  {
+    id: 'viridian-house',
+    label: 'Casa (Viridian)',
+    category: 'building',
+    ...VIRIDIAN,
+    node: 'bldg_minka',
+    object: 0,
+    doorways: VIRIDIAN_DOORWAYS,
+    door: { model: 'town002_door01' },
+    keepOrigin: true,
+  },
+  // As cercas, cercas-vivas e moitas de Viridian (docs/features/069-
+  // revisao-do-bioma-cidade.md): um kit tirado do mapa, cada peça posta e
+  // assentada sozinha pelo layout (o nosso degrau não é o do original) —
+  // `scripts/lgpe/city-props.js` acha onde cada uma fica, pela `origin`.
+  // A cerca: um módulo por comprimento de trilho (de poste a poste, com os
+  // postes do começo e do meio; a janela é a de um trilho do mapa) e o
+  // poste da ponta.
+  ...VIRIDIAN_FENCE_KIT.map(({ id, label, crop }) => ({
+    id,
+    label,
+    category: 'street',
+    ...VIRIDIAN,
+    node: 'fence_01_002_00',
+    whole: true,
+    crop,
+    keepOrigin: true,
+  })),
+  // As cercas-vivas: o bloco, o duplo e o comprido (cada um como no mapa).
+  ...VIRIDIAN_HEDGE_KIT.map(({ id, label, at }) => ({
+    id,
+    label,
+    category: 'street',
+    ...VIRIDIAN,
+    node: 'town002_00_tree/town002_00_tree08',
+    objectAt: at,
+    keepOrigin: true,
+  })),
+  // A moita redonda: uma que fica sozinha no mapa.
+  {
+    id: 'viridian-bush',
+    label: 'Moita (Viridian)',
+    category: 'street',
+    ...VIRIDIAN,
+    node: 'town002_00_tree/town002_00_tree05',
+    objectAt: [40.19, -53.44],
+    keepOrigin: true,
+  },
+  // Os objetos de rua de Viridian (docs/features/069-revisao-do-bioma-
+  // cidade.md): o poste, o banco, os vasos e as placas do mapa — cada um
+  // posto pelo layout (`scripts/lgpe/city-props.js`). As cópias do mapa
+  // estão todas viradas para o mesmo lado (a frente do banco para o sul).
+  // `glow`: os materiais que acendem à noite (o vidro do poste).
+  {
+    id: 'viridian-lamp',
+    label: 'Poste (Viridian)',
+    category: 'street',
+    ...VIRIDIAN,
+    node: 'lamp_town002',
+    objectAt: [26.51, -53.56],
+    glow: ['lamp01_02_area02_6'],
+  },
+  {
+    id: 'viridian-bench',
+    label: 'Banco (Viridian)',
+    category: 'street',
+    ...VIRIDIAN,
+    node: 'obj002_01',
+    objectAt: [13.02, -55.5],
+  },
+  {
+    id: 'viridian-pot',
+    label: 'Vaso (Viridian)',
+    category: 'street',
+    ...VIRIDIAN,
+    node: 'plant002_00/plant02',
+    whole: true,
+  },
+  {
+    id: 'viridian-pot-long',
+    label: 'Floreira comprida (Viridian)',
+    category: 'street',
+    ...VIRIDIAN,
+    node: 'plant002_00/plant05',
+    whole: true,
+  },
+  ...[
+    ['viridian-sign-town', 'Placa da cidade (Viridian)', 'signboard_town'],
+    [
+      'viridian-sign-gym',
+      'Placa do ginásio (Viridian)',
+      'bm_signboard04_bm_signboard04',
+    ],
+    ['viridian-sign', 'Placa (Viridian)', 'bm_signboard05'],
+    ['viridian-sign-glass', 'Placa com vidro (Viridian)', 'bm_signboard02'],
+  ].map(([id, label, node]) => ({
+    id,
+    label,
+    category: 'street',
+    ...VIRIDIAN,
+    node: `signbord/${node}`,
+    whole: true,
+  })),
+  // Chata: enfeite do chão, sem colisão (`decor`, fora do `colliders.js`).
+  {
+    id: 'stepping-stone',
+    label: 'Pedra de caminho (Pewter)',
+    category: 'decor',
+    ...PEWTER,
+    node: 'tobi_ishi/tobi_ishi01',
+  },
+  // Só de um tema: a bicicleta de Cerulean e o tambor do porto de
+  // Vermilion.
+  {
+    id: 'bike',
+    label: 'Bicicleta (Cerulean)',
+    category: 'street',
+    ...CERULEAN,
+    node: 'bike_03',
+  },
+  {
+    id: 'drum',
+    label: 'Tambor (Vermilion)',
+    category: 'street',
+    ...VERMILION,
+    node: 'obj006_00/can006',
   },
 ]
 
@@ -569,10 +806,19 @@ const GROUND_TEXTURES = {
     'sand01_com',
     'sand02_com',
     'cliff01_area02',
+    // A rocha do paredão de Viridian, embaixo (com grama) e em cima (com
+    // terra) — o barranco da montanha da cidade montada à mão
+    // (docs/features/069-revisao-do-bioma-cidade.md).
+    'cliff03_com',
+    'cliff04_com',
     // Calçamento das ruas das cidades (docs/features/056-bioma-cidade.md).
     'roadtile01_area02',
     'roadtile02_area02',
     'asphalt01_area02',
+    // As máscaras da beira da rua de Viridian montada à mão (a borda de
+    // terra e a guia — docs/features/069-revisao-do-bioma-cidade.md); a do
+    // lote é a `glassmask01_com`, da floresta.
+    'asphaltmask01_area02',
     'tile02_01_area02',
   ],
   area03: ['tile01_01_area03'],
@@ -646,15 +892,45 @@ function materialEntry(model, material, folder) {
     ...(material.blendMode !== 0 && {
       blend: commonValues.PreMultiplieMode === 1 ? 'add' : 'alpha',
     }),
+    ...layerOf(material.shader, maps),
+  }
+}
+
+// Os shaders de mistura do chão do mapa (a cidade copiada de Pallet,
+// docs/features/069-revisao-do-bioma-cidade.md): duas texturas, a de baixo
+// (grama, no UV plano do mundo) e a de cima (terra, barranco ou pedra), e
+// o canal vermelho da cor por vértice é quanto da de cima aparece — não é
+// cor. `uv`: o UV em que a de cima é lida (o barranco e a pedra têm o
+// próprio, o chão usa o mesmo da grama).
+const LAYER_SHADERS = {
+  FieldGroundShader01: { base: 'GrassTex01', top: 'GroundTex01', uv: 0 },
+  FieldCliffShader01: { base: 'GroundTex01', top: 'CliffTex01', uv: 1 },
+  FieldRockShader: { base: 'GroundTex01', top: 'Rock_tex', uv: 1 },
+}
+
+function layerOf(shader, maps) {
+  const layer = LAYER_SHADERS[shader]
+  if (!layer || !maps[layer.base] || !maps[layer.top]) return {}
+  return {
+    layer: { base: maps[layer.base], top: maps[layer.top], uv: layer.uv },
   }
 }
 
 /**
  * Monta as primitivas (uma por material) dos vértices escolhidos
- * (`keepVertex(mesh, vertex)`), em metros, com o centro em XZ e a base em
- * Y = 0.
+ * (`keepVertex(mesh, vertex, triângulo, vértices decodificados)`, pelo
+ * primeiro vértice de cada triângulo), em metros, com o centro em XZ e a base em
+ * Y = 0 — `center` é onde esse ponto ficava no original (m). Os materiais
+ * de shader em `skipShaders` ficam de fora (os efeitos de um mapa
+ * inteiro).
  */
-function buildPrimitives(model, meshes, keepVertex, scale = 1) {
+function buildPrimitives(
+  model,
+  meshes,
+  keepVertex,
+  scale = 1,
+  skipShaders = [],
+) {
   const parts = []
   const box = [Infinity, Infinity, Infinity, -Infinity, -Infinity, -Infinity]
   for (const { meshIndex, decoded } of meshes) {
@@ -662,6 +938,7 @@ function buildPrimitives(model, meshes, keepVertex, scale = 1) {
     for (const polygon of mesh.polygons) {
       const material = model.materials[polygon.materialIndex]
       if (material.shader === SHADOW_ONLY) continue
+      if (skipShaders.includes(material.shader)) continue
       const remap = new Map()
       const indices = []
       for (let i = 0; i < polygon.faces.length; i += 3) {
@@ -670,7 +947,7 @@ function buildPrimitives(model, meshes, keepVertex, scale = 1) {
           polygon.faces[i + 1],
           polygon.faces[i + 2],
         ]
-        if (!keepVertex(meshIndex, triangle[0])) continue
+        if (!keepVertex(meshIndex, triangle[0], triangle, decoded)) continue
         for (const vertex of triangle) {
           if (!remap.has(vertex)) remap.set(vertex, remap.size)
           indices.push(remap.get(vertex))
@@ -727,7 +1004,27 @@ function buildPrimitives(model, meshes, keepVertex, scale = 1) {
     }
   }
   const size = [box[3] - box[0], box[4] - box[1], box[5] - box[2]]
-  return { parts, size }
+  return { parts, size, center }
+}
+
+/**
+ * Sem o piso: os triângulos com os três vértices até `height` m da base
+ * (`dropFloor` no prop) — o fundo da bacia da fonte, que brigava com o chão
+ * calçado da praça (docs/features/069-revisao-do-bioma-cidade.md); o chão
+ * dela vira o fundo, debaixo da água.
+ */
+function withoutFloor(built, height) {
+  const parts = built.parts.map((part) => {
+    const isLow = (vertex) => part.position[vertex * 3 + 1] <= height
+    const indices = []
+    for (let i = 0; i < part.indices.length; i += 3) {
+      const triangle = part.indices.slice(i, i + 3)
+      if ([...triangle].every(isLow)) continue
+      indices.push(...triangle)
+    }
+    return { ...part, indices: Uint32Array.from(indices) }
+  })
+  return { ...built, parts: parts.filter(({ indices }) => indices.length) }
 }
 
 const props = {}
@@ -741,6 +1038,10 @@ function saveProp(spec, model, folder, { parts, size }, extra = {}) {
       source.model.materials.find(({ name }) => name === material),
       source.folder,
     )
+  }
+  for (const name of spec.glow ?? []) {
+    if (!materials[name]) throw new Error(`${spec.id}: sem o material ${name}`)
+    materials[name].glow = true
   }
   writeFileSync(join(out, 'props', `${spec.id}.glb`), writeGlb(spec.id, parts))
   props[spec.id] = {
@@ -773,6 +1074,70 @@ function boxOfParts(parts) {
   }
   return box
 }
+
+// Folga (m) em volta do prédio em que um pedaço do vão escuro ainda é
+// dele (a boca do vão fica rente à frente da parede).
+const DOORWAY_REACH = 0.5
+
+/**
+ * O vão escuro da porta quando o mapa o põe num nó à parte (`spec.doorways`,
+ * Viridian): os pedaços desse nó com o meio dentro da caixa do prédio (com
+ * `DOORWAY_REACH` de folga) entram como mais partes dele, na mesma
+ * origem — e o `withDoor` acha o vão neles.
+ */
+function withDoorways(spec, map, built) {
+  if (!spec.doorways) return built
+  const scale = spec.scale ?? 1
+  const [centerX, , centerZ] = built.center
+  const [sizeX, , sizeZ] = built.size
+  const isUnder = ([minX, , minZ, maxX, , maxZ]) => {
+    const x = ((minX + maxX) / 2) * CENTIMETERS * scale
+    const z = ((minZ + maxZ) / 2) * CENTIMETERS * scale
+    return (
+      Math.abs(x - centerX) <= sizeX / 2 + DOORWAY_REACH &&
+      Math.abs(z - centerZ) <= sizeZ / 2 + DOORWAY_REACH
+    )
+  }
+  const keep = new Map()
+  const meshes = map.groups
+    .filter(({ boneIndex }) => bonePath(map, boneIndex) === spec.doorways)
+    .map(({ meshIndex }) => {
+      const decoded = decodeVertices(map.meshes[meshIndex])
+      const { boxes, vertexPiece } = piecesOf(
+        decoded.position.array,
+        map.meshes[meshIndex].polygons.map(({ faces }) => faces),
+      )
+      const under = boxes.map(isUnder)
+      keep.set(meshIndex, (vertex) => under[vertexPiece[vertex]])
+      return { meshIndex, decoded }
+    })
+  const doorways = buildPrimitives(
+    map,
+    meshes,
+    (meshIndex, vertex) => keep.get(meshIndex)(vertex),
+    scale,
+  )
+  if (doorways.parts.length === 0) {
+    throw new Error(`${spec.id}: nenhum vão de porta em ${spec.doorways}`)
+  }
+  // Da origem dos vãos para a do prédio.
+  const offset = doorways.center.map((value, c) => value - built.center[c])
+  for (const part of doorways.parts) {
+    for (let i = 0; i < part.position.length; i += 3) {
+      for (let c = 0; c < 3; c++) part.position[i + c] += offset[c]
+    }
+  }
+  return { ...built, parts: [...built.parts, ...doorways.parts] }
+}
+
+// Onde o centro do modelo ficava no original (m): a cidade montada à mão
+// põe o prédio no lugar dele (`keepOrigin`), e o mapa inteiro (`all`)
+// precisa do mesmo ponto para a colisão (`scripts/lgpe/town-map-
+// colliders.js`).
+const originOf = (spec, built) =>
+  spec.all || spec.keepOrigin
+    ? { origin: built.center.map((value) => Number(value.toFixed(4))) }
+    : {}
 
 /**
  * A porta do prédio (docs/features/056-bioma-cidade.md): no Let's Go ela é
@@ -827,7 +1192,99 @@ function withDoor(spec, built) {
     }
     part.source = { model: door, folder: 'buildmodel' }
   }
-  return { parts: [...built.parts, ...doorParts.parts], size: built.size }
+  return { ...built, parts: [...built.parts, ...doorParts.parts] }
+}
+
+// Folga (m) em que dois pedaços do vão escuro ainda são o mesmo vão.
+const DOORWAY_MARGIN = 0.1
+
+/**
+ * Várias portas num modelo só (`spec.doors`, a lista dos modelos da
+ * `buildmodel/`): o mapa inteiro de uma cidade, com um vão escuro por
+ * prédio (docs/features/069-revisao-do-bioma-cidade.md, Pallet). Os vãos
+ * são separados em pedaços e ordenados de oeste para leste (e de norte
+ * para sul); a porta `n` vai no vão `n`, como em `withDoor`.
+ */
+function withDoors(spec, built) {
+  if (!spec.doors) return built
+  const doorways = built.parts.filter(({ material }) =>
+    /doorway/i.test(material),
+  )
+  const boxes = doorways.flatMap(
+    ({ position, indices }) => piecesOf(position, [indices]).boxes,
+  )
+  const { objectBoxes } = clusterObjects(boxes, DOORWAY_MARGIN)
+  const sorted = objectBoxes.sort((a, b) => a[0] - b[0] || a[2] - b[2])
+  if (sorted.length !== spec.doors.length) {
+    throw new Error(
+      `${spec.id}: ${sorted.length} vãos de porta, ${spec.doors.length} portas`,
+    )
+  }
+  const parts = [...built.parts]
+  spec.doors.forEach((name, index) => {
+    const door = parseGfbmdl(
+      readFileSync(join(args.field, 'buildmodel', `${name}.gfbmdl`)),
+    )
+    const doorParts = buildPrimitives(
+      door,
+      door.meshes.map((mesh, meshIndex) => ({
+        meshIndex,
+        decoded: decodeVertices(mesh),
+      })),
+      () => true,
+    )
+    const box = sorted[index]
+    const x = (box[0] + box[3]) / 2
+    const y = box[1]
+    const z = box[5] - doorParts.size[2] / 2
+    for (const part of doorParts.parts) {
+      for (let i = 0; i < part.position.length; i += 3) {
+        part.position[i] += x
+        part.position[i + 1] += y
+        part.position[i + 2] += z
+      }
+      part.source = { model: door, folder: 'buildmodel' }
+      parts.push(part)
+    }
+  })
+  return { ...built, parts }
+}
+
+/**
+ * Só os triângulos com o meio dentro da janela `spec.crop` (`[minX, minZ,
+ * maxX, maxZ]`, m do original): um pedaço de um nó que vem inteiro — um
+ * módulo da cerca de Viridian (docs/features/069-revisao-do-bioma-
+ * cidade.md), de poste a poste.
+ */
+function cropKeep(spec) {
+  if (!spec.crop) return () => true
+  const [minX, minZ, maxX, maxZ] = spec.crop
+  return (meshIndex, vertex, triangle, decoded) => {
+    const { array, size } = decoded.position
+    let x = 0
+    let z = 0
+    for (const v of triangle) {
+      x += array[v * size] * CENTIMETERS
+      z += array[v * size + 2] * CENTIMETERS
+    }
+    x /= 3
+    z /= 3
+    return x >= minX && x < maxX && z >= minZ && z < maxZ
+  }
+}
+
+// O objeto (índice em `objectBoxes`, cm) que cobre o ponto `[x, z]` (m do
+// original), ou erro.
+function objectAt(objectBoxes, [x, z]) {
+  const index = objectBoxes.findIndex(
+    (box) =>
+      x * 100 >= box[0] &&
+      x * 100 <= box[3] &&
+      z * 100 >= box[2] &&
+      z * 100 <= box[5],
+  )
+  if (index < 0) throw new Error(`nenhum objeto em ${x}, ${z}`)
+  return index
 }
 
 // Dos mapas: o objeto mais comum do nó.
@@ -876,15 +1333,24 @@ for (const spec of [...(onlyExtra ? [] : MAP_PROPS), ...extraMapProps]) {
     throw new Error(`nó ${spec.node} não achado em ${spec.map}`)
   // Inteiro: o prédio é um objeto só (telhado, janela e placa juntos).
   if (spec.whole) {
-    saveProp(
+    const built = withDoors(
       spec,
-      map,
-      spec.folder,
       withDoor(
         spec,
-        buildPrimitives(map, meshes, () => true, spec.scale),
+        withDoorways(
+          spec,
+          map,
+          buildPrimitives(
+            map,
+            meshes,
+            cropKeep(spec),
+            spec.scale,
+            spec.skipShaders,
+          ),
+        ),
       ),
     )
+    saveProp(spec, map, spec.folder, built, originOf(spec, built))
     continue
   }
   const boxes = []
@@ -899,9 +1365,13 @@ for (const spec of [...(onlyExtra ? [] : MAP_PROPS), ...extraMapProps]) {
     vertexPieces.set(meshIndex, vertexPiece)
     boxes.push(...own)
   }
+  // Os prédios (`object`) e os escolhidos por ponto (`objectAt`, folhas
+  // soltas) juntam as peças perto umas das outras.
   const { pieceObject, objectBoxes } = clusterObjects(
     boxes,
-    spec.object == null ? 0 : BUILDING_MARGIN,
+    spec.object == null && !spec.objectAt
+      ? 0
+      : (spec.objectMargin ?? BUILDING_MARGIN),
   )
   const counts = new Map()
   objectBoxes.forEach((box, i) => {
@@ -912,18 +1382,20 @@ for (const spec of [...(onlyExtra ? [] : MAP_PROPS), ...extraMapProps]) {
   const [, objects] = [...counts.entries()].sort(
     (a, b) => b[1].length - a[1].length,
   )[0]
-  const chosen =
-    spec.object == null ? objects[0] : nthBuildingOf(objectBoxes, spec.object)
+  const chosen = spec.objectAt
+    ? objectAt(objectBoxes, spec.objectAt)
+    : spec.object == null
+      ? objects[0]
+      : nthBuildingOf(objectBoxes, spec.object)
   const objectOf = (meshIndex, vertex) =>
     pieceObject[
       pieceOffset.get(meshIndex) + vertexPieces.get(meshIndex)[vertex]
     ]
-  saveProp(
+  const built = withDoor(
     spec,
-    map,
-    spec.folder,
-    withDoor(
+    withDoorways(
       spec,
+      map,
       buildPrimitives(
         map,
         meshes,
@@ -931,7 +1403,13 @@ for (const spec of [...(onlyExtra ? [] : MAP_PROPS), ...extraMapProps]) {
         spec.scale,
       ),
     ),
-    { copiesInMap: objects.length },
+  )
+  saveProp(
+    spec,
+    map,
+    spec.folder,
+    spec.dropFloor ? withoutFloor(built, spec.dropFloor) : built,
+    { copiesInMap: objects.length, ...originOf(spec, built) },
   )
 }
 
@@ -978,7 +1456,7 @@ writeFileSync(
     {
       source: onlyExtra
         ? `Pokémon Let's Go Pikachu/Eevee — ${args.extra}`
-        : "Pokémon Let's Go Pikachu/Eevee — forest001_00, road001_00, road003_00, road022_00, road004_1_00, road009_00, town001_00, town003_00 e buildmodel",
+        : "Pokémon Let's Go Pikachu/Eevee — forest001_00, road001_00, road003_00, road022_00, road004_1_00, road009_00, town001_00, town002_00, town003_00, town004_00, town005_00, town006_00, town007_00, town011_00 e buildmodel",
       props,
       ground,
       toonTables: onlyExtra ? [] : TOON_TABLES,

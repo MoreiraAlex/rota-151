@@ -9,6 +9,7 @@ import { GAME_CONFIG } from '@/core/gameConfig'
 import { fogColorOf } from './backdropGeometry'
 import { dayPhaseOf, lightingAt } from '@/core/time/dayCycle'
 import { updateSilhouettes } from '@/view/materials/silhouetteVisibility'
+import { setNightGlow } from '@/view/vegetation/toonMaterial'
 import {
   GraphicsSettings,
   Indoors,
@@ -303,9 +304,13 @@ export function DayNightView() {
     } else if (scene.background === interiorBackground) {
       scene.background = null
     }
+    const lighting = lightingAt(clock.time)
+    // O vidro dos postes acende com a noite (as estrelas do ciclo, sem o
+    // clima: o céu fechado não acende de dia).
+    setNightGlow(lighting.stars)
     const look = indoors
       ? interiorLook()
-      : resolveSkyLook(lightingAt(clock.time), weather, flashLevel())
+      : resolveSkyLook(lighting, weather, flashLevel())
 
     if (!indoors) {
       const uniforms = material.uniforms

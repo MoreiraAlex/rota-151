@@ -29,7 +29,12 @@ const tick = (world) => chunkStreamingSystem({ world, delta: 1 / 60 })
 const loadedCount = () => TEST_LEVEL.terrain.loadedChunks().length
 const side = (radius) => 2 * radius + 1
 
-describe('chunkStreamingSystem', () => {
+// Gera chunks de verdade (relevo, vegetação, sólidos): cada caso leva perto
+// de um segundo sozinho e passa do tempo padrão com a suíte inteira em
+// paralelo — o tempo próprio é maior.
+const SLOW_TIMEOUT = 30_000
+
+describe('chunkStreamingSystem', { timeout: SLOW_TIMEOUT }, () => {
   it('no primeiro tick, o chão em volta do treinador carrega na hora', () => {
     const { world } = setup()
     tick(world)

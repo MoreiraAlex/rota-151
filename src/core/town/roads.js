@@ -2,6 +2,7 @@ import { GAME_CONFIG } from '../gameConfig'
 import { smoothstep } from '../math'
 import { createRng, deriveSeed } from '../rng'
 import { heightIndex } from '../terrain/terrainChunk'
+import { distanceOutside, gateToward } from './fixedTown'
 
 /**
  * Estradas entre as cidades (docs/features/058-ajuste-dos-biomas.md): as
@@ -14,9 +15,12 @@ import { heightIndex } from '../terrain/terrainChunk'
  *   ligar também a outra (voltas e atalhos).
  * - **Traçado**: do centro de uma cidade ao da outra, sinuoso (duas curvas
  *   de lado, até `ROADS.WARP` do comprimento), em pontos a cada
- *   `ROADS.STEP` m.
+ *   `ROADS.STEP` m. Na cidade fixa (`fixedTown.js`, docs/features/069-
+ *   revisao-do-bioma-cidade.md), a ponta é a saída do mapa que mais dá
+ *   para a outra cidade, não o centro.
  * - **Força** (0 a 1): pela distância até o traçado (`WIDTH`, `EDGE`),
- *   sumindo dentro das cidades (onde as ruas delas assumem).
+ *   sumindo dentro das cidades (onde as ruas delas assumem) — na fixa, só
+ *   dentro da área do mapa (a estrada chega até a saída).
  * - **Vau** (`fordAt`): a faixa mais larga (`FORD_WIDTH`) onde o leito de
  *   rio ou lago fica raso — o relevo usa (`terrainHeight.js`), e dá para
  *   atravessar a pé.
@@ -103,11 +107,18 @@ export function createRoads(seed, { cities, params = GAME_CONFIG.ROADS }) {
     return links.get(key)
   }
 
+  // A ponta da estrada na cidade `city` indo para `other`: o centro, ou a
+  // saída do mapa da cidade fixa.
+  const endOf = (city, other) =>
+    city.fixedTown ? gateToward(city.fixedTown, other.x, other.z) : city
+
   // O traçado de uma cidade à vizinha: a reta com duas curvas de lado (uma
   // grande no meio, uma menor em S), pela seed.
-  function traceEdge(from, to) {
-    const id = `${from.id}>${to.id}`
+  function traceEdge(fromCity, toCity) {
+    const id = `${fromCity.id}>${toCity.id}`
     const rng = createRng(deriveSeed(seed, `road-trace:${id}`))
+    const from = endOf(fromCity, toCity)
+    const to = endOf(toCity, fromCity)
     const dx = to.x - from.x
     const dz = to.z - from.z
     const length = Math.hypot(dx, dz)
@@ -192,6 +203,9 @@ export function createRoads(seed, { cities, params = GAME_CONFIG.ROADS }) {
   // borda dela): lá valem as ruas.
   function outsideCities(x, z) {
     const { city, distance } = cities.nearestCity(x, z)
+    if (city.fixedTown) {
+      return smoothstep(0, WIDTH, distanceOutside(city.fixedTown, x, z))
+    }
     return smoothstep(city.radius - cities.edge, city.radius, distance)
   }
 

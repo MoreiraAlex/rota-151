@@ -15,7 +15,7 @@ import {
 import { createParticleSystem } from '@/view/vfx/particleEmitter'
 import { buildDashEmitters, DASH_TEXTURE_PATHS } from '@/view/vfx/dashVfx'
 import { createFollowEffectManager } from '@/view/vfx/followEffectManager'
-import { levelWaterDepthAt } from '@/core/actions/water'
+import { levelWaterDepthAt, levelWaterSurfaceAt } from '@/core/actions/water'
 import { addFootRipple } from '@/view/water/footRipples'
 
 // Passo máximo da simulação — um frame longo não pode virar um salto das partículas.
@@ -77,7 +77,7 @@ export function DashEffectsView() {
         if (water && !flying) {
           addFootRipple(
             origin[0],
-            GAME_CONFIG.TERRAIN.WATER_LEVEL,
+            levelWaterSurfaceAt(origin[0], origin[2]),
             origin[2],
             GAME_CONFIG.FEEDBACK.WATER_SPLASH.RING_SIZE,
           )
@@ -133,7 +133,7 @@ export function DashEffectsView() {
         // `2 * clearance` pra cima
         origin: [
           pos.x,
-          water ? Math.max(feetY, GAME_CONFIG.TERRAIN.WATER_LEVEL) : feetY,
+          water ? Math.max(feetY, levelWaterSurfaceAt(pos.x, pos.z)) : feetY,
           pos.z,
         ],
         // pra onde o dash VAI (travada no disparo), não pra onde o corpo olha agora

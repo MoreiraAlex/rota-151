@@ -1,5 +1,5 @@
 {
-  "source": "Pokémon Let's Go Pikachu/Eevee — forest001_00, road001_00, road003_00, road022_00, road004_1_00, road009_00, town001_00, town003_00 e buildmodel",
+  "source": "Pokémon Let's Go Pikachu/Eevee — forest001_00, road001_00, road003_00, road022_00, road004_1_00, road009_00, town001_00, town002_00, town003_00, town004_00, town005_00, town006_00, town007_00, town011_00 e buildmodel",
   "props": {
     "round-tree": {
       "label": "Árvore redonda (Rota 1)",
@@ -1867,6 +1867,62 @@
             1,
             1
           ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "doorway01_com": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "doorway01_com",
+            "LightMask_uv1": "doorway02_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.5787135362625122,
+            0.9225112795829773,
+            1.0000240802764893
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": [
+            1,
+            0.24609452486038208,
+            0.03299999237060547
+          ],
+          "greenColor": null
+        },
+        "town001_door02_window": {
+          "shader": "FieldWindowShader",
+          "maps": {
+            "TextureMap01": "window01_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23454786837100983,
+            0.36131009459495544,
+            0.39157116413116455
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "town001_door02_01": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "town001_door02_01"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.06319000571966171,
+            0.40182363986968994,
+            0.4449999928474426
+          ],
+          "rimColor": null,
+          "rim": null,
           "lightColor": null,
           "greenColor": null
         }
@@ -3831,7 +3887,8 @@
           "rimColor": null,
           "rim": null,
           "lightColor": null,
-          "greenColor": null
+          "greenColor": null,
+          "glow": true
         },
         "lamp01_town03_land03_2": {
           "shader": "FieldObjectShader_Emission",
@@ -3854,6 +3911,1325 @@
         }
       },
       "copiesInMap": 7
+    },
+    "mailbox": {
+      "label": "Caixa de correio (Saffron)",
+      "category": "street",
+      "file": "props/mailbox.glb",
+      "size": [
+        0.35,
+        1.25,
+        0.65
+      ],
+      "materials": {
+        "post01_01_area07_2": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "post01_01_area07"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23480798304080963,
+            0.3617064356803894,
+            0.3919999897480011
+          ],
+          "rimColor": [
+            1,
+            1,
+            1
+          ],
+          "rim": [
+            0.6049379706382751,
+            1,
+            0.3086419701576233
+          ],
+          "lightColor": null,
+          "greenColor": null
+        }
+      },
+      "copiesInMap": 1
+    },
+    "hydrant": {
+      "label": "Hidrante (Saffron)",
+      "category": "street",
+      "file": "props/hydrant.glb",
+      "size": [
+        0.477,
+        0.787,
+        0.478
+      ],
+      "materials": {
+        "shadowtable01_t": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "firehydrant01_01_area7"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23480798304080963,
+            0.3617064356803894,
+            0.3919999897480011
+          ],
+          "rimColor": [
+            1.0000240802764893,
+            0.24286490678787231,
+            0.24286490678787231
+          ],
+          "rim": [
+            0.5061728358268738,
+            1,
+            0.8888888955116272
+          ],
+          "lightColor": null,
+          "greenColor": null
+        }
+      },
+      "copiesInMap": 10
+    },
+    "planter": {
+      "label": "Floreira (Saffron)",
+      "category": "street",
+      "file": "props/planter.glb",
+      "size": [
+        2.775,
+        0.415,
+        0.596
+      ],
+      "materials": {
+        "flowerbed01_01_area07_2": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "flowerbed01_01_area07"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23480798304080963,
+            0.3617064356803894,
+            0.3919999897480011
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        }
+      },
+      "copiesInMap": 5
+    },
+    "potted-plant": {
+      "label": "Vaso (Celadon)",
+      "category": "street",
+      "file": "props/potted-plant.glb",
+      "size": [
+        0.477,
+        0.545,
+        0.448
+      ],
+      "materials": {
+        "bm_plant05_bm_plant05_01": {
+          "shader": "FieldObjectShader_room",
+          "maps": {
+            "Texture01": "bm_plant05_01"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.4479812979698181,
+            0.4479812979698181,
+            0.4479812979698181
+          ],
+          "rimColor": [
+            0.11601446568965912,
+            0.21403686702251434,
+            0.05087645351886749
+          ],
+          "rim": [
+            0.6049379706382751,
+            1,
+            0.20000000298023224
+          ],
+          "lightColor": null,
+          "greenColor": null
+        }
+      },
+      "copiesInMap": 5
+    },
+    "fountain": {
+      "label": "Fonte (Celadon)",
+      "category": "street",
+      "file": "props/fountain.glb",
+      "size": [
+        3.4,
+        0.65,
+        3.4
+      ],
+      "materials": {
+        "fountain01_area06": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "fountain01_area06"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23454786837100983,
+            0.36131009459495544,
+            0.39157116413116455
+          ],
+          "rimColor": [
+            0.47857099771499634,
+            0.47857099771499634,
+            0.47857099771499634
+          ],
+          "rim": [
+            0.6049379706382751,
+            1,
+            0.4135800004005432
+          ],
+          "lightColor": null,
+          "greenColor": null
+        }
+      },
+      "copiesInMap": 1
+    },
+    "log-flower-bed": {
+      "label": "Canteiro de tronco (Viridian)",
+      "category": "street",
+      "file": "props/log-flower-bed.glb",
+      "size": [
+        4.612,
+        0.359,
+        3.193
+      ],
+      "materials": {
+        "plant02_area02": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "plant02_area02"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "plant03_area02": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "plant03_area02"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": [
+            0.47857099771499634,
+            0.47857099771499634,
+            0.47857099771499634
+          ],
+          "rim": [
+            0.6049379706382751,
+            1,
+            0.4135800004005432
+          ],
+          "lightColor": null,
+          "greenColor": null
+        }
+      }
+    },
+    "viridian-house": {
+      "label": "Casa (Viridian)",
+      "category": "building",
+      "file": "props/viridian-house.glb",
+      "size": [
+        5,
+        3.218,
+        2.8
+      ],
+      "materials": {
+        "house03_03_area02": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "house03_03_area02"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": [
+            0.47857099771499634,
+            0.47857099771499634,
+            0.47857099771499634
+          ],
+          "rim": [
+            0.6049379706382751,
+            1,
+            0.4135800004005432
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "house03_01_area02": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "house03_01_area02"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": [
+            0.47857099771499634,
+            0.47857099771499634,
+            0.47857099771499634
+          ],
+          "rim": [
+            0.6049379706382751,
+            1,
+            0.4135800004005432
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "rooftile04_01_area02": {
+          "shader": "FieldDefaultShader",
+          "maps": {
+            "Texture01": "rooftile04_01_area02",
+            "Texture02": "rooftile04_02_area02",
+            "HighlightMap": "rooftile04_02_area02"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": [
+            0.19864098727703094,
+            1.0000240802764893,
+            0.3884921073913574
+          ],
+          "rim": [
+            0.6049379706382751,
+            1,
+            0.7716050148010254
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "house03_02_area02": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "house03_02_area02"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": [
+            0.47857099771499634,
+            0.47857099771499634,
+            0.47857099771499634
+          ],
+          "rim": [
+            0.6049379706382751,
+            1,
+            0.4135800004005432
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "window01_com": {
+          "shader": "FieldWindowShader",
+          "maps": {
+            "TextureMap01": "window01_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "doorway01_com": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "doorway01_com",
+            "LightMask_uv1": "doorway02_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.5787135362625122,
+            0.9225112795829773,
+            1.0000240802764893
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": [
+            1,
+            0.24609452486038208,
+            0.03299999237060547
+          ],
+          "greenColor": null
+        },
+        "town002_door01_window": {
+          "shader": "FieldWindowShader",
+          "maps": {
+            "TextureMap01": "window01_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.06319000571966171,
+            0.40182363986968994,
+            0.4449999928474426
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "town002_door01_01": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "town002_door01_01"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23454800248146057,
+            0.3613100051879883,
+            0.3915709853172302
+          ],
+          "rimColor": [
+            0.47857099771499634,
+            0.47857099771499634,
+            0.47857099771499634
+          ],
+          "rim": [
+            0.6049379706382751,
+            1,
+            0.4135800004005432
+          ],
+          "lightColor": null,
+          "greenColor": null
+        }
+      },
+      "copiesInMap": 2,
+      "origin": [
+        23.5,
+        3.5,
+        -74.5
+      ]
+    },
+    "viridian-fence-3": {
+      "label": "Cerca 3 m (Viridian)",
+      "category": "street",
+      "file": "props/viridian-fence-3.glb",
+      "size": [
+        3.1,
+        0.7,
+        0.1
+      ],
+      "materials": {
+        "roadfence01_com": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "roadfence01_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": [
+            0.7519084215164185,
+            0.7519084215164185,
+            0.7519084215164185
+          ],
+          "rim": [
+            0.5,
+            1,
+            0.4000000059604645
+          ],
+          "lightColor": null,
+          "greenColor": null
+        }
+      },
+      "origin": [
+        7.45,
+        3.5,
+        -75.5
+      ]
+    },
+    "viridian-fence-2": {
+      "label": "Cerca 2 m (Viridian)",
+      "category": "street",
+      "file": "props/viridian-fence-2.glb",
+      "size": [
+        2.1,
+        0.7,
+        0.1
+      ],
+      "materials": {
+        "roadfence01_com": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "roadfence01_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": [
+            0.7519084215164185,
+            0.7519084215164185,
+            0.7519084215164185
+          ],
+          "rim": [
+            0.5,
+            1,
+            0.4000000059604645
+          ],
+          "lightColor": null,
+          "greenColor": null
+        }
+      },
+      "origin": [
+        14.95,
+        3.5,
+        -77.5
+      ]
+    },
+    "viridian-fence-1": {
+      "label": "Cerca 1 m (Viridian)",
+      "category": "street",
+      "file": "props/viridian-fence-1.glb",
+      "size": [
+        1.09,
+        0.63,
+        0.1
+      ],
+      "materials": {
+        "roadfence01_com": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "roadfence01_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": [
+            0.7519084215164185,
+            0.7519084215164185,
+            0.7519084215164185
+          ],
+          "rim": [
+            0.5,
+            1,
+            0.4000000059604645
+          ],
+          "lightColor": null,
+          "greenColor": null
+        }
+      },
+      "origin": [
+        15.455,
+        3.5,
+        -75.5
+      ]
+    },
+    "viridian-fence-2-4": {
+      "label": "Cerca 2,4 m (Viridian)",
+      "category": "street",
+      "file": "props/viridian-fence-2-4.glb",
+      "size": [
+        2.5,
+        0.7,
+        0.1
+      ],
+      "materials": {
+        "roadfence01_com": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "roadfence01_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": [
+            0.7519084215164185,
+            0.7519084215164185,
+            0.7519084215164185
+          ],
+          "rim": [
+            0.5,
+            1,
+            0.4000000059604645
+          ],
+          "lightColor": null,
+          "greenColor": null
+        }
+      },
+      "origin": [
+        36.5,
+        3.5,
+        -62.25
+      ]
+    },
+    "viridian-fence-post": {
+      "label": "Poste da cerca (Viridian)",
+      "category": "street",
+      "file": "props/viridian-fence-post.glb",
+      "size": [
+        0.2,
+        0.7,
+        0.1
+      ],
+      "materials": {
+        "roadfence01_com": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "roadfence01_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": [
+            0.7519084215164185,
+            0.7519084215164185,
+            0.7519084215164185
+          ],
+          "rim": [
+            0.5,
+            1,
+            0.4000000059604645
+          ],
+          "lightColor": null,
+          "greenColor": null
+        }
+      },
+      "origin": [
+        37.75,
+        3.5,
+        -65
+      ]
+    },
+    "viridian-hedge": {
+      "label": "Cerca-viva (Viridian)",
+      "category": "street",
+      "file": "props/viridian-hedge.glb",
+      "size": [
+        1.238,
+        0.837,
+        1.194
+      ],
+      "materials": {
+        "tree05_01": {
+          "shader": "FieldTreeShader01",
+          "maps": {
+            "Texture01": "tree05_01",
+            "HighlightMap": "tree05_02"
+          },
+          "cutoff": 0.8500000238418579,
+          "doubleSided": true,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": [
+            0.222657710313797,
+            0.7893978953361511,
+            0.1638227105140686
+          ],
+          "rim": [
+            0.5,
+            1,
+            1
+          ],
+          "lightColor": null,
+          "greenColor": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "copiesInMap": 7,
+      "origin": [
+        16.5099,
+        3.4937,
+        -71.5086
+      ]
+    },
+    "viridian-hedge-2": {
+      "label": "Cerca-viva dupla (Viridian)",
+      "category": "street",
+      "file": "props/viridian-hedge-2.glb",
+      "size": [
+        1.218,
+        0.837,
+        2.721
+      ],
+      "materials": {
+        "tree05_01": {
+          "shader": "FieldTreeShader01",
+          "maps": {
+            "Texture01": "tree05_01",
+            "HighlightMap": "tree05_02"
+          },
+          "cutoff": 0.8500000238418579,
+          "doubleSided": true,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": [
+            0.222657710313797,
+            0.7893978953361511,
+            0.1638227105140686
+          ],
+          "rim": [
+            0.5,
+            1,
+            1
+          ],
+          "lightColor": null,
+          "greenColor": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "copiesInMap": 7,
+      "origin": [
+        20.4719,
+        3.4937,
+        -74.5647
+      ]
+    },
+    "viridian-hedge-4": {
+      "label": "Cerca-viva comprida (Viridian)",
+      "category": "street",
+      "file": "props/viridian-hedge-4.glb",
+      "size": [
+        6.089,
+        0.837,
+        1.238
+      ],
+      "materials": {
+        "tree05_01": {
+          "shader": "FieldTreeShader01",
+          "maps": {
+            "Texture01": "tree05_01",
+            "HighlightMap": "tree05_02"
+          },
+          "cutoff": 0.8500000238418579,
+          "doubleSided": true,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": [
+            0.222657710313797,
+            0.7893978953361511,
+            0.1638227105140686
+          ],
+          "rim": [
+            0.5,
+            1,
+            1
+          ],
+          "lightColor": null,
+          "greenColor": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "copiesInMap": 7,
+      "origin": [
+        22.9811,
+        3.4937,
+        -69.4924
+      ]
+    },
+    "viridian-bush": {
+      "label": "Moita (Viridian)",
+      "category": "street",
+      "file": "props/viridian-bush.glb",
+      "size": [
+        2.139,
+        1.641,
+        2.128
+      ],
+      "materials": {
+        "tree07_01": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "tree07_01"
+          },
+          "cutoff": 0.7710176706314087,
+          "doubleSided": true,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": [
+            0.027922388166189194,
+            0.5594059228897095,
+            0.06628716737031937
+          ],
+          "rim": [
+            0.21502485871315002,
+            1,
+            1
+          ],
+          "lightColor": null,
+          "greenColor": null
+        }
+      },
+      "copiesInMap": 14,
+      "origin": [
+        40.1853,
+        3.8922,
+        -53.4521
+      ]
+    },
+    "viridian-lamp": {
+      "label": "Poste (Viridian)",
+      "category": "street",
+      "file": "props/viridian-lamp.glb",
+      "size": [
+        0.723,
+        2.722,
+        0.723
+      ],
+      "materials": {
+        "lamp01_02_area02_6": {
+          "shader": "FieldWindowShader",
+          "maps": {
+            "TextureMap01": "lamp_glass01_area02"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.30389127135276794,
+            0.46186554431915283,
+            0.4994472861289978
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null,
+          "glow": true
+        },
+        "lamp01_town02_area02_2": {
+          "shader": "FieldObjectShader_Emission",
+          "maps": {
+            "HighlightMap": "lamp01_02_town02_area02",
+            "Texture01": "lamp01_town02_area02",
+            "Reflection_tex": "light01_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23454786837100983,
+            0.36131009459495544,
+            0.39157116413116455
+          ],
+          "rimColor": [
+            0.4357140064239502,
+            0.4357140064239502,
+            0.4357140064239502
+          ],
+          "rim": [
+            0.2716049253940582,
+            0.4250498116016388,
+            0.32601723074913025
+          ],
+          "lightColor": null,
+          "greenColor": null
+        }
+      },
+      "copiesInMap": 7
+    },
+    "viridian-bench": {
+      "label": "Banco (Viridian)",
+      "category": "street",
+      "file": "props/viridian-bench.glb",
+      "size": [
+        1.9,
+        0.921,
+        0.686
+      ],
+      "materials": {
+        "roadbench02_area07": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "roadbench02_area02"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23454800248146057,
+            0.3613100051879883,
+            0.3915709853172302
+          ],
+          "rimColor": [
+            0.47857099771499634,
+            0.47857099771499634,
+            0.47857099771499634
+          ],
+          "rim": [
+            0.6049379706382751,
+            1,
+            0.4135800004005432
+          ],
+          "lightColor": null,
+          "greenColor": null
+        }
+      },
+      "copiesInMap": 2
+    },
+    "viridian-pot": {
+      "label": "Vaso (Viridian)",
+      "category": "street",
+      "file": "props/viridian-pot.glb",
+      "size": [
+        0.831,
+        0.397,
+        0.519
+      ],
+      "materials": {
+        "plant03_area02": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "plant03_area02"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": [
+            0.47857099771499634,
+            0.47857099771499634,
+            0.47857099771499634
+          ],
+          "rim": [
+            0.6049379706382751,
+            1,
+            0.4135800004005432
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "plant01_area02": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "plant01_area02"
+          },
+          "cutoff": 0.8500000238418579,
+          "doubleSided": true,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": [
+            0.47857099771499634,
+            0.47857099771499634,
+            0.47857099771499634
+          ],
+          "rim": [
+            0.6049379706382751,
+            1,
+            0.4135800004005432
+          ],
+          "lightColor": null,
+          "greenColor": null
+        }
+      }
+    },
+    "viridian-pot-long": {
+      "label": "Floreira comprida (Viridian)",
+      "category": "street",
+      "file": "props/viridian-pot-long.glb",
+      "size": [
+        1.031,
+        0.397,
+        2.769
+      ],
+      "materials": {
+        "plant03_area02": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "plant03_area02"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": [
+            0.47857099771499634,
+            0.47857099771499634,
+            0.47857099771499634
+          ],
+          "rim": [
+            0.6049379706382751,
+            1,
+            0.4135800004005432
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "plant01_area02": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "plant01_area02"
+          },
+          "cutoff": 0.8500000238418579,
+          "doubleSided": true,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": [
+            0.47857099771499634,
+            0.47857099771499634,
+            0.47857099771499634
+          ],
+          "rim": [
+            0.6049379706382751,
+            1,
+            0.4135800004005432
+          ],
+          "lightColor": null,
+          "greenColor": null
+        }
+      }
+    },
+    "viridian-sign-town": {
+      "label": "Placa da cidade (Viridian)",
+      "category": "street",
+      "file": "props/viridian-sign-town.glb",
+      "size": [
+        1.676,
+        1.653,
+        0.192
+      ],
+      "materials": {
+        "bm_signboard03_area02_3": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "bm_signboard03_area02"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.2719976603984833,
+            0.4186955690383911,
+            0.4536985754966736
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        }
+      }
+    },
+    "viridian-sign-gym": {
+      "label": "Placa do ginásio (Viridian)",
+      "category": "street",
+      "file": "props/viridian-sign-gym.glb",
+      "size": [
+        1.11,
+        1.52,
+        0.164
+      ],
+      "materials": {
+        "bm_signboard04_01": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "bm_signboard04_01"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": [
+            1.0000240802764893,
+            1.0000240802764893,
+            1.0000240802764893
+          ],
+          "rim": [
+            0.47331368923187256,
+            1,
+            1
+          ],
+          "lightColor": null,
+          "greenColor": null
+        }
+      }
+    },
+    "viridian-sign": {
+      "label": "Placa (Viridian)",
+      "category": "street",
+      "file": "props/viridian-sign.glb",
+      "size": [
+        0.727,
+        1.41,
+        0.158
+      ],
+      "materials": {
+        "bm_signboard05_01": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "bm_signboard05_01",
+            "NormalMap": "bm_signboard05_01"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": [
+            1.0000240802764893,
+            1.0000240802764893,
+            1.0000240802764893
+          ],
+          "rim": [
+            0.3483794629573822,
+            1,
+            1
+          ],
+          "lightColor": null,
+          "greenColor": null
+        }
+      }
+    },
+    "viridian-sign-glass": {
+      "label": "Placa com vidro (Viridian)",
+      "category": "street",
+      "file": "props/viridian-sign-glass.glb",
+      "size": [
+        0.945,
+        1.534,
+        0.208
+      ],
+      "materials": {
+        "bldg_pc_window01_com1": {
+          "shader": "FieldWindowShader",
+          "maps": {
+            "TextureMap01": "bldg_pc_window01_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null,
+          "blend": "alpha"
+        },
+        "bm_signboard02_01": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "bm_signboard02_01"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": [
+            1.0000239610671997,
+            0.6037060022354126,
+            0.45513400435447693
+          ],
+          "rim": [
+            0.6049379706382751,
+            1,
+            1
+          ],
+          "lightColor": null,
+          "greenColor": null
+        }
+      }
+    },
+    "stepping-stone": {
+      "label": "Pedra de caminho (Pewter)",
+      "category": "decor",
+      "file": "props/stepping-stone.glb",
+      "size": [
+        1.101,
+        0.05,
+        1.09
+      ],
+      "materials": {
+        "rock02_01_area03": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "rock02_01_area03"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23454800248146057,
+            0.3613100051879883,
+            0.3915709853172302
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        }
+      },
+      "copiesInMap": 1
+    },
+    "bike": {
+      "label": "Bicicleta (Cerulean)",
+      "category": "street",
+      "file": "props/bike.glb",
+      "size": [
+        1.514,
+        1.03,
+        0.706
+      ],
+      "materials": {
+        "bike01_t004r04": {
+          "shader": "FieldObjectShader_room",
+          "maps": {
+            "Texture01": "bike01_t004r04"
+          },
+          "cutoff": 0.8500000238418579,
+          "doubleSided": true,
+          "shadowColor": [
+            0.4479812979698181,
+            0.4479812979698181,
+            0.4479812979698181
+          ],
+          "rimColor": [
+            0.21403686702251434,
+            0.21403686702251434,
+            0.21403686702251434
+          ],
+          "rim": [
+            0.6049379706382751,
+            1,
+            0.20000000298023224
+          ],
+          "lightColor": null,
+          "greenColor": null
+        }
+      },
+      "copiesInMap": 1
+    },
+    "drum": {
+      "label": "Tambor (Vermilion)",
+      "category": "street",
+      "file": "props/drum.glb",
+      "size": [
+        0.848,
+        1.16,
+        0.848
+      ],
+      "materials": {
+        "drumcan01_t006gym01": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "drumcan01_t006gym01"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23454800248146057,
+            0.3613100051879883,
+            0.3915709853172302
+          ],
+          "rimColor": [
+            0.47839999198913574,
+            0.47839999198913574,
+            0.47839999198913574
+          ],
+          "rim": [
+            0.6049379706382751,
+            1,
+            0.699999988079071
+          ],
+          "lightColor": null,
+          "greenColor": null
+        }
+      },
+      "copiesInMap": 3
     },
     "tall-grass": {
       "label": "Mato alto",
@@ -4787,12 +6163,15 @@
     "roadtile01_area02",
     "roadtile02_area02",
     "asphalt01_area02",
+    "asphaltmask01_area02",
     "tile02_01_area02",
     "tile01_01_area03",
     "cliff02_com",
     "tile01_01_area04",
     "tile02_01_area09",
-    "asphalt01_area08"
+    "asphalt01_area08",
+    "cliff03_com",
+    "cliff04_com"
   ],
   "toonTables": [
     "shadowtable01_t",
@@ -5448,6 +6827,66 @@
       "height": 256,
       "alpha": false
     },
+    "post01_01_area07": {
+      "file": "textures/post01_01_area07.png",
+      "width": 256,
+      "height": 128,
+      "alpha": false
+    },
+    "firehydrant01_01_area7": {
+      "file": "textures/firehydrant01_01_area7.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "flowerbed01_01_area07": {
+      "file": "textures/flowerbed01_01_area07.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "bm_plant05_01": {
+      "file": "textures/bm_plant05_01.png",
+      "width": 128,
+      "height": 128,
+      "alpha": false
+    },
+    "fountain01_area06": {
+      "file": "textures/fountain01_area06.png",
+      "width": 256,
+      "height": 128,
+      "alpha": false
+    },
+    "plant02_area02": {
+      "file": "textures/plant02_area02.png",
+      "width": 64,
+      "height": 128,
+      "alpha": false
+    },
+    "plant03_area02": {
+      "file": "textures/plant03_area02.png",
+      "width": 512,
+      "height": 256,
+      "alpha": false
+    },
+    "rock02_01_area03": {
+      "file": "textures/rock02_01_area03.png",
+      "width": 128,
+      "height": 128,
+      "alpha": false
+    },
+    "bike01_t004r04": {
+      "file": "textures/bike01_t004r04.png",
+      "width": 256,
+      "height": 256,
+      "alpha": true
+    },
+    "drumcan01_t006gym01": {
+      "file": "textures/drumcan01_t006gym01.png",
+      "width": 512,
+      "height": 512,
+      "alpha": false
+    },
     "encgrass01": {
       "file": "textures/encgrass01.png",
       "width": 256,
@@ -5764,6 +7203,144 @@
       "file": "textures/shadowtable02_t.png",
       "width": 256,
       "height": 8,
+      "alpha": false
+    },
+    "cliff03_com": {
+      "file": "textures/cliff03_com.png",
+      "width": 512,
+      "height": 256,
+      "alpha": false
+    },
+    "cliff04_com": {
+      "file": "textures/cliff04_com.png",
+      "width": 512,
+      "height": 256,
+      "alpha": false
+    },
+    "house03_03_area02": {
+      "file": "textures/house03_03_area02.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "house03_01_area02": {
+      "file": "textures/house03_01_area02.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "rooftile04_01_area02": {
+      "file": "textures/rooftile04_01_area02.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "rooftile04_02_area02": {
+      "file": "textures/rooftile04_02_area02.png",
+      "width": 256,
+      "height": 256,
+      "alpha": true
+    },
+    "house03_02_area02": {
+      "file": "textures/house03_02_area02.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "town002_door01_01": {
+      "file": "textures/town002_door01_01.png",
+      "width": 128,
+      "height": 128,
+      "alpha": false
+    },
+    "asphaltmask01_area02": {
+      "file": "textures/asphaltmask01_area02.png",
+      "width": 256,
+      "height": 512,
+      "alpha": true
+    },
+    "roadfence01_com": {
+      "file": "textures/roadfence01_com.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "tree05_01": {
+      "file": "textures/tree05_01.png",
+      "width": 256,
+      "height": 256,
+      "alpha": true
+    },
+    "tree05_02": {
+      "file": "textures/tree05_02.png",
+      "width": 64,
+      "height": 64,
+      "alpha": false
+    },
+    "tree07_01": {
+      "file": "textures/tree07_01.png",
+      "width": 512,
+      "height": 512,
+      "alpha": true
+    },
+    "lamp_glass01_area02": {
+      "file": "textures/lamp_glass01_area02.png",
+      "width": 64,
+      "height": 64,
+      "alpha": false
+    },
+    "lamp01_02_town02_area02": {
+      "file": "textures/lamp01_02_town02_area02.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "lamp01_town02_area02": {
+      "file": "textures/lamp01_town02_area02.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "roadbench02_area02": {
+      "file": "textures/roadbench02_area02.png",
+      "width": 512,
+      "height": 256,
+      "alpha": false
+    },
+    "plant01_area02": {
+      "file": "textures/plant01_area02.png",
+      "width": 256,
+      "height": 256,
+      "alpha": true
+    },
+    "bm_signboard03_area02": {
+      "file": "textures/bm_signboard03_area02.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "bm_signboard04_01": {
+      "file": "textures/bm_signboard04_01.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "bm_signboard05_01": {
+      "file": "textures/bm_signboard05_01.png",
+      "width": 128,
+      "height": 256,
+      "alpha": false
+    },
+    "bm_signboard02_01": {
+      "file": "textures/bm_signboard02_01.png",
+      "width": 256,
+      "height": 256,
+      "alpha": true
+    },
+    "town001_door02_01": {
+      "file": "textures/town001_door02_01.png",
+      "width": 128,
+      "height": 128,
       "alpha": false
     }
   }

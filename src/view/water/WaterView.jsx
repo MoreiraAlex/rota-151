@@ -10,6 +10,7 @@ import { LocalWeather, WorldClock } from '@/core/traits'
 import { world } from '@/core/world/world'
 import { useTerrainChunks } from '@/view/hooks/useTerrainChunks'
 import { resolveSkyLook } from '@/view/weather/skyLook'
+import { buildFountainWaterGeometry, fountainsOf } from './fountainWater'
 import { buildWaterChunkGeometry } from './waterGeometry'
 import { SHORE_REACH } from './shoreWave'
 import {
@@ -23,9 +24,10 @@ const skyTop = new THREE.Color()
 
 /**
  * A cor do céu que a água reflete: entre o alto do céu e o horizonte (só o
- * horizonte, no fim de tarde, deixava a água da cor do barro).
+ * horizonte, no fim de tarde, deixava a água da cor do barro). Também a do
+ * mar do mapa de uma cidade copiada (`view/townMap/TownMapView.jsx`).
  */
-function reflectedSky() {
+export function reflectedSky() {
   const clock = world.get(WorldClock)
   const weather = world.get(LocalWeather)
   if (!clock || !weather) return null
@@ -54,9 +56,24 @@ function WaterChunkView({ chunk, material }) {
 }
 
 /**
+ * A água das fontes das praças de um chunk (docs/features/069-revisao-do-
+ * bioma-cidade.md), no mesmo material; a geometria sai ao desmontar.
+ */
+function FountainWaterChunkView({ chunk, material }) {
+  const geometry = useMemo(
+    () => buildFountainWaterGeometry(fountainsOf(chunk)),
+    [chunk],
+  )
+  useEffect(() => () => geometry?.dispose(), [geometry])
+  if (!geometry) return null
+  return <mesh geometry={geometry} material={material} receiveShadow />
+}
+
+/**
  * A água (docs/features/049-vegetacao-e-floresta.md, docs/features/057-
  * lagos-e-rios.md): uma superfície por chunk carregado onde o chão fica
- * abaixo do nível da água, com a correnteza dos rios. Só o desenho — quem
+ * abaixo do nível da água, com a correnteza dos rios, e a das fontes das
+ * praças (docs/features/069-revisao-do-bioma-cidade.md). Só o desenho — quem
  * barra e atrasa é o core (`core/terrain/water.js`). Um material para
  * todos (o estilo toon, `waterMaterial.js`).
  *
@@ -73,13 +90,13 @@ export function WaterView() {
     updateWater(material, delta, reflectedSky())
   })
 
-  return TEST_LEVEL.terrain
-    .loadedChunks()
-    .map((chunk) => (
-      <WaterChunkView
-        key={`${chunk.chunkX},${chunk.chunkZ}`}
-        chunk={chunk}
-        material={material}
-      />
-    ))
+  return TEST_LEVEL.terrain.loadedChunks().map((chunk) => {
+    const key = `${chunk.chunkX},${chunk.chunkZ}`
+    return (
+      <group key={key}>
+        <WaterChunkView chunk={chunk} material={material} />
+        <FountainWaterChunkView chunk={chunk} material={material} />
+      </group>
+    )
+  })
 }

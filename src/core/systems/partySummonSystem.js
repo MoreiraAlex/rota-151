@@ -1,4 +1,5 @@
 import { getSpecies, getPlayerSpecies } from '../data/species'
+import { getTownMap } from '../data/townMaps'
 import { resolveAimPoint, resolveHandOrigin } from '../aim'
 import { GAME_CONFIG } from '../gameConfig'
 import { destroyCharacterBody } from '../physics/colliders'
@@ -18,6 +19,7 @@ import {
   ActionState,
   Fainted,
   Indoors,
+  OnTownMap,
   InputControlled,
   OwnedBy,
   Party,
@@ -488,6 +490,17 @@ export function partySummonSystem(context) {
           // Dentro de um prédio o time fica na bola (docs/features/068-
           // interior-dos-predios.md).
           events?.emit(summonBlockedIndoors({ trainer: entity }))
+        } else if (command === 'summon' && entity.has(OnTownMap)) {
+          // No mapa de uma cidade copiada (Pallet), por enquanto, também
+          // (docs/features/069-revisao-do-bioma-cidade.md): o caminho das
+          // criaturas é o do relevo lá embaixo.
+          const townMap = getTownMap(entity.get(OnTownMap).mapId)
+          events?.emit(
+            summonBlockedIndoors({
+              trainer: entity,
+              townMap: townMap?.name ?? null,
+            }),
+          )
         } else if (command === 'summon') {
           beginSummon(world, action, pos, rot, body, slot)
         }

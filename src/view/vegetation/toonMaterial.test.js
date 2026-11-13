@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import * as THREE from 'three'
 import { GAME_CONFIG } from '@/core/gameConfig'
-import { applyToonLook, createToonMaterial } from './toonMaterial'
+import { applyToonLook, createToonMaterial, setNightGlow } from './toonMaterial'
 
 // Some perto da câmera (docs/features/066-revisao-dos-biomas.md, item 1):
 // a copa, as pedras e os prédios.
@@ -111,5 +111,78 @@ describe('some perto da câmera (createToonMaterial)', () => {
         uniforms.uNearHide.value.x + uniforms.uNearHide.value.y,
       ).toBeLessThan(-1000)
     }
+  })
+})
+
+// O chão misturado do mapa de uma cidade copiada (docs/features/069-
+// revisao-do-bioma-cidade.md — Pallet): a camada de cima pelo canal
+// vermelho do vértice.
+describe('camada do chão misturado (createToonMaterial)', () => {
+  const GROUND = { ...BASE, sway: null, cutoff: null }
+
+  it('sem camada, sem a mistura', () => {
+    const material = createToonMaterial(GROUND)
+    expect(material.defines.LGPE_LAYER).toBeUndefined()
+  })
+
+  it('com a camada, mistura no UV escolhido e tem programa próprio', () => {
+    const plain = createToonMaterial(GROUND)
+    const layerMap = new THREE.Texture()
+    const onUv0 = createToonMaterial({ ...GROUND, layerMap, layerUv: 0 })
+    const onUv1 = createToonMaterial({ ...GROUND, layerMap, layerUv: 1 })
+    expect(onUv0.defines.LGPE_LAYER).toBe('')
+    expect(onUv0.defines.LGPE_LAYER_UV1).toBeUndefined()
+    expect(onUv1.defines.LGPE_LAYER_UV1).toBe('')
+    const keys = new Set(
+      [plain, onUv0, onUv1].map((material) => material.customProgramCacheKey()),
+    )
+    expect(keys.size).toBe(3)
+    const shader = compiled(onUv1)
+    expect(shader.uniforms.uLayerMap.value).toBe(layerMap)
+    expect(shader.fragmentShader).toContain('uLayerMap')
+    expect(shader.vertexShader).toContain('vLayerWeight')
+  })
+})
+
+// A luz dos postes à noite (docs/features/069-revisao-do-bioma-cidade.md):
+// o vidro acende com a noite, na cor do config.
+describe('luz dos postes (createToonMaterial)', () => {
+  const GLASS = { ...BASE, sway: null, cutoff: null }
+  const LAMP_GLOW = GAME_CONFIG.LGPE.LAMP_GLOW
+  const originalGlow = { ...LAMP_GLOW }
+  afterEach(() => {
+    Object.assign(LAMP_GLOW, originalGlow)
+    setNightGlow(0)
+  })
+
+  it('só o que acende tem a luz, num programa próprio', () => {
+    const plain = createToonMaterial(GLASS)
+    const glass = createToonMaterial({ ...GLASS, glow: true })
+    expect(plain.defines.LGPE_GLOW).toBeUndefined()
+    expect(glass.defines.LGPE_GLOW).toBe('')
+    expect(glass.customProgramCacheKey()).not.toBe(
+      plain.customProgramCacheKey(),
+    )
+    // Depois da luz da cena (e da tinta): a cor não depende dela.
+    expect(compiled(glass).fragmentShader).toMatch(
+      /uNightGlow[\s\S]*#include <opaque_fragment>/,
+    )
+  })
+
+  it('a noite vai de 0 a 1 e a cor segue o config ao vivo', () => {
+    const uniforms = compiled(
+      createToonMaterial({ ...GLASS, glow: true }),
+    ).uniforms
+    setNightGlow(2)
+    expect(uniforms.uNightGlow.value).toBe(1)
+    setNightGlow(-1)
+    expect(uniforms.uNightGlow.value).toBe(0)
+
+    LAMP_GLOW.STRENGTH = originalGlow.STRENGTH * 2
+    applyToonLook()
+    const strong = uniforms.uGlowColor.value.clone()
+    LAMP_GLOW.STRENGTH = originalGlow.STRENGTH
+    applyToonLook()
+    expect(strong.r).toBeCloseTo(uniforms.uGlowColor.value.r * 2)
   })
 })

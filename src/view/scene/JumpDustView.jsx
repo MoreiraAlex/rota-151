@@ -22,7 +22,7 @@ import {
   buildWaterSplashEmitters,
   WATER_SPLASH_TEXTURE_PATHS,
 } from '@/view/vfx/waterSplashVfx'
-import { levelWaterDepthAt } from '@/core/actions/water'
+import { levelWaterDepthAt, levelWaterSurfaceAt } from '@/core/actions/water'
 import { addFootRipple } from '@/view/water/footRipples'
 
 const TEXTURE_PATHS = {
@@ -70,7 +70,7 @@ export function JumpDustView() {
         const { RING_SIZE } = GAME_CONFIG.FEEDBACK.WATER_SPLASH
         addFootRipple(
           position[0],
-          GAME_CONFIG.TERRAIN.WATER_LEVEL,
+          levelWaterSurfaceAt(position[0], position[2]),
           position[2],
           RING_SIZE * (0.6 + strength * 0.8),
         )
@@ -121,7 +121,9 @@ export function JumpDustView() {
       manager.puff(
         [
           puff.x,
-          water ? Math.max(puff.y, GAME_CONFIG.TERRAIN.WATER_LEVEL) : puff.y,
+          water
+            ? Math.max(puff.y, levelWaterSurfaceAt(puff.x, puff.z))
+            : puff.y,
           puff.z,
         ],
         water,
@@ -143,7 +145,7 @@ export function JumpDustView() {
         // nos pés — na água, na superfície
         position: [
           pos.x,
-          water ? Math.max(feetY, GAME_CONFIG.TERRAIN.WATER_LEVEL) : feetY,
+          water ? Math.max(feetY, levelWaterSurfaceAt(pos.x, pos.z)) : feetY,
           pos.z,
         ],
       })

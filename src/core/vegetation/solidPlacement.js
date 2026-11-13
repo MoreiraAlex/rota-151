@@ -314,6 +314,54 @@ function placeKind(
 }
 
 /**
+ * As árvores de rua da cidade (docs/features/069-revisao-do-bioma-
+ * cidade.md) nos pontos que a planta escolheu (`treeSpots`, `placeTown`):
+ * folhosas do bioma do ponto, no tamanho sorteado (`roll`) e no do bioma,
+ * com as mesmas regras das outras — fora da folga da borda e da origem,
+ * sem encostar no que já foi posto nem com o tronco na copa de outra.
+ */
+function placeStreetTrees(chunk, spots, { biomeList, params, taken, crowns }) {
+  if (spots.length === 0) return []
+  const kind = TREE_KIND
+  const { SCALE } = specOf(kind, params)
+  const biomeScale = createScaleField(chunk, kind, biomeList)
+  const gap = borderGapOf(
+    kind,
+    params,
+    biomeScale.max,
+    largestReachOf(kind, chunk.biomeIds),
+  )
+  const placed = []
+  for (const { x, z, yaw, roll, variant } of spots) {
+    const isInside =
+      x >= chunk.minX + gap &&
+      x < chunk.minX + chunk.size - gap &&
+      z >= chunk.minZ + gap &&
+      z < chunk.minZ + chunk.size - gap
+    if (!isInside) continue
+    if (Math.hypot(x, z) < params.trees.SPAWN_CLEAR_RADIUS) continue
+    const size = SCALE[0] + roll * (SCALE[1] - SCALE[0])
+    const scale = size * biomeScale.at(x, z)
+    const biome = dominantBiomeAt(chunk, x, z, kind)
+    const placement = { kind, x, y: 0, z, yaw, scale, variant, biome }
+    const footprint = footprintOf(kind, placement, params)
+    if (overlaps(footprint, taken)) continue
+    const crown = crownOf(kind, placement, params)
+    if (crowdsCrowns(footprint[0], crown, crowns)) continue
+    placement.y = groundedBaseY(
+      chunk,
+      x,
+      z,
+      solidFootprintOf(placement, params).radius,
+    )
+    crowns.push({ trunk: footprint[0], crown })
+    taken.push(...footprint)
+    placed.push(placement)
+  }
+  return placed
+}
+
+/**
  * @typedef {object} ChunkSolids
  * @property {SolidPlacement[]} trees - as árvores em pé de todas as
  *   espécies (`kind` de cada uma)
@@ -326,8 +374,8 @@ function placeKind(
 
 /**
  * Os objetos sólidos do chunk: a cidade primeiro (prédios e objetos de rua,
- * `placeTown`), depois árvores (na ordem de `STANDING_TREE_KINDS`) e
- * pedras, cada uma sem encostar nos de antes.
+ * `placeTown`, e as árvores de rua dela), depois árvores (na ordem de
+ * `STANDING_TREE_KINDS`) e pedras, cada uma sem encostar nos de antes.
  *
  * @param {import('../terrain/terrainChunk').TerrainChunk} chunk
  * @param {object} options
@@ -339,6 +387,8 @@ function placeKind(
  *   `CLEARINGS`/`VEGETATION_PATCHES`/`VEGETATION_ALTITUDE`
  * @param {import('../town/cityIndex').CityIndex} [options.cities] - o
  *   índice de cidades do mundo (`placeTown`)
+ * @param {Footprint[]} [options.obstacles] - pegadas que já estão no chão
+ *   (nada sorteado encosta nelas; não voltam na resposta)
  * @returns {ChunkSolids}
  */
 export function placeChunkSolids(
@@ -349,15 +399,19 @@ export function placeChunkSolids(
     terrain = GAME_CONFIG.TERRAIN,
     params = solidParams(),
     cities,
+    obstacles = [],
   },
 ) {
   const town = placeTown(chunk, { seed, biomeList, terrain, cities })
-  const taken = [...town.footprints]
+  // `obstacles`: pegadas já no chão de fora do sorteio (a colisão da cidade
+  // fixa, docs/features/069-revisao-do-bioma-cidade.md) — nada encosta.
+  const taken = [...town.footprints, ...obstacles]
   const crowns = []
   const options = { seed, biomeList, terrain, params, taken, crowns }
-  const trees = STANDING_TREE_KINDS.flatMap((kind) =>
-    placeKind(chunk, kind, options),
-  )
+  const trees = [
+    ...placeStreetTrees(chunk, town.treeSpots, options),
+    ...STANDING_TREE_KINDS.flatMap((kind) => placeKind(chunk, kind, options)),
+  ]
   const rocks = placeKind(chunk, ROCK_KIND, options)
   const footprints = [
     ...town.footprints,

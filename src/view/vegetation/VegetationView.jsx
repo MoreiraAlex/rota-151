@@ -33,6 +33,7 @@ import {
   setShadowsEnabled,
 } from './instancing'
 import { useVegetationModels } from './useVegetationModels'
+import { StreetLampLights } from './StreetLampLights'
 import { createGrassPushMap } from './grassPush'
 import { LgpeChoiceLoader } from './LgpeChoiceLoader'
 import { applyToonLook } from './toonMaterial'
@@ -421,6 +422,8 @@ export function VegetationView() {
       {settings.buildings && (
         <TrainingDummiesView models={models} receiveShadows={receiveShadows} />
       )}
+      {/* A luz dos postes à noite, sem sombra (069). */}
+      {settings.buildings && <StreetLampLights models={models} />}
       {(settings.grass || settings.flowers) &&
         tiles.map((tile) => {
           const chunk = chunksByKey.get(

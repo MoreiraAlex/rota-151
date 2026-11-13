@@ -60,6 +60,18 @@ export const toonUniforms = {
   uBaseShadeHeight: { value: 1 },
   uBladeFade: { value: new THREE.Vector2(0, 1) },
   uBladeFarShade: { value: 1 },
+  // A luz dos postes (`glow`): quanto é noite (0 a 1, `setNightGlow`) e a
+  // cor dela (`LGPE.LAMP_GLOW`).
+  uNightGlow: { value: 0 },
+  uGlowColor: { value: new THREE.Color() },
+}
+
+/**
+ * Quanto é noite (0 a 1) para o que acende (`glow`: o vidro dos postes) —
+ * a view do dia e da noite, a cada quadro.
+ */
+export function setNightGlow(amount) {
+  toonUniforms.uNightGlow.value = Math.min(1, Math.max(0, amount))
 }
 
 const RAMP_SIZE = 256
@@ -87,6 +99,10 @@ function setToonRamp(threshold, softness) {
   toonRamp.needsUpdate = true
 }
 
+// A faixa do peso (canal vermelho) em que a camada de cima do chão
+// misturado entra: abaixo, só a de baixo; acima, só a de cima.
+const LAYER_BLEND = [0.3, 0.7]
+
 const VERTEX_HEADER = /* glsl */ `
 ${WIND_SHADER}
 uniform float uVertexColor;
@@ -98,6 +114,20 @@ attribute vec4 aWind;
 #ifdef LGPE_RAMP
 attribute vec2 uv1;
 varying vec2 vRampUv;
+#endif
+#ifdef LGPE_LAYER
+// O chão misturado do mapa (a camada de cima pelo canal vermelho da cor do
+// vértice — peso, não cor), mesmo sem a cor por vértice ligada.
+#if !defined(USE_COLOR) && !defined(USE_COLOR_ALPHA)
+attribute vec3 color;
+#endif
+varying float vLayerWeight;
+#ifdef LGPE_LAYER_UV1
+#ifndef LGPE_RAMP
+attribute vec2 uv1;
+#endif
+varying vec2 vLayerUv;
+#endif
 #endif
 #if defined(LGPE_PUSH) && defined(USE_INSTANCING)
 ${GRASS_PUSH_SHADER}
@@ -191,6 +221,10 @@ uniform float uBaseShadeHeight;
 #ifdef LGPE_BLADE_FADE
 varying float vBladeFar;
 #endif
+#ifdef LGPE_GLOW
+uniform float uNightGlow;
+uniform vec3 uGlowColor;
+#endif
 uniform float uRimStrength;
 uniform float uSunGlow;
 uniform vec3 uRimColor;
@@ -201,6 +235,14 @@ uniform sampler2D uRampMap;
 uniform sampler2D uShadeMap;
 uniform float uShadeAmount;
 varying vec2 vRampUv;
+#endif
+#ifdef LGPE_LAYER
+uniform sampler2D uLayerMap;
+uniform vec2 uLayerBlend;
+varying float vLayerWeight;
+#ifdef LGPE_LAYER_UV1
+varying vec2 vLayerUv;
+#endif
 #endif
 `
 
@@ -289,6 +331,12 @@ const RAMP_VERTEX = /* glsl */ `
 #ifdef LGPE_RAMP
 vRampUv = uv1;
 #endif
+#ifdef LGPE_LAYER
+vLayerWeight = color.r;
+#ifdef LGPE_LAYER_UV1
+vLayerUv = uv1;
+#endif
+#endif
 `
 
 const RAMP_FRAGMENT = /* glsl */ `
@@ -297,6 +345,17 @@ const RAMP_FRAGMENT = /* glsl */ `
 vec3 rampColor = texture2D(uRampMap, vRampUv).rgb;
 vec3 shadeColor = mix(vec3(1.0), texture2D(uShadeMap, vMapUv).rgb, uShadeAmount);
 diffuseColor.rgb = rampColor * shadeColor + sampledDiffuseColor.rgb;
+#endif
+#ifdef LGPE_LAYER
+// A camada de baixo (grama) é o mapa; a de cima (terra, barranco, pedra)
+// aparece pelo peso, com a borda apertada na faixa de uLayerBlend.
+#ifdef LGPE_LAYER_UV1
+vec3 layerColor = texture2D(uLayerMap, vLayerUv).rgb;
+#else
+vec3 layerColor = texture2D(uLayerMap, vMapUv).rgb;
+#endif
+float layerAmount = smoothstep(uLayerBlend.x, uLayerBlend.y, vLayerWeight);
+diffuseColor.rgb = mix(diffuseColor.rgb, layerColor, layerAmount);
 #endif
 `
 
@@ -321,6 +380,11 @@ if (vRecolor.a > 0.0) {
   vec3 recolored = hue * dot(outgoingLight, LUMA);
   outgoingLight = mix(outgoingLight, recolored, vRecolor.a);
 }
+#ifdef LGPE_GLOW
+// Aceso à noite (o vidro do poste): a cor dele vezes a da luz, sem a luz
+// da cena.
+outgoingLight = mix(outgoingLight, diffuseColor.rgb * uGlowColor, uNightGlow);
+#endif
 #include <opaque_fragment>
 `
 
@@ -345,9 +409,15 @@ if (vRecolor.a > 0.0) {
  * @param {THREE.Texture | null} [options.rampMap]
  * @param {THREE.Texture | null} [options.shadeMap]
  * @param {{ box: THREE.Box3, kind: 'CANOPY' | 'SOLID' } | null} [options.nearHide]
+ * @param {THREE.Texture | null} [options.layerMap] - a camada de cima do
+ *   chão misturado (terra, barranco, pedra): aparece pelo canal vermelho da
+ *   cor do vértice (docs/features/069-revisao-do-bioma-cidade.md, Pallet)
+ * @param {0 | 1} [options.layerUv] - o UV em que ela é lida
  *   - some com a câmera dentro de `box` (espaço do modelo), com a
  *   distância de `CAMERA.NEAR_HIDE[kind]`: as folhas das árvores, as
  *   pedras e os prédios
+ * @param {boolean} [options.glow] - acende à noite (`setNightGlow`,
+ *   `LGPE.LAMP_GLOW`): o vidro dos postes
  */
 export function createToonMaterial({
   map,
@@ -364,6 +434,9 @@ export function createToonMaterial({
   rampMap = null,
   shadeMap = null,
   nearHide = null,
+  layerMap = null,
+  layerUv = 0,
+  glow = false,
 }) {
   const own = {
     uRimColor: { value: new THREE.Color().fromArray(rimColor ?? [0, 0, 0]) },
@@ -376,6 +449,8 @@ export function createToonMaterial({
     uNearBoxMin: { value: nearHide?.box.min.clone() ?? new THREE.Vector3() },
     uNearBoxMax: { value: nearHide?.box.max.clone() ?? new THREE.Vector3() },
     uNearHide: { value: new THREE.Vector2() },
+    uLayerMap: { value: layerMap },
+    uLayerBlend: { value: new THREE.Vector2(...LAYER_BLEND) },
   }
   if (rim) own.uRimColor.value.multiplyScalar(rim[2])
   const material = new THREE.MeshToonMaterial({
@@ -390,6 +465,13 @@ export function createToonMaterial({
   material.defines = { ...material.defines, SHADOW_SINGLE_TAP: '' }
   applyToonCutoff(material)
   if (rampMap) material.defines = { ...material.defines, LGPE_RAMP: '' }
+  if (layerMap) {
+    material.defines = { ...material.defines, LGPE_LAYER: '' }
+    if (layerUv === 1) {
+      material.defines = { ...material.defines, LGPE_LAYER_UV1: '' }
+    }
+  }
+  if (glow) material.defines = { ...material.defines, LGPE_GLOW: '' }
   if (sway) {
     const define = sway === 'tree' ? 'LGPE_SWAY_TREE' : 'LGPE_SWAY_PLANT'
     material.defines = { ...material.defines, [define]: '' }
@@ -434,7 +516,7 @@ export function createToonMaterial({
         .replace('#include <opaque_fragment>', RIM)
   }
   material.customProgramCacheKey = () =>
-    `lgpe-toon-${vertexColors}-${Boolean(rampMap)}-${sway}-${push}-${billboard}-${fade}-${Boolean(nearHide)}`
+    `lgpe-toon-${vertexColors}-${Boolean(rampMap)}-${sway}-${push}-${billboard}-${fade}-${Boolean(nearHide)}-${layerMap ? layerUv : 'no-layer'}-${glow}`
   // No stencil: planta (a silhueta de quem está atrás dela aparece) ou o
   // resto do cenário (materials/characterStencil.js).
   if (sway === 'plant') markAsPlant(material)
@@ -478,6 +560,9 @@ export function applyToonLook(materials = []) {
   toonUniforms.uVertexColor.value = LGPE.VERTEX_COLOR
   toonUniforms.uBaseShade.value = LGPE.BASE_SHADE
   toonUniforms.uBaseShadeHeight.value = LGPE.BASE_SHADE_HEIGHT
+  toonUniforms.uGlowColor.value
+    .set(LGPE.LAMP_GLOW.COLOR)
+    .multiplyScalar(LGPE.LAMP_GLOW.STRENGTH)
   const { FADE_START, FADE_END, GROUND_SHADE } = GAME_CONFIG.GRASS_BLADES
   toonUniforms.uBladeFarShade.value = GROUND_SHADE ?? 1
   toonUniforms.uBladeFade.value.set(

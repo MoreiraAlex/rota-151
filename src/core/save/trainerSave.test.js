@@ -134,9 +134,15 @@ describe('serializeTrainer / restoreTrainer', () => {
     )
   })
 
+  // A chegada da cidade fixa (a origem, 069): um lugar livre.
+  const FREE = { x: 0, z: 0 }
+
   it('volta na posição e direção salvas', () => {
     const { player } = setup()
-    const position = { x: 3, y: TEST_LEVEL.terrain.heightAt(3, -4) + 5, z: -4 }
+    const position = {
+      ...FREE,
+      y: TEST_LEVEL.terrain.heightAt(FREE.x, FREE.z) + 5,
+    }
     player.set(Position, position)
     player.set(Rotation, { ...player.get(Rotation), y: 1.2 })
     const saved = serializeTrainer(player)
@@ -150,15 +156,15 @@ describe('serializeTrainer / restoreTrainer', () => {
 
   it('posição salva dentro do relevo sobe para a superfície', () => {
     const { player } = setup()
-    const ground = TEST_LEVEL.terrain.heightAt(3, -4)
-    player.set(Position, { x: 3, y: ground - 2, z: -4 })
+    const ground = TEST_LEVEL.terrain.heightAt(FREE.x, FREE.z)
+    player.set(Position, { ...FREE, y: ground - 2 })
     const saved = serializeTrainer(player)
 
     const target = setup()
     restoreTrainer(target.player, saved)
 
     const { x, y, z } = target.player.get(Position)
-    expect({ x, z }).toEqual({ x: 3, z: -4 })
+    expect({ x, z }).toEqual(FREE)
     expect(y).toBeGreaterThan(ground)
   })
 

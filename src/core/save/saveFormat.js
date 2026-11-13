@@ -90,6 +90,28 @@ export const trainerSaveSchema = z.object({
     })
     .nullable()
     .optional(),
+  // No mapa de uma cidade copiada (docs/features/069-revisao-do-bioma-
+  // cidade.md — Pallet): o mapa, o lugar dele e de onde o treinador veio
+  // (`OnTownMap`) — a posição é a de dentro dele. Opcional: fora, ou saves
+  // de antes, sem.
+  townMap: z
+    .object({
+      mapId: z.string(),
+      place: z.object({
+        x: z.number(),
+        y: z.number(),
+        z: z.number(),
+        scale: z.number().positive(),
+      }),
+      from: z.object({
+        x: z.number(),
+        y: z.number(),
+        z: z.number(),
+        yaw: z.number(),
+      }),
+    })
+    .nullable()
+    .optional(),
   heldItemId: z.string().nullable(),
   // Horário do mundo em dias de jogo (docs/features/048-dia-noite-e-
   // clima.md). Opcional: saves de antes dele começam no horário inicial.

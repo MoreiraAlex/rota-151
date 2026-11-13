@@ -204,8 +204,19 @@ describe('currentTerrainRecipe — biomas escondidos', () => {
 })
 
 describe('vau das estradas', () => {
+  it('nesta beta, sem as cidades procedurais, não há estrada', () => {
+    const recipe = copyTerrainRecipe(currentTerrainRecipe())
+    recipe.roads.ENABLED = false
+    expect(createTerrainSampler(10, recipe).roads).toBeNull()
+  })
+
   it('onde a estrada cruza rio ou lago, o leito fica raso', () => {
-    const sampler = createTerrainSampler(GAME_CONFIG.WORLD.SEED)
+    // As cidades procedurais e as estradas ligadas (desligadas no jogo
+    // nesta beta, docs/features/069-revisao-do-bioma-cidade.md).
+    const recipe = copyTerrainRecipe(currentTerrainRecipe())
+    recipe.cities.ONLY_FIRST = false
+    recipe.roads.ENABLED = true
+    const sampler = createTerrainSampler(GAME_CONFIG.WORLD.SEED, recipe)
     const { FORD_DEPTH } = GAME_CONFIG.ROADS
     const edges = sampler.roads.edgesIn([-5000, -5000, 5000, 5000])
     let crossings = 0

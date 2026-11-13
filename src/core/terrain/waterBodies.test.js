@@ -6,6 +6,9 @@ const PARAMS = GAME_CONFIG.WATER_BODIES
 const FULL = { rivers: 1, lakes: 1 }
 const NONE = { rivers: 0, lakes: 0 }
 const PROFILE = { depth: 2, shoreSlope: 0.3, bankSlope: 0.3 }
+// Os casos que varrem a grade inteira (`GRID`) levam alguns segundos e
+// passam do tempo padrão com a suíte inteira em paralelo.
+const SLOW_TIMEOUT = 30_000
 
 // Pontos longe da origem (onde não há água, `SPAWN_CLEAR_RADIUS`).
 const GRID = []
@@ -40,7 +43,7 @@ describe('smoothMin', () => {
   })
 })
 
-describe('createWaterBodies', () => {
+describe('createWaterBodies', { timeout: SLOW_TIMEOUT }, () => {
   it('mesma seed, mesmos lagos e rios; seed diferente, outros', () => {
     const a = createWaterBodies(3)
     const b = createWaterBodies(3)
@@ -105,7 +108,7 @@ describe('createWaterBodies', () => {
     expect(narrowest).toBeGreaterThan(PARAMS.RIVER.WIDTH * 0.9)
   })
 
-  it('o fundo nunca tem célula plana (docs/roadmap.md, 089)', () => {
+  it('o fundo nunca tem célula plana (docs/roadmap.md, 090)', () => {
     const water = createWaterBodies(3)
     const at = (x, z) => water.carveAt(x, z, 6, FULL)
     let cells = 0
@@ -145,7 +148,7 @@ describe('createWaterBodies', () => {
   })
 })
 
-describe('flowAt', () => {
+describe('flowAt', { timeout: SLOW_TIMEOUT }, () => {
   it('dentro do rio aponta ao longo dele; longe do rio é zero', () => {
     const water = createWaterBodies(3)
     let checked = 0

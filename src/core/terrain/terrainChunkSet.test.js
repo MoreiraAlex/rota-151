@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { GAME_CONFIG } from '../gameConfig'
 import { deriveSeed } from '../rng'
 import { getBiome } from '../data/biomes'
-import { createTerrainSampler } from './terrainHeight'
+import { createTerrainSampler, currentTerrainRecipe } from './terrainHeight'
 import {
   chunkHeightAt,
   generateTerrainChunk,
@@ -10,6 +10,7 @@ import {
   latticeHeightAt,
 } from './terrainChunk'
 import { createTerrainChunkSet } from './terrainChunkSet'
+import { isInsideFixedTown } from '../town/fixedTown'
 
 const { CHUNK_SIZE, WATER_LEVEL } = GAME_CONFIG.TERRAIN
 const { MAX_SLOPE_CLIMB } = GAME_CONFIG.PHYSICS.CHARACTER
@@ -156,10 +157,46 @@ describe('createTerrainChunkSet', () => {
     expect(() => set.reconfigure(4)).toThrow()
 
     set.unload(0, 0)
-    const x = CHUNK_SIZE * 0.4
+    // Longe da origem: a cidade fixa (069) tem o mesmo chão em toda seed.
+    const x = CHUNK_SIZE * 20.4
     const before = set.heightAt(x, x)
     set.reconfigure(4)
     expect(set.heightAt(x, x)).not.toBe(before)
+  })
+})
+
+describe('a cidade montada à mão no chunk', () => {
+  // docs/features/069-revisao-do-bioma-cidade.md: o relevo aparece (sem
+  // modelo por cima) e a área só afasta a vegetação, sem pintar.
+  const recipe = currentTerrainRecipe()
+  const set = createTerrainChunkSet({
+    seed: 3,
+    recipe: {
+      ...recipe,
+      cities: {
+        ...recipe.cities,
+        FIRST_TOWN: { ...recipe.cities.FIRST_TOWN, LAYOUT: 'viridian' },
+      },
+    },
+  })
+  const chunk = set.load(0, 0)
+  const origin = heightIndex(
+    chunk.resolution,
+    Math.round((0 - chunk.minX) / (chunk.size / chunk.resolution)),
+    Math.round((0 - chunk.minZ) / (chunk.size / chunk.resolution)),
+  )
+
+  it('a área afasta a vegetação', () => {
+    expect(set.fixedTown()?.layoutId).toBe('viridian')
+    expect(chunk.bare?.[origin]).toBe(1)
+  })
+
+  it('leva o desenho do chão da cidade', () => {
+    expect(chunk.townPaint?.area[origin]).toBe(1)
+  })
+
+  it('o relevo não vira rua', () => {
+    expect(chunk.trails?.[origin] ?? 0).toBe(0)
   })
 })
 
@@ -193,13 +230,25 @@ describe('relevo do jogo (seed e parâmetros do jogo, em volta da origem)', () =
     expect(Math.max(...heights)).toBeGreaterThan(WATER_LEVEL)
   })
 
+  // Fora da cidade fixa e da faixa de mistura dela (docs/features/069-
+  // revisao-do-bioma-cidade.md): os barrancos dela são do layout (o
+  // paredão, os degraus) e seguem um pouco pela faixa (a rua rebaixada da
+  // saída).
   it('nenhuma encosta passa do que o personagem consegue subir', () => {
+    const { fixedTown } = sampler
+    const isOnMap = (x, z) =>
+      Boolean(fixedTown) && isInsideFixedTown(fixedTown, x, z, fixedTown.blend)
     let steepest = 0
     for (const chunk of chunks) {
       const { resolution, heights } = chunk
       const step = chunk.size / resolution
       for (let ix = 0; ix < resolution; ix++) {
         for (let iz = 0; iz < resolution; iz++) {
+          const x = chunk.minX + ix * step
+          const z = chunk.minZ + iz * step
+          if (isOnMap(x, z) || isOnMap(x + step, z) || isOnMap(x, z + step)) {
+            continue
+          }
           const here = heights[heightIndex(resolution, ix, iz)]
           const east = heights[heightIndex(resolution, ix + 1, iz)]
           const south = heights[heightIndex(resolution, ix, iz + 1)]

@@ -157,7 +157,7 @@ export function createKindDensity(
         kind,
       )?.place === 'trail',
   )
-  const placedAt = createTrailPlacement(chunk, onTrail)
+  const placedAt = createTrailPlacement(chunk, onTrail, kind)
   if (isEmpty || shaping.every((item) => !item)) {
     return {
       isEmpty,
@@ -218,11 +218,11 @@ export function createKindDensity(
 /**
  * A densidade (`values`, uma por bioma do chunk) com as trilhas: a dos
  * biomas em que o tipo é de trilha (`onTrail`) só nelas (`naturalTrailAt`),
- * a dos outros fora delas e da rua (`trailAt`), cada parte misturada pelo
- * peso dos biomas no ponto.
+ * a dos outros fora delas e da rua (`trailAt`, pelo tipo `kind`), cada
+ * parte misturada pelo peso dos biomas no ponto.
  */
-function createTrailPlacement(chunk, onTrail) {
-  const offTrail = (x, z) => 1 - trailAt(chunk, x, z)
+function createTrailPlacement(chunk, onTrail, kind) {
+  const offTrail = (x, z) => 1 - trailAt(chunk, x, z, kind)
   if (!onTrail.some(Boolean)) {
     return (values, x, z) => densityAt(chunk, values, x, z) * offTrail(x, z)
   }

@@ -1,7 +1,6 @@
 import { levelGroundSurfaceAt } from '@/core/actions/groundSurface'
-import { levelWaterDepthAt } from '@/core/actions/water'
+import { levelWaterDepthAt, levelWaterSurfaceAt } from '@/core/actions/water'
 import { WATER_SOUNDS } from '@/core/data/audio/waterSounds'
-import { GAME_CONFIG } from '@/core/gameConfig'
 import { AnimationState, Indoors, Position } from '@/core/traits'
 import { addFootRipple } from '@/view/water/footRipples'
 import { getAnimatedBonesEntry } from '@/view/registry/animationRegistry'
@@ -104,7 +103,7 @@ export function footstepAudioSystem() {
     if (inWater) {
       addFootRipple(
         position.x,
-        GAME_CONFIG.TERRAIN.WATER_LEVEL,
+        levelWaterSurfaceAt(position.x, position.z),
         position.z,
         stateId === 'run' ? RUN_RIPPLE : 1,
       )

@@ -128,3 +128,4 @@ export {
   InteractionTarget,
 } from './components/worldItems'
 export { InteriorTransition, Indoors, CameraSnap } from './components/interior'
+export { OnTownMap } from './components/townMap'

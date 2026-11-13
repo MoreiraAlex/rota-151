@@ -9,7 +9,9 @@ import { createRng, deriveSeed } from '../rng'
  * disco em volta de cada uma.
  *
  * - A célula `(0, 0)` é a **primeira cidade**: centrada na origem, onde o
- *   treinador nasce, do porte `CITIES.FIRST_SIZE`.
+ *   treinador nasce, do porte `CITIES.FIRST_SIZE` — ou, com a cidade fixa
+ *   (`fixedTown`, `core/town/fixedTown.js`, docs/features/069-revisao-do-
+ *   bioma-cidade.md), a dela: `fixed`, com o raio que cobre o mapa.
  * - As outras são sorteadas perto do centro da célula (`CITIES.JITTER`,
  *   fração dela) e longe da água: se o centro ou a volta do disco ficam a
  *   menos de `CITIES.WATER_GAP` de rio ou lago, sorteia de novo
@@ -18,6 +20,10 @@ import { createRng, deriveSeed } from '../rng'
  *   rio ou lago, a água para na borda dela.
  * - O **porte** (`town.sizes` do bioma da cidade, pelo `weight`) dá o raio
  *   da cidade.
+ * - Com `CITIES.ONLY_FIRST` (docs/features/069-revisao-do-bioma-cidade.md:
+ *   nesta beta, só Viridian), o mundo tem só a primeira cidade: a mais
+ *   próxima de qualquer ponto é ela, e as outras células ficam sem cidade
+ *   (a procedural volta desligando o interruptor).
  *
  * Os rios e lagos vêm de `waterBodies.js`, que só depende da seed — sem
  * ciclo com o relevo, que depende das cidades.
@@ -30,6 +36,9 @@ import { createRng, deriveSeed } from '../rng'
  * @property {number} z
  * @property {object} size - a entrada de `town.sizes`
  * @property {number} radius - m
+ * @property {boolean} [fixed] - a cidade fixa (sem lotes nem ruas: o mapa
+ *   dela, `fixedTown`)
+ * @property {import('./fixedTown').FixedTown} [fixedTown]
  *
  * @typedef {object} CitySites
  * @property {(cellX: number, cellZ: number) => CitySite} cityAt
@@ -58,13 +67,16 @@ const NEAREST_REACH = 1
  * @param {object} options.town - o `town` do bioma da cidade (`sizes`)
  * @param {{ insideRiver: Function, insideLake: Function }} options.waterBodies
  * @param {object} [options.params] - forma de `GAME_CONFIG.CITIES`
+ * @param {import('./fixedTown').FixedTown | null} [options.fixedTown] - a
+ *   primeira cidade fixa
  * @returns {CitySites}
  */
 export function createCitySites(
   seed,
-  { town, waterBodies, params = GAME_CONFIG.CITIES },
+  { town, waterBodies, params = GAME_CONFIG.CITIES, fixedTown = null },
 ) {
-  const { SPACING, JITTER, WATER_GAP, TRIES, EDGE, FIRST_SIZE } = params
+  const { SPACING, JITTER, WATER_GAP, TRIES, EDGE, FIRST_SIZE, ONLY_FIRST } =
+    params
   const { sizes } = town
   const totalWeight = sizes.reduce((sum, { weight }) => sum + weight, 0)
   const firstSize = sizes.find(({ id }) => id === FIRST_SIZE) ?? sizes[0]
@@ -109,7 +121,8 @@ export function createCitySites(
         x: 0,
         z: 0,
         size: firstSize,
-        radius: firstSize.radius,
+        radius: fixedTown ? fixedTown.radius : firstSize.radius,
+        ...(fixedTown && { fixed: true, fixedTown }),
       }
     }
     const rng = createRng(deriveSeed(seed, `city:${id}`))
@@ -135,7 +148,14 @@ export function createCitySites(
     return city
   }
 
+  // Só a primeira cidade (`ONLY_FIRST`): ela e a distância até ela.
+  const toFirst = (x, z) => {
+    const city = cityAt(0, 0)
+    return { city, distance: Math.hypot(x - city.x, z - city.z) }
+  }
+
   function nearestCity(x, z) {
+    if (ONLY_FIRST) return toFirst(x, z)
     const cellX = cellOf(x)
     const cellZ = cellOf(z)
     let city = null
@@ -156,6 +176,7 @@ export function createCitySites(
   // Fora do caminho quente do relevo (que usa só a mais próxima): monta e
   // ordena a lista. As células em volta bastam para as duas primeiras.
   function nearestCities(x, z, count) {
+    if (ONLY_FIRST) return count > 0 ? [toFirst(x, z)] : []
     const cellX = cellOf(x)
     const cellZ = cellOf(z)
     const found = []

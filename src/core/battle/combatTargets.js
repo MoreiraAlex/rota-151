@@ -12,6 +12,7 @@ import {
   Fainted,
   Flying,
   Indoors,
+  OnTownMap,
   Party,
   Position,
   SummonedCreature,
@@ -25,7 +26,9 @@ import {
  * Quem ainda está na luta: entidade viva, com posição, fora do desmaio,
  * fora de uma Pokébola (`BeingCaptured`, docs/features/043-captura.md), sem
  * estar saindo do mapa (selvagem fugindo, a fuga clássica — 063), fora de
- * um prédio (`Indoors`, docs/features/068-interior-dos-predios.md — quem
+ * um prédio (`Indoors`, docs/features/068-interior-dos-predios.md) e do
+ * mapa de uma cidade copiada (`OnTownMap`, docs/features/069-revisao-do-
+ * bioma-cidade.md — quem
  * está lá fora não o alcança) e com HP (o treinador não desmaia — a 0 de
  * HP só deixa de ser alvo).
  */
@@ -34,7 +37,7 @@ export function isActiveCombatant(entity) {
     return false
   }
   if (entity.has(Fainted) || entity.has(BeingCaptured)) return false
-  if (entity.has(Indoors)) return false
+  if (entity.has(Indoors) || entity.has(OnTownMap)) return false
   if (entity.get(WildBehavior)?.state === 'leave') return false
   const vitals = entity.get(Vitals)
   return !vitals || vitals.hp > 0

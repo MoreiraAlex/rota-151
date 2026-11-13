@@ -1,0 +1,14 @@
+[
+  {
+    "id": "pallet-town",
+    "label": "Pallet (o mapa inteiro)",
+    "category": "town-map",
+    "map": "area02/town001_00.gfbmdl",
+    "folder": "area02",
+    "node": "town001_00",
+    "all": true,
+    "whole": true,
+    "doors": ["town001_door01", "town001_door01", "town001_door02"],
+    "skipShaders": ["FieldGrassShader05"]
+  }
+]

@@ -70,14 +70,13 @@ export function WorldPage({ data, version }) {
             <strong>Savana</strong>: campo seco e quente, com ondulações largas.
           </li>
           <li>
-            <strong>Cidade</strong>: chão quase plano, com ruas e casas. Cada
-            pedaço do mundo tem a sua, ligada às vizinhas por estradas (veja{' '}
-            <a href="#cidades">As cidades</a>).
+            <strong>Cidade</strong>: por enquanto só Viridian, onde você começa
+            (veja <a href="#cidades">A cidade</a>).
           </li>
         </ul>
         <p>
           Entre um bioma e outro a passagem é aos poucos: a mata vai rareando
-          até virar campo. Você começa o jogo no meio de uma vila.
+          até virar campo. Você começa o jogo no meio de Viridian.
         </p>
         <p>
           Quando uma árvore, uma pedra ou uma planta fica entre a câmera e você,
@@ -193,8 +192,7 @@ export function WorldPage({ data, version }) {
       <Section id="lagos-e-rios" title="Lagos e rios">
         <p>
           A floresta, a planície e a savana têm <strong>lagos</strong> e{' '}
-          <strong>rios</strong> que atravessam o campo. As cidades ficam secas,
-          e o lugar onde você começa o jogo também.
+          <strong>rios</strong> que atravessam o campo. A cidade fica seca.
         </p>
         <ul>
           <li>
@@ -225,62 +223,38 @@ export function WorldPage({ data, version }) {
         </ul>
       </Section>
 
-      <Section id="cidades" title="As cidades">
+      <Section id="cidades" title="A cidade">
         <p>
-          O mundo é dividido em áreas, e cada área tem uma{' '}
-          <strong>cidade</strong>. Entre uma cidade e a vizinha são uns 10 a 15
-          minutos andando pela estrada. Em volta delas ficam a floresta, a
-          planície e a savana.
+          Por enquanto o mundo tem uma cidade só: <strong>Viridian</strong>,
+          onde a aventura começa. Ela fica no meio do mundo, e em volta dela
+          estão a floresta, a planície e a savana.
         </p>
         <p>
-          Toda cidade tem ruas calçadas em quadras, postes nas esquinas e casas
-          de frente para a rua, com jardim, flores e algumas árvores. Ela segue
-          o jeito de uma cidade de Kanto — as casas, o calçamento da rua e, nas
-          maiores, um prédio que só ela tem:
+          Viridian segue o mapa da cidade de Kanto: ruas de asfalto, jardins com
+          flores e grama alta, cercas, cercas-vivas, bancos, vasos e placas. À
+          noite, os postes acendem e iluminam a rua. O chão tem degraus, com
+          rampas onde o caminho passa.
         </p>
         <ul>
           <li>
-            <strong>Pewter</strong>: casas de pedra, ruas de lajota e o museu.
+            <strong>Pokécenter</strong> e <strong>loja</strong>, no meio da
+            cidade.
           </li>
           <li>
-            <strong>Cerulean</strong>: casas de telhado azul e a loja de
-            bicicleta.
+            O <strong>ginásio</strong>, num patamar mais alto ao norte.
           </li>
+          <li>Duas casas.</li>
           <li>
-            <strong>Vermilion</strong>: casas de telhado laranja, ruas de
-            ladrilho e o fã-clube.
-          </li>
-          <li>
-            <strong>Lavender</strong>: casas roxas, ruas de asfalto e a Torre
-            Pokémon.
+            No alto, a leste, subindo a rampa no fim da rua da loja: o{' '}
+            <strong>laboratório</strong> e o <strong>campo de treino</strong>,
+            um terreno cercado, de chão de terra, com bonecos de treino — é lá
+            que as criaturas treinam golpes (
+            <WikiLink version={version} to="criaturas/golpes-e-treino#campo">
+              Golpes e treino
+            </WikiLink>
+            ).
           </li>
         </ul>
-        <p>As cidades têm três tamanhos:</p>
-        <ul>
-          <li>
-            <strong>Vila</strong>: pequena, com o <strong>Pokécenter</strong> e
-            casas. Você começa o jogo numa vila.
-          </li>
-          <li>
-            <strong>Cidade</strong>: maior, com o Pokécenter e uma{' '}
-            <strong>loja</strong>.
-          </li>
-          <li>
-            <strong>Cidade grande</strong>: a maior e mais rara, com o
-            Pokécenter, a loja, um <strong>ginásio</strong> com a cor da cidade
-            e o prédio especial dela.
-          </li>
-        </ul>
-        <p>
-          Toda cidade, de qualquer tamanho, também tem um{' '}
-          <strong>campo de treino</strong> perto do meio: um terreno cercado, de
-          chão de terra, com bonecos de treino — é lá que as criaturas treinam
-          golpes (
-          <WikiLink version={version} to="criaturas/golpes-e-treino#campo">
-            Golpes e treino
-          </WikiLink>
-          ).
-        </p>
         <p>
           <strong>Entrar nos prédios</strong>: dá para entrar no{' '}
           <strong>Pokécenter</strong> e na <strong>loja</strong>. Chegando perto
@@ -305,33 +279,20 @@ export function WorldPage({ data, version }) {
             balcão, o Pokécenter ainda não cura e a loja ainda não vende.
           </li>
           <li>
-            Os outros prédios (o ginásio, as casas e o prédio especial) são
-            sólidos: dá para contornar, mas não dá para entrar.
+            Os outros prédios (o ginásio, as casas e o laboratório) são sólidos:
+            dá para contornar, mas não dá para entrar.
           </li>
           <li>
-            Na cidade não aparecem itens no chão, e as plantas do jardim não dão
-            fruta.
+            Na cidade não aparecem itens no chão e não nascem criaturas
+            selvagens.
           </li>
         </ul>
-      </Section>
-
-      <Section id="estradas" title="Estradas">
-        <p>
-          <strong>Estradas</strong> de terra ligam as cidades, como as rotas de
-          Kanto: seguindo por elas você chega a qualquer cidade do mundo.
-        </p>
-        <ul>
-          <li>
-            Cada cidade liga a pelo menos uma vizinha, e algumas ligam a mais de
-            uma — tem voltas e atalhos.
-          </li>
-          <li>A estrada faz curvas pelo campo e nada cresce em cima dela.</li>
-          <li>
-            Onde ela cruza um rio ou um lago, a água fica rasa: dá pra
-            atravessar a pé, e as criaturas também passam.
-          </li>
-          <li>Chegando na cidade, a estrada vira as ruas dela.</li>
-        </ul>
+        <Notice tone="soon">
+          <p>
+            Em breve: <strong>Pallet</strong>, a cidade onde o tutorial
+            acontece, e mais cidades pelo mundo, ligadas por estradas.
+          </p>
+        </Notice>
       </Section>
 
       <Section id="itens" title="Itens pelo mundo">

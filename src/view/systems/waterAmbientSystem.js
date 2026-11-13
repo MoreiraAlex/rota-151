@@ -1,7 +1,7 @@
 import { GAME_CONFIG } from '@/core/gameConfig'
 import { TEST_LEVEL } from '@/core/data/testLevel'
 import { WATER_AMBIENT } from '@/core/data/audio/waterSounds'
-import { levelWaterDepthAt } from '@/core/actions/water'
+import { levelTerrainWaterDepthAt } from '@/core/actions/water'
 import { nearestWaterPoints } from '@/core/terrain/water'
 import { InputControlled, Position } from '@/core/traits'
 import { WATER_KINDS, getWaterAmbientState } from '@/view/audio/waterAmbient'
@@ -25,8 +25,9 @@ export function waterAmbientSystem({ world, delta }) {
   if (state.probeTimer <= 0) {
     state.probeTimer = WATER_AMBIENT.PROBE_INTERVAL
     const { x, z } = focus.get(Position)
+    // Só lagos e rios: a fonte da praça não tem som de fundo de lago.
     state.targets = nearestWaterPoints(
-      levelWaterDepthAt,
+      levelTerrainWaterDepthAt,
       TEST_LEVEL.terrain.flowAt,
       x,
       z,

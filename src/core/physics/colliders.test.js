@@ -13,7 +13,9 @@ import {
   destroyInteriorColliders,
   debugRenderWithoutTerrain,
   destroyTerrainChunkCollider,
+  frameBoxesOf,
   resolveFreeTurn,
+  ringBoxesOf,
 } from './colliders'
 import { castRay } from './raycast'
 import { GAME_CONFIG } from '../gameConfig'
@@ -293,6 +295,139 @@ describe('colisor pelo modelo do LGPE', () => {
     expect(z - reach + hit.distance).toBeCloseTo(z + box[1] * town.scale, 0)
     expect(ray(box[2] * town.scale + 0.5)).toBeNull()
   })
+
+  // docs/features/069-revisao-do-bioma-cidade.md
+  it('a fonte colide só na borda: dentro dela dá para entrar', () => {
+    const town = listBiomes().find((biome) => biome.town?.props.fountain)?.town
+    if (!town) return
+    const chunk = generateTerrainChunk(createTerrainSampler(5), 0, 0)
+    chunk.heights.fill(0)
+    const x = chunk.minX + chunk.size / 2
+    const z = chunk.minZ + chunk.size / 2
+    const fountain = {
+      kind: 'street-prop',
+      model: town.props.fountain,
+      x,
+      y: 0,
+      z,
+      yaw: 0,
+      scale: town.propScale,
+      variant: 0,
+    }
+    chunk.solids = {
+      trees: [],
+      rocks: [],
+      buildings: [fountain],
+      footprints: [],
+    }
+    createTerrainChunkCollider(chunk)
+    stepPhysics()
+
+    const { ring } = lgpeColliderOf(fountain)
+    expect(ring).toBeDefined()
+    const low = (ring.height * fountain.scale) / 2
+    // Do meio para fora, rente ao chão: bate na borda de dentro.
+    const out = castRay({ x, y: low, z }, { x: 1, y: 0, z: 0 }, 10)
+    expect(out).not.toBeNull()
+    expect(out.distance).toBeCloseTo(ring.inner * fountain.scale, 1)
+    // De cima, no meio: só o chão (nada para pousar em cima).
+    const down = castRay({ x, y: 5, z }, { x: 0, y: -1, z: 0 }, 10)
+    expect(down.distance).toBeCloseTo(5, 1)
+    // De cima, na borda: a borda, na altura dela.
+    const middle = ((ring.inner + ring.outer) / 2) * fountain.scale
+    const onRim = castRay({ x: x + middle, y: 5, z }, { x: 0, y: -1, z: 0 }, 10)
+    expect(5 - onRim.distance).toBeCloseTo(ring.height * fountain.scale, 1)
+  })
+
+  it('o canteiro de tronco colide só na moldura: dentro dele dá para entrar', () => {
+    const town = listBiomes().find((biome) => biome.town?.props.flowerBed)?.town
+    if (!town) return
+    const chunk = generateTerrainChunk(createTerrainSampler(5), 0, 0)
+    chunk.heights.fill(0)
+    const x = chunk.minX + chunk.size / 2
+    const z = chunk.minZ + chunk.size / 2
+    const bed = {
+      kind: 'street-prop',
+      model: town.props.flowerBed,
+      x,
+      y: 0,
+      z,
+      yaw: 0,
+      scale: town.propScale,
+      variant: 0,
+    }
+    chunk.solids = { trees: [], rocks: [], buildings: [bed], footprints: [] }
+    createTerrainChunkCollider(chunk)
+    stepPhysics()
+
+    const { frame } = lgpeColliderOf(bed)
+    expect(frame).toBeDefined()
+    const low = (frame.height * bed.scale) / 2
+    // Do meio para fora, rente ao chão: bate na moldura de dentro.
+    const out = castRay({ x, y: low, z }, { x: 1, y: 0, z: 0 }, 10)
+    expect(out?.distance).toBeCloseTo(frame.inner[2] * bed.scale, 1)
+    // De cima, no meio: só o chão.
+    const down = castRay({ x, y: 5, z }, { x: 0, y: -1, z: 0 }, 10)
+    expect(down.distance).toBeCloseTo(5, 1)
+    // De cima, na moldura: ela, na altura dela.
+    const { box } = lgpeColliderOf(bed)
+    const onFrame = ((frame.inner[2] + box[2]) / 2) * bed.scale
+    const hit = castRay({ x: x + onFrame, y: 5, z }, { x: 0, y: -1, z: 0 }, 10)
+    expect(5 - hit.distance).toBeCloseTo(frame.height * bed.scale, 1)
+  })
+})
+
+describe('frameBoxesOf', () => {
+  const frame = { inner: [-1, -0.5, 1, 0.5], height: 0.4 }
+  const box = [-1.5, -1, 1.5, 1]
+  const solid = { x: 10, y: 2, z: -3, scale: 2, yaw: 0 }
+  const inside = ({ x, z }, [minX, minZ, maxX, maxZ], margin = 1e-6) =>
+    x > minX + margin &&
+    x < maxX - margin &&
+    z > minZ + margin &&
+    z < maxZ - margin
+
+  it('as quatro caixas cobrem a moldura, do chão até a altura dela, e deixam o vão livre', () => {
+    const boxes = frameBoxesOf(frame, box, solid)
+    expect(boxes).toHaveLength(4)
+    const scaled = (rect) => [
+      solid.x + rect[0] * solid.scale,
+      solid.z + rect[1] * solid.scale,
+      solid.x + rect[2] * solid.scale,
+      solid.z + rect[3] * solid.scale,
+    ]
+    const hole = scaled(frame.inner)
+    const outer = scaled(box)
+    let area = 0
+    for (const item of boxes) {
+      const [halfX, halfY, halfZ] = item.halfExtents
+      expect(item.y - halfY).toBeCloseTo(solid.y)
+      expect(item.y + halfY).toBeCloseTo(solid.y + frame.height * solid.scale)
+      // Nenhuma caixa invade o vão, e todas ficam dentro da caixa no chão.
+      expect(inside(item, hole)).toBe(false)
+      expect(item.x - halfX).toBeGreaterThanOrEqual(outer[0] - 1e-6)
+      expect(item.x + halfX).toBeLessThanOrEqual(outer[2] + 1e-6)
+      expect(item.z - halfZ).toBeGreaterThanOrEqual(outer[1] - 1e-6)
+      expect(item.z + halfZ).toBeLessThanOrEqual(outer[3] + 1e-6)
+      area += 4 * halfX * halfZ
+    }
+    const areaOf = ([minX, minZ, maxX, maxZ]) => (maxX - minX) * (maxZ - minZ)
+    expect(area).toBeCloseTo(areaOf(outer) - areaOf(hole))
+  })
+
+  it('giram com o objeto', () => {
+    const turned = frameBoxesOf(frame, box, { ...solid, yaw: Math.PI / 2 })
+    for (const item of turned) {
+      const reach = Math.hypot(item.x - solid.x, item.z - solid.z)
+      const straight = frameBoxesOf(frame, box, solid).find(
+        ({ halfExtents }) => halfExtents[0] === item.halfExtents[0],
+      )
+      expect(reach).toBeCloseTo(
+        Math.hypot(straight.x - solid.x, straight.z - solid.z),
+      )
+      expect(item.yaw).toBeCloseTo(Math.PI / 2)
+    }
+  })
 })
 
 describe('debugRenderWithoutTerrain', () => {
@@ -361,5 +496,39 @@ describe('createInteriorColliders', () => {
       destroyInteriorColliders(handle)
       expect(getRapierWorld().getRigidBody(handle)).toBeFalsy()
     }
+  })
+})
+
+// docs/features/069-revisao-do-bioma-cidade.md
+describe('ringBoxesOf', () => {
+  const ring = { inner: 1, outer: 1.5, height: 0.6 }
+  const solid = { x: 10, y: 2, z: -3, scale: 2 }
+
+  it('as caixas ficam na borda, do chão até a altura dela', () => {
+    for (const box of ringBoxesOf(ring, solid)) {
+      const reach = Math.hypot(box.x - solid.x, box.z - solid.z)
+      expect(reach).toBeCloseTo(((ring.inner + ring.outer) / 2) * solid.scale)
+      expect(box.y - box.halfExtents[1]).toBeCloseTo(solid.y)
+      expect(box.y + box.halfExtents[1]).toBeCloseTo(
+        solid.y + ring.height * solid.scale,
+      )
+      expect(box.halfExtents[2] * 2).toBeCloseTo(
+        (ring.outer - ring.inner) * solid.scale,
+      )
+    }
+  })
+
+  it('cada caixa aponta o +Z para fora (do meio para a borda)', () => {
+    for (const box of ringBoxesOf(ring, solid)) {
+      const outward = Math.atan2(box.x - solid.x, box.z - solid.z)
+      expect(Math.cos(box.yaw - outward)).toBeCloseTo(1)
+    }
+  })
+
+  it('as caixas vizinhas se encostam (sem fresta na borda de fora)', () => {
+    const boxes = ringBoxesOf(ring, solid)
+    const along = boxes[0].halfExtents[0] * 2
+    const gap = 2 * ring.outer * solid.scale * Math.sin(Math.PI / boxes.length)
+    expect(along).toBeGreaterThanOrEqual(gap)
   })
 })

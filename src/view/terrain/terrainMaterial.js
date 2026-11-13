@@ -6,6 +6,10 @@ import {
   MAX_TERRAIN_LAYERS,
   TERRAIN_COLOR_LAYERS,
   TERRAIN_LAYERS,
+  CURB_LAYER_BASE,
+  CURB_MASKS,
+  curbMaskPath,
+  terrainColorLayerIndex,
   terrainColorLayerPath,
   terrainLayerPath,
 } from './terrainLayers'
@@ -69,6 +73,8 @@ attribute float groundTextureShare;
 attribute vec4 groundSlope;
 attribute vec4 groundGrass;
 varying vec4 vGroundGrass;
+attribute vec4 groundCurb;
+varying vec4 vGroundCurb;
 flat varying float vGroundSlopeLayer;
 varying vec2 vGroundSlope;
 varying vec4 vGroundLayers0;
@@ -86,6 +92,9 @@ uniform sampler2DArray uColorLayers;
 uniform float uColorLayerSizes[${MAX_COLOR_LAYERS}];
 // 1 nas camadas de grama (o tom do chão só pega nelas).
 uniform float uColorLayerGrass[${MAX_COLOR_LAYERS}];
+// A camada que aparece onde esta é transparente (o índice + 1; 0 = nenhuma,
+// \`setColorLayerSizes\`).
+uniform float uColorLayerUnder[${MAX_COLOR_LAYERS}];
 uniform float uTextureSize;
 uniform float uNormalStrength;
 uniform float uTextureDetail;
@@ -99,6 +108,15 @@ uniform vec3 uGrassColor;
 uniform float uGrassGroundShade;
 uniform float uGrassGroundAmount;
 varying vec4 vGroundGrass;
+// A beira da rua da cidade montada à mão (069): a distância até ela (em
+// larguras da faixa, positiva fora da rua), a coordenada da máscara ao
+// longo dela, quanto o ponto é da cidade e as camadas da rua e da borda de
+// terra num número só (\`packCurbLayers\`, terrainGeometry.js — o mesmo no
+// chunk inteiro); as duas máscaras do original e se elas já chegaram.
+varying vec4 vGroundCurb;
+uniform sampler2D uCurbLotMask;
+uniform sampler2D uCurbRoadMask;
+uniform float uCurbMasksReady;
 // A encosta por pixel: normal.y onde começa e onde fica cheia.
 uniform vec2 uSlopeRange;
 flat varying float vGroundSlopeLayer;
@@ -114,6 +132,15 @@ varying float vGroundPatches;
 
 // Menor peso de camada que ainda entra no desenho.
 const float MIN_LAYER_WEIGHT = 0.002;
+// Onde a faixa da beira da rua fica nas máscaras do original (o V do UV
+// delas): na beira e quanto ele anda até o fim da faixa, do lado do lote e
+// do da rua; e o tom do miolo da rua na máscara dela (dividido: a rua
+// fora da faixa fica como era).
+const float CURB_LOT_EDGE = 0.998;
+const float CURB_LOT_SPAN = 0.078;
+const float CURB_ROAD_EDGE = 0.993;
+const float CURB_ROAD_SPAN = 0.053;
+const float CURB_ROAD_INNER = 0.851;
 // Acima deste peso de cima (normal.y), o chão conta como plano: a textura
 // sai só de cima, numa leitura (a projeção dos três lados é para encosta).
 const float FLAT_GROUND = 0.98;
@@ -128,13 +155,26 @@ vec3 triplanarWeights(vec3 n) {
 // Uma camada de cor (docs/features/066-revisao-dos-biomas.md): de cima no
 // chão plano; nas encostas, projetada dos três lados e pesada pela normal
 // (de cima, a parede esticava a textura em listras).
-vec3 colorLayerAt(int layer, vec3 world, vec3 w) {
+vec4 colorTexelAt(int layer, vec3 world, vec3 w) {
   vec3 p = world / uColorLayerSizes[layer];
   float index = float(layer);
-  if (w.y > FLAT_GROUND) return texture(uColorLayers, vec3(p.xz, index)).rgb;
-  return texture(uColorLayers, vec3(p.zy, index)).rgb * w.x
-    + texture(uColorLayers, vec3(p.xz, index)).rgb * w.y
-    + texture(uColorLayers, vec3(p.xy, index)).rgb * w.z;
+  if (w.y > FLAT_GROUND) return texture(uColorLayers, vec3(p.xz, index));
+  return texture(uColorLayers, vec3(p.zy, index)) * w.x
+    + texture(uColorLayers, vec3(p.xz, index)) * w.y
+    + texture(uColorLayers, vec3(p.xy, index)) * w.z;
+}
+
+vec3 colorLayerAt(int layer, vec3 world, vec3 w) {
+  return colorTexelAt(layer, world, w).rgb;
+}
+
+// A camada com a de baixo onde ela é transparente (as pedras de pisar
+// sobre a terra, 069): as que não têm camada de baixo saem como estão.
+vec3 coveredLayerAt(int layer, vec3 world, vec3 w) {
+  int under = int(uColorLayerUnder[layer] + 0.5) - 1;
+  if (under < 0) return colorLayerAt(layer, world, w);
+  vec4 top = colorTexelAt(layer, world, w);
+  return mix(colorLayerAt(under, world, w), top.rgb, top.a);
 }
 
 // Normal da camada (G/B = x/y; z reconstruído).
@@ -177,11 +217,28 @@ void addGroundLayer(float layer, float weight, vec3 p, vec3 n, vec3 w,
   total += weight;
 }
 
+// As camadas da rua e da borda de terra, de volta do número só (a camada
+// + 1 de cada, em base \`CURB_LAYER_BASE\`; -1 = nenhuma).
+const float CURB_LAYER_BASE = ${CURB_LAYER_BASE}.0;
+ivec2 curbLayersOf(float packed) {
+  float code = floor(packed + 0.5);
+  float road = mod(code, CURB_LAYER_BASE);
+  return ivec2(int(road) - 1, int(floor(code / CURB_LAYER_BASE)) - 1);
+}
+
+// O peso (no ponto) da camada de cor \`layer\`.
+float colorWeightOf(int layer) {
+  int group = layer / 4;
+  vec4 weights = vGroundColors0;
+${Array.from({ length: COLOR_WEIGHT_GROUPS - 1 }, (_, i) => `  if (group == ${i + 1}) weights = vGroundColors${i + 1};`).join('\n')}
+  return weights[layer - group * 4];
+}
+
 // Soma uma camada de cor, se ela tiver peso.
 void addColorLayer(int layer, float weight, vec3 w,
     inout vec3 color, inout float total, inout float grass) {
   if (weight < MIN_LAYER_WEIGHT) return;
-  color += colorLayerAt(layer, vTerrainWorld, w) * weight;
+  color += coveredLayerAt(layer, vTerrainWorld, w) * weight;
   total += weight;
   grass += weight * uColorLayerGrass[layer];
 }
@@ -209,6 +266,7 @@ vGroundTextureShare = groundTextureShare;
 vGroundSlopeLayer = groundSlope.x;
 vGroundSlope = groundSlope.yz;
 vGroundGrass = groundGrass;
+vGroundCurb = groundCurb;
 vTerrainWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;
 vGroundPatches = terrainFbm(vTerrainWorld.xz / uPatchSize);
 `
@@ -242,6 +300,8 @@ ${layerGroups(
 // A parte do ponto que é grama (para o tom do chão): nas camadas de cor,
 // o peso das de grama; na paleta (sem textura), tudo.
 float grassShare = 1.0;
+// A troca da rua para o lote fica num pixel (a borda nítida).
+float curbEdge = max(fwidth(vGroundCurb.x), 1e-4);
 if (vGroundTextureShare > 0.001) {
   vec3 textured = vec3(0.0);
   float texturedTotal = 0.0;
@@ -255,6 +315,38 @@ ${layerGroups(
   if (texturedTotal > 0.0) {
     vec3 groundColor = textured / texturedTotal;
     float grassPart = grassTotal / texturedTotal;
+    // A beira da rua da cidade montada à mão (069), por pixel: a rua sai
+    // da mistura por vértice e entra de um lado da beira, o resto (o lote)
+    // do outro; a borda de terra e a franja da grama do lado do lote e a
+    // guia do lado da rua vêm das máscaras do original.
+    float curbOn = clamp(vGroundCurb.z, 0.0, 1.0);
+    ivec2 curbLayers = curbLayersOf(vGroundCurb.w);
+    if (curbOn > 0.001 && curbLayers.x >= 0) {
+      int roadLayer = curbLayers.x;
+      int soilLayer = curbLayers.y;
+      vec3 roadColor = coveredLayerAt(roadLayer, vTerrainWorld, terrainWeights);
+      float roadWeight = colorWeightOf(roadLayer);
+      if (roadWeight < MIN_LAYER_WEIGHT) roadWeight = 0.0;
+      float lotTotal = texturedTotal - roadWeight;
+      bool hasLot = lotTotal > MIN_LAYER_WEIGHT;
+      vec3 lot = hasLot ? (textured - roadColor * roadWeight) / lotTotal : roadColor;
+      float lotGrass = hasLot ? grassTotal / lotTotal : 0.0;
+      vec3 road = roadColor;
+      float d = vGroundCurb.x;
+      if (uCurbMasksReady > 0.5 && soilLayer >= 0) {
+        vec3 soil = coveredLayerAt(soilLayer, vTerrainWorld, terrainWeights);
+        vec4 lotMask = texture(uCurbLotMask,
+          vec2(vGroundCurb.y, CURB_LOT_EDGE - CURB_LOT_SPAN * clamp(d, 0.0, 1.0)));
+        lot = mix(soil, lot, lotMask.a) * lotMask.rgb;
+        lotGrass *= lotMask.a;
+        vec4 roadMask = texture(uCurbRoadMask,
+          vec2(vGroundCurb.y, CURB_ROAD_EDGE - CURB_ROAD_SPAN * clamp(-d, 0.0, 1.0)));
+        road = mix(soil, roadColor, roadMask.a) * roadMask.rgb / CURB_ROAD_INNER;
+      }
+      float roadShare = 1.0 - smoothstep(-curbEdge, curbEdge, d);
+      groundColor = mix(groundColor, mix(lot, road, roadShare), curbOn);
+      grassPart = mix(grassPart, lotGrass * (1.0 - roadShare), curbOn);
+    }
     // A encosta por pixel, pela inclinação ali (066): a troca segue a borda
     // do barranco, sem as faixas em diagonal da mistura por vértice. O pico
     // cobre a encosta.
@@ -262,7 +354,7 @@ ${layerGroups(
     float slopeAmount = steep * clamp(vGroundSlope.x, 0.0, 1.0)
       * (1.0 - clamp(vGroundSlope.y, 0.0, 1.0));
     if (slopeAmount > 0.001) {
-      vec3 slopeColor = colorLayerAt(int(vGroundSlopeLayer + 0.5), vTerrainWorld, terrainWeights);
+      vec3 slopeColor = coveredLayerAt(int(vGroundSlopeLayer + 0.5), vTerrainWorld, terrainWeights);
       groundColor = mix(groundColor, slopeColor, slopeAmount);
       grassPart *= 1.0 - slopeAmount;
     }
@@ -374,6 +466,9 @@ function copyLayer(texture, index, image) {
 
 // Tamanho de cada camada de cor, compartilhado pelos materiais do relevo.
 const colorLayerSizes = new Float32Array(MAX_COLOR_LAYERS).fill(1)
+// A camada de baixo de cada uma (o índice + 1; 0 = nenhuma), também
+// compartilhada (`setColorLayerSizes`).
+const colorLayerUnder = new Float32Array(MAX_COLOR_LAYERS)
 // As camadas de grama (o tom do chão, `TERRAIN_LOOK.TINT`, só pega nelas).
 const GRASS_LAYER = /grass|forest-floor/
 export const colorLayerGrass = Float32Array.from(
@@ -412,6 +507,7 @@ export function createTerrainMaterials() {
     // O mesmo array em todos os materiais (`setColorLayerSizes`).
     uColorLayerSizes: { value: colorLayerSizes },
     uColorLayerGrass: { value: colorLayerGrass },
+    uColorLayerUnder: { value: colorLayerUnder },
     uTextureSize: { value: 1 },
     uNormalStrength: { value: 0 },
     uTextureDetail: { value: 0 },
@@ -425,7 +521,11 @@ export function createTerrainMaterials() {
     uGrassColor: { value: new THREE.Color(1, 1, 1) },
     uGrassGroundShade: { value: 1 },
     uGrassGroundAmount: { value: 0 },
+    uCurbLotMask: { value: null },
+    uCurbRoadMask: { value: null },
+    uCurbMasksReady: { value: 0 },
   }
+  const curbMasks = createCurbMasks(uniforms)
 
   const build = (lighting) => {
     const Material = LIGHTING_MATERIALS[lighting]
@@ -471,19 +571,48 @@ export function createTerrainMaterials() {
       for (const material of materials.values()) material.dispose()
       colorLayers.dispose()
       layers.dispose()
+      curbMasks.forEach((texture) => texture.dispose())
     },
   }
 }
 
 /**
+ * As máscaras da beira da rua (`CURB_MASKS`): repetem ao longo da beira e
+ * param no fim da faixa; valem quando as duas chegam (`uCurbMasksReady`).
+ */
+function createCurbMasks(uniforms) {
+  const loader = new THREE.TextureLoader()
+  let pending = 2
+  const load = (name, uniform) => {
+    const texture = loader.load(curbMaskPath(name), () => {
+      pending -= 1
+      if (pending === 0) uniforms.uCurbMasksReady.value = 1
+    })
+    texture.wrapS = THREE.RepeatWrapping
+    texture.wrapT = THREE.ClampToEdgeWrapping
+    texture.colorSpace = THREE.NoColorSpace
+    texture.anisotropy = TEXTURE_ANISOTROPY
+    uniforms[uniform].value = texture
+    return texture
+  }
+  return [
+    load(CURB_MASKS.lot, 'uCurbLotMask'),
+    load(CURB_MASKS.road, 'uCurbRoadMask'),
+  ]
+}
+
+/**
  * Tamanho (m) de uma repetição de cada camada de cor: o próprio dela
- * (`COLOR_LAYER_SIZES`) ou o de todas (`COLOR_TEXTURE_SIZE`). Vale na hora
+ * (`COLOR_LAYER_SIZES`) ou o de todas (`COLOR_TEXTURE_SIZE`); e a camada
+ * que aparece onde ela é transparente (`COLOR_LAYER_UNDER`). Vale na hora
  * (o painel do debug chama de novo ao mexer).
  */
 export function setColorLayerSizes(look) {
   TERRAIN_COLOR_LAYERS.forEach(([layer], index) => {
     colorLayerSizes[index] =
       look.COLOR_LAYER_SIZES?.[layer] ?? look.COLOR_TEXTURE_SIZE
+    const under = look.COLOR_LAYER_UNDER?.[layer]
+    colorLayerUnder[index] = under ? terrainColorLayerIndex(under) + 1 : 0
   })
 }
 

@@ -25,8 +25,8 @@ export function WildBehaviorPage({ data, version }) {
         </p>
         <p>
           Cada selvagem nasce com o próprio nível, que depende de onde ela
-          aparece: cada cidade tem um nível, as selvagens em volta ficam perto
-          dele e, no caminho entre duas cidades, ele muda aos poucos (
+          aparece: perto de Viridian elas são mais fracas e, quanto mais longe
+          da cidade, mais fortes (
           <WikiLink version={version} to="selvagens/onde-encontrar#nivel">
             nível das selvagens
           </WikiLink>

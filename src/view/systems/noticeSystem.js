@@ -35,6 +35,16 @@ export function resolveNotice(event) {
     }
   }
   if (event.type === EVENT_TYPES.SUMMON_BLOCKED_INDOORS) {
+    // No mapa de uma cidade copiada (Pallet, docs/features/069-revisao-do-
+    // bioma-cidade.md), por enquanto, também.
+    if (event.townMap) {
+      return {
+        kind: 'warn',
+        title: `Em ${event.townMap} o time fica na Pokébola`,
+        detail: `Por enquanto, os Pokémon só saem fora de ${event.townMap}.`,
+        color: STRAYED_COLOR,
+      }
+    }
     return {
       kind: 'warn',
       title: 'Aqui dentro o time fica na Pokébola',

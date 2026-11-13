@@ -7,6 +7,7 @@ import {
   isPassingDoor,
   pedirSaida,
 } from '../actions/interior'
+import { isOnTownMap } from '../actions/townMap'
 import { getInterior } from '../data/interiors'
 import { interiorExitPoint, nearestDoor } from '../interior/interiorPlacement'
 import { chunkCoordAt, chunkKey } from '../terrain/terrainChunk'
@@ -106,6 +107,10 @@ const targetOf = ({ entity, spot, door, exit }) => {
 function findTarget(world, trainer) {
   const from = trainer.get(Position)
   if (isIndoors(trainer)) return exitInReach(trainer.get(Indoors), from)
+  // No mapa de uma cidade copiada (Pallet, docs/features/069-revisao-do-
+  // bioma-cidade.md) as portas ainda não abrem, e os itens e arbustos lá
+  // embaixo (mesmo XZ) ficam de fora.
+  if (isOnTownMap(trainer)) return null
   const item = nearestInReach(world, from)
   const { DOOR_REACH } = GAME_CONFIG.INTERIOR
   const door = nearestDoor(

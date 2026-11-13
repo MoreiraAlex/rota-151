@@ -208,3 +208,38 @@ describe('naturalTrailAt', () => {
     expect(naturalTrailAt(plain, 0, 1)).toBeCloseTo(trailAt(plain, 0, 1))
   })
 })
+
+describe('trailAt com o chão sem vegetação', () => {
+  // A área da cidade montada à mão (`chunk.bare`, docs/features/069-
+  // revisao-do-bioma-cidade.md): afasta a vegetação como a trilha.
+  const chunk = {
+    minX: 0,
+    minZ: 0,
+    size: 1,
+    resolution: 1,
+    trails: Float32Array.from([0.5, 0, 0, 0]),
+    bare: Float32Array.from([0, 1, 0, 0]),
+  }
+
+  it('vale o maior dos dois', () => {
+    expect(trailAt(chunk, 0, 0)).toBeCloseTo(0.5)
+    expect(trailAt(chunk, 0, 1)).toBeCloseTo(1)
+    expect(trailAt(chunk, 1, 1)).toBeCloseTo(0)
+  })
+
+  it('sem trilha, é o chão sem vegetação', () => {
+    expect(trailAt({ ...chunk, trails: null }, 0, 1)).toBeCloseTo(1)
+  })
+
+  it('os tipos que nascem na cidade (`bareOpen`) usam o chão sem vegetação deles; os outros, o da cidade', () => {
+    const open = {
+      ...chunk,
+      trails: null,
+      bareOpen: { kinds: ['flower'], values: Float32Array.from([0, 0, 0, 1]) },
+    }
+    expect(trailAt(open, 0, 1, 'flower')).toBeCloseTo(0)
+    expect(trailAt(open, 1, 1, 'flower')).toBeCloseTo(1)
+    expect(trailAt(open, 0, 1, 'rock')).toBeCloseTo(1)
+    expect(trailAt(open, 0, 1)).toBeCloseTo(1)
+  })
+})

@@ -7,6 +7,7 @@ import { verticalClearance } from '../physics/capsule'
 import { shoreNear, wadeLimit } from '../terrain/water'
 import { levelWaterDepthAt } from '../actions/water'
 import { indoorsSaveOf, voltarParaDentro } from '../actions/interior'
+import { townMapSaveOf, voltarParaOMapa } from '../actions/townMap'
 import {
   CharacterController,
   HeldItem,
@@ -108,6 +109,9 @@ export function serializeTrainer(trainer) {
     // Dentro de um prédio, a sala e a porta (docs/features/068-interior-
     // dos-predios.md).
     indoors: indoorsSaveOf(trainer),
+    // No mapa de uma cidade copiada (Pallet), o mapa e de onde veio
+    // (docs/features/069-revisao-do-bioma-cidade.md).
+    townMap: townMapSaveOf(trainer),
     heldItemId: trainer.get(HeldItem)?.itemId ?? null,
     settings: {
       volume: pickVolumes(trainer.get(SoundSettings)),
@@ -135,13 +139,19 @@ export function serializeTrainer(trainer) {
  * docs/features/045-terreno-de-um-chunk.md), sobe para a superfície; se
  * ficou em água funda (docs/features/057-lagos-e-rios.md), vai para a
  * margem. Salvo dentro de um prédio, volta para dentro da sala
- * (`voltarParaDentro`, docs/features/068-interior-dos-predios.md).
+ * (`voltarParaDentro`, docs/features/068-interior-dos-predios.md); no mapa
+ * de uma cidade copiada, para ele (`voltarParaOMapa`, docs/features/069-
+ * revisao-do-bioma-cidade.md).
  */
 export function restoreTrainer(trainer, saved) {
   // Salvo dentro de um prédio (docs/features/068-interior-dos-predios.md):
   // volta para a sala (a posição é a de dentro dela, longe do relevo).
   const isInside = voltarParaDentro(trainer, saved.indoors, saved.position)
-  if (saved.position && !isInside) {
+  // Salvo no mapa de uma cidade copiada (docs/features/069-revisao-do-
+  // bioma-cidade.md): volta para ele (a posição é a de lá, longe do relevo).
+  const isOnMap =
+    !isInside && voltarParaOMapa(trainer, saved.townMap, saved.position)
+  if (saved.position && !isInside && !isOnMap) {
     trainer.set(Position, liftAboveGround(trainer, saved.position))
   }
   if (saved.position) {

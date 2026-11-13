@@ -4,6 +4,7 @@ import {
   garantirColisaoDaSala,
   sairDoPredio,
 } from '../actions/interior'
+import { garantirColisaoDoMapa } from '../actions/townMap'
 import { InteriorTransition, Party } from '../traits'
 
 /**
@@ -29,6 +30,9 @@ export function interiorSystem(context) {
   // física fica pronta (antes do treinador cair).
   const trainer = world.queryFirst(Party)
   if (trainer) garantirColisaoDaSala(trainer)
+  // O mesmo no mapa de uma cidade copiada (docs/features/069-revisao-do-
+  // bioma-cidade.md, Pallet).
+  if (trainer) garantirColisaoDoMapa(trainer)
   const transition = world.get(InteriorTransition)
   if (!transition.phase) return
   transition.elapsed += delta

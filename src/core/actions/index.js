@@ -139,3 +139,5 @@ export {
   viewDistanceOf,
 } from './graphicsSettings'
 export { darKitInicial } from './startingKit'
+export { cityArrivalPoint, irPara } from './travel'
+export { irParaMapaDaCidade, isOnTownMap, sairDoMapaDaCidade } from './townMap'

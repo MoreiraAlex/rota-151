@@ -14,7 +14,7 @@ import { clamp, smoothstep } from '../math'
  *   sem degrau (o relevo de sempre), 1 = barranco seco
  * @property {number} tilt - quanto do declive natural fica no topo do
  *   patamar (0 a 1): o topo nunca é plano de todo — o Rapier erra raios em
- *   célula plana do relevo (docs/roadmap.md, 089)
+ *   célula plana do relevo (docs/roadmap.md, 090)
  * @property {number} ramps - parte do chão (0 a 1) onde o degrau vira
  *   rampa
  * @property {number} rampSize - largura típica (m) de uma rampa
@@ -25,6 +25,14 @@ import { clamp, smoothstep } from '../math'
 const NARROWEST_CLIFF = 0.06
 // Largura da borda da mancha de rampa (0 a 1 do ruído).
 const RAMP_EDGE = 0.15
+
+/**
+ * A faixa (fração da subida de um patamar ao outro, 0 a 1) que o barranco
+ * ocupa com `cliff` (0 a 1): estreita com ele, nunca zero.
+ */
+export function cliffBand(cliff) {
+  return 1 - (1 - NARROWEST_CLIFF) * clamp(cliff, 0, 1)
+}
 
 /**
  * A altura em degraus de `height` (m acima da água): patamares de `step` m,
@@ -38,7 +46,7 @@ export function terraceHeight(height, { step, cliff, tilt }) {
   const within = level - base
   // A subida acontece no fim de cada patamar, numa faixa que estreita com
   // `cliff` (1 = a mais estreita).
-  const band = 1 - (1 - NARROWEST_CLIFF) * clamp(cliff, 0, 1)
+  const band = cliffBand(cliff)
   const rise = smoothstep(1 - band, 1, within)
   const stepped = (base + rise) * step
   return stepped + (height - stepped) * clamp(tilt, 0, 1)

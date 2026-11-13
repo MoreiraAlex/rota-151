@@ -7,6 +7,7 @@ import {
   resolveTriggerSegment,
 } from '@/core/battle/hitTrigger'
 import { GAME_CONFIG } from '@/core/gameConfig'
+import { rebuildTerrainDependentLevel } from '@/core/data/testLevel'
 import { getSpecies } from '@/core/data/species'
 import {
   experienceForLevel,
@@ -111,9 +112,28 @@ export const LAB_SLOT = 'secondary1'
 const LAB_MOVE_SLOT = 1
 
 // Chão: malha de triângulos com o relevo escolhido (`labRelief.js`), não
-// heightfield — o Rapier erra raio em célula plana de heightfield (089 no
+// heightfield — o Rapier erra raio em célula plana de heightfield (090 no
 // roadmap).
 export const LAB_GROUND = { size: 60 }
+
+/**
+ * O chão do lab é próprio, mas a água vem do mundo em volta da origem
+ * (`levelWaterDepthAt`): sem a cidade fixa ali (o lago de Viridian,
+ * docs/features/069-revisao-do-bioma-cidade.md), a área fica seca. Refaz
+ * o relevo do nível; devolve quem põe a cidade de volta (ao sair).
+ */
+export function tirarCidadeFixa() {
+  const firstTown = GAME_CONFIG.CITIES.FIRST_TOWN
+  // Chamada de novo antes de devolver (o StrictMode), não perde a de antes.
+  layoutBeforeLab = firstTown.LAYOUT ?? layoutBeforeLab
+  firstTown.LAYOUT = null
+  rebuildTerrainDependentLevel()
+  return () => {
+    firstTown.LAYOUT = layoutBeforeLab
+    rebuildTerrainDependentLevel()
+  }
+}
+let layoutBeforeLab = null
 
 // IV do meio da faixa em todo atributo: o atacante e o alvo nem rápidos nem
 // lentos (a página mostra o tempo efetivo).

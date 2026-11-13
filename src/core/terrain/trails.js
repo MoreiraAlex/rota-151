@@ -124,9 +124,20 @@ export function naturalTrailAt(chunk, x, z) {
   return Math.max(0, trail - chunkFieldAt(chunk, chunk.streets, x, z))
 }
 
-/** Força da trilha (0 a 1) em `(x, z)` do chunk — 0 sem trilha. */
-export function trailAt(chunk, x, z) {
-  return chunk.trails ? chunkFieldAt(chunk, chunk.trails, x, z) : 0
+/**
+ * Força da trilha (0 a 1) em `(x, z)` do chunk — 0 sem trilha. O chão
+ * sem vegetação (`chunk.bare`) conta como trilha: a vegetação não nasce
+ * nele. Os tipos de `chunk.bareOpen.kinds` (`kind`; a grama e as flores
+ * da cidade montada à mão, docs/features/069-revisao-do-bioma-cidade.md)
+ * usam o chão sem vegetação deles (`bareOpen.values`, só as ruas e o
+ * lago).
+ */
+export function trailAt(chunk, x, z, kind = null) {
+  const trail = chunk.trails ? chunkFieldAt(chunk, chunk.trails, x, z) : 0
+  if (!chunk.bare) return trail
+  const open = chunk.bareOpen
+  const bare = open?.kinds.includes(kind) ? open.values : chunk.bare
+  return Math.max(trail, chunkFieldAt(chunk, bare, x, z))
 }
 
 /**

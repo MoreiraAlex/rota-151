@@ -17,7 +17,7 @@ import {
  * da velocidade de quem está no controle, tamanho 1, ou `null` parado).
  *
  * Offline há um jogador só: a criatura controlada e a câmera são dele. No
- * multiplayer (079) cada um traz as suas.
+ * multiplayer (080) cada um traz as suas.
  *
  * @returns {{ trainer: import('koota').Entity, viewers: {x:number,z:number}[], view: {x:number,z:number,yaw:number} | null, heading: {x:number,z:number} | null }[]}
  */

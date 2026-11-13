@@ -74,9 +74,11 @@ describe('footstepAudioSystem', () => {
   // docs/features/057-lagos-e-rios.md
   it('na água toca o passo da água e acende uma marolinha; em terra, o da espécie', () => {
     world = createWorld()
+    // Longe da origem: lá fica a cidade fixa, com a água dela (069).
+    const far = GAME_CONFIG.TERRAIN.CHUNK_SIZE * 1000
     const entity = world.spawn(
       AnimationState({ id: 'walk' }),
-      Position({ x: 0, y: 0, z: 0 }),
+      Position({ x: far, y: 0, z: far }),
     )
     const audio = fakeAudio()
     const speciesVolume = 0.123

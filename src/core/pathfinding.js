@@ -3,6 +3,7 @@ import { GAME_CONFIG } from './gameConfig'
 import { TEST_LEVEL } from './data/testLevel'
 import { clamp } from './math'
 import { isDeepWater } from './terrain/water'
+import { fixedTownWaterDepthAt } from './town/fixedTown'
 
 /**
  * Grade de navegação (plano XZ, com elevação — ver "Elevação (heightmap)"
@@ -159,16 +160,20 @@ function bakeNavRegion(level, { minCol, minRow, cols, rows }) {
   }
 
   // Passada 0: o relevo — e a água funda (docs/features/057-lagos-e-
-  // rios.md), que bloqueia como um sólido; o raso continua andável.
+  // rios.md, e o lago da cidade montada à mão, 069), que bloqueia como um
+  // sólido; o raso continua andável.
   const hasTerrain = Boolean(level.terrain)
+  const fixedTown = level.terrain?.fixedTown?.() ?? null
   for (let col = 0; col < frameCols; col++) {
     for (let row = 0; row < frameRows; row++) {
       const { x, z } = cellCenter(col, row)
       const ground = groundAt(x, z)
       elevation[index(col, row)] = ground
-      if (hasTerrain && isDeepWater(GAME_CONFIG.TERRAIN.WATER_LEVEL - ground)) {
-        blocked[index(col, row)] = 1
-      }
+      const depth = Math.max(
+        GAME_CONFIG.TERRAIN.WATER_LEVEL - ground,
+        fixedTownWaterDepthAt(fixedTown, x, z, ground),
+      )
+      if (hasTerrain && isDeepWater(depth)) blocked[index(col, row)] = 1
     }
   }
 

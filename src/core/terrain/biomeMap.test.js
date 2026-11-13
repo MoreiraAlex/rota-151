@@ -18,10 +18,13 @@ const weightsOf = (sampler, x, z) => {
   return out
 }
 
+// As cidades procedurais ligadas (o jogo, nesta beta, só tem a primeira:
+// `CITIES.ONLY_FIRST`, docs/features/069-revisao-do-bioma-cidade.md).
 const citiesFor = (seed) =>
   createCitySites(seed, {
     town: getBiome('city').town,
     waterBodies: createWaterBodies(seed),
+    params: { ...GAME_CONFIG.CITIES, ONLY_FIRST: false },
   })
 
 // Bioma de teste: sem faixa de clima (vive em qualquer lugar).

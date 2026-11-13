@@ -1,4 +1,12 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import {
+  describe,
+  it,
+  expect,
+  beforeAll,
+  afterAll,
+  beforeEach,
+  afterEach,
+} from 'vitest'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import { listSpecies, getSpecies } from '@/core/data/species'
 import {
@@ -48,6 +56,7 @@ import {
   resolveTargetZForGap,
   readLabGap,
   runLabFixedStep,
+  tirarCidadeFixa,
 } from './skillLabWorld'
 
 const { FIXED_TIMESTEP } = GAME_CONFIG.LOOP
@@ -187,6 +196,13 @@ function actor(world, role) {
   }
   return null
 }
+
+// A área do lab sem a cidade fixa (o lago dela), como na página.
+let devolverCidade
+beforeAll(() => {
+  devolverCidade = tirarCidadeFixa()
+})
+afterAll(() => devolverCidade())
 
 let world
 beforeEach(async () => {

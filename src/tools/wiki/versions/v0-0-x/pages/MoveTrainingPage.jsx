@@ -70,10 +70,10 @@ export function MoveTrainingPage({ data, version }) {
 
       <Section id="campo" title="Campo de treino">
         <p>
-          Golpe só se treina num <strong>campo de treino</strong>: toda cidade,
-          de qualquer tamanho, tem um — um terreno cercado, de chão de terra,
-          com bonecos de treino virados pra entrada. Cada boneco recebe uma
-          criatura por vez.
+          Golpe só se treina num <strong>campo de treino</strong>: o de Viridian
+          fica no alto, a leste da cidade — um terreno cercado, de chão de
+          terra, com bonecos de treino virados pra entrada. Cada boneco recebe
+          uma criatura por vez.
         </p>
       </Section>
 

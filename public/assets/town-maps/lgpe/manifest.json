@@ -1,0 +1,1245 @@
+{
+  "source": "Pokémon Let's Go Pikachu/Eevee — scripts/lgpe/town-maps.json",
+  "props": {
+    "pallet-town": {
+      "label": "Pallet (o mapa inteiro)",
+      "category": "town-map",
+      "file": "props/pallet-town.glb",
+      "size": [
+        80.01,
+        9,
+        41.255
+      ],
+      "materials": {
+        "rock01_com_grass01_com": {
+          "shader": "FieldRockShader",
+          "maps": {
+            "Rock_tex": "rock01_com",
+            "GroundTex01": "grass01_com",
+            "BlendTex": "greenblend01_com",
+            "BorderTex": "glassmask01_com",
+            "GroundTex02": "grass02_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": [
+            0.5759999752044678,
+            0.4219279885292053,
+            0.14284799993038177
+          ],
+          "rim": [
+            0.6296300292015076,
+            1,
+            0.7160490155220032
+          ],
+          "lightColor": null,
+          "greenColor": null,
+          "layer": {
+            "base": "grass01_com",
+            "top": "rock01_com",
+            "uv": 1
+          }
+        },
+        "tree001_newsha1": {
+          "shader": "FieldTreeShader05",
+          "maps": {
+            "Texture01": "tree19_01_com",
+            "Texture02": "tree19_02_com",
+            "Texture03": "tree19_03_com"
+          },
+          "cutoff": 0.8500000238418579,
+          "doubleSided": true,
+          "shadowColor": [
+            0.19806824624538422,
+            0.30055078864097595,
+            0.2874460220336914
+          ],
+          "rimColor": [
+            0.06550999730825424,
+            0.530335009098053,
+            0.3810259997844696
+          ],
+          "rim": [
+            0.5,
+            1,
+            1
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "area02_tree2_tree_miki": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "stem01_com",
+            "HighlightMap": "stem01_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23454786837100983,
+            0.36131009459495544,
+            0.39157116413116455
+          ],
+          "rimColor": [
+            0.45513415336608887,
+            1.0000240802764893,
+            0.8332290053367615
+          ],
+          "rim": [
+            0,
+            1,
+            1
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "tree002_newsha": {
+          "shader": "FieldTreeShader05",
+          "maps": {
+            "Texture01": "tree20_01_com",
+            "Texture02": "tree20_02_com",
+            "Texture03": "tree20_03_com"
+          },
+          "cutoff": 0.8500000238418579,
+          "doubleSided": true,
+          "shadowColor": [
+            0.19806824624538422,
+            0.30055078864097595,
+            0.2874460220336914
+          ],
+          "rimColor": [
+            0.07227212935686111,
+            0.37123918533325195,
+            0.049706704914569855
+          ],
+          "rim": [
+            0.6420000195503235,
+            1,
+            1
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "tree006_sha": {
+          "shader": "FieldTreeShader04",
+          "maps": {
+            "Texture01": "tree20_01_com",
+            "Texture03": "tree20_03_com",
+            "Texture02": "tree23_02_com"
+          },
+          "cutoff": 0.7774389982223511,
+          "doubleSided": true,
+          "shadowColor": [
+            0.2541925013065338,
+            0.3857142925262451,
+            0.3688961863517761
+          ],
+          "rimColor": [
+            0.08412520587444305,
+            0.6994496583938599,
+            0.23435890674591064
+          ],
+          "rim": [
+            0.4755370318889618,
+            1,
+            1
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "tree06_01": {
+          "shader": "FieldTreeShader01",
+          "maps": {
+            "Texture01": "tree06_01",
+            "HighlightMap": "tree06_02"
+          },
+          "cutoff": 0.8500000238418579,
+          "doubleSided": true,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": [
+            0.2302047312259674,
+            0.49504950642585754,
+            0.052528925240039825
+          ],
+          "rim": [
+            0.625,
+            1,
+            1
+          ],
+          "lightColor": null,
+          "greenColor": [
+            0,
+            0,
+            0
+          ]
+        },
+        "tree05_01": {
+          "shader": "FieldTreeShader01",
+          "maps": {
+            "Texture01": "tree05_01",
+            "HighlightMap": "tree05_02"
+          },
+          "cutoff": 0.8500000238418579,
+          "doubleSided": true,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": [
+            0.222657710313797,
+            0.7893978953361511,
+            0.1638227105140686
+          ],
+          "rim": [
+            0.5,
+            1,
+            1
+          ],
+          "lightColor": null,
+          "greenColor": [
+            0,
+            0,
+            0
+          ]
+        },
+        "grass_s03": {
+          "shader": "FieldGrassShader04",
+          "maps": {
+            "Texture01": "grass08_1_com",
+            "Texture02": "grass08_2_com",
+            "Texture03": "grass08_3_com"
+          },
+          "cutoff": 0.4701330065727234,
+          "doubleSided": true,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "flower01_com": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "flower01_com"
+          },
+          "cutoff": 0.8500000238418579,
+          "doubleSided": true,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "grass01_com_001": {
+          "shader": "FieldGrassShader02",
+          "maps": {
+            "green_hikari": "grassdecoration01_com",
+            "TextureMap02": "grass02_com",
+            "green_blend": "greenblend01_com",
+            "Hilight": "grassdecoration02_com",
+            "TextureMap01": "grass01_com"
+          },
+          "cutoff": 0.8500000238418579,
+          "doubleSided": true,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "grass01_com": {
+          "shader": "FieldGrassShader02",
+          "maps": {
+            "green_hikari": "grassdecoration01_com",
+            "TextureMap02": "grass02_com",
+            "green_blend": "greenblend01_com",
+            "Hilight": "grassdecoration02_com",
+            "TextureMap01": "grass01_com"
+          },
+          "cutoff": 0.8500000238418579,
+          "doubleSided": true,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "grass01_com_002": {
+          "shader": "FieldGrassShader01",
+          "maps": {
+            "green_hikari": "grassdecoration01_com",
+            "TextureMap02": "grass02_com",
+            "green_blend": "greenblend01_com",
+            "Hilight": "grassdecoration02_com",
+            "TextureMap01": "grass01_com"
+          },
+          "cutoff": 0.8500000238418579,
+          "doubleSided": true,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": [
+            0,
+            0.25,
+            0.2047000527381897
+          ],
+          "rim": [
+            0.4333333373069763,
+            1,
+            1
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "fence01_01_area02": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "fence01_01_area02"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": [
+            0.7519084215164185,
+            0.7519084215164185,
+            0.7519084215164185
+          ],
+          "rim": [
+            0.5,
+            1,
+            0.4000000059604645
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "house01_02_area02": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "house01_02_area02"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": [
+            1.0000240802764893,
+            0.6037060022354126,
+            0.45513415336608887
+          ],
+          "rim": [
+            0.6049379706382751,
+            1,
+            1
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "house01_01_area02": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "house01_01_area02"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": [
+            0.5285714268684387,
+            0.5285714268684387,
+            0.5285714268684387
+          ],
+          "rim": [
+            0,
+            1,
+            1
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "tile01_area02": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "tile01_area02",
+            "ParallaxMap": "tile01_area02"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "rooftile02_01_area02": {
+          "shader": "FieldDefaultShader",
+          "maps": {
+            "Texture01": "rooftile02_01_area02",
+            "Texture02": "rooftile02_02_area02",
+            "ParallaxTexture01": "rooftile02_01_area02"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": [
+            1,
+            1,
+            1
+          ],
+          "rim": [
+            0.6049379706382751,
+            1,
+            1
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "window01_com": {
+          "shader": "FieldWindowShader",
+          "maps": {
+            "TextureMap01": "window01_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "rooftile01_01_area02": {
+          "shader": "FieldDefaultShader",
+          "maps": {
+            "Texture01": "rooftile01_01_area02",
+            "Texture02": "rooftile01_02_area02",
+            "ParallaxTexture01": "rooftile01_01_area02"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": [
+            1,
+            1,
+            1
+          ],
+          "rim": [
+            0.6049379706382751,
+            1,
+            1
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "house02_01_area02": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "house02_01_area02"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": [
+            0.806448757648468,
+            0.8071428537368774,
+            0.7038286328315735
+          ],
+          "rim": [
+            0.548697292804718,
+            1,
+            1
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "rooftile03_01_area02": {
+          "shader": "FieldDefaultShader",
+          "maps": {
+            "Texture01": "rooftile03_01_area02",
+            "Texture02": "rooftile03_02_area02",
+            "ParallaxTexture01": "rooftile03_01_area02",
+            "Mask_texture": "rooftile03_01_area02"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": [
+            1.0000240802764893,
+            0.628860592842102,
+            0.33154428005218506
+          ],
+          "rim": [
+            0.50038081407547,
+            1,
+            1
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "house02_02_area02": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "house02_02_area02",
+            "ParallaxMap": "house02_02_area02",
+            "Mask_texture": "house02_02_area02"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": [
+            0.40197500586509705,
+            0.4851408004760742,
+            0.4969223141670227
+          ],
+          "rim": [
+            0,
+            1,
+            1
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "doorway01_com": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "doorway01_com",
+            "LightMask_uv1": "doorway02_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.5787135362625122,
+            0.9225112795829773,
+            1.0000240802764893
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": [
+            1,
+            0.24609452486038208,
+            0.03299999237060547
+          ],
+          "greenColor": null
+        },
+        "signboard01_01_area02": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "signboard01_01_area02"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "cliff01_com_grass01_com": {
+          "shader": "FieldCliffShader01",
+          "maps": {
+            "CliffTex01": "cliff01_com",
+            "GroundTex02": "grass02_com",
+            "GroundTex01": "grass01_com",
+            "BlendTex": "greenblend01_com",
+            "BorderTex": "glassmask01_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": [
+            0.2788980007171631,
+            0.20507599413394928,
+            0.031895000487565994
+          ],
+          "rim": [
+            0.5,
+            1,
+            0.5
+          ],
+          "lightColor": null,
+          "greenColor": null,
+          "layer": {
+            "base": "grass01_com",
+            "top": "cliff01_com",
+            "uv": 1
+          }
+        },
+        "cliff03_com_grass01_com": {
+          "shader": "FieldCliffShader01",
+          "maps": {
+            "CliffTex01": "cliff03_com",
+            "GroundTex02": "grass02_com",
+            "GroundTex01": "grass01_com",
+            "BlendTex": "greenblend01_com",
+            "BorderTex": "glassmask01_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": [
+            0.2788980007171631,
+            0.20507599413394928,
+            0.031895000487565994
+          ],
+          "rim": [
+            0.5,
+            1,
+            0.5
+          ],
+          "lightColor": null,
+          "greenColor": null,
+          "layer": {
+            "base": "grass01_com",
+            "top": "cliff03_com",
+            "uv": 1
+          }
+        },
+        "block04_area02": {
+          "shader": "FieldCliffShader01",
+          "maps": {
+            "CliffTex01": "block04_area02",
+            "GroundTex02": "grass02_com",
+            "GroundTex01": "grass01_com",
+            "BlendTex": "greenblend01_com",
+            "BorderTex": "glassmask01_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": [
+            0.2788980007171631,
+            0.20507599413394928,
+            0.031895000487565994
+          ],
+          "rim": [
+            0.5,
+            1,
+            0.5
+          ],
+          "lightColor": null,
+          "greenColor": null,
+          "layer": {
+            "base": "grass01_com",
+            "top": "block04_area02",
+            "uv": 1
+          }
+        },
+        "grass01_com_grass04_com": {
+          "shader": "FieldGroundShader01",
+          "maps": {
+            "GrassBlendTex": "greenblend01_com",
+            "GroundTex02": "grass03_com",
+            "GrassTex02": "grass02_com",
+            "GrassTex01": "grass01_com",
+            "BlendTex": "glassmask02_com",
+            "GroundTex01": "grass04_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null,
+          "layer": {
+            "base": "grass01_com",
+            "top": "grass04_com",
+            "uv": 0
+          }
+        },
+        "grass03_com_soil05_com": {
+          "shader": "FieldGroundShader01",
+          "maps": {
+            "GrassBlendTex": "greenblend01_com",
+            "GroundTex02": "soil11_com",
+            "GrassTex02": "grass04_com",
+            "GrassTex01": "grass03_com",
+            "BlendTex": "glassmask01_com",
+            "GroundTex01": "soil05_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null,
+          "layer": {
+            "base": "grass03_com",
+            "top": "soil05_com",
+            "uv": 0
+          }
+        },
+        "grass01_com_soil01_com": {
+          "shader": "FieldGroundShader01",
+          "maps": {
+            "GrassBlendTex": "greenblend01_com",
+            "GroundTex02": "soil08_com",
+            "GrassTex02": "grass02_com",
+            "GrassTex01": "grass01_com",
+            "BlendTex": "glassmask01_com",
+            "GroundTex01": "soil01_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null,
+          "layer": {
+            "base": "grass01_com",
+            "top": "soil01_com",
+            "uv": 0
+          }
+        },
+        "block05_area02": {
+          "shader": "FieldCliffShader01",
+          "maps": {
+            "CliffTex01": "block05_area02",
+            "GroundTex02": "grass02_com",
+            "GroundTex01": "grass01_com",
+            "BlendTex": "greenblend01_com",
+            "BorderTex": "glassmask01_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23499999940395355,
+            0.3610000014305115,
+            0.39100000262260437
+          ],
+          "rimColor": [
+            0.2788980007171631,
+            0.20507599413394928,
+            0.031895000487565994
+          ],
+          "rim": [
+            0.5,
+            1,
+            0.5
+          ],
+          "lightColor": null,
+          "greenColor": null,
+          "layer": {
+            "base": "grass01_com",
+            "top": "block05_area02",
+            "uv": 1
+          }
+        },
+        "bm_signboard03_2_area02_3": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "bm_signboard03_01"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.2719976603984833,
+            0.4186955690383911,
+            0.4536985754966736
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "town001_door01_window": {
+          "shader": "FieldWindowShader",
+          "maps": {
+            "TextureMap01": "window01_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.06319000571966171,
+            0.40182363986968994,
+            0.4449999928474426
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "town001_door01_01": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "town001_door01_01"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23454786837100983,
+            0.36131009459495544,
+            0.39157116413116455
+          ],
+          "rimColor": [
+            0.47857099771499634,
+            0.47857099771499634,
+            0.47857099771499634
+          ],
+          "rim": [
+            0.6049379706382751,
+            1,
+            0.4135800004005432
+          ],
+          "lightColor": null,
+          "greenColor": null
+        },
+        "town001_door02_window": {
+          "shader": "FieldWindowShader",
+          "maps": {
+            "TextureMap01": "window01_com"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.23454786837100983,
+            0.36131009459495544,
+            0.39157116413116455
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        },
+        "town001_door02_01": {
+          "shader": "FieldObjectShader",
+          "maps": {
+            "Texture01": "town001_door02_01"
+          },
+          "cutoff": null,
+          "doubleSided": false,
+          "shadowColor": [
+            0.06319000571966171,
+            0.40182363986968994,
+            0.4449999928474426
+          ],
+          "rimColor": null,
+          "rim": null,
+          "lightColor": null,
+          "greenColor": null
+        }
+      },
+      "origin": [
+        18.0052,
+        -2,
+        16.4437
+      ]
+    }
+  },
+  "ground": [],
+  "toonTables": [],
+  "textures": {
+    "rock01_com": {
+      "file": "textures/rock01_com.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "grass01_com": {
+      "file": "textures/grass01_com.png",
+      "width": 512,
+      "height": 512,
+      "alpha": false
+    },
+    "greenblend01_com": {
+      "file": "textures/greenblend01_com.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "glassmask01_com": {
+      "file": "textures/glassmask01_com.png",
+      "width": 256,
+      "height": 512,
+      "alpha": true
+    },
+    "grass02_com": {
+      "file": "textures/grass02_com.png",
+      "width": 512,
+      "height": 512,
+      "alpha": false
+    },
+    "tree19_01_com": {
+      "file": "textures/tree19_01_com.png",
+      "width": 256,
+      "height": 256,
+      "alpha": true
+    },
+    "tree19_02_com": {
+      "file": "textures/tree19_02_com.png",
+      "width": 64,
+      "height": 256,
+      "alpha": true
+    },
+    "tree19_03_com": {
+      "file": "textures/tree19_03_com.png",
+      "width": 256,
+      "height": 256,
+      "alpha": true
+    },
+    "stem01_com": {
+      "file": "textures/stem01_com.png",
+      "width": 128,
+      "height": 128,
+      "alpha": true
+    },
+    "tree20_01_com": {
+      "file": "textures/tree20_01_com.png",
+      "width": 256,
+      "height": 256,
+      "alpha": true
+    },
+    "tree20_02_com": {
+      "file": "textures/tree20_02_com.png",
+      "width": 64,
+      "height": 256,
+      "alpha": true
+    },
+    "tree20_03_com": {
+      "file": "textures/tree20_03_com.png",
+      "width": 256,
+      "height": 256,
+      "alpha": true
+    },
+    "tree23_02_com": {
+      "file": "textures/tree23_02_com.png",
+      "width": 64,
+      "height": 256,
+      "alpha": true
+    },
+    "tree06_01": {
+      "file": "textures/tree06_01.png",
+      "width": 256,
+      "height": 256,
+      "alpha": true
+    },
+    "tree06_02": {
+      "file": "textures/tree06_02.png",
+      "width": 256,
+      "height": 256,
+      "alpha": true
+    },
+    "tree05_01": {
+      "file": "textures/tree05_01.png",
+      "width": 256,
+      "height": 256,
+      "alpha": true
+    },
+    "tree05_02": {
+      "file": "textures/tree05_02.png",
+      "width": 64,
+      "height": 64,
+      "alpha": false
+    },
+    "grass08_1_com": {
+      "file": "textures/grass08_1_com.png",
+      "width": 128,
+      "height": 128,
+      "alpha": true
+    },
+    "grass08_2_com": {
+      "file": "textures/grass08_2_com.png",
+      "width": 128,
+      "height": 128,
+      "alpha": true
+    },
+    "grass08_3_com": {
+      "file": "textures/grass08_3_com.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "flower01_com": {
+      "file": "textures/flower01_com.png",
+      "width": 256,
+      "height": 256,
+      "alpha": true
+    },
+    "grassdecoration01_com": {
+      "file": "textures/grassdecoration01_com.png",
+      "width": 512,
+      "height": 512,
+      "alpha": true
+    },
+    "grassdecoration02_com": {
+      "file": "textures/grassdecoration02_com.png",
+      "width": 512,
+      "height": 512,
+      "alpha": true
+    },
+    "fence01_01_area02": {
+      "file": "textures/fence01_01_area02.png",
+      "width": 128,
+      "height": 128,
+      "alpha": false
+    },
+    "house01_02_area02": {
+      "file": "textures/house01_02_area02.png",
+      "width": 512,
+      "height": 512,
+      "alpha": false
+    },
+    "house01_01_area02": {
+      "file": "textures/house01_01_area02.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "tile01_area02": {
+      "file": "textures/tile01_area02.png",
+      "width": 128,
+      "height": 128,
+      "alpha": true
+    },
+    "rooftile02_01_area02": {
+      "file": "textures/rooftile02_01_area02.png",
+      "width": 256,
+      "height": 256,
+      "alpha": true
+    },
+    "rooftile02_02_area02": {
+      "file": "textures/rooftile02_02_area02.png",
+      "width": 256,
+      "height": 256,
+      "alpha": true
+    },
+    "window01_com": {
+      "file": "textures/window01_com.png",
+      "width": 128,
+      "height": 128,
+      "alpha": false
+    },
+    "rooftile01_01_area02": {
+      "file": "textures/rooftile01_01_area02.png",
+      "width": 256,
+      "height": 256,
+      "alpha": true
+    },
+    "rooftile01_02_area02": {
+      "file": "textures/rooftile01_02_area02.png",
+      "width": 256,
+      "height": 256,
+      "alpha": true
+    },
+    "house02_01_area02": {
+      "file": "textures/house02_01_area02.png",
+      "width": 512,
+      "height": 512,
+      "alpha": false
+    },
+    "rooftile03_01_area02": {
+      "file": "textures/rooftile03_01_area02.png",
+      "width": 256,
+      "height": 256,
+      "alpha": true
+    },
+    "rooftile03_02_area02": {
+      "file": "textures/rooftile03_02_area02.png",
+      "width": 256,
+      "height": 256,
+      "alpha": true
+    },
+    "house02_02_area02": {
+      "file": "textures/house02_02_area02.png",
+      "width": 256,
+      "height": 256,
+      "alpha": true
+    },
+    "doorway01_com": {
+      "file": "textures/doorway01_com.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "doorway02_com": {
+      "file": "textures/doorway02_com.png",
+      "width": 128,
+      "height": 128,
+      "alpha": false
+    },
+    "signboard01_01_area02": {
+      "file": "textures/signboard01_01_area02.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "cliff01_com": {
+      "file": "textures/cliff01_com.png",
+      "width": 512,
+      "height": 128,
+      "alpha": false
+    },
+    "cliff03_com": {
+      "file": "textures/cliff03_com.png",
+      "width": 512,
+      "height": 256,
+      "alpha": false
+    },
+    "block04_area02": {
+      "file": "textures/block04_area02.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "grass03_com": {
+      "file": "textures/grass03_com.png",
+      "width": 512,
+      "height": 512,
+      "alpha": false
+    },
+    "glassmask02_com": {
+      "file": "textures/glassmask02_com.png",
+      "width": 256,
+      "height": 512,
+      "alpha": true
+    },
+    "grass04_com": {
+      "file": "textures/grass04_com.png",
+      "width": 512,
+      "height": 512,
+      "alpha": false
+    },
+    "soil11_com": {
+      "file": "textures/soil11_com.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "soil05_com": {
+      "file": "textures/soil05_com.png",
+      "width": 512,
+      "height": 512,
+      "alpha": false
+    },
+    "soil08_com": {
+      "file": "textures/soil08_com.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "soil01_com": {
+      "file": "textures/soil01_com.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "block05_area02": {
+      "file": "textures/block05_area02.png",
+      "width": 256,
+      "height": 64,
+      "alpha": false
+    },
+    "bm_signboard03_01": {
+      "file": "textures/bm_signboard03_01.png",
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    "town001_door01_01": {
+      "file": "textures/town001_door01_01.png",
+      "width": 128,
+      "height": 128,
+      "alpha": false
+    },
+    "town001_door02_01": {
+      "file": "textures/town001_door02_01.png",
+      "width": 128,
+      "height": 128,
+      "alpha": false
+    }
+  }
+}

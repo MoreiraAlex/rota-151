@@ -13,20 +13,24 @@ import {
   buildTerrainChunkGeometry,
   slopeInfoOf,
   terrainColorAt,
+  townCurbAttributes,
 } from './terrainGeometry'
 import {
   COLOR_WEIGHT_GROUPS,
   MAX_COLOR_LAYERS,
   MAX_TERRAIN_LAYERS,
   TERRAIN_LAYERS,
+  packCurbLayers,
   terrainColorLayerIndex,
   terrainLayerIndex,
+  unpackCurbLayers,
 } from './terrainLayers'
 import { getBiome, listBiomes } from '@/core/data/biomes'
 import { TEST_LEVEL } from '@/core/data/testLevel'
 import { vegetationEntryOf } from '@/core/vegetation/vegetationEntry'
 import { findBiomePoints } from '@/tools/biomeLab/labPoints'
 import { BLADE_GRASS_ID } from '@/view/vegetation/bladeGrass'
+import { CURB_REACH } from '@/core/town/fixedTown'
 
 const { WATER_LEVEL } = GAME_CONFIG.TERRAIN
 const { SHORE_HEIGHT, SLOPE_FULL } = GAME_CONFIG.TERRAIN_COLOR
@@ -351,6 +355,59 @@ describe('grama em fios no chão (066)', () => {
         if (position.getY(i) - WATER_LEVEL <= SHORE_GAP) {
           expect(grass.getW(i)).toBe(0)
         }
+      }
+    }
+  })
+})
+
+describe('beira da rua da cidade montada à mão (069)', () => {
+  const side = chunk.resolution + 1
+  const vertex = (ix, iz) => iz * side + ix
+
+  it('sem cidade no chunk: longe da rua, sem força e sem camadas', () => {
+    const curb = townCurbAttributes(chunk, side, vertex)
+    for (let i = 0; i < side * side; i++) {
+      expect(curb[i * 4]).toBe(CURB_REACH)
+      expect(curb[i * 4 + 2]).toBe(0)
+      expect(unpackCurbLayers(curb[i * 4 + 3])).toEqual([-1, -1])
+    }
+  })
+
+  it('as camadas voltam do número só, para qualquer camada de cor', () => {
+    for (let road = -1; road < MAX_COLOR_LAYERS; road++) {
+      for (let soil = -1; soil < MAX_COLOR_LAYERS; soil++) {
+        expect(unpackCurbLayers(packCurbLayers(road, soil))).toEqual([
+          road,
+          soil,
+        ])
+      }
+    }
+  })
+
+  it('com a cidade: a distância, a força e as camadas da rua e da terra', () => {
+    const count = side * side
+    const area = new Float32Array(count).fill(1)
+    const distance = Float32Array.from({ length: count }, (_, i) => i / count)
+    const along = Float32Array.from({ length: count }, (_, i) => i)
+    const town = {
+      ...chunk,
+      townPaint: {
+        area,
+        curb: { road: 'lgpe-asphalt', soil: 'lgpe-soil', distance, along },
+      },
+    }
+    const curb = townCurbAttributes(town, side, vertex)
+    for (let ix = 0; ix < side; ix += 5) {
+      for (let iz = 0; iz < side; iz += 5) {
+        const i = vertex(ix, iz)
+        const index = heightIndex(chunk.resolution, ix, iz)
+        expect(curb[i * 4]).toBeCloseTo(distance[index], 6)
+        expect(curb[i * 4 + 1]).toBe(along[index])
+        expect(curb[i * 4 + 2]).toBe(1)
+        expect(unpackCurbLayers(curb[i * 4 + 3])).toEqual([
+          terrainColorLayerIndex('lgpe-asphalt'),
+          terrainColorLayerIndex('lgpe-soil'),
+        ])
       }
     }
   })

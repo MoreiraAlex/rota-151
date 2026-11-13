@@ -224,6 +224,7 @@ function buildWildSpawn() {
     phaseStarts: { ...DAY_CYCLE.PHASES },
     firstCityLevel: WILD_SPAWN.LEVEL.FIRST_CITY,
     levelSpread: WILD_SPAWN.LEVEL.SPREAD,
+    levelCapDistance: WILD_SPAWN.LEVEL.CAP_DISTANCE,
     levelCap: EXPERIENCE.LEVEL_CAP,
   }
 }

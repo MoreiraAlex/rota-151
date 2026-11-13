@@ -4,6 +4,7 @@ import { createRng } from '../rng'
 import {
   baseLevelAt,
   cityLevel,
+  levelFromStart,
   levelParams,
   rollLevelAround,
 } from './wildLevel'
@@ -81,6 +82,38 @@ describe('baseLevelAt', () => {
 
   it('sem cidade, o nível do começo', () => {
     expect(baseLevelAt(SEED, [])).toBe(params.FIRST_CITY)
+  })
+})
+
+// Só a cidade inicial no mundo (`CITIES.ONLY_FIRST`, docs/features/069-
+// revisao-do-bioma-cidade.md): o nível sobe com a distância dela.
+describe('levelFromStart (só a cidade inicial)', () => {
+  const START = { ...FIRST, radius: 80 }
+  const at = (distance) => baseLevelAt(SEED, [{ city: START, distance }])
+
+  it('dentro dela e na borda, o nível do começo', () => {
+    expect(at(0)).toBe(params.FIRST_CITY)
+    expect(at(START.radius)).toBe(params.FIRST_CITY)
+  })
+
+  it('da borda para fora sobe sem voltar, até o teto a CAP_DISTANCE m da borda', () => {
+    const steps = 20
+    let previous = at(START.radius)
+    for (let i = 1; i <= steps; i++) {
+      const level = at(START.radius + (params.CAP_DISTANCE * i) / steps)
+      expect(level).toBeGreaterThan(previous)
+      previous = level
+    }
+    expect(previous).toBeCloseTo(params.CAP, 9)
+  })
+
+  it('além, fica no teto', () => {
+    expect(at(START.radius + params.CAP_DISTANCE * 3)).toBe(params.CAP)
+  })
+
+  it('é o que baseLevelAt usa com a cidade inicial sozinha', () => {
+    const nearest = { city: START, distance: START.radius + 100 }
+    expect(baseLevelAt(SEED, [nearest])).toBe(levelFromStart(nearest))
   })
 })
 

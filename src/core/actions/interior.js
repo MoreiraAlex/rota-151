@@ -112,9 +112,11 @@ export function guardarTimeNaHora(world, trainer) {
   if (trainer.has(SummonRequest)) trainer.remove(SummonRequest)
 }
 
-// Põe o treinador em `position` (o centro do corpo), parado, virado para
-// `yaw`.
-function moveTrainer(trainer, position, yaw) {
+/**
+ * Põe o treinador em `position` (o centro do corpo), parado, virado para
+ * `yaw` — também ao ir e vir do mapa de uma cidade (`actions/townMap.js`).
+ */
+export function moveTrainer(trainer, position, yaw) {
   trainer.set(Position, { ...position })
   if (trainer.has(Velocity)) trainer.set(Velocity, { x: 0, y: 0, z: 0 })
   trainer.set(Rotation, { ...trainer.get(Rotation), y: yaw })
@@ -123,11 +125,13 @@ function moveTrainer(trainer, position, yaw) {
   }
 }
 
-// A câmera atrás de quem olha para `facing` (o giro do corpo), sem a
-// suavização no próximo quadro (`CameraSnap`). A frente da câmera é
-// `(-sin yaw, -cos yaw)` (core/camera/orbitCamera.js) e a do corpo
-// `(sin y, cos y)`: meia volta de diferença.
-function aimCamera(world, facing, orbit = {}) {
+/**
+ * A câmera atrás de quem olha para `facing` (o giro do corpo), sem a
+ * suavização no próximo quadro (`CameraSnap`). A frente da câmera é
+ * `(-sin yaw, -cos yaw)` (core/camera/orbitCamera.js) e a do corpo
+ * `(sin y, cos y)`: meia volta de diferença.
+ */
+export function aimCamera(world, facing, orbit = {}) {
   const camera = world.queryFirst(OrbitCamera)
   if (!camera) return
   camera.set(OrbitCamera, {
@@ -138,13 +142,16 @@ function aimCamera(world, facing, orbit = {}) {
   if (!camera.has(CameraSnap)) camera.add(CameraSnap)
 }
 
-// Passar pela porta é um ponto de save (como `pedirSave`, actions/save.js —
-// sem importar de lá: o save importa daqui).
-function requestSave(trainer) {
+/**
+ * Passar pela porta é um ponto de save (como `pedirSave`, actions/save.js —
+ * sem importar de lá: o save importa daqui).
+ */
+export function requestSave(trainer) {
   if (!trainer.has(SaveRequested)) trainer.add(SaveRequested)
 }
 
-const clearanceOf = (trainer) => {
+/** Do centro do corpo do treinador até os pés (0 sem corpo). */
+export const clearanceOf = (trainer) => {
   const body = trainer.get(CharacterController)
   return body ? verticalClearance(body) : 0
 }

@@ -40,6 +40,8 @@ import { createRng, deriveSeed } from '../rng'
  * @property {object} town - o `town` do bioma
  * @property {(x: number, z: number) => number} shareAt
  * @property {(lotX: number, lotZ: number) => boolean} isLotOpen
+ * @property {(x: number, z: number) => boolean} isFixedAt - na cidade fixa
+ *   (sem planta)
  * @property {(blockX: number, blockZ: number) => City | null} cityOf
  * @property {(x: number, z: number) => object | null} themeNear - o tema
  *   da cidade do quarteirão de `(x, z)` ou de um vizinho dele (a rua da
@@ -116,8 +118,11 @@ export function createCityIndex({
     !bounds ||
     (x >= bounds[0] && x <= bounds[2] && z >= bounds[1] && z <= bounds[3])
 
+  const isFixedAt = (x, z) => Boolean(sites?.nearestCity(x, z).city.fixed)
+
   // O lote inteiro (os cantos, com a folga, e o meio) na cidade e em terra
-  // seca, e longe da origem.
+  // seca, e longe da origem — e não na cidade fixa (o mapa dela é a cidade
+  // toda, docs/features/069-revisao-do-bioma-cidade.md).
   function isLotOpen(lotX, lotZ) {
     const key = lotKey(lotX, lotZ)
     if (openLots.has(key)) return openLots.get(key)
@@ -133,6 +138,7 @@ export function createCityIndex({
     ]
     const halfDiagonal = Math.hypot(maxX - minX, maxZ - minZ) / 2
     const isOpen =
+      !isFixedAt(centerX, centerZ) &&
       Math.hypot(centerX, centerZ) >= SPAWN_CLEAR_RADIUS + halfDiagonal &&
       points.every(
         ([x, z]) =>
@@ -227,6 +233,10 @@ export function createCityIndex({
     town,
     shareAt,
     isLotOpen,
+    // `(x, z)` cai na cidade fixa (docs/features/069-revisao-do-bioma-
+    // cidade.md — o mapa dela é a cidade toda: sem rua, poste nem árvore
+    // de rua da planta).
+    isFixedAt,
     cityOf(blockX, blockZ) {
       const key = blockKey(blockX, blockZ)
       if (cities.has(key)) return cities.get(key)

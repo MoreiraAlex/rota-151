@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { listBiomes } from '@/core/data/biomes'
+import { listCityLayouts } from '@/core/data/cityLayouts'
 import { GAME_CONFIG } from '@/core/gameConfig'
 import { createToonMaterial } from './toonMaterial'
 import { buildBladeGrassModel } from './bladeGrass'
@@ -160,13 +161,13 @@ export function lgpeChoicesOf(manifest, kind) {
 
 /**
  * Os modelos da cidade de um bioma (`town`, docs/features/056-bioma-
- * cidade.md): os prédios, os objetos de rua e o boneco do campo de treino.
+ * cidade.md): os prédios, os objetos de rua (com os dos detalhes, 069) e o
+ * boneco do campo de treino.
  */
 export function townModelIds(town) {
   if (!town) return []
-  const { lamp, fence, bench } = town.props
   const themed = town.themes.flatMap((theme) => [
-    ...[theme.special, ...theme.houses]
+    ...[theme.special, ...theme.houses, ...(theme.yard ?? [])]
       .filter(Boolean)
       .map(({ model }) => model),
     theme.lamp,
@@ -175,9 +176,7 @@ export function townModelIds(town) {
   return [
     ...town.landmarks.map(({ model }) => model),
     ...themed,
-    lamp,
-    fence,
-    bench,
+    ...Object.values(town.props),
     // O boneco do campo de treino (067).
     town.trainingField?.dummy,
   ].filter(Boolean)
@@ -185,15 +184,22 @@ export function townModelIds(town) {
 
 /**
  * Os ids do LGPE que algum bioma usa (`models` das entradas e os da
- * cidade).
+ * cidade) e os objetos das cidades montadas à mão (`props` dos layouts,
+ * docs/features/069-revisao-do-bioma-cidade.md).
  */
-export function usedLgpeIds(biomes = listBiomes()) {
+export function usedLgpeIds(
+  biomes = listBiomes(),
+  cityLayouts = listCityLayouts(),
+) {
   const ids = new Set()
   for (const { vegetation, town } of biomes) {
     for (const entry of vegetation) {
       for (const id of entry.models ?? []) ids.add(id)
     }
     for (const id of townModelIds(town)) ids.add(id)
+  }
+  for (const { props = [] } of cityLayouts) {
+    for (const { model } of props) ids.add(model)
   }
   return [...ids]
 }
@@ -386,12 +392,28 @@ function buildPart(mesh, id, prop, textureOf, disposables, solidBox) {
     RAMP_SHADERS.has(entry.shader) &&
     Boolean(entry.maps?.Texture02) &&
     Boolean(geometry.getAttribute('uv1'))
+  // Chão misturado do mapa (`layer`, docs/features/069-revisao-do-bioma-
+  // cidade.md): a grama embaixo, a terra (ou barranco, pedra) em cima pelo
+  // canal vermelho do vértice.
+  const layer =
+    entry.layer &&
+    geometry.getAttribute('color') &&
+    (entry.layer.uv === 0 || geometry.getAttribute('uv1'))
+      ? entry.layer
+      : null
   const material = createToonMaterial({
-    map: colorName ? textureOf(colorName) : null,
+    map: layer
+      ? textureOf(layer.base)
+      : colorName
+        ? textureOf(colorName)
+        : null,
+    layerMap: layer ? textureOf(layer.top) : null,
+    layerUv: layer?.uv ?? 0,
     cutoff: entry.cutoff,
     doubleSided: entry.doubleSided,
-    // Na rampa a cor já vem pronta (o canal do vértice é dado do jogo).
-    vertexColors: !isRamp && hasPaintedColor(geometry),
+    // Na rampa a cor já vem pronta (o canal do vértice é dado do jogo); no
+    // chão misturado ele é o peso da camada.
+    vertexColors: !isRamp && !layer && hasPaintedColor(geometry),
     rimColor: entry.rimColor,
     rim: entry.rim,
     sway: lgpeSwayOf(prop.category),
@@ -402,6 +424,9 @@ function buildPart(mesh, id, prop, textureOf, disposables, solidBox) {
     shadeMap:
       isRamp && entry.maps.Texture03 ? textureOf(entry.maps.Texture03) : null,
     nearHide,
+    // O vidro dos postes acende à noite (docs/features/069-revisao-do-
+    // bioma-cidade.md).
+    glow: Boolean(entry.glow),
   })
   disposables.push(material)
   return {
@@ -410,6 +435,9 @@ function buildPart(mesh, id, prop, textureOf, disposables, solidBox) {
     material,
     // O material do jogo original (a cor do ginásio pinta só alguns).
     materialName: mesh.material.name,
+    // Acende à noite (o vidro do poste): onde a luz dele fica
+    // (`lampLights.js`).
+    glow: Boolean(entry.glow),
   }
 }
 

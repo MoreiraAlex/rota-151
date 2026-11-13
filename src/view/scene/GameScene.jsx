@@ -46,6 +46,9 @@ import { DamageNumbersView } from './DamageNumbersView'
 import { withSeeThrough } from '@/view/materials/seeThrough'
 import { InteriorView } from '@/view/interior/InteriorView'
 import { useIndoors } from '@/view/hooks/useIndoors'
+import { useOnTownMap } from '@/view/hooks/useOnTownMap'
+import { FixedTownView } from '@/view/townMap/FixedTownView'
+import { TownMapView } from '@/view/townMap/TownMapView'
 
 function obstacleRotation(rotation) {
   if (!rotation) return [0, 0, 0]
@@ -112,6 +115,18 @@ function OutdoorOnly({ children }) {
 }
 
 /**
+ * O que só existe no mundo procedural: some também no mapa de uma cidade
+ * copiada (Pallet, docs/features/069-revisao-do-bioma-cidade.md — um lugar
+ * à parte ao ar livre, bem acima do relevo; o céu, o clima e os efeitos
+ * ficam).
+ */
+function OpenWorldOnly({ children }) {
+  const indoors = useIndoors()
+  const onTownMap = useOnTownMap()
+  return <group visible={!indoors && !onTownMap}>{children}</group>
+}
+
+/**
  * `children` é um slot pra conteúdo opcional composto por quem monta a cena
  * (a página, em app/) — é assim que ferramentas de debug (tools/) entram na
  * mesma árvore sem a view/ precisar importar de tools/ (a direção de
@@ -131,9 +146,11 @@ export function GameScene({ children }) {
 
       {/* Céu, sol, lua e luz pela hora e pelo clima; chuva e neve (048). */}
       <DayNightView />
-      <OutdoorOnly>
+      <OpenWorldOnly>
         {/* Serras do fundo na névoa fechada (058). */}
         {GAME_CONFIG.BACKDROP.ENABLED && <BackdropView />}
+      </OpenWorldOnly>
+      <OutdoorOnly>
         <WeatherView />
       </OutdoorOnly>
 
@@ -142,11 +159,15 @@ export function GameScene({ children }) {
       <MusicAudio />
       <WaterAmbientView />
 
-      <OutdoorOnly>
+      <OpenWorldOnly>
         <TestLevelView />
-      </OutdoorOnly>
+        {/* Viridian, a primeira cidade, fixa no mundo (069). */}
+        <FixedTownView />
+      </OpenWorldOnly>
       {/* A sala por dentro do prédio em que o treinador está (068). */}
       <InteriorView />
+      {/* A cidade copiada inteira em que ele está — Pallet (069). */}
+      <TownMapView />
 
       <PlayerView />
       <ProjectilesView />
@@ -166,10 +187,10 @@ export function GameScene({ children }) {
       </OutdoorOnly>
       <RecallBeamsView />
       <DroppedFoodsView />
-      <OutdoorOnly>
+      <OpenWorldOnly>
         {/* Itens no chão, arbustos com item e frutas nas árvores (055). */}
         <WorldItemsView />
-      </OutdoorOnly>
+      </OpenWorldOnly>
       <EatingFoodsView />
       <EatingVfxView />
       <AttackEffectsView />
@@ -181,9 +202,9 @@ export function GameScene({ children }) {
       <JumpDustView />
       <ActionTimerRingView />
       <CreaturesView />
-      <OutdoorOnly>
+      <OpenWorldOnly>
         <WildCreaturesView />
-      </OutdoorOnly>
+      </OpenWorldOnly>
       {/* O anel azul embaixo das suas criaturas (064). */}
       <PartyMarkersView />
       <NameplatesView />

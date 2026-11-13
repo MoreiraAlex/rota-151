@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { getBiome, listBiomes } from '../data/biomes'
+import LGPE_COLLIDERS from '../data/lgpeColliders.json'
 import { GAME_CONFIG } from '../gameConfig'
 import { generateTerrainChunk } from '../terrain/terrainChunk'
 import {
@@ -11,6 +12,8 @@ import { placeChunkSolids } from '../vegetation/solidPlacement'
 import {
   BUILDING_KIND,
   chunkStreets,
+  DECOR_KIND,
+  STREET_PROP_KIND,
   modelBoxOf,
   placeTown,
   rectFootprints,
@@ -92,20 +95,25 @@ describe.runIf(CITY)('a cidade nos dados', () => {
     expect((SOLIDS_BLOCK_SIZE / 2) % CITY.town.blockSize).toBe(0)
   })
 
-  it('todo modelo da cidade tem caixa no chão', () => {
+  it('todo modelo da cidade tem caixa no chão (menos o enfeite chato)', () => {
     const { landmarks, themes, props, trainingField } = CITY.town
     const models = [
       ...[...landmarks, ...themes.flatMap(themeBuildings)]
         .map(({ model }) => model)
-        // O campo de treino não é um modelo (cerca e bonecos).
+        // O campo de treino e a praça não são um modelo.
         .filter(Boolean),
       ...themes.flatMap(({ lamp, fence }) => [lamp, fence]).filter(Boolean),
-      props.lamp,
-      props.fence,
-      props.bench,
+      ...themes.flatMap(({ yard = [] }) => yard.map(({ model }) => model)),
+      ...Object.entries(props)
+        .filter(([key]) => key !== 'stone')
+        .map(([, model]) => model),
       trainingField.dummy,
     ]
     for (const model of models) expect(() => modelBoxOf(model)).not.toThrow()
+  })
+
+  it('a pedra do caminho não tem colisão (é chata, um enfeite do chão)', () => {
+    expect(LGPE_COLLIDERS[CITY.town.props.stone]).toBeUndefined()
   })
 
   it('é o último do registro (os índices dos outros não mudam)', () => {
@@ -221,6 +229,7 @@ describe.runIf(CITY)('placeTown', () => {
     expect(townOf(plain, blockOf(plain, 3, 2))).toEqual({
       buildings: [],
       footprints: [],
+      treeSpots: [],
     })
   })
 
@@ -297,6 +306,7 @@ describe.runIf(CITY)('placeTown', () => {
   it('a base do prédio fica no chão ou abaixo dele (sem vão)', () => {
     blocks.forEach((chunk, i) => {
       for (const building of towns[i].buildings) {
+        if (building.kind === DECOR_KIND) continue
         const rect = worldRectOf(building)
         for (const [x, z] of rect.corners) {
           const sampler = createTerrainSampler(SEED, recipe)
@@ -304,6 +314,120 @@ describe.runIf(CITY)('placeTown', () => {
         }
       }
     })
+  })
+})
+
+describe.runIf(CITY)('os detalhes da cidade', () => {
+  const recipe = worldOf(CITY)
+  const { town } = CITY
+  const blocks = BLOCKS.map(([x, z]) => blockOf(recipe, x, z))
+  const towns = blocks.map((chunk) => townOf(recipe, chunk))
+  const all = towns.flatMap(({ buildings }) => buildings)
+  const houses = all.filter(({ kind }) => kind === BUILDING_KIND)
+  // Os objetos dos detalhes (069), sem os postes, cercas e bancos de antes.
+  const detailModels = [
+    ...Object.entries(town.props)
+      .filter(([key]) => !['lamp', 'fence', 'bench', 'stone'].includes(key))
+      .map(([, model]) => model),
+    ...town.themes.flatMap(({ yard = [] }) => yard.map(({ model }) => model)),
+  ]
+  const details = all.filter(({ model }) => detailModels.includes(model))
+
+  it('as casas ganham quintal', () => {
+    const models = new Set(details.map(({ model }) => model))
+    expect(models).toContain(town.props.mailbox)
+    expect(all.some(({ kind }) => kind === DECOR_KIND)).toBe(true)
+  })
+
+  it('hidrante só com chance (sem chance, nenhum)', () => {
+    const withChance = (hydrants) => {
+      const biome = {
+        ...CITY,
+        town: { ...town, details: { ...town.details, hydrants } },
+      }
+      const recipeOf = worldOf(biome)
+      return BLOCKS.flatMap(
+        ([x, z]) => townOf(recipeOf, blockOf(recipeOf, x, z)).buildings,
+      ).filter(({ model }) => model === town.props.hydrant)
+    }
+    expect(withChance(0)).toEqual([])
+    expect(withChance(1).length).toBeGreaterThan(0)
+  })
+
+  it('nenhum detalhe cai na rua nem dentro de um prédio', () => {
+    const rects = houses.map(worldRectOf)
+    for (const detail of details) {
+      expect(streetStrengthAt(town, detail.x, detail.z)).toBe(0)
+      const rect = worldRectOf(detail)
+      for (const other of rects) expect(rectsOverlap(rect, other)).toBe(false)
+    }
+  })
+
+  it('as pedras do caminho são enfeite: sem pegada', () => {
+    const stones = all.filter(({ kind }) => kind === DECOR_KIND)
+    for (const { x, z } of stones) {
+      const touched = towns.flatMap(({ footprints }) =>
+        footprints.filter(
+          (circle) =>
+            Math.hypot(circle.x - x, circle.z - z) < 1e-6 && circle.radius > 0,
+        ),
+      )
+      expect(touched).toEqual([])
+    }
+  })
+
+  it('os objetos de rua têm o tamanho deles, à parte do dos prédios', () => {
+    const bigger = {
+      ...CITY,
+      town: { ...town, scale: town.scale * 1.5 },
+    }
+    const recipeBig = worldOf(bigger)
+    const chunk = blockOf(recipeBig, ...BLOCKS[0])
+    const { buildings } = townOf(recipeBig, chunk)
+    const props = buildings.filter(({ kind }) => kind === STREET_PROP_KIND)
+    expect(props.length).toBeGreaterThan(0)
+    for (const { model, scale } of props) {
+      if (model === town.props.fountain || model === town.props.flowerBed) {
+        continue
+      }
+      expect(scale).toBe(town.propScale)
+    }
+    const landmarks = new Set(town.landmarks.map(({ model }) => model))
+    for (const { kind, model, scale } of buildings) {
+      if (kind !== BUILDING_KIND || landmarks.has(model)) continue
+      const special = town.themes.find(
+        (theme) => theme.special?.model === model,
+      )
+      if (special?.special.scale) continue
+      expect(scale).toBe(bigger.town.scale)
+    }
+  })
+
+  it('as árvores de rua ficam fora da rua', () => {
+    const spots = towns.flatMap(({ treeSpots }) => treeSpots)
+    expect(spots.length).toBeGreaterThan(0)
+    for (const { x, z } of spots) {
+      expect(streetStrengthAt(town, x, z)).toBe(0)
+    }
+  })
+
+  it('a árvore de rua entra nos sólidos como as outras folhosas', () => {
+    const chunk = blocks[0]
+    const solids = placeChunkSolids(chunk, {
+      seed: SEED,
+      biomeList: recipe.biomeList,
+      terrain: recipe.terrain,
+      params: recipe.solids,
+    })
+    const spots = towns[0].treeSpots
+    const onSpots = solids.trees.filter((tree) =>
+      spots.some((spot) => spot.x === tree.x && spot.z === tree.z),
+    )
+    expect(onSpots.length).toBeGreaterThan(0)
+    const kinds = new Set(onSpots.map(({ kind }) => kind))
+    expect([...kinds]).toEqual([
+      CITY.vegetation.find(({ kind }) => kind === 'broadleaf-tree').kind,
+    ])
   })
 })
 

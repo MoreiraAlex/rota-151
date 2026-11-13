@@ -3,11 +3,19 @@ import { placeChunkBushes } from '../vegetation/bushPlacement'
 import { createCityIndex } from '../town/cityIndex'
 import { chunkRoads } from '../town/roads'
 import {
+  chunkPlazas,
   chunkStreets,
   chunkTrainingFields,
   withStreets,
 } from '../town/townPlan'
 import { placeChunkSolids } from '../vegetation/solidPlacement'
+import {
+  chunkFixedTown,
+  chunkTownPaint,
+  chunkTownBareOpen,
+  fixedTownSolidsIn,
+} from '../town/fixedTown'
+import { withPlantings } from '../town/plantings'
 import { carveTrails, chunkTrails } from './trails'
 import { chunkMountainPaths, trailsOffMountains } from './mountains'
 import {
@@ -72,6 +80,9 @@ import {
  * @property {(x: number, z: number, weightsOut?: Float64Array) => number} sample -
  *   altura do relevo da seed em `(x, z)` (sem trilhas), com os pesos dos
  *   biomas em `weightsOut` (na ordem de `recipe().biomeList`)
+ * @property {() => import('../town/fixedTown').FixedTown | null} fixedTown -
+ *   a primeira cidade fixa no mundo (docs/features/069-revisao-do-bioma-
+ *   cidade.md — Viridian), ou `null`
  * @property {() => import('./terrainHeight').TerrainRecipe} recipe - a
  *   receita em uso (troca no `reconfigure`)
  * @property {(x: number, z: number) => object} biomeAt - bioma de maior
@@ -90,6 +101,9 @@ import {
  *   a cidade da seed mais perto e a distância (m) até o centro dela
  * @property {(x: number, z: number, count: number) => { city: import('../town/citySites').CitySite, distance: number }[]} nearestCities -
  *   as `count` cidades da seed mais perto, em ordem de distância
+ * @property {(x: number, z: number) => object | null} cityThemeAt - o tema
+ *   (`town.themes`) da cidade em `(x, z)` ou num quarteirão vizinho, ou
+ *   `null`
  * @property {() => SolidsBlock[]} loadedBlocks - os blocos de sólidos com
  *   algum chunk carregado (a view desenha a vegetação por bloco)
  * @property {(x: number, z: number, reach: number) => import('../vegetation/solidPlacement').Footprint[]} footprintsAround -
@@ -236,6 +250,28 @@ export function createTerrainChunkSet({
     chunk.trails = withStreets(chunk.trails, fields)
   }
 
+  // O chão calçado das praças das cidades (docs/features/069-revisao-do-
+  // bioma-cidade.md): no canal das ruas (pinta o calçamento da cidade) e
+  // no das trilhas (afasta a vegetação), sem afundar.
+  function addPlazas(chunk) {
+    const plazas = chunkPlazas(chunk, { biomeList: recipe.biomeList, cities })
+    if (!plazas) return
+    chunk.streets = withStreets(chunk.streets, plazas)
+    chunk.trails = withStreets(chunk.trails, plazas)
+  }
+
+  // A área da cidade fixa (docs/features/069-revisao-do-bioma-cidade.md —
+  // Viridian, a montada à mão): afasta a vegetação (`chunk.bare`; a grama e
+  // as flores nascem no gramado dela, `chunk.bareOpen`) e, nos chunks que
+  // se desenham (`paint`), leva o desenho do chão dela (`chunk.townPaint`).
+  function addFixedTown(chunk, { paint = false } = {}) {
+    const area = chunkFixedTown(chunk, sampler.fixedTown)
+    if (!area) return
+    chunk.bare = area
+    chunk.bareOpen = chunkTownBareOpen(chunk, sampler.fixedTown)
+    if (paint) chunk.townPaint = chunkTownPaint(chunk, sampler.fixedTown)
+  }
+
   // O caminho até o topo das montanhas (docs/features/066-revisao-dos-
   // biomas.md) no canal das trilhas, sem afundar.
   function addMountainPaths(chunk) {
@@ -262,9 +298,14 @@ export function createTerrainChunkSet({
     carveTrails(ground, ground.trails, recipe.trails)
     addMountainPaths(ground)
     addRoads(ground)
-    ground.streets = chunkStreets(ground, { biomeList: recipe.biomeList })
+    ground.streets = chunkStreets(ground, {
+      biomeList: recipe.biomeList,
+      sites: sampler.cities,
+    })
     ground.trails = withStreets(ground.trails, ground.streets)
+    addPlazas(ground)
     addTrainingFields(ground)
+    addFixedTown(ground)
     return ground
   }
 
@@ -272,13 +313,36 @@ export function createTerrainChunkSet({
   function buildBlock(blockX, blockZ) {
     const ground = blockGround(blockX, blockZ)
     ground.vegetationSeed = vegetationSeed
-    ground.solids = placeChunkSolids(ground, {
+    // A colisão da cidade fixa com o centro no bloco: caixas no corpo do
+    // relevo e pegadas na navegação; o sorteio não encosta nelas.
+    const fixed = sampler.fixedTown
+      ? fixedTownSolidsIn(
+          sampler.fixedTown,
+          [
+            ground.minX,
+            ground.minZ,
+            ground.minX + ground.size,
+            ground.minZ + ground.size,
+          ],
+          GAME_CONFIG.TOWN.FOOTPRINT_CELL,
+          ground,
+        )
+      : { footprints: [], buildings: [], trees: [] }
+    const placed = placeChunkSolids(ground, {
       seed: vegetationSeed,
       biomeList: recipe.biomeList,
       terrain: recipe.terrain,
       params: recipe.solids,
       cities,
+      obstacles: fixed.footprints,
     })
+    ground.solids = {
+      ...placed,
+      trees: [...placed.trees, ...fixed.trees],
+      // As flores dos vasos e canteiros (enfeites, sem pegada).
+      buildings: withPlantings([...placed.buildings, ...fixed.buildings]),
+      footprints: [...placed.footprints, ...fixed.footprints],
+    }
     // Os arbustos, que o F vasculha (docs/features/055-itens-no-mundo.md),
     // no bloco inteiro como os sólidos (a view desenha o bloco) e depois
     // deles, fora das pegadas.
@@ -321,8 +385,14 @@ export function createTerrainChunkSet({
     // cobblemon.md). Sem cidades, lista vazia.
     nearestCities: (x, z, count) =>
       sampler.cities?.nearestCities(x, z, count) ?? [],
+    // O tema da cidade em `(x, z)` (docs/features/056-bioma-cidade.md) —
+    // `null` fora de cidade.
+    cityThemeAt: (x, z) => cities?.themeNear(x, z) ?? null,
     // Correnteza dos rios em `(x, z)` (docs/features/057-lagos-e-rios.md).
     flowAt: (x, z) => sampler.flowAt(x, z),
+    // A primeira cidade fixa (`core/town/fixedTown.js`, docs/features/069-
+    // revisao-do-bioma-cidade.md) — `null` sem ela.
+    fixedTown: () => sampler.fixedTown,
     // A montanha mais perto de `(x, z)`, com o começo do caminho até o topo
     // (`mountains.js`) — `null` sem montanhas.
     nearestMountain: (x, z) => sampler.nearestMountain(x, z),
@@ -356,9 +426,14 @@ export function createTerrainChunkSet({
       // pintam o chão e afastam a vegetação, sem afundar.
       // `streets` fica também à parte: o que é só de trilha (os seixos) não
       // nasce na rua.
-      chunk.streets = chunkStreets(chunk, { biomeList: recipe.biomeList })
+      chunk.streets = chunkStreets(chunk, {
+        biomeList: recipe.biomeList,
+        sites: sampler.cities,
+      })
       chunk.trails = withStreets(chunk.trails, chunk.streets)
+      addPlazas(chunk)
       addTrainingFields(chunk)
+      addFixedTown(chunk, { paint: true })
       // A rua da cidade pinta com o calçamento do tema dela
       // (docs/features/056-bioma-cidade.md).
       chunk.streetLayer =

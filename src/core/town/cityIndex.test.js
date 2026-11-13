@@ -11,12 +11,16 @@ import { createCityIndex, landmarkIdOf, lotBoundsOf, lotKey } from './cityIndex'
 import {
   BUILDING_KIND,
   TRAINING_DUMMY_KIND,
+  chunkPlazas,
   chunkTrainingFields,
   placeTown,
   streetStrengthAt,
 } from './townPlan'
 
 const recipe = copyTerrainRecipe(currentTerrainRecipe())
+// As cidades procedurais ligadas (o jogo, nesta beta, só tem a primeira:
+// `CITIES.ONLY_FIRST`, docs/features/069-revisao-do-bioma-cidade.md).
+recipe.cities.ONLY_FIRST = false
 const CITY = recipe.biomeList.find(({ town }) => town)
 const SEED = deriveSeed(GAME_CONFIG.WORLD.SEED, 'terrain')
 
@@ -289,6 +293,95 @@ describe.runIf(CITY)('createCityIndex', () => {
     }
   })
 
+  // A praça (docs/features/069-revisao-do-bioma-cidade.md): o lote do
+  // prédio único `plaza`.
+  const plazaLot = () => {
+    const [key] = [...found.city.landmarks].find(
+      ([, landmark]) => landmark.plaza,
+    )
+    const [lotX, lotZ] = key.split(',').map(Number)
+    return lotBoundsOf(CITY.town, lotX, lotZ)
+  }
+
+  it('toda cidade tem praça, com a fonte no meio e bancos em volta', () => {
+    expect(expectedLandmarks(found.city)).toContain('plaza')
+    const { town } = CITY
+    const { sampler, cities: index } = worldIndex()
+    const [minX, minZ, maxX, maxZ] = plazaLot()
+    const centerX = (minX + maxX) / 2
+    const centerZ = (minZ + maxZ) / 2
+    const blockSize = recipe.terrain.SOLIDS_BLOCK_SIZE
+    const chunk = generateTerrainChunk(
+      sampler,
+      chunkCoordAt(centerX, blockSize),
+      chunkCoordAt(centerZ, blockSize),
+      { ...recipe.terrain, CHUNK_SIZE: blockSize },
+    )
+    const { buildings } = placeTown(chunk, {
+      seed: SEED,
+      biomeList: recipe.biomeList,
+      terrain: recipe.terrain,
+      cities: index,
+    })
+    const inside = buildings.filter(
+      ({ x, z }) => x > minX && x < maxX && z > minZ && z < maxZ,
+    )
+    const fountains = inside.filter(
+      ({ model }) => model === town.props.fountain,
+    )
+    expect(fountains).toHaveLength(1)
+    expect(fountains[0].x).toBeCloseTo(centerX)
+    expect(fountains[0].z).toBeCloseTo(centerZ)
+    const benches = inside.filter(({ model }) => model === town.props.bench)
+    expect(benches.length).toBeGreaterThan(0)
+    // Cada banco virado para a fonte (a frente, +Z do modelo, aponta para
+    // o meio).
+    for (const bench of benches) {
+      const toCenter = Math.atan2(centerX - bench.x, centerZ - bench.z)
+      expect(Math.cos(bench.yaw - toCenter)).toBeCloseTo(1)
+    }
+  })
+
+  it('o chão da praça é calçado no meio do lote e nada fora dele', () => {
+    const { sampler, cities: index } = worldIndex()
+    const [minX, minZ, maxX, maxZ] = plazaLot()
+    const size = recipe.terrain.CHUNK_SIZE
+    const centerX = (minX + maxX) / 2
+    const centerZ = (minZ + maxZ) / 2
+    const chunk = generateTerrainChunk(
+      sampler,
+      chunkCoordAt(centerX, size),
+      chunkCoordAt(centerZ, size),
+      recipe.terrain,
+    )
+    const plazas = chunkPlazas(chunk, {
+      biomeList: recipe.biomeList,
+      cities: index,
+    })
+    expect(plazas).not.toBeNull()
+    const { resolution } = chunk
+    const step = chunk.size / resolution
+    const ix = Math.round((centerX - chunk.minX) / step)
+    const iz = Math.round((centerZ - chunk.minZ) / step)
+    expect(plazas[iz + ix * (resolution + 1)]).toBe(1)
+    for (let i = 0; i <= resolution; i++) {
+      for (let j = 0; j <= resolution; j++) {
+        const x = chunk.minX + i * step
+        const z = chunk.minZ + j * step
+        const isOutside = x < minX || x > maxX || z < minZ || z > maxZ
+        if (isOutside) expect(plazas[j + i * (resolution + 1)]).toBe(0)
+      }
+    }
+  })
+
+  it('sem o índice de cidades não há chão de praça', () => {
+    const { sampler } = worldIndex()
+    const chunk = generateTerrainChunk(sampler, 0, 0, recipe.terrain)
+    expect(
+      chunkPlazas(chunk, { biomeList: recipe.biomeList, cities: null }),
+    ).toBeNull()
+  })
+
   it('o id e o porte são os da cidade da seed', () => {
     const { sampler, cities: index } = worldIndex()
     for (let cell = -2; cell <= 2; cell++) {
@@ -311,14 +404,44 @@ describe.runIf(CITY)('createCityIndex', () => {
     expect(seen.size).toBe(CITY.town.sizes.length)
   })
 
-  it('o treinador nasce numa rua da primeira cidade, do primeiro porte', () => {
-    const { sampler, cities: index } = worldIndex()
-    expect(sampler.biomeAt(0, 0)).toBe(CITY)
-    expect(streetStrengthAt(CITY.town, 0, 0)).toBe(1)
-    const city = index.cityOf(0, 0)
-    expect(city.id).toBe(sampler.cities.cityAt(0, 0).id)
-    expect(city.size.id).toBe(GAME_CONFIG.CITIES.FIRST_SIZE)
-  })
+  it.runIf(!GAME_CONFIG.CITIES.FIRST_TOWN.LAYOUT)(
+    'o treinador nasce numa rua da primeira cidade, do primeiro porte',
+    () => {
+      const { sampler, cities: index } = worldIndex()
+      expect(sampler.biomeAt(0, 0)).toBe(CITY)
+      expect(streetStrengthAt(CITY.town, 0, 0)).toBe(1)
+      const city = index.cityOf(0, 0)
+      expect(city.id).toBe(sampler.cities.cityAt(0, 0).id)
+      expect(city.size.id).toBe(GAME_CONFIG.CITIES.FIRST_SIZE)
+    },
+  )
+
+  // Com a primeira cidade fixa (docs/features/069-revisao-do-bioma-
+  // cidade.md — Viridian, montada à mão), o layout dela é a cidade toda:
+  // nenhum lote.
+  it.runIf(Boolean(GAME_CONFIG.CITIES.FIRST_TOWN.LAYOUT))(
+    'o treinador nasce na cidade fixa, sem lotes da cidade procedural',
+    () => {
+      const { sampler, cities: index } = worldIndex()
+      const first = sampler.cities.cityAt(0, 0)
+      expect(first.fixed).toBe(true)
+      expect(sampler.biomeAt(0, 0)).toBe(CITY)
+      const { lotsPerSide, blockSize, streetWidth } = CITY.town
+      const lotSize = (blockSize - streetWidth) / lotsPerSide
+      const reach = Math.ceil(first.radius / lotSize)
+      for (let lotX = -reach; lotX <= reach; lotX++) {
+        for (let lotZ = -reach; lotZ <= reach; lotZ++) {
+          const [minX, minZ, maxX, maxZ] = lotBoundsOf(CITY.town, lotX, lotZ)
+          const near = sampler.cities.nearestCity(
+            (minX + maxX) / 2,
+            (minZ + maxZ) / 2,
+          )
+          if (near.city !== first) continue
+          expect(index.isLotOpen(lotX, lotZ)).toBe(false)
+        }
+      }
+    },
+  )
 
   it('cada cidade segue um tema da lista, o mesmo de qualquer quarteirão', () => {
     expect(CITY.town.themes).toContain(found.city.theme)

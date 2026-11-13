@@ -34,6 +34,15 @@ import { clamp } from '../math'
  * @property {Float32Array | null} [trails] - força da trilha por vértice
  *   (na ordem de `heights`; `null` = sem trilha), posta pelo conjunto de
  *   chunks ao carregar (`trails.js`)
+ * @property {Float32Array | null} [bare] - onde a vegetação não nasce, sem
+ *   pintar o chão (por vértice, na ordem de `heights`): a área da cidade
+ *   montada à mão (docs/features/069-revisao-do-bioma-cidade.md)
+ * @property {{ kinds: string[], values: Float32Array } | null} [bareOpen] -
+ *   os tipos que nascem nela (a grama e as flores) e onde eles não nascem
+ *   (por vértice: as ruas e o lago)
+ * @property {import('../town/fixedTown').TownPaint | null} [townPaint] -
+ *   o desenho do chão da cidade montada à mão (as camadas de cor e a rocha
+ *   do barranco, por vértice)
  */
 
 /** Chunk que contém a coordenada de mundo `value` (num eixo). */

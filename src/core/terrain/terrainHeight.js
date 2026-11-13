@@ -5,6 +5,7 @@ import { createRng, deriveSeed } from '../rng'
 import { solidParams } from '../vegetation/solidPlacement'
 import { createBiomeSampler } from './biomeMap'
 import { createCitySites } from '../town/citySites'
+import { createFixedTown, fixedTownHeight } from '../town/fixedTown'
 import { createRoads } from '../town/roads'
 import { createWaterBodies } from './waterBodies'
 import { rampShareAt, terracedHeight } from './terraces'
@@ -155,7 +156,10 @@ function createReliefSampler(noise2D, relief, mountainSites) {
  * degrau. Alturas a partir de `WATER_LEVEL` (o chão médio de cada bioma é
  * medido da água). Depois da média, os lagos e rios cavam o relevo onde os
  * biomas aceitam (`water`, docs/features/057-lagos-e-rios.md) — rasos
- * onde as estradas cruzam (o vau, docs/features/058-ajuste-dos-biomas.md). Mesma seed e mesma receita, mesmo relevo em todo ponto;
+ * onde as estradas cruzam (o vau, docs/features/058-ajuste-dos-biomas.md).
+ * Por último, a primeira cidade fixa (`fixedTown.js`) põe o chão dela na
+ * área dela e mistura a borda. Mesma seed e mesma receita, mesmo relevo em
+ * todo ponto;
  * ruído embaralhado pelo PRNG seedado, nunca `Math.random()`.
  *
  * @param {number} seed
@@ -170,18 +174,29 @@ export function createTerrainSampler(seed, recipe = currentTerrainRecipe()) {
   // As cidades da seed (docs/features/058-ajuste-dos-biomas.md) — só com o
   // bioma da cidade no mundo.
   const townBiome = biomeList.find(({ town }) => town)
+  const cityParams = recipe.cities ?? GAME_CONFIG.CITIES
+  // A primeira cidade fixa (docs/features/069-revisao-do-bioma-cidade.md —
+  // Viridian): o chão dela manda no relevo da área e da faixa em volta.
+  const fixedTown = createFixedTown({
+    params: cityParams.FIRST_TOWN,
+    townBiome,
+    waterLevel: terrain.WATER_LEVEL,
+  })
   const cities = townBiome
     ? createCitySites(seed, {
         town: townBiome.town,
         waterBodies,
-        params: recipe.cities ?? GAME_CONFIG.CITIES,
+        params: cityParams,
+        fixedTown,
       })
     : null
   // As estradas entre elas: onde cruzam rio ou lago, o leito vira vau.
+  // Desligadas (`ROADS.ENABLED`), nenhuma (nesta beta só há Viridian).
   const roadParams = recipe.roads ?? GAME_CONFIG.ROADS
-  const roads = cities
-    ? createRoads(seed, { cities, params: roadParams })
-    : null
+  const roads =
+    cities && roadParams.ENABLED !== false
+      ? createRoads(seed, { cities, params: roadParams })
+      : null
 
   /**
    * O leito (m, a partir da água) com o vau: fundo demais sob a estrada,
@@ -307,7 +322,8 @@ export function createTerrainSampler(seed, recipe = currentTerrainRecipe()) {
       waterShare.lakes += wet * (biomeList[i].water?.lakes ?? 0)
     }
     const carved = waterBodies.carveAt(x, z, height, waterShare)
-    return terrain.WATER_LEVEL + withFord(x, z, carved)
+    const natural = terrain.WATER_LEVEL + withFord(x, z, carved)
+    return fixedTown ? fixedTownHeight(fixedTown, x, z, natural) : natural
   }
 
   return {
@@ -320,6 +336,8 @@ export function createTerrainSampler(seed, recipe = currentTerrainRecipe()) {
     cities,
     // As estradas entre elas (`roads.js`; `null` sem cidades).
     roads,
+    // A primeira cidade fixa (`core/town/fixedTown.js`; `null` sem ela).
+    fixedTown,
     // Correnteza dos rios (só visual — `waterBodies.flowAt`).
     flowAt: waterBodies.flowAt,
     // O caminho das montanhas (0 a 1) e a montanha mais perto
